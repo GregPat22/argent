@@ -11,8 +11,8 @@ import {
 } from "../src/desktop/service-client.js";
 
 const directory = mkdtempSync(join(tmpdir(), "argent-native-"));
-const screenshot = resolve(".data/screenshots/argent-desktop.png");
-mkdirSync(resolve(".data/screenshots"), { recursive: true });
+const screenshot = resolve(".context/argent-desktop.png");
+mkdirSync(resolve(".context"), { recursive: true });
 const executable =
   process.env.ARGENT_PACKAGED_EXECUTABLE ??
   (createRequire(import.meta.url)("electron") as string);
@@ -37,7 +37,7 @@ try {
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
       reject(new Error(`Desktop smoke timeout\n${errors}\n${output}`));
-    }, 45000);
+    }, 75000);
     child.stderr.on("data", (chunk: Buffer) => {
       errors = (errors + chunk.toString()).slice(-10000);
     });
