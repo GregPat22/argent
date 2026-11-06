@@ -229,9 +229,10 @@ P1 is integrated on main, and a pinned upstream source evaluation is recorded. T
 prove runtime conformance. Retain the current core for bounded M1a; the runtime
 spike is deferred until measured need. The
 [M1a contract](specs/0007-cloud-workspace-lifecycle.md) specifies read-only GitHub
-access, lifecycle, reconciliation and cleanup. Its internal lifecycle simulation
-is implemented; GitHub bootstrap is next, alongside customer/provider-authentication
-validation in the roadmap. Approve concrete provider limits before live tests.
+access, lifecycle, reconciliation and cleanup. Internal lifecycle and repository
+bootstrap simulations are implemented; live GitHub access and isolated checkout
+are next, alongside customer/provider-authentication validation in the roadmap.
+Approve concrete provider limits before live tests.
 Then prove real isolated workspaces, one official agent, trusted exact-commit
 verification and a draft-PR broker, followed by portable continuity before managed
 release. Avoid a full IDE, swarms, billing, native mobile apps and autonomous

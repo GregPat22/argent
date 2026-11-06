@@ -5,28 +5,105 @@ the latest known state across the project chats and checkouts. Read it alongside
 [START_HERE.md](START_HERE.md), [AGENTS.md](AGENTS.md) and the relevant specification.
 Private chat access is not required to continue development.
 
-**Current checkout:** `GregPat22/next-step-v2`, integrating main `13eb14e` for
-PR preparation. P1 and the landing/continuity work are already on main; the
-internal lifecycle simulation and retained-core decision are this branch's work.
-No real cloud capability follows from these changes.
+**Current checkout:** `GregPat22/next-step-v3`, based on main `1424b92`.
+P1, the landing/continuity work and lifecycle simulation are on main. This branch
+adds internal simulated repository authorization, credential brokerage and
+bootstrap. No live GitHub or cloud capability follows from these changes.
 
 ## Where the work is saved
 
 Current integration status checked against freshly fetched `origin/main` at
-`13eb14e` on 6 November 2026. It includes desktop PR #1 (`fd60a5a`), landing
-PR #3 (`b5e763f`) and shutdown/continuity research PR #4 (`13eb14e`). Historical
+`1424b92` on 6 November 2026. It includes desktop PR #1 (`fd60a5a`), landing
+PR #3 (`b5e763f`), shutdown/continuity research PR #4 (`13eb14e`) and lifecycle
+PR #5 (`1424b92`). Historical
 review notes below retain their original evidence and branch states.
 
-| Location                                      | Current state                                                          | How to use it                                                             |
-| --------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `origin/main` at `13eb14e`                    | M0/P1, landing draft and continuity/market-validation plans            | Base for new work; execution is simulated and the website is unpublished. |
-| `GregPat22/next-step-v2`                      | M1a contract, retained-core decision and internal lifecycle simulation | Review spec 0007; real provider/bootstrap work remains unimplemented.     |
-| `codex/desktop-handoff` / `codex/p1-original` | Earlier P1 review/provenance branches                                  | Historical evidence; PR #1 is already integrated.                         |
-| `GregPat22/argent-landing-page-draft`         | Landing source integrated via PR #3                                    | Preserve any later worktree changes.                                      |
-| `GregPat22/grok-conductor-shutdown-analysis`  | Research and roadmap integrated via PR #4                              | Current continuity/customer/authentication criteria are preserved here.   |
+| Location                                      | Current state                                                      | How to use it                                                              |
+| --------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `origin/main` at `1424b92`                    | M0/P1, landing, continuity plans and internal lifecycle simulation | Base for new work; execution is simulated and the website is unpublished.  |
+| `GregPat22/next-step-v3`                      | Simulated read-only repository access and bootstrap queue          | Review spec 0007; live GitHub and isolated bootstrap remain unimplemented. |
+| `GregPat22/next-step-v2`                      | Lifecycle source integrated through PR #5                          | Historical source/evidence for the first M1a slice.                        |
+| `codex/desktop-handoff` / `codex/p1-original` | Earlier P1 review/provenance branches                              | Historical evidence; PR #1 is already integrated.                          |
+| `GregPat22/argent-landing-page-draft`         | Landing source integrated via PR #3                                | Preserve any later worktree changes.                                       |
+| `GregPat22/grok-conductor-shutdown-analysis`  | Research and roadmap integrated via PR #4                          | Current continuity/customer/authentication criteria are preserved here.    |
 
-This feature branch integrates current main for PR preparation; main itself is
-unchanged. The lifecycle slice adds no real cloud execution or public release.
+This feature branch continues current main; main itself is unchanged. Both M1a
+harnesses use simulation and add no real cloud execution or public release.
+
+### Repository access/bootstrap slice — 6 November 2026
+
+On the unchanged branch `GregPat22/next-step-v3`, based on freshly fetched
+`origin/main` at `1424b92` (lifecycle PR #5). Added internal
+`Store.repositories`, simulation-only authorization/GitHub/bootstrap contracts
+and a bounded worker. Bootstrap enrollment serializes with lifecycle requests;
+active/uncertain bootstrap blocks pause/delete. One bootstrap per workspace is
+allowed, including after success. No API, desktop, website or dependency behavior
+was changed.
+
+The authority binds the authenticated operator, selected repository and allowed
+ref before minting; callers cannot submit installation IDs or permission maps.
+The broker requests one numeric repository ID and Contents read, validates
+returned identity/scope/expiry, resolves a full SHA and checks a separate synthetic
+checkout observation. Tokens are passed separately from the fixed checkout plan.
+Known tokens are revoked and channels cleared on success/failure; both
+acknowledgments are mandatory for success. Mint/checkout intent is transactional
+with its event. Fenced leases, deadlines and uncertainty prevent automatic replay.
+Only fixed event names and validated metadata are stored, never adapter exceptions
+or raw tokens.
+
+Fresh `npm run check` passed strict types, formatting, compilation and **118 tests,
+0 failures, 0 skips**. The **50 new simulation tests** include scope/identity
+rejections, secret canaries in SQLite/WAL and checkout plans, cleanup refusal/hangs,
+heartbeat/ownership expiry, independent-process claim and pause/enrollment races,
+worker death after mint intent, late checkout acknowledgment, lock contention,
+transaction rollback and durable cursor/idempotent reconnect. Logs are local
+`.context/check.log` and `.context/repository-tests.log`; tracked source/specs
+remain the reproducible evidence. The actual source/test/documentation diff was
+reviewed; this is not an external independent review or live security validation.
+Diff review also found that an adapter could mutate the shared checkout plan
+used as its verification baseline. The plan is now frozen, with a regression
+confirming mutation blocks bootstrap and still cleans credentials.
+
+Limits: all adapters and checkout observations are simulated. There is no real
+GitHub App, authenticated operator service, live HTTP/token issuance, Git clone,
+isolated runner, secret vault, dependency execution or provider resource. No
+native/package smoke, website build/browser test or live-provider test was run.
+After worker death, token/channel obligations remain blocked; process-memory
+credentials cannot be recovered for automatic revocation. A denied authorization
+also remains blocked conservatively. An audited resolution/cleanup workflow is
+still missing. M1a is not complete, and these tests prove no live isolation,
+credential erasure or tested pull request.
+
+Next: implement the real server-side authorization/GitHub adapter and isolated
+checkout/ephemeral-channel adapter with durable secret references and audited
+uncertain-outcome cleanup. Establish concrete account/resource/budget approval
+before live provider tests, then prove private-fixture checkout, persistence,
+isolation and deletion against spec 0007. Continue provider/deployment auth and
+customer validation in parallel when authorized. No branch rename, commit, push,
+PR, merge, deployment, purchase or provisioning was performed in this task.
+
+### Repository bootstrap PR preparation — 6 November 2026
+
+On `GregPat22/next-step-v3`, fetched `origin/main` at `1424b92`; the feature
+branch was already current. The founder requested a PR for this complete
+workspace diff. Added five focused regression cases for malformed token responses
+and heartbeat failure during outstanding authorization, bringing this slice to
+**55 simulation tests** and the full `npm run check` to **123 passing tests,
+0 failures, 0 skips**, with strict types, formatting and compilation.
+The fresh verification log is `.context/pr-check.log`.
+
+Independent read-only code/security and coverage reviews found no blocking issue
+or incomplete acceptance claim within the explicitly simulated second slice.
+No measured line/branch coverage percentage is claimed. The actual diff against
+main, relative documentation links, whitespace and credential scan were checked
+before publication. Existing prelaunch package version `0.0.1` is retained;
+this repository has no VERSION/CHANGELOG release scheme to update for this slice.
+
+All live-provider, isolation, credential-erasure and crash-time revocation limits
+above remain. No native/package, website or live-provider checks were run.
+Next is authorized live access/isolated bootstrap and audited credential cleanup,
+not M1a completion. Authorization here covers commit, branch push and PR creation
+against `main`; merging, deployment, binary release and spending remain separate.
 
 ## Product decisions already made
 
@@ -214,8 +291,8 @@ Next actions, in order:
 1. Continue bounded M1a on the retained Argent core. The engineering agent owns
    routine technical choices; T3 runtime evaluation is deferred until measured need.
    Foundation replacement is not approved.
-2. Lifecycle records and simulated failure tests are implemented internally.
-   Next implement read-only GitHub credential brokerage/bootstrap from
+2. Lifecycle and repository brokerage/bootstrap simulation are implemented
+   internally. Next implement live GitHub access and an isolated checkout adapter from
    [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md), alongside the
    provider/deployment authentication validation in the roadmap. Supported
    subscription onboarding remains preferred where permitted; API keys remain

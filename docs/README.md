@@ -21,15 +21,15 @@ evidence, Conductor setup and next actions. This branch contains P1 source.
 
 ## Acceptance contracts and evidence
 
-| Document                                                                                 | Status in this publication                                                                          |
-| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| [M0 durable local run](specs/0001-durable-local-run.md)                                  | Implemented simulation contract.                                                                    |
-| [M0 completion report](milestones/0000-completion.md)                                    | Actual test and review evidence, with limits.                                                       |
-| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)                    | Planned real-provider release contract; unimplemented here.                                         |
-| [Project identity and repository setup](specs/0003-project-identity.md)                  | Name, MIT rationale, metadata and namespace availability.                                           |
-| [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)                     | Implemented local macOS prototype; see P1 completion evidence.                                      |
-| [W0 website landing page draft](specs/0005-website-landing-draft.md)                     | Next.js draft integrated through PR #3; not deployed.                                               |
-| [M1a repository access and workspace lifecycle](specs/0007-cloud-workspace-lifecycle.md) | Internal lifecycle simulation implemented; GitHub bootstrap and live-provider evidence remain open. |
+| Document                                                                                 | Status in this publication                                                                                       |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [M0 durable local run](specs/0001-durable-local-run.md)                                  | Implemented simulation contract.                                                                                 |
+| [M0 completion report](milestones/0000-completion.md)                                    | Actual test and review evidence, with limits.                                                                    |
+| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)                    | Planned real-provider release contract; unimplemented here.                                                      |
+| [Project identity and repository setup](specs/0003-project-identity.md)                  | Name, MIT rationale, metadata and namespace availability.                                                        |
+| [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)                     | Implemented local macOS prototype; see P1 completion evidence.                                                   |
+| [W0 website landing page draft](specs/0005-website-landing-draft.md)                     | Next.js draft integrated through PR #3; not deployed.                                                            |
+| [M1a repository access and workspace lifecycle](specs/0007-cloud-workspace-lifecycle.md) | Internal lifecycle and repository-bootstrap simulations implemented; live GitHub/provider evidence remains open. |
 
 ## Conductor shutdown research and roadmap follow-up
 

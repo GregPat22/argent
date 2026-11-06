@@ -51,8 +51,8 @@ not a market-size estimate, feature-frequency ranking or proof of willingness to
 2. Retain the current core for bounded M1a and verify the provider/deployment auth matrix.
    User interviews and paid competitor trials require the relevant authorization.
 3. Continue [M1a access/lifecycle work](docs/specs/0007-cloud-workspace-lifecycle.md)
-   from the internal simulation to read-only GitHub bootstrap and approved live
-   persistence/cleanup evidence, then M1b–M1d in focused slices.
+   from the internal lifecycle/bootstrap simulations to live GitHub access,
+   isolated checkout and approved persistence/cleanup evidence, then M1b–M1d in focused slices.
 4. Preserve the one-repository, one-workspace, one-agent technical proof. Team
    replacement is a later release promise; it needs M2a evidence first.
 

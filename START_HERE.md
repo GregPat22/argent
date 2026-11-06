@@ -31,7 +31,7 @@ execution and a tested-PR flow are future acceptance contracts, not live feature
 in this revision. The source repository is public and MIT-licensed. No published
 production download, approved pricing or customer proof is established here.
 
-Next engineering contract: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). Retain the current core for bounded implementation. The internal lifecycle harness is simulated; GitHub bootstrap and approved live-provider validation remain next.
+Next engineering contract: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). Retain the current core for bounded implementation. The internal lifecycle and repository-bootstrap harnesses are simulated; live GitHub access, isolated checkout and approved provider validation remain next.
 
 ## If this folder appears empty
 

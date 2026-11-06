@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { LifecycleStore } from "./lifecycle-store.js";
+import { RepositoryStore } from "./repository-store.js";
 import {
   DomainError,
   requireInteger,
@@ -44,6 +45,7 @@ function readWorkspace(row: Row): Workspace {
 export class Store {
   private readonly db: DatabaseSync;
   readonly lifecycle: LifecycleStore;
+  readonly repositories: RepositoryStore;
 
   constructor(path: string) {
     this.db = new DatabaseSync(path);
@@ -75,6 +77,7 @@ export class Store {
       CREATE INDEX IF NOT EXISTS run_events ON events(run_id, cursor);
     `);
     this.lifecycle = new LifecycleStore(this.db);
+    this.repositories = new RepositoryStore(this.db);
   }
 
   close(): void {

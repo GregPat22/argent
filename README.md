@@ -36,7 +36,7 @@ separate verifier checks. There is no real GitHub authorization, repository
 checkout, AI agent, cloud compute or pull request. The desktop architecture keeps
 those next integrations behind the existing headless engine.
 
-Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). The current core is retained for bounded M1a. An internal simulation-only lifecycle store/worker now exercises durable operations and failure recovery; read-only GitHub bootstrap and live-provider validation remain next.
+Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). The current core is retained for bounded M1a. Internal simulation-only lifecycle and repository-bootstrap queues now exercise durable operations, read-only credential policy and failure recovery. Live GitHub access, isolated checkout and approved provider validation remain next.
 
 ## Tech Stack
 
@@ -72,8 +72,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [research and recommendations](docs/rese
 
 ## Project Structure
 
-`src/` contains the API boundary, durable store, worker and two narrow adapter
-interfaces. They remain modules in one package until deployment or ownership
+`src/` contains the API boundary, durable store, worker and narrow simulation
+adapter contracts. They remain modules in one package until deployment or ownership
 requires splitting packages. `tests/` covers state transitions and real process
 death/reconnection. `scripts/` holds a runnable demo and its process harness.
 `docs/specs/` distinguishes the implemented M0 contract from the actual cloud MVP.
