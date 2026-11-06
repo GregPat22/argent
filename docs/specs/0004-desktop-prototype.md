@@ -61,9 +61,10 @@ strict types and formatting. A rebuilt local package passed packaged-executable
 smoke and archive checksum validation.
 The harness uses controlled bridge responses and a minimal DOM; native smoke
 results and remaining limits are in the [review follow-up](../research/p1-pr-review.md#fix-verification-follow-up).
-The update targets the existing draft PR #1 head `codex/desktop-handoff`; main
-remains M0 until the explicit founder merge decision. The package remains
-unsigned, unnotarized and unpublished.
+The update originally targeted PR #1 head `codex/desktop-handoff`. Main integrated
+that PR and the refresh fixes in `fd60a5a`; this checkout includes them. The package
+remains unsigned, unnotarized and unpublished. Evidence above belongs to the
+recorded revisions; the later documentation merge does not re-run native smoke.
 
 No upstream fork/import without founder approval. No silent purchase, cloud
 provisioning, merge, deployment or public release. Prefer a thin desktop shell

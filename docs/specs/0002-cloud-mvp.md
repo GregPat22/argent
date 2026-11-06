@@ -1,7 +1,14 @@
 # M1: persistent cloud workspace to a tested pull request
 
-Status: proposed; not implemented. Depends on the foundation adoption decision
+Status: planned acceptance contract; not implemented. Depends on the foundation adoption decision
 and explicit approval before billable resources are provisioned.
+
+Roadmap follow-up, 6 November 2026: the founder authorized incorporating the
+[shutdown-review continuity requirements](0006-continuity-and-market-validation.md).
+The first technical proof remains one repository, workspace and agent. Managed
+release also requires visible control, portable recovery and a documented
+provider/deployment authentication decision. Supported subscriptions are the
+preferred product direction; API-key auth below remains the technical-pilot path.
 
 ## User journey
 
@@ -50,10 +57,25 @@ or installed dependencies. Merging always requires a separate human decision.
 14. Demonstrate self-hosted control plane and local adapter without our servers;
     validate the real open-source isolated runtime on Linux/KVM before claiming
     self-hosted untrusted execution parity.
+15. The desktop identifies execution location, latest durable progress, connection
+    freshness, awaiting input/approval and verification state. Disconnection does
+    not resubmit work. Define blocked-input transitions/timeouts and retain
+    cancellation acknowledgment and uncertain-outcome handling.
+16. Export and restore readable task context, supported changes and evidence to
+    an independent self-hosted installation with Argent-hosted endpoints unavailable.
+    Validate manifest integrity/completeness, secret exclusions and untrusted
+    import handling. Active/uncertain records never replay external effects.
+    Apply the detailed [continuity contract](0006-continuity-and-market-validation.md).
+17. Before commercial onboarding, record supported authentication per provider and
+    local/customer-operated remote/managed deployment, including renewal, quotas,
+    revocation and unresolved permissions. Managed subscription availability needs
+    actual eligibility and integration evidence. Never silently switch to paid
+    API usage when subscription allowance is exhausted.
 
 ## Release evidence
 
 Automated real-provider contract tests, a recorded disconnect/reconnect journey,
 an actual GitHub draft PR, exact-commit test artifacts, credential and cleanup
-audit, measured resource consumption and a documented backup/restore drill.
+audit, measured resource consumption, visible control/recovery evidence and both
+a documented backup/restore drill and independent portable-context restore.
 No simulation can satisfy the real-provider or PR criteria above.
