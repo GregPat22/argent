@@ -100,15 +100,6 @@ export function tokenFrom(value: unknown): string | null {
     : null;
 }
 
-// GitHub names are case-insensitive and the API returns the canonical owner/name,
-// while workspace URLs may differ in case or carry a ".git" suffix.
-function repositoryName(url: string): string {
-  return url
-    .slice("https://github.com/".length)
-    .replace(/\.git$/i, "")
-    .toLowerCase();
-}
-
 export function tokenExpiry(
   value: unknown,
   grant: RepositoryAuthorization,
@@ -126,9 +117,9 @@ export function tokenExpiry(
   if (
     !tokenFrom(value) ||
     data.repository_selection !== "selected" ||
+    // The numeric ID is GitHub's stable identity; owner/name changes on rename
+    // or transfer, so it must not decide whether a token is in scope.
     repository.id !== grant.repositoryId ||
-    typeof repository.full_name !== "string" ||
-    repository.full_name.toLowerCase() !== repositoryName(grant.repository) ||
     permissions.contents !== "read" ||
     Object.entries(permissions).some(
       ([key, access]) =>

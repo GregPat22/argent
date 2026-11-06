@@ -49,47 +49,109 @@ function operation(row: Record<string, unknown>): RepositoryOperation {
   };
 }
 
+// Columns shared by every schema version, in table order.
+const COLUMNS = `id,workspace_id,operator_id,repository,ref,provider_id,repository_id,
+  installation_id,head_sha,request_key,fingerprint,status,phase,credential,channel,
+  token_expires_at,max_runtime_ms,created_at,lease_token,lease_expires_at,deadline_at`;
+
+const SCHEMA_VERSION = 2;
+
+function operationsTable(name: string): string {
+  return `CREATE TABLE IF NOT EXISTS ${name} (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL REFERENCES lifecycle_workspaces(workspace_id),
+    operator_id TEXT NOT NULL, repository TEXT NOT NULL, ref TEXT NOT NULL,
+    provider_id TEXT NOT NULL, repository_id INTEGER, installation_id INTEGER,
+    head_sha TEXT, request_key TEXT NOT NULL UNIQUE, fingerprint TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','failed','needs_attention')),
+    phase TEXT NOT NULL CHECK(phase IN ('authorizing','minting','resolving','checkout','cleaning')),
+    credential TEXT NOT NULL CHECK(credential IN ('none','unknown','issued','revoked')),
+    channel TEXT NOT NULL CHECK(channel IN ('none','unknown','cleared')),
+    token_expires_at INTEGER, max_runtime_ms INTEGER NOT NULL,
+    created_at INTEGER NOT NULL, lease_token TEXT, lease_expires_at INTEGER, deadline_at INTEGER
+  ) STRICT;`;
+}
+
+// Nothing external can exist before mint intent, so such work fails cleanly
+// and may be retried. From mint intent onward the outcome is uncertain.
+function effectFree(phase: unknown, credential: unknown): boolean {
+  return phase === "authorizing" && credential === "none";
+}
+
 export class RepositoryStore {
   constructor(private readonly db: DatabaseSync) {
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS schema_versions (component TEXT PRIMARY KEY, version INTEGER NOT NULL) STRICT",
+    );
+    const version = this.schemaVersion();
+    if (version > SCHEMA_VERSION)
+      throw new Error("Repository schema is newer than this build supports");
+    // Version 1 allowed one attempt per workspace and had no failed status.
+    // SQLite cannot alter those constraints, so rebuild the table with its rows.
+    if (version === 1) this.withoutForeignKeys(() => this.migrateFromV1());
     this.transaction(() => {
-      // The first schema allowed one attempt per workspace and had no failed
-      // status. Only simulation tests write these rows, so rebuild it when empty.
-      const existing = db
-        .prepare(
-          "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'repository_operations'",
-        )
-        .get();
-      if (existing && !(existing.sql as string).includes("'failed'")) {
-        if (db.prepare("SELECT 1 FROM repository_operations LIMIT 1").get())
-          throw new Error("Repository operations need a manual migration");
-        db.exec(
-          "DROP TABLE IF EXISTS repository_events; DROP TABLE repository_operations;",
-        );
-      }
       db.exec(`
-      CREATE TABLE IF NOT EXISTS repository_operations (
-        id TEXT PRIMARY KEY,
-        workspace_id TEXT NOT NULL REFERENCES lifecycle_workspaces(workspace_id),
-        operator_id TEXT NOT NULL, repository TEXT NOT NULL, ref TEXT NOT NULL,
-        provider_id TEXT NOT NULL, repository_id INTEGER, installation_id INTEGER,
-        head_sha TEXT, request_key TEXT NOT NULL UNIQUE, fingerprint TEXT NOT NULL,
-        status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','failed','needs_attention')),
-        phase TEXT NOT NULL CHECK(phase IN ('authorizing','minting','resolving','checkout','cleaning')),
-        credential TEXT NOT NULL CHECK(credential IN ('none','unknown','issued','revoked')),
-        channel TEXT NOT NULL CHECK(channel IN ('none','unknown','cleared')),
-        token_expires_at INTEGER, max_runtime_ms INTEGER NOT NULL,
-        created_at INTEGER NOT NULL, lease_token TEXT, lease_expires_at INTEGER, deadline_at INTEGER
-      ) STRICT;
-      CREATE UNIQUE INDEX IF NOT EXISTS one_repository_bootstrap
-        ON repository_operations(workspace_id) WHERE status != 'failed';
-      CREATE TABLE IF NOT EXISTS repository_events (
-        cursor INTEGER PRIMARY KEY AUTOINCREMENT,
-        operation_id TEXT NOT NULL REFERENCES repository_operations(id),
-        type TEXT NOT NULL, created_at INTEGER NOT NULL
-      ) STRICT;
-      CREATE INDEX IF NOT EXISTS repository_event_cursor ON repository_events(operation_id, cursor);
-    `);
+        ${operationsTable("repository_operations")}
+        CREATE UNIQUE INDEX IF NOT EXISTS one_repository_bootstrap
+          ON repository_operations(workspace_id) WHERE status != 'failed';
+        CREATE TABLE IF NOT EXISTS repository_events (
+          cursor INTEGER PRIMARY KEY AUTOINCREMENT,
+          operation_id TEXT NOT NULL REFERENCES repository_operations(id),
+          type TEXT NOT NULL, created_at INTEGER NOT NULL
+        ) STRICT;
+        CREATE INDEX IF NOT EXISTS repository_event_cursor ON repository_events(operation_id, cursor);
+      `);
+      db.prepare(
+        "INSERT INTO schema_versions (component,version) VALUES ('repository',?) ON CONFLICT(component) DO UPDATE SET version = excluded.version",
+      ).run(SCHEMA_VERSION);
     });
+  }
+
+  private schemaVersion(): number {
+    const recorded = this.db
+      .prepare(
+        "SELECT version FROM schema_versions WHERE component = 'repository'",
+      )
+      .get();
+    if (recorded) return recorded.version as number;
+    // Databases from before version tracking: none, version 1 (PR #6) or an
+    // unrecorded version 2 (PR #7), told apart by the status constraint.
+    const table = this.db
+      .prepare(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'repository_operations'",
+      )
+      .get();
+    if (!table) return 0;
+    return (table.sql as string).includes("'failed'") ? 2 : 1;
+  }
+
+  private migrateFromV1(): void {
+    this.transaction(() => {
+      // Another process may have migrated since the unlocked version read.
+      if (this.schemaVersion() !== 1) return;
+      this.db.exec(`
+        ${operationsTable("repository_operations_v2")}
+        INSERT INTO repository_operations_v2 (${COLUMNS})
+          SELECT ${COLUMNS} FROM repository_operations;
+        DROP TABLE repository_operations;
+        ALTER TABLE repository_operations_v2 RENAME TO repository_operations;
+      `);
+      if (this.db.prepare("PRAGMA foreign_key_check").get())
+        throw new Error("Repository migration broke a foreign key");
+    });
+  }
+
+  // Dropping a referenced table needs foreign keys off, and SQLite only
+  // changes that setting outside a transaction.
+  private withoutForeignKeys(work: () => void): void {
+    const enabled = this.db.prepare("PRAGMA foreign_keys").get()!
+      .foreign_keys as number;
+    this.db.exec("PRAGMA foreign_keys = OFF");
+    try {
+      work();
+    } finally {
+      this.db.exec(`PRAGMA foreign_keys = ${enabled ? "ON" : "OFF"}`);
+    }
   }
 
   private transaction<T>(work: (now: number) => T): T {
@@ -378,44 +440,30 @@ export class RepositoryStore {
     });
   }
 
-  // Only valid before mint intent: no token or channel can exist, so a new
-  // request may retry instead of blocking the workspace.
-  fail(id: string, token: string): void {
+  // Ends work that cannot succeed. The persisted phase, not the worker's view,
+  // decides between a retryable failure and a blocking uncertain outcome.
+  settle(id: string, token: string): void {
     this.transaction((now) => {
       const op = this.operation(id);
       if (op.status !== "running" || op.leaseToken !== token)
         throw new DomainError(409, "Repository worker ownership lost");
-      if (op.phase !== "authorizing" || op.credential !== "none")
-        throw new DomainError(409, "Repository work passed mint intent");
-      this.failed(id, now);
+      this.terminate(op, now);
     });
   }
 
-  private failed(id: string, now: number): void {
+  private terminate(
+    op: Pick<RepositoryOperation, "id" | "phase" | "credential">,
+    now: number,
+  ): void {
+    const status = effectFree(op.phase, op.credential)
+      ? "failed"
+      : "needs_attention";
     this.db
       .prepare(
-        "UPDATE repository_operations SET status = 'failed',lease_token = NULL,lease_expires_at = NULL WHERE id = ?",
+        "UPDATE repository_operations SET status = ?,lease_token = NULL,lease_expires_at = NULL WHERE id = ?",
       )
-      .run(id);
-    this.event(id, "repository.failed", now);
-  }
-
-  markUncertain(id: string, token: string): void {
-    this.transaction((now) => {
-      const op = this.operation(id);
-      if (op.status !== "running" || op.leaseToken !== token)
-        throw new DomainError(409, "Repository worker ownership lost");
-      this.uncertain(id, now);
-    });
-  }
-
-  private uncertain(id: string, now: number): void {
-    this.db
-      .prepare(
-        "UPDATE repository_operations SET status = 'needs_attention',lease_token = NULL,lease_expires_at = NULL WHERE id = ?",
-      )
-      .run(id);
-    this.event(id, "repository.needs_attention", now);
+      .run(status, op.id);
+    this.event(op.id, `repository.${status}`, now);
   }
 
   reconcileExpired(): number {
@@ -426,9 +474,14 @@ export class RepositoryStore {
         )
         .all(now, now);
       for (const row of rows)
-        if (row.phase === "authorizing" && row.credential === "none")
-          this.failed(row.id as string, now);
-        else this.uncertain(row.id as string, now);
+        this.terminate(
+          {
+            id: row.id as string,
+            phase: row.phase as RepositoryOperation["phase"],
+            credential: row.credential as RepositoryOperation["credential"],
+          },
+          now,
+        );
       return rows.length;
     });
   }

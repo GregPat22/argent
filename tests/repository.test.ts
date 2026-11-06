@@ -338,7 +338,6 @@ for (const [name, patch] of [
     "wrong repository id",
     { repositories: [{ id: 102, full_name: "example/private-fixture" }] },
   ],
-  ["wrong name", { repositories: [{ id: 101, full_name: "example/other" }] }],
   ["all repositories", { repository_selection: "all" }],
   ["expired token", { expires_at: new Date(0).toISOString() }],
   [
@@ -833,14 +832,14 @@ test("simulated repository ownership is rechecked after database lock contention
   assert.equal(f.store.repositories.reconcileExpired(), 1);
 });
 
-test("simulated token scope accepts GitHub's canonical name for mixed-case and .git URLs", () => {
+test("simulated token scope pins the repository ID and ignores owner/name changes", () => {
   const now = Date.now();
   const token = {
     token: secret,
     expires_at: new Date(now + 3500000).toISOString(),
     repository_selection: "selected",
     permissions: { contents: "read" },
-    repositories: [{ id: 101, full_name: "example/private-fixture" }],
+    repositories: [{ id: 101, full_name: "new-owner/renamed-fixture" }],
   };
   const grant = {
     operatorId: "operator",
@@ -855,13 +854,25 @@ test("simulated token scope accepts GitHub's canonical name for mixed-case and .
       tokenExpiry(
         {
           ...token,
-          repositories: [{ id: 101, full_name: "example/private-fixture2" }],
+          repositories: [{ id: 102, full_name: "example/private-fixture" }],
         },
         grant,
         now,
       ),
     /scope or expiration/,
   );
+});
+
+test("simulated bootstrap succeeds after the repository was renamed or transferred", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.token.repositories = [{ id: 101, full_name: "new-owner/renamed" }];
+  await f.work();
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "succeeded");
+  assert.equal(result.repositoryId, 101);
+  assert.equal(result.credential, "revoked");
+  assert.equal(result.channel, "cleared");
 });
 
 test("simulated requests accept dotted branch names and reject invalid Git refs", (t) => {
@@ -911,6 +922,18 @@ test("simulated token that expires before the deadline is revoked before resolve
   assert.equal(result.channel, "none");
 });
 
+test("simulated token that expires during the post-deadline cleanup window is revoked before resolve", async (t) => {
+  const f = fixture(t);
+  const op = f.request("request", 120000);
+  // Outlives the deadline but not one 1000 ms cleanup timeout after it.
+  f.adapter.token.expires_at = new Date(Date.now() + 120500).toISOString();
+  await f.work(1000, 1000);
+  assert.deepEqual(f.adapter.calls, ["authorize", "mint", "revoke"]);
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "needs_attention");
+  assert.equal(result.credential, "revoked");
+});
+
 test("simulated expiry before mint intent fails cleanly and allows a retry", async (t) => {
   const f = fixture(t);
   const op = f.request();
@@ -923,38 +946,89 @@ test("simulated expiry before mint intent fails cleanly and allows a retry", asy
   assert.notEqual(f.request("retry").id, op.id);
 });
 
-test("simulated repository schema rebuilds an empty first-version table", (t) => {
-  const root = mkdtempSync(join(tmpdir(), "argent-repository-schema-"));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
-  const path = join(root, "platform.sqlite");
-  const legacy = (rows: boolean) => {
-    const db = new DatabaseSync(path);
-    db.exec(`
-      DROP TABLE IF EXISTS repository_events;
-      DROP TABLE IF EXISTS repository_operations;
-      CREATE TABLE repository_operations (
-        id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL UNIQUE,
-        status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','needs_attention'))
-      ) STRICT;
-    `);
-    if (rows)
-      db.exec(
-        "INSERT INTO repository_operations VALUES ('op','ws','needs_attention')",
-      );
+function schema(path: string) {
+  const db = new DatabaseSync(path);
+  const result = {
+    sql: db
+      .prepare(
+        "SELECT sql FROM sqlite_master WHERE name = 'repository_operations'",
+      )
+      .get()!.sql as string,
+    index: db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE name = 'one_repository_bootstrap'",
+      )
+      .get(),
+    version: db
+      .prepare(
+        "SELECT version FROM schema_versions WHERE component = 'repository'",
+      )
+      .get()?.version,
+  };
+  db.close();
+  return result;
+}
+
+test("simulated repository schema migrates first-version rows without losing obligations", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.fail = "mint";
+  await f.work();
+  const before = f.store.repositories.operation(op.id);
+  const events = f.store.repositories.events(op.id);
+  assert.equal(before.status, "needs_attention");
+  f.store.close();
+  // Recreate the PR #6 table around the existing rows, without a version.
+  const db = new DatabaseSync(f.path);
+  db.exec(`
+    PRAGMA foreign_keys = OFF;
+    BEGIN;
+    CREATE TABLE legacy (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL UNIQUE REFERENCES lifecycle_workspaces(workspace_id),
+      operator_id TEXT NOT NULL, repository TEXT NOT NULL, ref TEXT NOT NULL,
+      provider_id TEXT NOT NULL, repository_id INTEGER, installation_id INTEGER,
+      head_sha TEXT, request_key TEXT NOT NULL UNIQUE, fingerprint TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','needs_attention')),
+      phase TEXT NOT NULL CHECK(phase IN ('authorizing','minting','resolving','checkout','cleaning')),
+      credential TEXT NOT NULL CHECK(credential IN ('none','unknown','issued','revoked')),
+      channel TEXT NOT NULL CHECK(channel IN ('none','unknown','cleared')),
+      token_expires_at INTEGER, max_runtime_ms INTEGER NOT NULL,
+      created_at INTEGER NOT NULL, lease_token TEXT, lease_expires_at INTEGER, deadline_at INTEGER
+    ) STRICT;
+    INSERT INTO legacy SELECT * FROM repository_operations;
+    DROP TABLE repository_operations;
+    ALTER TABLE legacy RENAME TO repository_operations;
+    DROP TABLE schema_versions;
+    COMMIT;
+  `);
+  db.close();
+
+  f.store = new Store(f.path);
+  assert.deepEqual(f.store.repositories.operation(op.id), before);
+  assert.deepEqual(f.store.repositories.events(op.id), events);
+  assert.throws(() => f.request("retry"), /already has repository/);
+  const migrated = schema(f.path);
+  assert.match(migrated.sql, /'failed'/);
+  assert.doesNotMatch(migrated.sql, /workspace_id TEXT NOT NULL UNIQUE/);
+  assert.ok(migrated.index);
+  assert.equal(migrated.version, 2);
+});
+
+test("simulated repository schema records unversioned databases and refuses newer ones", (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.store.close();
+  const edit = (sql: string) => {
+    const db = new DatabaseSync(f.path);
+    db.exec(sql);
     db.close();
   };
-  legacy(false);
-  const store = new Store(path);
-  store.close();
-  const db = new DatabaseSync(path);
-  const sql = db
-    .prepare(
-      "SELECT sql FROM sqlite_master WHERE name = 'repository_operations'",
-    )
-    .get()!.sql as string;
-  db.close();
-  assert.match(sql, /'failed'/);
-  assert.doesNotMatch(sql, /workspace_id TEXT NOT NULL UNIQUE/);
-  legacy(true);
-  assert.throws(() => new Store(path), /manual migration/);
+  edit("UPDATE schema_versions SET version = 3");
+  assert.throws(() => new Store(f.path), /newer than this build/);
+  // A failed start must release the database for the next one.
+  edit("DELETE FROM schema_versions");
+  f.store = new Store(f.path);
+  assert.equal(f.store.repositories.operation(op.id).status, "queued");
+  assert.equal(schema(f.path).version, 2);
 });
