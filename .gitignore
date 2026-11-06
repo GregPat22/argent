@@ -8,3 +8,7 @@ dist/
 coverage/
 .DS_Store
 context-log.md
+release/
+website/downloads/
+website/prototype.png
+.gstack/

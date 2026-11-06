@@ -3,8 +3,9 @@ import { makeServer } from "./http.js";
 import { Store } from "./store.js";
 
 const token = apiToken();
-const store = new Store(dataPaths().database);
-const server = makeServer(store, token);
+const paths = dataPaths();
+const store = new Store(paths.database);
+const server = makeServer(store, token, { artifactRoot: paths.workspaces });
 server.listen(apiPort(), "127.0.0.1", () => {
   const address = server.address();
   console.log(

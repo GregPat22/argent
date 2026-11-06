@@ -1,15 +1,13 @@
 # Argent documentation
 
 Start with [Project context](PROJECT_CONTEXT.md) to understand the product and
-current limits without reading private chats. The published runtime is M0, a
-local orchestration simulator. Desktop and real cloud execution are requirements
-for later milestones.
+current limits without reading private chats. This branch contains P1, a local desktop prototype using simulated execution.
+Real cloud execution and signed public distribution remain later milestones.
 
 ## Product and decisions
 
-Read the [current handoff](../HANDOFF.md) first for the completed P1 review branch,
-evidence, Conductor worktree setup and next actions. The M0 descriptions here
-refer to the default branch's runtime until P1 is integrated.
+Read the [current handoff](../HANDOFF.md) first for branch/PR locations, recorded
+evidence, Conductor setup and next actions. This branch contains P1 source.
 
 | Document                                                       | What it contains                                                                                               |
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -23,13 +21,13 @@ refer to the default branch's runtime until P1 is integrated.
 
 ## Acceptance contracts and evidence
 
-| Document                                                                | Status in this publication                                         |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| [M0 durable local run](specs/0001-durable-local-run.md)                 | Implemented simulation contract.                                   |
-| [M0 completion report](milestones/0000-completion.md)                   | Actual test and review evidence, with limits.                      |
-| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)   | Proposed real-provider release contract; unimplemented here.       |
-| [Project identity and repository setup](specs/0003-project-identity.md) | Name, MIT rationale, metadata and namespace availability.          |
-| [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)    | Accepted product requirements; implementation proceeds separately. |
+| Document                                                                | Status in this publication                                     |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [M0 durable local run](specs/0001-durable-local-run.md)                 | Implemented simulation contract.                               |
+| [M0 completion report](milestones/0000-completion.md)                   | Actual test and review evidence, with limits.                  |
+| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)   | Proposed real-provider release contract; unimplemented here.   |
+| [Project identity and repository setup](specs/0003-project-identity.md) | Name, MIT rationale, metadata and namespace availability.      |
+| [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)    | Implemented local macOS prototype; see P1 completion evidence. |
 
 ## Build and contribute
 
@@ -52,11 +50,11 @@ Keep secrets, private transcripts, customer data, local databases and generated
 artifacts out of source control. The founding brief is included as intentionally
 published product context; unrelated chat history is not part of this repository.
 
-## Latest completed work outside main's runtime
+## P1 branch evidence
 
 - [P1 PR review](research/p1-pr-review.md): fresh checks and native development
-  smoke at `6104961`, plus a reproduced older-workspace refresh issue to fix
-  before the explicit merge decision.
+  smoke at `6104961`, plus the older-workspace fix, eight renderer regressions
+  and fresh packaged-app verification before the explicit merge decision.
 - [P1 completion report](milestones/0001-completion.md): completed local desktop
   prototype and recorded native/package evidence; source is in draft PR #1.
 - [Pinned T3 source evaluation](research/t3-adoption-spike.md): source-only

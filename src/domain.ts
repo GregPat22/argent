@@ -36,6 +36,13 @@ export interface RunEvent {
   createdAt: number;
 }
 
+export type RunView = Omit<Run, "leaseToken">;
+
+export interface Page<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
 export interface Evidence {
   kind: "simulation-artifact-check";
   passed: true;
@@ -61,7 +68,8 @@ export function requireString(
   if (
     typeof value !== "string" ||
     value.trim().length === 0 ||
-    value.length > max
+    value.length > max ||
+    value.includes("\0")
   ) {
     throw new DomainError(
       400,
