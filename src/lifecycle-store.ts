@@ -223,7 +223,7 @@ export class LifecycleStore {
       if (
         this.db
           .prepare(
-            "SELECT id FROM repository_operations WHERE workspace_id = ? AND status != 'succeeded'",
+            "SELECT id FROM repository_operations WHERE workspace_id = ? AND status NOT IN ('succeeded','failed')",
           )
           .get(workspaceId)
       )

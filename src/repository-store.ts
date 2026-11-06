@@ -13,7 +13,7 @@ export interface RepositoryOperation {
   repositoryId: number | null;
   installationId: number | null;
   headSha: string | null;
-  status: "queued" | "running" | "succeeded" | "needs_attention";
+  status: "queued" | "running" | "succeeded" | "failed" | "needs_attention";
   phase: "authorizing" | "minting" | "resolving" | "checkout" | "cleaning";
   credential: "none" | "unknown" | "issued" | "revoked";
   channel: "none" | "unknown" | "cleared";
@@ -51,20 +51,37 @@ function operation(row: Record<string, unknown>): RepositoryOperation {
 
 export class RepositoryStore {
   constructor(private readonly db: DatabaseSync) {
-    db.exec(`
+    this.transaction(() => {
+      // The first schema allowed one attempt per workspace and had no failed
+      // status. Only simulation tests write these rows, so rebuild it when empty.
+      const existing = db
+        .prepare(
+          "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'repository_operations'",
+        )
+        .get();
+      if (existing && !(existing.sql as string).includes("'failed'")) {
+        if (db.prepare("SELECT 1 FROM repository_operations LIMIT 1").get())
+          throw new Error("Repository operations need a manual migration");
+        db.exec(
+          "DROP TABLE IF EXISTS repository_events; DROP TABLE repository_operations;",
+        );
+      }
+      db.exec(`
       CREATE TABLE IF NOT EXISTS repository_operations (
         id TEXT PRIMARY KEY,
-        workspace_id TEXT NOT NULL UNIQUE REFERENCES lifecycle_workspaces(workspace_id),
+        workspace_id TEXT NOT NULL REFERENCES lifecycle_workspaces(workspace_id),
         operator_id TEXT NOT NULL, repository TEXT NOT NULL, ref TEXT NOT NULL,
         provider_id TEXT NOT NULL, repository_id INTEGER, installation_id INTEGER,
         head_sha TEXT, request_key TEXT NOT NULL UNIQUE, fingerprint TEXT NOT NULL,
-        status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','needs_attention')),
+        status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','failed','needs_attention')),
         phase TEXT NOT NULL CHECK(phase IN ('authorizing','minting','resolving','checkout','cleaning')),
         credential TEXT NOT NULL CHECK(credential IN ('none','unknown','issued','revoked')),
         channel TEXT NOT NULL CHECK(channel IN ('none','unknown','cleared')),
         token_expires_at INTEGER, max_runtime_ms INTEGER NOT NULL,
         created_at INTEGER NOT NULL, lease_token TEXT, lease_expires_at INTEGER, deadline_at INTEGER
       ) STRICT;
+      CREATE UNIQUE INDEX IF NOT EXISTS one_repository_bootstrap
+        ON repository_operations(workspace_id) WHERE status != 'failed';
       CREATE TABLE IF NOT EXISTS repository_events (
         cursor INTEGER PRIMARY KEY AUTOINCREMENT,
         operation_id TEXT NOT NULL REFERENCES repository_operations(id),
@@ -72,6 +89,7 @@ export class RepositoryStore {
       ) STRICT;
       CREATE INDEX IF NOT EXISTS repository_event_cursor ON repository_events(operation_id, cursor);
     `);
+    });
   }
 
   private transaction<T>(work: (now: number) => T): T {
@@ -128,7 +146,13 @@ export class RepositoryStore {
   ): RepositoryOperation {
     requireString(operatorId, "operatorId", 128);
     const allowedRef = requireString(ref, "ref", 250);
-    if (!/^refs\/heads\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*$/.test(allowedRef))
+    // Dots are allowed where Git allows them: not leading, doubled or ".lock".
+    if (
+      !/^refs\/heads\/[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:\/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$/.test(
+        allowedRef,
+      ) ||
+      /\.\.|\.(?:\/|$)|\.lock(?:\/|$)/.test(allowedRef)
+    )
       throw new DomainError(400, "Expected an explicit branch ref");
     const requestKey = requireString(key, "Idempotency-Key", 128);
     const runtime = requireInteger(maxRuntimeMs, "maxRuntimeMs", 100, 300000);
@@ -166,7 +190,7 @@ export class RepositoryStore {
           .get(workspaceId) ||
         this.db
           .prepare(
-            "SELECT id FROM repository_operations WHERE workspace_id = ?",
+            "SELECT id FROM repository_operations WHERE workspace_id = ? AND status != 'failed'",
           )
           .get(workspaceId)
       )
@@ -354,6 +378,28 @@ export class RepositoryStore {
     });
   }
 
+  // Only valid before mint intent: no token or channel can exist, so a new
+  // request may retry instead of blocking the workspace.
+  fail(id: string, token: string): void {
+    this.transaction((now) => {
+      const op = this.operation(id);
+      if (op.status !== "running" || op.leaseToken !== token)
+        throw new DomainError(409, "Repository worker ownership lost");
+      if (op.phase !== "authorizing" || op.credential !== "none")
+        throw new DomainError(409, "Repository work passed mint intent");
+      this.failed(id, now);
+    });
+  }
+
+  private failed(id: string, now: number): void {
+    this.db
+      .prepare(
+        "UPDATE repository_operations SET status = 'failed',lease_token = NULL,lease_expires_at = NULL WHERE id = ?",
+      )
+      .run(id);
+    this.event(id, "repository.failed", now);
+  }
+
   markUncertain(id: string, token: string): void {
     this.transaction((now) => {
       const op = this.operation(id);
@@ -376,10 +422,13 @@ export class RepositoryStore {
     return this.transaction((now) => {
       const rows = this.db
         .prepare(
-          "SELECT id FROM repository_operations WHERE status = 'running' AND (lease_expires_at <= ? OR deadline_at <= ?)",
+          "SELECT id,phase,credential FROM repository_operations WHERE status = 'running' AND (lease_expires_at <= ? OR deadline_at <= ?)",
         )
         .all(now, now);
-      for (const row of rows) this.uncertain(row.id as string, now);
+      for (const row of rows)
+        if (row.phase === "authorizing" && row.credential === "none")
+          this.failed(row.id as string, now);
+        else this.uncertain(row.id as string, now);
       return rows.length;
     });
   }
