@@ -12,10 +12,12 @@ execution remains part of the product, even though its primary client is desktop
 ## Read the context for your task
 
 **Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). Current branch
-`GregPat22/motion-landing-page-improve` integrates main at `1cc0598` (PR #7)
-and refines the initial landing from PR #3. Execution remains simulated and the
-website is unpublished. Read the [roadmap](ROADMAP.md) and
-[decision register](docs/DECISIONS.md) before choosing the next implementation task.
+`GregPat22/conductor-layout-create` starts from `origin/main` at `333d662` (PR #8).
+It adds a familiar Conductor-style raw desktop shell and reprioritizes subscriptions,
+cloud migration and mobile before team/dependency orchestration. See
+[spec 0008](docs/specs/0008-conductor-familiar-desktop.md) and the
+[roadmap](ROADMAP.md). Execution remains simulated; real connections, migration and
+mobile are planned. The website remains unpublished.
 
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -65,8 +67,8 @@ The shutdown review is saved in tracked documents. Serve the three overlapping
 audiences through a shared core and staged delivery. Supported subscription
 sign-in is the preferred product direction; API keys remain the technical-pilot
 baseline and alternative. Managed eligibility is unverified. Add portable
-export/restore and visible control before managed release; agent breadth and team
-handoff precede dependency orchestration. These are planned, unimplemented work.
+export/restore and visible control before managed release; subscription breadth,
+migration and mobile now precede team handoff and dependency orchestration. These are planned, unimplemented work.
 Read the [research](docs/research/conductor-shutdown-analysis.md) and
 [continuity contract](docs/specs/0006-continuity-and-market-validation.md).
 Do not ask the founder to choose only one of these audiences again.

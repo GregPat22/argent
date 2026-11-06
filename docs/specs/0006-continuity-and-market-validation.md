@@ -4,6 +4,17 @@ Status: incorporated into the roadmap at the founder's request, 6 November 2026;
 unimplemented. Branch: `GregPat22/grok-conductor-shutdown-analysis`, based on
 `fd60a5a878fdde3f129c0f276b74b647ea373760`.
 
+## Latest sequencing revision
+
+[Spec 0008](0008-conductor-familiar-desktop.md), on
+`GregPat22/conductor-layout-create` at base `333d662`, records the founder's later
+request for a familiar Conductor replacement. It promotes migration, subscription
+breadth and mobile ahead of team/dependency scope. The first one-agent API-key
+technical proof stays bounded; personal replacement launch additionally needs
+multiple agents, supported subscriptions and a usable mobile companion. Native
+iOS is now an explicit planned track. Historical “native mobile later” sequencing
+below is superseded by that decision; all portability/security criteria remain.
+
 ## Problem and boundaries
 
 The [research review](../research/conductor-shutdown-analysis.md) supports
@@ -103,7 +114,7 @@ Run `npm run check` and review the actual diff for each implementation slice.
 Keep one real agent and one workspace for the first end-to-end proof. If existing
 subscriptions are essential, resolve supported auth before product onboarding.
 Build common evidence/recovery capabilities for all three overlapping audiences,
-then additional agents, scoped team handoff and lightweight mobile access before
+then subscription breadth, migration and mobile before team handoff and
 dependency graphs. Detailed team/mobile acceptance specs precede implementation.
 Team replacement requires those capabilities to pass, rather than merely shipping
 the single-user M1 proof. Native mobile remains later.

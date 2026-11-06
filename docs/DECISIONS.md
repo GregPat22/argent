@@ -198,3 +198,63 @@ from a fixed layout root; reduced motion uses zero-duration transitions.
 Keyboard navigation skips collapsed controls, Escape restores trigger focus,
 and deep links initialize the correct state. This follows the founder's visual
 request while preserving target size, choice reduction and accessible navigation.
+
+## Familiar Conductor replacement — 6 November 2026
+
+Branch `GregPat22/conductor-layout-create`, base main `333d662` (PR #8).
+The founder explicitly wants an experience as familiar as possible to Conductor,
+with mobile, cloud-file migration and the ability to use existing subscriptions
+across providers. This revises the prior advice against prioritizing parity and
+promotes these tracks ahead of team handoff/dependency orchestration. Familiarity
+uses original code/Argent identity, not an upstream fork or imported implementation.
+
+The [roadmap](../ROADMAP.md) and [P2 specification](specs/0008-conductor-familiar-desktop.md)
+separate the existing one-agent engineering proof from a personal replacement
+release. Initial breadth targets are Claude Code and Codex, then Cursor/OpenCode;
+all four have explicit preview tabs now. Two working official integrations and
+verified subscription routes for advertised environments are the proposed personal
+release gate. “Every subscription” is product intent, not proven universal support.
+No subscription credential transfer or silent API billing is allowed.
+
+Cloud migration means selected files and readable context first; live-session
+resume needs separate provider/version proof. Consent/sample/schema work precedes
+a Conductor importer. Mobile means a narrow authenticated companion and a native
+iOS delivery track using the independent service; no public M0 exposure or phone
+execution. Delivery dates, commercial packaging, Android, new customer evidence
+and exact provider eligibility remain unresolved.
+
+Direct read-only Conductor workspace/Home/agent-settings inspection informed the
+raw layout. Real simulation navigation, task review and artifact verification are
+preserved; connection/migration/mobile/file/diff/terminal integrations remain
+clearly labeled planned. No external account, export, paid resource, merge or
+publication was performed. See the handoff for fresh verification evidence.
+
+## Desktop UX and Lucide icon system — 6 November 2026
+
+On `GregPat22/conductor-layout-create` (base main `333d662`), the founder requested
+premium/intuitive refinement of the entire application and a free icon pack,
+explicitly excluding the landing. [Spec 0009](specs/0009-desktop-ux-polish.md)
+records the Laws of UX heuristic review and acceptance criteria. Larger desktop
+controls/readable text, charcoal/silver surfaces, grouped forms/settings and
+familiar pane placement are selected; no measured usability gain is claimed.
+
+Lucide Static 1.70.0 was downloaded from the official npm registry and its SHA-512
+integrity verified. A curated 45-SVG subset is vendored unmodified with its full
+ISC/Feather-derived MIT notices in `ui/icons/`; desktop packaging includes notices.
+Icons use CSS masks and shared sizing/current color, without a font/CDN/runtime
+package. Argent's approved brand image remains separate. Website files are untouched.
+
+Inspector/provider/terminal tabs use roving keyboard focus, search supports
+arrows/Enter, and Cmd/Ctrl+Enter opens task/runtime review. Drafts remain scoped
+to their workspace in renderer memory; pending uncertain submissions retain their
+identity. Native dialog Escape/focus restoration remains immediate. Short
+opacity/transform entry and hover/press feedback respects reduced motion. No
+constant decorative animation or fake execution progress is introduced.
+
+Expanded native recovery testing exposed an existing shutdown race: stopping
+an active simulated worker could leave the stop HTTP socket answering keep-alive
+polls while `server.close` waited, so UI availability returned online. Independent
+reproduction traced abort → worker completion → blocked server close. The stop
+response now explicitly closes that connection. A regression fails without the
+header and passes with it; interrupted work remains `needs_attention` with no
+replay. No new API operation or execution authority is introduced.

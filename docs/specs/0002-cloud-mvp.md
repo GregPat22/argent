@@ -13,6 +13,11 @@ release also requires visible control, portable recovery and a documented
 provider/deployment authentication decision. Supported subscriptions are the
 preferred product direction; API-key auth below remains the technical-pilot path.
 
+The later [P2 replacement contract](0008-conductor-familiar-desktop.md) separates
+this bounded engineering proof from the broader personal release. Familiar UX,
+multiple agents/subscriptions, migration and a mobile companion now precede
+team/dependency scope; they do not change the isolation/durability criteria here.
+
 ## User journey
 
 An authenticated developer authorizes one GitHub repository, creates one persistent

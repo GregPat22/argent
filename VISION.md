@@ -32,14 +32,15 @@ infrastructure vendor. A managed service may charge for easier operations,
 workspace compute and collaboration. It should operate the same core rather than
 make self-hosting a second-class or artificially limited mode.
 
-The first customer journey is one repository, one persistent cloud workspace,
-one real agent, disconnect/reconnect, verifiable changes and a tested PR. A full
-IDE, swarms, native mobile apps, billing and advanced enterprise controls are
-outside that MVP. The [roadmap](ROADMAP.md) stages additional agents, scoped team
-handoff and lightweight mobile access before dependency orchestration. Portable
-history/evidence recovery is part of making independent operation practical.
+The first engineering proof is one repository, one persistent cloud workspace,
+one real agent, disconnect/reconnect, verifiable changes and a tested PR. The
+personal replacement release additionally needs familiar daily UX, subscription
+breadth, portable files/history and a usable mobile companion. Native iOS is an
+explicit delivery track after safe remote access. Team handoff and dependencies
+follow. A full IDE, swarms, billing and advanced enterprise controls remain later.
+See the [roadmap](ROADMAP.md) and [P2 contract](docs/specs/0008-conductor-familiar-desktop.md).
 
-Conductor is context, not a product specification. As of 6 November 2026 its team
+Conductor is the explicit workflow/UX reference, implemented with original Argent code. As of 6 November 2026 its team
 has announced a move to Meta; cloud shutdown is scheduled for 20 November, with
 local critical/model maintenance into early 2027.
 [Primary announcement](https://www.conductor.build/changelog/0.93.0-conductor-is-joining-meta).
