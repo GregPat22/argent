@@ -6,6 +6,9 @@ Real cloud execution and signed public distribution remain later milestones.
 
 ## Product and decisions
 
+Read the [current handoff](../HANDOFF.md) first for branch/PR locations, recorded
+evidence, Conductor setup and next actions. This branch contains P1 source.
+
 | Document                                                       | What it contains                                                                                               |
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [Project context](PROJECT_CONTEXT.md)                          | Product journey, current versus target capabilities, architecture invariants, business intent and next work.   |

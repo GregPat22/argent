@@ -3,6 +3,11 @@
 Completed 6 November 2026. This is the first usable **local desktop prototype**,
 not the real-agent/cloud MVP or a signed public release.
 
+This report records original source `a4f3d52`, preserved on `codex/p1-original`.
+The context-integrated source is on `codex/desktop-handoff` in
+[draft PR #1](https://github.com/GregPat22/argent/pull/1). See
+[HANDOFF.md](../../HANDOFF.md) for current branch and integration status.
+
 ## Delivered
 
 - Native Electron desktop application with workspace creation/selection, task

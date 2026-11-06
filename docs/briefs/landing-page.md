@@ -46,11 +46,13 @@ development. A grid of simultaneous chat windows does not tell the whole story.
 
 ## Stage, evidence and claims
 
-The source is pre-launch software. This branch contains a completed P1 local
-desktop prototype with simulated execution and a local unsigned macOS package.
-See the [P1 completion report](../milestones/0001-completion.md). This does not
-establish a signed public production download. Coordinate the existing static
-download page with the new Conductor landing-page package; both use `website/`.
+The project is pre-launch software. A P1 local desktop prototype with simulated
+execution is complete on the review branch; see [the handoff](../../HANDOFF.md)
+and [completion report](../milestones/0001-completion.md) for source and evidence.
+Main still contains M0 until the explicit integration decision. A local unsigned
+package does not establish a signed public production download. Coordinate the
+existing static download page with the Conductor landing-page package; both use
+`website/`.
 
 - No approved customer logos, testimonials, adoption statistics or benchmark
   claims have been supplied. Omit social proof instead of inventing it.

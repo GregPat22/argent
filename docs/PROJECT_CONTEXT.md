@@ -5,6 +5,9 @@ understand the project without access to private chats. It describes accepted
 product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
+**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). This review branch
+contains P1; the default main runtime remains M0 until explicit integration.
+
 ## What we are building
 
 Argent is an open-source, desktop-first development platform where AI coding
