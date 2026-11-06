@@ -174,3 +174,30 @@ Recheck current guidance when upgrading; these are dated setup instructions.
 7. The existing control-plane checks remain intact, website checks are appropriate
    to the chosen implementation, and the draft has a local preview with an honest
    report of what was tested and what needs founder feedback.
+
+### Verified Codex setup
+
+The 6 November follow-up found that the installer had configured Claude Code,
+while the landing session used Codex. A Motion skill on disk does not register
+its MCP servers for another agent. For Codex, the tested registration commands
+are:
+
+```sh
+codex mcp add motion --url https://mcp.motion.dev
+codex mcp add motion-plus --url https://mcp.motion.dev/plus
+```
+
+The CLI starts the supported browser authentication flow. Both servers are now
+authenticated on this Mac. `codex mcp login motion-plus` can renew authentication
+when needed. Use the installed CLI's help for current flags and
+[official Codex MCP guidance](https://developers.openai.com/codex/mcp).
+
+Actual tool names discovered from the hosted servers include
+`search-motion-docs` on `motion`, and `search-motion-source` plus
+`generate-css-easing` on `motion-plus`. Older skills may name the retired
+`search-motion-codex` tool. Read the actual returned resource links before using
+examples. Free documentation, premium source reads and spring generation were
+verified through Codex's app-server client. No token-based installation is needed
+for these MCP tools. Keep machine-local configuration and OAuth state out of Git.
+The current chat's tool list may require host reload; the direct Codex MCP client
+provided verified access during this session without replacing the running agent.

@@ -277,3 +277,43 @@ Next: founder visual feedback; optional Safari/real-device GPU checks; explicit
 review and integration of the landing and desktop branches, reconciling their
 shared `website/` ownership. Neither the typography proposal nor the passing
 browser suite establishes a public release or validated conversion improvement.
+
+## Motion AI/Motion+ Codex recovery — 6 November 2026
+
+Branch: `GregPat22/argent-landing-page-draft`, following `012e45c`. The founder
+requested autonomous investigation and setup after the visual pass reported
+unavailable Motion tools. Root cause: the earlier installer had configured the
+hosted servers in Claude Code's machine-local settings, while this workspace's
+agent was Codex. Codex's machine-local configuration contained only its existing
+node/computer tools, with neither Motion server registered.
+
+Both hosted servers were added using the installed Codex CLI and authenticated
+through their supported browser OAuth flow. An existing Motion+ account was
+already available; no purchase, credential extraction or private package install
+was required. Other MCP servers were preserved, and a private configuration
+backup was saved outside the repository. Credentials remain in Codex's managed
+authentication storage, not in repository files.
+
+Verified using Codex's own app-server MCP client, without an inference/agent turn:
+
+- Both servers report enabled and authenticated; tool discovery succeeds.
+- `motion/search-motion-docs` returns real scroll/reveal matches, and
+  `motion://docs/react/react-scroll-animations` reads successfully.
+- `motion-plus/generate-css-easing` generates a 0.4s perceptual spring curve.
+- `motion-plus/search-motion-source` returns premium source links, and
+  `motion://examples/react/footer-reveal` reads the complete premium source.
+
+The already-running chat's native tool catalogue did not hot-reload. A direct
+connection through the official Codex app-server successfully exercised the
+servers in the same session; later Codex sessions can load the registered
+servers normally. Helpers/results are local ignored evidence in `.context/`.
+The earlier statements about unavailable tools describe the visual pass, not
+the current machine configuration. The website still uses the public Motion
+runtime; MCP access and a premium runtime dependency are separate. No premium
+example source was copied into the public repository. The site remains available
+on loopback port 3000.
+
+Acceptance: configured, OAuth authenticated, tools discovered and real free/paid
+requests plus resource reads verified. Root `npm run check` passed 22 tests,
+strict types and formatting for this documentation update. No site behavior,
+engine, merge, deployment or spending changed.

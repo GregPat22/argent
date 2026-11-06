@@ -34,11 +34,16 @@ anchor scrolling replaces Lenis, keeping the content tree stable when motion
 preferences change and preserving familiar keyboard/browser scrolling. This is a
 source assessment, not a measured MotionScore or real-device performance claim.
 
-Motion AI/Motion+ MCP tools were not exposed in this session. Public Motion
+During the initial visual pass, Motion AI/Motion+ MCP tools were not exposed.
+A subsequent setup investigation found the servers registered for Claude Code,
+while the session used Codex. They are now registered and OAuth authenticated
+for Codex, with real documentation/source reads and spring generation verified.
+See [the setup record](../briefs/landing-page.md#verified-codex-setup). Public Motion
 14.10.0 and [official scroll guidance](https://motion.dev/docs/react-use-scroll)
 plus [reduced-motion guidance](https://motion.dev/docs/react-use-reduced-motion)
-were used. No premium source, private package or credential was added. To enable
-the unavailable tooling, see [Motion AI Kit](https://motion.dev/docs/ai-kit).
+were used for the visual pass. No premium source, private package or credential
+was added to the repository. The tooling reference is
+[Motion AI Kit](https://motion.dev/docs/ai-kit).
 
 Browser/check evidence is recorded in the W0 specification and tracked handoff.
 Next: founder visual feedback, optional real-device/Safari QA and explicit merge
