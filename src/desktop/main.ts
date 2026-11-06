@@ -7,7 +7,7 @@ import {
   protocol,
   session,
 } from "electron";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { APP_URL, DesktopClient, trustedSender } from "./bridge.js";
@@ -41,8 +41,14 @@ else {
       ["/index.html", "text/html"],
       ["/app.js", "text/javascript"],
       ["/history.js", "text/javascript"],
+      ["/shell.js", "text/javascript"],
       ["/styles.css", "text/css"],
+      ["/argent-icon.webp", "image/webp"],
     ]);
+    for (const name of readdirSync(join(assets, "icons"))) {
+      if (/^[a-z0-9-]+\.svg$/.test(name))
+        allowed.set(`/icons/${name}`, "image/svg+xml");
+    }
     const csp =
       "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
     protocol.handle("argent", (request) => {

@@ -88,6 +88,9 @@ export function makeServer(
         url.pathname === "/service/stop" &&
         options.onStop
       ) {
+        // Do not leave the stop request's keep-alive socket serving polls while
+        // the desktop service drains an interrupted worker and closes the server.
+        response.setHeader("Connection", "close");
         send(response, 202, { stopping: true });
         queueMicrotask(options.onStop);
       } else if (method === "GET" && url.pathname === "/workspaces") {

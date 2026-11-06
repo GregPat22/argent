@@ -231,7 +231,7 @@ and SHA-256; it says nothing about a real repository's tests.
 workspace/task forms, artifact inspection, window close/reopen, cancellation and
 service stop/reconnect. It asserts no renderer Node access, and checks the detached
 service survives desktop process exit. Test profiles are cleaned up; the captured
-image remains in `.data/screenshots/argent-desktop.png`.
+image remains in `.context/argent-desktop.png`.
 
 ## Deployment
 
@@ -249,3 +249,17 @@ Start from a specification with acceptance criteria, implement a focused change,
 run `npm run check`, review the actual diff, and report gaps honestly. No upstream
 application has been forked or copied. The original code uses the [MIT license](LICENSE).
 Any upstream adoption needs a pinned-source/license review and founder approval.
+
+The [P2 desktop layout](docs/specs/0008-conductor-familiar-desktop.md) follows familiar
+Conductor workspace/session, composer, inspection and terminal placement. Run
+`npm run desktop` to inspect it. Home/Search uses loaded saved workspaces; Settings
+previews Claude Code, Codex, Cursor, OpenCode, migration and mobile. Only the scripted
+local simulator is connected. These previews do not implement sign-in, a terminal,
+repository checkout/diffs, file transfer or a mobile app. The [roadmap](ROADMAP.md)
+now prioritizes those replacement capabilities before teams/dependency graphs.
+
+The [desktop UX refinement](docs/specs/0009-desktop-ux-polish.md) adds bundled
+Lucide icons, keyboard-accessible tabs/search, workspace-specific composer drafts,
+clearer forms and reduced-motion transitions throughout the installed app.
+Cmd/Ctrl+Enter reviews a draft before starting; it does not send directly to an
+agent. Required icon notices are included in [the icon bundle](ui/icons/README.md).

@@ -31,6 +31,14 @@ evidence, Conductor setup and next actions. This branch contains P1 source.
 | [W0 website landing page draft](specs/0005-website-landing-draft.md)                     | Next.js draft integrated through PR #3; not deployed.                                                            |
 | [M1a repository access and workspace lifecycle](specs/0007-cloud-workspace-lifecycle.md) | Internal lifecycle and repository-bootstrap simulations implemented; live GitHub/provider evidence remains open. |
 
+- [P2 familiar desktop and replacement roadmap](specs/0008-conductor-familiar-desktop.md):
+  observed Conductor UI patterns, raw-shell acceptance and revised subscription,
+  migration/mobile sequencing. Real integrations remain planned.
+
+- [P2.1 desktop UX and icon refinement](specs/0009-desktop-ux-polish.md):
+  application-wide Laws of UX review, Lucide provenance, keyboard/motion/form
+  acceptance and active-service shutdown regression. The landing is excluded.
+
 ## Conductor shutdown research and roadmap follow-up
 
 - [Evidence and strategy review](research/conductor-shutdown-analysis.md): checks

@@ -39,6 +39,8 @@ let workspaces: Workspace[] = [];
 let runs: RunView[] = [];
 let selectedWorkspace = "";
 let selectedRun = "";
+let composerWorkspace = "";
+const composerDrafts = new Map<string, string>();
 let workspaceCursor: string | null = null;
 let runCursor: string | null = null;
 let workspacePaging = false;
@@ -127,16 +129,29 @@ function message(error: unknown): string {
     ? error.message
     : "The operation could not be completed.";
 }
+function readableError(error: unknown): string {
+  const detail = message(error).replace(/^Request rejected \(\d+\):\s*/, "");
+  if (detail.startsWith("repository must be"))
+    return "Use a GitHub repository URL, such as https://github.com/owner/repository. Remove credentials and query parameters.";
+  return detail.charAt(0).toUpperCase() + detail.slice(1);
+}
 function showError(error: unknown): void {
-  element("error-text").textContent = message(error);
+  element("error-text").textContent = readableError(error);
   element("error-banner").hidden = false;
 }
 function clearError(): void {
   element("error-banner").hidden = true;
 }
 function formError(id: string, error?: unknown): void {
-  element(id).textContent = error ? message(error) : "";
+  element(id).textContent = error ? readableError(error) : "";
   element(id).hidden = !error;
+  const fields: Record<string, string[]> = {
+    "workspace-form-error": ["repository-input"],
+    "task-form-error": ["task-input", "runtime-input"],
+    "resolve-form-error": ["resolution-input"],
+  };
+  for (const field of fields[id] ?? [])
+    element(field).setAttribute("aria-invalid", String(!!error));
 }
 function shortId(id: string): string {
   return id.slice(0, 8);
@@ -177,6 +192,12 @@ function updateConnection(): void {
   const button = element<HTMLButtonElement>("service-toggle");
   button.textContent = connected ? "Stop" : "Reconnect";
   button.disabled = mutationBusy || !bridge;
+  button.setAttribute(
+    "aria-label",
+    connected
+      ? "Stop local execution service"
+      : "Reconnect to local execution service",
+  );
   element("disconnected-banner").hidden = connected;
   element<HTMLButtonElement>("new-workspace").disabled =
     !connected || mutationBusy;
@@ -215,7 +236,13 @@ function renderWorkspaces(): void {
         `status-dot ${workspace.state === "running" ? "online" : "offline"}`,
       );
       dot.setAttribute("aria-label", workspace.state);
-      button.append(node("span", "⌁", "workspace-icon"), copy, dot);
+      const workspaceIcon = node(
+        "span",
+        "",
+        "workspace-icon icon icon-folder-git-2",
+      );
+      workspaceIcon.setAttribute("aria-hidden", "true");
+      button.append(workspaceIcon, copy, dot);
       button.addEventListener("click", () => selectWorkspace(workspace.id));
       list.append(button);
     }
@@ -328,10 +355,14 @@ function renderEvents(): void {
     row.dataset.cursor = String(event.cursor);
     const symbol =
       event.type === "run.completed" || event.type === "verification.recorded"
-        ? "✓"
+        ? "circle-check"
         : event.type === "run.needs_attention"
-          ? "!"
-          : "·";
+          ? "triangle-alert"
+          : event.type === "agent.log"
+            ? "terminal"
+            : event.type === "run.started"
+              ? "play"
+              : "clock-3";
     const copy = node("div", "", "event-copy");
     const heading = node("div", "", "event-heading");
     const description = eventDescription(event);
@@ -339,7 +370,9 @@ function renderEvents(): void {
     timestamp.dateTime = new Date(event.createdAt).toISOString();
     heading.append(node("h4", description.title), timestamp);
     copy.append(heading, node("p", description.detail));
-    row.append(node("span", symbol, "event-symbol"), copy);
+    const eventIcon = node("span", "", `event-symbol icon icon-${symbol}`);
+    eventIcon.setAttribute("aria-hidden", "true");
+    row.append(eventIcon, copy);
     list.append(row);
   }
   while (list.children.length > 500) list.firstElementChild?.remove();
@@ -353,7 +386,8 @@ function renderVerification(): void {
   const run = currentRun();
   element("verification-result").hidden = !artifact;
   element("verification-empty").hidden = !!artifact;
-  element("verification-indicator").textContent = artifact ? "✓" : "○";
+  element("verification-indicator").className =
+    `icon icon-${artifact ? "circle-check" : "circle-dashed"}`;
   element("verification-empty-title").textContent = artifactError
     ? "Evidence is unavailable."
     : run?.status === "failed"
@@ -378,6 +412,14 @@ function render(): void {
   updateConnection();
   renderWorkspaces();
   const workspace = currentWorkspace();
+  const composer = element<HTMLTextAreaElement>("composer-input");
+  if (composerWorkspace !== selectedWorkspace) {
+    if (composerWorkspace)
+      composerDrafts.set(composerWorkspace, composer.value ?? "");
+    composer.value = composerDrafts.get(selectedWorkspace) ?? "";
+    composerWorkspace = selectedWorkspace;
+  }
+  element("task-navigation").hidden = !workspace;
   element("welcome").hidden = !!workspace;
   element("workspace-content").hidden = !workspace;
   element("workspace-title").textContent =
@@ -399,12 +441,38 @@ function render(): void {
     !mutationBusy &&
     workspace?.state === "running" &&
     !busyWorkspace();
+  element<HTMLButtonElement>("composer-submit").disabled =
+    !canRun || !(composer.value ?? "").trim();
+  element<HTMLButtonElement>("detail-start").disabled = !canRun;
+  element<HTMLButtonElement>("session-add").disabled = !canRun;
+  element("composer-status").textContent = !connected
+    ? "Reconnect to continue"
+    : workspace?.state === "stopped"
+      ? "Start this workspace to continue"
+      : runs.some((run) => run.status === "needs_attention")
+        ? "Review the interrupted session above"
+        : busyWorkspace()
+          ? "Session in progress · inspect activity above"
+          : "Review before starting";
+  element<HTMLTextAreaElement>("composer-input").disabled = !canRun;
   element<HTMLButtonElement>("new-task").disabled = !canRun;
   element<HTMLButtonElement>("empty-new-task").disabled = !canRun;
   renderRuns();
   const run = currentRun();
   element("detail-empty").hidden = !!run;
   element("run-detail").hidden = !run;
+  element("inspector-artifact-summary").textContent = !run
+    ? "Select a session to inspect its retained simulation artifact."
+    : artifact
+      ? `Retained artifact: ${artifact.evidence.artifact}`
+      : "No verified artifact available for this session.";
+  element("inspector-check-summary").textContent = !run
+    ? "Select a session to inspect its verification status."
+    : artifact
+      ? "Artifact identity and SHA-256 verified. Simulation only."
+      : `Session ${labels[run.status].toLowerCase()}. No passing simulation evidence available.`;
+  element<HTMLButtonElement>("inspect-artifact").disabled = !run;
+  element<HTMLButtonElement>("inspect-checks").disabled = !run;
   if (!run) return;
   element("run-state").textContent = labels[run.status];
   element("run-state").className = `badge ${run.status}`;
@@ -606,7 +674,7 @@ function openTask(): void {
   element("pending-notice").hidden = !remembered;
   element("task-submit").textContent = remembered
     ? "Retry submission"
-    : "Start simulation ↗";
+    : "Start simulation";
   formError("task-form-error");
   showDialog("task-dialog", "task-input");
 }
@@ -649,6 +717,7 @@ element<HTMLFormElement>("workspace-form").addEventListener(
     const button = element<HTMLButtonElement>("workspace-submit");
     if (button.disabled) return;
     button.disabled = true;
+    button.setAttribute("aria-busy", "true");
     formError("workspace-form-error");
     void (async () => {
       try {
@@ -663,6 +732,7 @@ element<HTMLFormElement>("workspace-form").addEventListener(
         formError("workspace-form-error", error);
       } finally {
         button.disabled = false;
+        button.setAttribute("aria-busy", "false");
       }
     })();
   },
@@ -695,6 +765,7 @@ element<HTMLFormElement>("task-form").addEventListener("submit", (event) => {
   }
   persist();
   button.disabled = true;
+  button.setAttribute("aria-busy", "true");
   formError("task-form-error");
   const submission = pending;
   void (async () => {
@@ -707,6 +778,16 @@ element<HTMLFormElement>("task-form").addEventListener("submit", (event) => {
       );
       pending = null;
       persist();
+      const composer = element<HTMLTextAreaElement>("composer-input");
+      if (
+        composerWorkspace === submission.workspaceId &&
+        composer.value.trim() === submission.task
+      )
+        composer.value = "";
+      if (
+        composerDrafts.get(submission.workspaceId)?.trim() === submission.task
+      )
+        composerDrafts.delete(submission.workspaceId);
       element<HTMLDialogElement>("task-dialog").close();
       if (selectedWorkspace !== run.workspaceId)
         selectWorkspace(run.workspaceId);
@@ -721,7 +802,7 @@ element<HTMLFormElement>("task-form").addEventListener("submit", (event) => {
         element<HTMLTextAreaElement>("task-input").readOnly = false;
         element<HTMLInputElement>("runtime-input").readOnly = false;
         element("pending-notice").hidden = true;
-        element("task-submit").textContent = "Start simulation ↗";
+        element("task-submit").textContent = "Start simulation";
       } else {
         element<HTMLTextAreaElement>("task-input").readOnly = true;
         element<HTMLInputElement>("runtime-input").readOnly = true;
@@ -731,6 +812,7 @@ element<HTMLFormElement>("task-form").addEventListener("submit", (event) => {
       formError("task-form-error", error);
     } finally {
       button.disabled = false;
+      button.setAttribute("aria-busy", "false");
       void refresh();
     }
   })();
@@ -764,6 +846,7 @@ element<HTMLFormElement>("resolve-form").addEventListener("submit", (event) => {
   const button = element<HTMLButtonElement>("resolution-submit");
   if (button.disabled) return;
   button.disabled = true;
+  button.setAttribute("aria-busy", "true");
   void (async () => {
     try {
       const run = await api().resolveRun(
@@ -778,6 +861,7 @@ element<HTMLFormElement>("resolve-form").addEventListener("submit", (event) => {
       formError("resolve-form-error", error);
     } finally {
       button.disabled = false;
+      button.setAttribute("aria-busy", "false");
     }
   })();
 });

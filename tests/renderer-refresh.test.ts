@@ -262,10 +262,7 @@ test("missing selected workspace surfaces the error without changing selection",
   app.setReadError("Request rejected (404): Workspace not found");
   await app.poll();
   assert.equal(app.element("error-banner").hidden, false);
-  assert.equal(
-    app.element("error-text").textContent,
-    "Request rejected (404): Workspace not found",
-  );
+  assert.equal(app.element("error-text").textContent, "Workspace not found");
   assert.equal(app.element("workspace-title").textContent, "older");
   assert.deepEqual(app.runReads, ["older"]);
   app.setReadError(false);
@@ -287,4 +284,22 @@ test("late workspace read failure cannot surface an error for a changed selectio
   await app.poll();
   app.assertState("running");
   assert.equal(app.element("workspace-title").textContent, "recent-0");
+});
+
+test("composer drafts remain attached to their selected workspace", async () => {
+  const app = await launch();
+  const composer = app.element("composer-input") as unknown as {
+    value: string;
+  };
+  composer.value = "older workspace draft";
+  app.select("recent-0");
+  await settle();
+  assert.equal(composer.value, "");
+  composer.value = "recent workspace draft";
+  app.select("older");
+  await settle();
+  assert.equal(composer.value, "older workspace draft");
+  app.select("recent-0");
+  await settle();
+  assert.equal(composer.value, "recent workspace draft");
 });

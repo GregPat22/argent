@@ -6,11 +6,13 @@ product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
 **Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). Current branch
-`GregPat22/next-step-v5` starts from main at `7b2eeca` (PR #10),
-including P1, the refined landing, continuity research and simulated lifecycle/
-repository bootstrap. This branch adds encrypted simulated credential custody; execution remains simulated
-and the website is unpublished. The [roadmap](../ROADMAP.md) retains the
-founder-authorized shutdown-review follow-up.
+`GregPat22/conductor-layout-create` started at main `333d662` (PR #8) and now
+integrates `9eac908` (PR #11), including audited recovery and encrypted simulated
+repository credential custody. It adds a
+Conductor-familiar desktop layout over the existing simulation and updates the
+[roadmap](../ROADMAP.md). See [spec 0008](specs/0008-conductor-familiar-desktop.md)
+for direct UI observations, implementation limits and replacement-launch scope.
+Real account connections, cloud migration and mobile remain planned.
 
 ## What we are building
 
@@ -25,9 +27,11 @@ browser-only dashboard does not satisfy the founder's requirement. The desktop
 app controls a headless execution service: installing a desktop client does not
 mean cloud tasks depend on that computer remaining connected.
 
-Conductor provides installation and workflow context. Argent's differentiator is
-reliable execution, visible evidence and human control, rather than the number of
-agent terminals on a screen. We intend to serve developers and small teams,
+Conductor is the explicit daily-workflow and UX reference: familiar workspace,
+chat/composer, inspection and terminal placement should reduce switching friction.
+Argent retains reliable execution, visible evidence and human control. The founder
+now prioritizes subscription breadth, cloud migration and a mobile companion ahead
+of team/dependency work; a one-agent proof is not the replacement product launch. We intend to serve developers and small teams,
 including displaced Conductor users and engineering teams wanting handoff and
 inspectable evidence. These groups overlap; a shared core supports all three.
 The first technical proof remains bounded delegation and review. Team handoff
@@ -58,9 +62,10 @@ for planned acceptance criteria.
   with our hosted endpoints unavailable. Preserve uncertain outcomes; never replay
   an external effect merely because records were imported. Full Conductor
   live-session migration is unproven and not promised.
-- Sequence additional agent support, scoped team handoff and lightweight mobile
-  access before dependency orchestration. Native mobile and advanced enterprise
-  capabilities remain later. Retain Electron until measured evidence warrants a
+- The latest founder revision moves additional agent/subscription support,
+  migration and a mobile companion ahead of team handoff and dependencies. Native
+  iOS is an explicit delivery track after the safe remote-client contract; native
+  availability remains unimplemented. Advanced enterprise capabilities stay later. Retain Electron until measured evidence warrants a
   change; the research does not approve a foundation replacement.
 
 ## Intended developer journey
@@ -236,8 +241,9 @@ are next, alongside customer/provider-authentication validation in the roadmap.
 Approve concrete provider limits before live tests.
 Then prove real isolated workspaces, one official agent, trusted exact-commit
 verification and a draft-PR broker, followed by portable continuity before managed
-release. Avoid a full IDE, swarms, billing, native mobile apps and autonomous
-merging in the MVP.
+release. The one-agent proof stays bounded; the replacement release adds
+subscription breadth, migration and a mobile companion, with native iOS an
+explicit track. Avoid a full IDE, swarms, billing and autonomous merging now.
 
 Every task needs acceptance criteria, a focused implementation, appropriate tests,
 actual-diff review and an honest completion report. Use isolated worktrees for

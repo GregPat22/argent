@@ -273,3 +273,25 @@ subject to provider/deployment validation; API keys remain the technical-pilot
 path. Neither preference permits extracting host credentials or silently switching
 to paid API usage. These requirements are unimplemented; process boundaries and
 the target diagram above remain unchanged.
+
+## P2 desktop presentation
+
+[Spec 0008](docs/specs/0008-conductor-familiar-desktop.md) reorganizes the renderer
+into workspace/session navigation, central activity/composer and a right inspection/
+terminal shell. `ui/shell.ts` contains presentation-only navigation; its packaged
+script is explicitly allowlisted. The existing app/bridge owns validated service
+commands. The composer opens the existing task/runtime review and preserves any
+read-only uncertain submission. Settings collects no credentials. Planned terminal,
+file/diff, migration and mobile surfaces invoke no external effects. The headless
+engine, loopback boundary and execution ownership are unchanged.
+
+P2.1 bundles licensed Lucide SVG masks and uses an exact local protocol asset
+allowlist populated from packaged SVG filenames. No remote icon/font resources
+or renderer privileges are added. Presentation state includes workspace-scoped
+memory-only composer drafts and keyboard tab/search navigation. See
+[the desktop UX contract](docs/specs/0009-desktop-ux-polish.md).
+
+The existing `/service/stop` response explicitly closes its keep-alive socket so
+an interrupted desktop service can finish draining and release ownership. It
+preserves the existing worker-shutdown `needs_attention` state and does not replay
+work. The API/worker/store boundaries and loopback restriction remain unchanged.

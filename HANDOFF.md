@@ -5,25 +5,185 @@ the latest known state across the project chats and checkouts. Read it alongside
 [START_HERE.md](START_HERE.md), [AGENTS.md](AGENTS.md) and the relevant specification.
 Private chat access is not required to continue development.
 
-**Current checkout:** `GregPat22/next-step-v5`, based on `origin/main` at
-`7b2eeca` (PR #10). It adds encrypted simulated repository credential custody.
-Main contains the desktop, landing, continuity research, lifecycle/bootstrap
-simulations and audited simulated resolution. Execution remains simulated and
-the website is unpublished.
+**Current checkout:** `GregPat22/conductor-layout-create`, originally based on
+main `333d662` (PR #8), now integrating `origin/main` at `9eac908` (PR #11).
+P2/P2.1 add the familiar desktop layout, UX/icon refinement and replacement
+roadmap. Main's audited recovery and encrypted simulated credential custody are preserved. Execution
+remains simulated; real accounts/cloud/migration/mobile and website publication
+remain unfinished.
+
+## Desktop PR preparation — 6 November 2026
+
+On unchanged branch `GregPat22/conductor-layout-create`, preserved the approved
+workspace changes in `e9c10e2` (active-stop fix), `a4c38ff` (desktop layout/UX/icons)
+and `6a83f42` (roadmap/specs), then integrated freshly fetched main `7b2eeca`
+(PR #10) via `5a0d6cf`. Documentation conflicts preserve both the new desktop
+requirements and upstream audited simulated repository recovery. Desktop smoke
+refinements are recorded in `1bea516`.
+
+Main advanced again during publication: encrypted simulated credential custody
+`9eac908` (PR #11) is integrated through `36cdf25`, the final integrated code/test
+revision. Documentation-only preparation follows it. The source diff against
+current main changes no repository-recovery/custody module or website file.
+
+Fresh `npm run check` passes strict types, formatting, compilation and **181 tests,
+0 failures, 0 skips**; native `npm run desktop:smoke` passes at 900×620/1380×900,
+including reduced-motion emulation, SVG loading, forms, keyboard tabs/search,
+composer review/draft preservation and clearing, cancellation, artifact inspection,
+window close/reopen, service stop/reconnect and uncertain-run resolution.
+The service survives desktop exit and renderer isolation remains verified.
+Logs are `.context/pr-check.log` and `.context/pr-desktop-smoke.log`.
+
+Independent read-only source/security, coverage and plan-completion reviews found
+no blocking issue. The small coverage findings were addressed by asserting search
+ArrowUp/ArrowDown/Enter, the Changes/Run previews, preservation of a different
+unsent draft and clearing of an accepted draft in native smoke. No measured
+line/branch coverage percentage is claimed. Actual diff, Markdown references,
+conflict markers, asset provenance/license and a public-source credential scan
+were reviewed. Initial push CI hit an unchanged short-lease repository process
+fixture; its rerun passed without changing that backend test. The final integrated
+local checks below include the newer main custody tests. The existing prelaunch version `0.0.1` is retained; this repository
+has no VERSION/CHANGELOG release scheme to introduce for a prototype PR.
+
+The founder authorized commits, branch push and PR creation against `main`.
+Historical local/uncommitted/no-publication statements below describe the earlier
+implementation passes. Next is PR/CI review and any reviewer fixes; merging,
+deployment, signed binary publication and billable resources remain separate.
+Execution is still simulated; real account/cloud/migration/mobile/terminal/diff
+integrations, signed packaging and screen-reader/device certification remain
+unverified. No additional website, packaged installer or live-provider check ran.
+
+## P2.1 desktop icon and UX refinement — 6 November 2026
+
+Continues the same unchanged branch `GregPat22/conductor-layout-create`, base main
+`333d66201a2c56a556b239abfe9777a89a8c7cd4`. Founder requested a free premium-quality
+icon set and Laws of UX refinement of the entire installed app, excluding the
+landing. See [spec 0009](docs/specs/0009-desktop-ux-polish.md) for the complete
+heuristic mapping, acceptance criteria and limits. No website file was changed.
+
+Downloaded official Lucide Static 1.70.0, verified registry SHA-512 and vendored
+45 unmodified SVGs with full ISC/Feather-derived MIT notices. CSS masks provide
+one icon system for navigation, dynamic activity, settings, inspection, forms and
+statuses. Assets/notices are packaged locally; no icon/font CDN or new runtime
+dependency. Argent's approved brand image is retained.
+
+Refined charcoal/silver surfaces, text/spacing hierarchy, 32px icon controls,
+36–40px actions, compact-window density, meaningful empty/disabled/error states,
+form grouping and focus/error treatment. Removed false menu/terminal-plus
+indicators. Added roving keyboard focus for inspector/provider/terminal tabs,
+search arrows/Enter, brand-to-Home navigation, Cmd/Ctrl+Enter task review and
+memory-only per-workspace drafts. Pending uncertain submissions and runtime
+review remain authoritative. Short opacity/transform transitions and hover/press
+feedback disappear with reduced motion; no layout or decorative loop animation.
+
+Native testing exposed an existing active-service-stop race, reproduced without
+the UI. The worker reached uncertainty but its stop request's keep-alive socket
+could continue serving health polls while server close waited. The response now
+uses `Connection: close`; the targeted regression fails without that header and
+passes with it. Work stays `needs_attention`, ownership releases and no task
+replays. Diagnostic instrumentation was removed; the only engine change is this
+stop-response connection handling.
+
+Verification: root `npm run check` passes strict types, formatting, compilation
+and **134 tests, 0 failures, 0 skips**. The two added regressions cover per-workspace
+drafts and active-stop polling/uncertainty; the prior shell/pending tests remain.
+Native `npm run desktop:smoke` passes local icon loading, tab/search keyboard
+controls, Escape/focus restoration, form errors, review-only composer, inspector
+hide/reopen, 900×620 / 1380×900 containment, live reduced-motion emulation,
+background work, close/reopen, cancellation, active service stop, offline state,
+audited uncertain-run resolution and reconnect. Service survival and renderer
+isolation pass. The shutdown regression was checked failing before/passing after.
+
+Logs: `.context/ux-check.log`, `.context/ux-smoke.log`,
+`.context/ux-shutdown-before.log` and `.context/ux-shutdown-after.log`.
+Before screenshots: `.context/ux-before-workspace.png` / `ux-before-agents.png`.
+After screenshots: `.context/argent-desktop-workspace.png`, `-agents.png`,
+`-welcome.png`, `-compact.png`, `-form-error.png`, `-offline.png`,
+`-needs-review.png`, `-resolve-dialog.png`, `-mobile-preview.png` and
+`.context/argent-desktop.png`. Native screenshots were visually inspected; the
+actual source/test/doc/asset diff, local links and no-website-change boundary
+were reviewed.
+
+Limits: heuristic desktop review, not measured user satisfaction, accessibility
+certification or screen-reader/device testing. Signed packaged installation was
+not rebuilt. All execution remains simulated; account/cloud/migration/mobile,
+repository files/diffs and terminal tools remain planned. No paid pack, account
+connection, external export, provisioning, branch rename, commit, push/PR, merge,
+deployment or binary release. All work remains local/uncommitted.
+
+Next: founder visual feedback on the refined desktop; continue the existing
+provider/auth and real isolated M1a/continuity/mobile implementation contracts.
+
+## P2 familiar desktop and roadmap revision — 6 November 2026
+
+Founder direction: create a Conductor-like product with low UX learning friction,
+mobile, cloud-file migration and existing subscriptions across agents. Direct
+read-only navigation of installed Conductor covered workspace, Home and
+Claude Code/Codex agent settings. No settings, credentials, user files or workspace
+state were changed. Official public announcement/docs were rechecked; Grok remains
+qualitative evidence, not measured demand. [Spec 0008](docs/specs/0008-conductor-familiar-desktop.md)
+records the observation matrix, acceptance criteria and exact raw-layout limits.
+
+The raw Electron shell now has left workspace/session navigation, center activity
+and composer, right Artifacts/All files/Changes/Checks and terminal placement.
+Home/Search opens a dialog over loaded durable workspaces; Create uses the real
+existing form. The composer opens runtime review and preserves uncertain pending
+submission fields. Settings previews Claude Code, Codex, Cursor and OpenCode plus
+migration/mobile plans without collecting credentials. File/diff/terminal views
+are explicit unavailable previews. Our approved icon is copied byte-for-byte from
+the existing website derivative into independently packaged UI assets.
+
+The roadmap promotes subscriptions, migration and mobile ahead of team/dependency
+work, while retaining the current core and one-agent engineering proof. Initial
+personal-release gates target two official integrations (Claude Code and Codex),
+per-environment subscription validation, usable portability and mobile companion;
+Cursor/OpenCode are parity targets and native iOS is an explicit delivery track.
+No universal subscription or live-session import claim is established.
+
+Evidence: `npm run check` passes strict types, formatting, compilation and
+**132 tests, 0 failures, 0 skips**, including three new compiled-shell tests for
+review-only composition, uncertain submission preservation and disabled/blank
+submission. Native `npm run desktop:smoke` passes provider/migration/mobile
+preview navigation, real loaded-workspace search, composer review without dispatch,
+inspector hide/reopen, 900/1380px overflow checks and the original artifact,
+background execution, close/reopen, cancellation and service stop/reconnect flows.
+It confirms renderer isolation and service survival after application exit.
+Logs: `.context/check.log` and `.context/desktop-smoke.log`. Screenshots under
+`.context/argent-desktop-workspace.png`, `.context/argent-desktop-agents.png` and
+`.context/argent-desktop.png` were visually reviewed. Actual source/test/doc diff,
+asset identity, whitespace and relative Markdown links were reviewed.
+
+Limits: desktop simulator only; no real agent, account sign-in, cloud lifecycle,
+terminal, repository checkout/diff, migration/importer or mobile app. Fixed pane
+widths and a loaded-history navigation dialog are raw-layout limits, not full
+Conductor parity. No measured learning-friction improvement or customer demand.
+No signed/package rebuild, website checks, iOS/device or live-provider test was
+performed. Existing dependency installation reports five moderate advisories;
+no dependency versions were changed. Dependency remediation was outside this UI pass.
+
+Next: founder review of this concrete layout, then provider/deployment auth matrix,
+live isolated M1a access/cleanup and focused migration/mobile acceptance slices.
+Use a consented redacted export before defining Conductor import. Do not expose
+M0 for mobile. Branch name preserved; work remains uncommitted. No account
+connection, export, paid resource, commit, push/PR, merge, deployment or release.
 
 ## Where the work is saved
 
-| Location                                            | Current state                                                                          | How to use it                                                         |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `origin/main` at `7b2eeca`                          | M0/P1, landing, continuity plans, simulated lifecycle/bootstrap and audited resolution | Base of this branch; no live cloud execution or public release.       |
-| `GregPat22/next-step-v5`                            | Encrypted simulated credential custody                                                 | Current branch; evidence is in the first section below.               |
-| `GregPat22/code-review-v2`                          | Second bootstrap hardening review fixes integrated through PR #9                       | Historical review evidence.                                           |
-| `GregPat22/motion-landing-page-improve`             | W0.3–W0.6 landing refinement integrated through PR #8                                  | Historical landing evidence.                                          |
-| `GregPat22/code-review`                             | Bootstrap hardening integrated through PR #7                                           | Historical simulation review evidence.                                |
-| `GregPat22/next-step-v3` / `GregPat22/next-step-v2` | Repository and lifecycle slices integrated through PRs #6/#5                           | Historical simulated engine work.                                     |
-| `codex/desktop-handoff` / `codex/p1-original`       | Earlier P1 review/provenance branches                                                  | Historical evidence; PR #1 is integrated.                             |
-| `GregPat22/argent-landing-page-draft`               | Initial landing integrated through PR #3                                               | Historical source; preserve any later worktree changes.               |
-| `GregPat22/grok-conductor-shutdown-analysis`        | Research and roadmap integrated through PR #4                                          | Current continuity/customer/authentication criteria remain preserved. |
+Current P2 work is uncommitted on `GregPat22/conductor-layout-create`; the table
+retains historical branch provenance.
+
+| Location                                            | Current state                                                                                | How to use it                                                                |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `origin/main` at `9eac908`                          | M0/P1, refined landing, continuity plans, simulated lifecycle/bootstrap and audited recovery | Base integrated into this branch; no live cloud execution or public release. |
+| `GregPat22/motion-landing-page-improve`             | W0.3–W0.6 landing refinement integrated through PR #8                                        | Historical landing evidence; preserve any remaining worktree changes.        |
+| `GregPat22/next-step-v5`                            | Encrypted simulated credential custody integrated through PR #11                             | Historical internal custody evidence; no production key service.             |
+| `GregPat22/next-step-v4`                            | Audited simulated bootstrap resolution integrated through PR #10                             | Historical internal recovery evidence; no live adapter.                      |
+| `GregPat22/code-review-v2`                          | Second bootstrap review integrated through PR #9                                             | Historical hardening evidence.                                               |
+| `GregPat22/code-review`                             | Bootstrap hardening integrated through PR #7                                                 | Historical simulation review evidence.                                       |
+| `GregPat22/next-step-v3` / `GregPat22/next-step-v2` | Repository and lifecycle slices integrated through PRs #6/#5                                 | Historical simulated engine work.                                            |
+| `codex/desktop-handoff` / `codex/p1-original`       | Earlier P1 review/provenance branches                                                        | Historical evidence; PR #1 is integrated.                                    |
+| `GregPat22/argent-landing-page-draft`               | Initial landing integrated through PR #3                                                     | Historical source; preserve any later worktree changes.                      |
+| `GregPat22/grok-conductor-shutdown-analysis`        | Research and roadmap integrated through PR #4                                                | Current continuity/customer/authentication criteria remain preserved.        |
 
 Historical sections retain revision-specific evidence and branch states. The
 Next.js landing remains separate from desktop packaging and the static download
@@ -343,8 +503,10 @@ silently merge to main, deploy or publish a binary release.
   workspace, one real agent, disconnect/reconnect, trusted exact-commit checks,
   independent review, bounded repair and an authorized draft PR.
 - **Longer-term workflow:** specifications, task dependencies, isolated worktrees,
-  additional agents and eligible follow-on work. A full IDE, swarms, billing,
-  mobile apps and autonomous merging are outside the first MVP.
+  additional agents and eligible follow-on work. A full IDE, swarms, billing and
+  autonomous merging are outside the first engineering proof. The later P2
+  revision promotes mobile/subscriptions/migration into the replacement product
+  track before teams and dependencies.
 - **Open source:** independently usable local/self-hosted core and provider
   adapters. MIT is the selected license for the original code. Managed cloud
   execution, collaboration, enterprise capabilities and support are potential
@@ -523,8 +685,8 @@ Next actions, in order:
    draft PR. Live tests require concrete provider/account/region/resource/budget approval.
 4. Complete M1d portable export/restore, PostgreSQL, remote authorization,
    credential brokerage, enforced limits and backup/restore before managed release.
-5. Stage additional agent support, scoped team handoff and lightweight mobile
-   access before dependency orchestration, with separate acceptance contracts.
+5. Follow the revised P2 roadmap: subscription breadth, migration and mobile
+   precede team handoff and dependencies, with focused acceptance contracts.
    Customer outreach and paid competitor trials require their own authorization.
 6. The landing is integrated via PR #3. Keep Next.js separate from the static
    desktop preview; signing/notarization, verified updates and real public
