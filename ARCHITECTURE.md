@@ -5,13 +5,17 @@ No upstream fork, cloud deployment or paid resource is configured.
 
 ## Shape and boundaries
 
-A modular monolith with separate API and worker processes. Browser clients read
-state and send commands; they do not own execution. Keep authoritative execution
+A modular monolith with separate API and worker processes. An installed desktop
+application is the primary client; it reads state and sends commands without
+owning execution. A public website distributes installers and documentation.
+Browser access may be added as a secondary client. Keep authoritative execution
 state outside suspendable workspace compute.
 
 ```mermaid
 flowchart LR
-  Client[Browser or CLI] --> API[Control API]
+  Website[Product website and downloads] --> Desktop[Installed Argent desktop app]
+  Desktop --> API[Control API]
+  Client[Optional browser or CLI] --> API
   API --> DB[(Durable database and events)]
   Worker[Independent worker] --> DB
   Worker --> WP[Workspace adapter]
@@ -22,9 +26,10 @@ flowchart LR
   Verify --> GH[Scoped GitHub PR broker]
 ```
 
-M0 implements the first four nodes with SQLite, a local workspace adapter and a
-scripted agent. Verification checks only a simulation artifact. The last nodes
-describe M1; they are not working cloud integrations.
+M0 implements the control API, durable SQLite database and independent worker,
+with a local workspace adapter and scripted agent. Verification checks only a
+simulation artifact. The website, desktop client and real cloud/agent/GitHub
+integrations are target components, not delivered by this M0 publication.
 
 ## Persistence and execution
 
@@ -65,6 +70,23 @@ down this local computer. Cloud-hosted workers are required for laptop independe
 The scripted adapter is cooperative and bounded. Arbitrary blocking code must
 never run inside the control-plane process; future adapters control isolated
 processes with provider-enforced resource/deadline limits.
+
+## Desktop delivery
+
+The first usable prototype must launch as a local desktop application, with
+workspace/task controls, activity history and verification details. The desktop
+shell must keep privileged filesystem/process APIs and credentials outside its
+renderer, use a narrow validated bridge, and load only trusted packaged content.
+It connects to a persistent local service or a configured remote control plane.
+Window close, application exit and explicit execution-service shutdown are
+separate lifecycle operations.
+
+Provide a packaged macOS prototype first in this development environment. Track
+Windows/Linux packaging separately. Public distribution requires signed/notarized
+artifacts where applicable, versioned downloads, checksums and a verified update
+path. An unsigned local build must not be represented as a public-ready installer.
+The website must describe available builds truthfully and never offer fabricated
+download links. No publication or paid signing account is implied by development.
 
 ## Managed target
 

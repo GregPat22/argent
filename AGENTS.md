@@ -3,6 +3,9 @@
 Read README.md, ARCHITECTURE.md and the relevant docs/specs file before edits.
 
 - This is a headless cloud-oriented control plane. Clients never own execution.
+- The primary product is a downloadable desktop app, distributed from a website.
+  Do not replace the desktop installation/launch experience with a browser-only app.
+  Keep desktop packaging separate from the headless engine and workspace execution.
 - Keep API, durable store, worker and provider adapters separate within one package.
 - Every behavior change needs written acceptance criteria, focused implementation,
   appropriate automated tests and review of the actual diff.

@@ -5,6 +5,17 @@ in persistent local or cloud environments, while developers remain in control
 from anywhere. Reliability, observable evidence and controllable execution matter
 more than how many agent terminals fit on a screen.
 
+Argent is desktop-first. A developer visits our website, downloads an installer,
+installs Argent locally and launches the desktop application, following the
+installation and launch experience of Conductor. The website is the product,
+download and documentation entry point; the installed app is the primary working
+interface. Browser access may complement the desktop later.
+
+Desktop delivery and cloud execution are independent choices. The desktop client
+controls local or persistent cloud workspaces through the same headless engine.
+Closing the desktop app must not cancel a remote run. Local work can continue
+only while its host computer and worker remain available.
+
 The developer defines verifiable work. The platform isolates changes, runs an
 agent, collects deterministic checks, requests independent review, attempts only
 bounded repairs and prepares a pull request. Humans retain authority over

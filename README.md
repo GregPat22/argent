@@ -7,10 +7,28 @@ verifiable results.
 The name combines **argento**, Italian for silver and a conductor, with **agent**.
 Repository: [GregPat22/argent](https://github.com/GregPat22/argent).
 
+**Product direction: a downloadable desktop app.** Developers will download Argent
+from our website, install it locally and launch it like Conductor. The desktop
+client will control both local and persistent cloud execution; the headless engine
+below remains independent of the interface. The website is the download and
+documentation entry point. Desktop packaging is the next prototype milestone.
+
 **Current milestone: M0, a local orchestration simulator.** The API, durable queue,
 worker, crash reconciliation and reconnectable event history work. A scripted
 adapter writes a JSON artifact, which a separate verifier checks. There is no real
 GitHub connection, repository checkout, AI agent, cloud compute or pull request.
+
+## Project context and documentation
+
+Start with [Project context](docs/PROJECT_CONTEXT.md) for the product, accepted
+decisions, implementation status, business direction and next work. The
+[documentation index](docs/README.md) links the original founder brief, decision
+register, architecture, research, milestone reports and acceptance specifications.
+Read [Contributing](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) before changes.
+
+This initial publication contains the tested M0 foundation and accepted desktop
+requirements. Active prototype work is separate; there is no downloadable desktop
+release in this revision.
 
 ## Tech Stack
 
@@ -138,7 +156,7 @@ workspace for another simulation. M1 must add an audited reconciliation workflow
 
 Strict TypeScript, ESM imports, parameterized SQL and transactional state/event
 changes. Use written specifications and focused branches (`feat/…`, `fix/…`),
-conventional commit messages, and small reviewed PRs when a remote is configured.
+conventional commit messages, and small reviewed PRs against `main`.
 Read [AGENTS.md](AGENTS.md). A dependency lockfile is committed; installs disable
 dependency lifecycle scripts in CI. There are no production package dependencies.
 
