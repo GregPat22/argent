@@ -12,6 +12,21 @@ roadmap. Main's audited recovery and encrypted simulated credential custody are 
 remains simulated; real accounts/cloud/migration/mobile and website publication
 remain unfinished.
 
+## W0.7 liquid silver hero — 7 November 2026
+
+Worktree `~/conductor/workspaces/argent/liquid-silver`, branch
+`GregPat22/liquid-silver-3d-animation` from main `1cb55c3`. The founder approved
+the visual result on 7 November 2026 and asked for it to be committed and pushed
+directly to `main`. Adds `website/src/components/liquid-silver.tsx` (one WebGL
+raymarching shader + CPU spring physics, no new dependencies), a two-column hero
+in `website/src/components/hero.tsx` and `globals.css`, and 4 browser tests.
+Criteria, evidence and limits are in
+[spec 0005 W0.7](docs/specs/0005-website-landing-draft.md#w07-interactive-liquid-silver-beside-the-hero);
+the study is [docs/research/liquid-silver-hero.md](docs/research/liquid-silver-hero.md).
+27/29 website browser tests pass. The 2 navbar-compaction failures also fail on
+clean main (stale after PR #13). Dev preview: `cd website && npm run dev` on
+`http://localhost:3000`.
+
 ## Desktop PR preparation — 6 November 2026
 
 On unchanged branch `GregPat22/conductor-layout-create`, preserved the approved

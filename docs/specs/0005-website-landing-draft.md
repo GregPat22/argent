@@ -2,6 +2,55 @@
 
 Status: draft requested by the founder, 6 November 2026.
 
+## W0.7: interactive liquid silver beside the hero
+
+Branch: `GregPat22/liquid-silver-3d-animation`, based on main `1cb55c3` (PR #13).
+The founder asked for 3D liquid silver, interactive with the mouse, next to the
+hero's main content. This supersedes W0.5's "no hero animation/WebGL" criterion
+for the hero only; the W0.5 bubble renderer stays deleted.
+
+Acceptance criteria:
+
+1. Desktop (≥1024px): a decorative liquid silver render sits in a right-hand
+   column beside the headline, at least 440px wide at 1440px, without overlapping
+   the copy or overflowing the page. Phones/tablets: it follows the copy; the
+   primary actions and status line still fit the first mobile screen.
+2. It reads as liquid metal: a merging, slowly morphing mass with mirror
+   reflections, Fresnel, contact occlusion, an anti-aliased silhouette and one
+   self-reflection bounce. No 3D library, model, texture or network asset.
+3. Pointer: a droplet follows the cursor over the artwork (spring physics),
+   stretches a neck, pinches off past a threshold and rejoins on contact;
+   reflections track the pointer anywhere on the page; a press sends a ripple.
+   Touch works while a finger is down. The canvas never intercepts clicks,
+   selection or focus and adds no controls.
+4. It is `aria-hidden` decoration. It stops offscreen and in hidden tabs, renders
+   one still frame (no pointer response) under live reduced motion, compiles its
+   shader without blocking where `KHR_parallel_shader_compile` exists, lowers its
+   pixel ratio when frames run long, and handles context loss. Without WebGL a
+   static polished drop appears; the atom's 2D canvas is unaffected.
+5. Browser tests cover placement, rendering, pointer follow/return, offscreen
+   pause, reduced-motion still frame, WebGL fallback and mobile placement.
+
+### W0.7 verification evidence
+
+- Website strict typecheck and production build passed. **27 of 29 production
+  browser tests passed (1.2m)**, including the 4 new liquid silver tests, which
+  replace the W0.5 zero-WebGL test. The 2 failures are navbar-compaction tests
+  (expected 48px logo at y=16). They fail identically on a clean `origin/main`
+  `1cb55c3` checkout: PR #13 changed the logo dock to 68px/12px without updating
+  the tests. They are unrelated to this change and left for a separate fix.
+- Visual check in headless Chromium (Metal) at 1440×900 and 390×844: rest pose,
+  neck stretch, detached droplet, ripple and phone placement were reviewed from
+  screenshots. No dev-mode WebGL warnings after the StrictMode cleanup fix.
+- Root `npm run check` passed **181 tests**, strict types and formatting.
+- The [liquid silver study](../research/liquid-silver-hero.md) records the
+  approaches compared and why a single raymarching shader was chosen.
+
+Limits: Chromium only. Safari/Firefox and real-device GPU cost (especially
+integrated laptop GPUs and phones) are not measured; adaptive resolution is the
+mitigation, not evidence. Founder approved the result on 7 November 2026 and
+asked for a direct push to `main`. Not deployed.
+
 ## PR integration verification — 6 November 2026
 
 Branch `GregPat22/motion-landing-page-improve` integrates main `1cc0598` (PR #7)

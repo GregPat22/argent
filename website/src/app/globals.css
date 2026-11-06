@@ -346,6 +346,102 @@
   max-width: 32rem;
 }
 
+/* W0.7: interactive liquid silver beside the hero copy. */
+.hero-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 2.5rem;
+}
+.hero-copy {
+  position: relative;
+  z-index: 1;
+}
+.liquid-silver {
+  position: relative;
+  width: min(100%, 26rem);
+  aspect-ratio: 1;
+  margin: -1.5rem auto -3rem;
+  pointer-events: none;
+  user-select: none;
+}
+/* Soft ambient glow so the metal reads as lit, not cut out. */
+.liquid-silver::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    closest-side at 50% 48%,
+    rgb(196 210 232 / 0.1),
+    rgb(196 210 232 / 0.03) 55%,
+    transparent
+  );
+}
+.liquid-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 900ms var(--ease-out-quint),
+    transform 1200ms var(--ease-out-quint);
+}
+.liquid-canvas:not([data-state="loading"]) {
+  opacity: 1;
+  transform: none;
+}
+/* Static polished drop shown only when WebGL is unavailable. */
+.liquid-fallback {
+  position: absolute;
+  inset: 24%;
+  border-radius: 48% 52% 45% 55% / 54% 46% 54% 46%;
+  background:
+    radial-gradient(
+      circle at 34% 28%,
+      #fff 0 3%,
+      rgb(236 241 248 / 0.85) 8%,
+      transparent 22%
+    ),
+    radial-gradient(
+      circle at 62% 74%,
+      rgb(190 205 230 / 0.55),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 45% 42%,
+      #c9d1dc 0,
+      #6f7987 34%,
+      #262b33 62%,
+      #0d0f13 80%
+    );
+  box-shadow:
+    inset -10px -14px 30px rgb(0 0 0 / 0.55),
+    inset 8px 10px 22px rgb(255 255 255 / 0.12),
+    0 30px 60px -30px #000;
+}
+@media (min-width: 1024px) {
+  .hero-layout {
+    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+    gap: 1rem;
+  }
+  .hero-section .hero-title {
+    font-size: clamp(3.5rem, 5.6vw, 6rem);
+  }
+  .liquid-silver {
+    width: 100%;
+    max-width: 38rem;
+    margin-block: -3rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .liquid-canvas {
+    transition: none;
+    transform: none;
+  }
+}
+
 /* Borderless navigation collapses to one accessible logo control on scroll. */
 .site-header {
   position: fixed;

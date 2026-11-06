@@ -8,14 +8,14 @@ This is a separate package from the engine. It shares no code or dependencies wi
 
 ## Stack
 
-| Layer      | Technology                                                              |
-| ---------- | ----------------------------------------------------------------------- |
-| Framework  | Next.js 16 (App Router, static prerender), React 19                     |
-| Styling    | Tailwind CSS 4, tokens in `src/app/globals.css`                         |
-| Motion     | Motion for React (`motion/react`), native anchor scrolling              |
-| Hero       | Static headline and actions; no hero canvas, shader or fallback artwork |
-| Typography | Inter headings, Manrope body, JetBrains Mono code                       |
-| Icon       | Founder-supplied official silver A, faithful web/favicon derivatives    |
+| Layer      | Technology                                                                   |
+| ---------- | ---------------------------------------------------------------------------- |
+| Framework  | Next.js 16 (App Router, static prerender), React 19                          |
+| Styling    | Tailwind CSS 4, tokens in `src/app/globals.css`                              |
+| Motion     | Motion for React (`motion/react`), native anchor scrolling                   |
+| Hero       | Headline and actions beside an interactive liquid silver WebGL shader (W0.7) |
+| Typography | Inter headings, Manrope body, JetBrains Mono code                            |
+| Icon       | Founder-supplied official silver A, faithful web/favicon derivatives         |
 
 ## Running it
 
@@ -38,8 +38,10 @@ serve or overwrite them. Keep that preview separate from this landing package.
 
 - Copy must match the repository. Figures quoted from M0 live in `src/lib/site.ts`.
   Planned capabilities carry a status tag. Never add invented download links.
-- The hero bubble renderer, shader, fallback artwork and pause controls have been
-  deleted per W0.5. Its headline, official icon, liquid buttons and navbar remain.
+- W0.7 adds interactive liquid silver beside the hero copy
+  (`src/components/liquid-silver.tsx`, no 3D library). See the
+  [liquid silver study](../docs/research/liquid-silver-hero.md). The W0.5 bubble
+  renderer, its pause controls and fallback remain deleted. Its headline, official icon, liquid buttons and navbar remain.
 - The larger silver atom uses a responsive 480px maximum with a matching DPR-aware
   buffer. It animates automatically, stops offscreen/when hidden and renders a
   still frame under reduced motion. There is no manual pause control. Its
@@ -60,7 +62,8 @@ serve or overwrite them. Keep that preview separate from this landing package.
 - Playwright tests launch the built site on loopback port 3100 and cover keyboard
   navigation, responsive fit, reconnect, comparison, clipboard, reduced motion,
   atom rendering/fallback, workflow stages, FAQ behavior and no-JavaScript answers.
-  They also verify that no WebGL context is requested, the hero has no rendering
+  They also verify the liquid silver renders, follows the pointer, pauses offscreen,
+  holds a still frame under reduced motion and falls back without WebGL; the hero has no rendering
   controls, the larger atom has no pause button, and icon/favicon delivery,
   logo-only scroll compaction, keyboard disclosure access, 48px targets,
   plain Inter headings, footer navigation and liquid hover feedback still work.

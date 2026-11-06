@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 test("page hydrates cleanly and every section has a readable heading", async ({
   page,
@@ -163,35 +163,148 @@ test("illustrated reconnect preserves history and worker loss requires attention
   ).toBeEnabled();
 });
 
-test("hero contains no bubble renderer, fallback or pause controls", async ({
+/** Brightest pixel (0-255 mean of RGB) inside a page region. */
+async function peakBrightness(
+  page: Page,
+  clip: { x: number; y: number; width: number; height: number },
+) {
+  const png = await page.screenshot({ clip });
+  return page.evaluate(async (data) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${data}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext("2d")!;
+    context.drawImage(image, 0, 0);
+    const pixels = context.getImageData(0, 0, image.width, image.height).data;
+    let peak = 0;
+    for (let i = 0; i < pixels.length; i += 4)
+      peak = Math.max(peak, (pixels[i]! + pixels[i + 1]! + pixels[i + 2]!) / 3);
+    return peak;
+  }, png.toString("base64"));
+}
+
+test("hero shows interactive liquid silver beside the headline", async ({
   page,
 }) => {
+  await page.goto("/");
+  const liquid = page.locator("#intro [data-liquid-silver]");
+  const canvas = liquid.locator("canvas");
+  await expect(liquid).toHaveAttribute("aria-hidden", "true");
+  await expect(canvas).toHaveAttribute("data-state", "animating", {
+    timeout: 15_000,
+  });
+  await expect(page.locator("#intro button")).toHaveCount(0);
+  const heading = (await page
+    .getByRole("heading", { level: 1 })
+    .boundingBox())!;
+  const box = (await canvas.boundingBox())!;
+  expect(box.width).toBeGreaterThanOrEqual(440);
+  expect(box.x).toBeGreaterThanOrEqual(heading.x + heading.width - 1);
+  expect(box.y).toBeLessThan(heading.y + heading.height);
+  expect(box.y + box.height).toBeGreaterThan(heading.y);
+
+  // The metal renders lit highlights around its centre.
+  const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  await expect
+    .poll(
+      () =>
+        peakBrightness(page, {
+          x: centre.x - 60,
+          y: centre.y - 60,
+          width: 120,
+          height: 120,
+        }),
+      { timeout: 15_000 },
+    )
+    .toBeGreaterThan(110);
+
+  // A droplet follows the pointer to an empty corner and returns when it leaves.
+  const reach = {
+    x: centre.x + box.width * 0.283 - 8,
+    y: centre.y - box.height * 0.283 - 8,
+    width: 16,
+    height: 16,
+  };
+  expect(await peakBrightness(page, reach)).toBeLessThan(45);
+  await page.mouse.move(centre.x, centre.y);
+  await page.mouse.move(
+    centre.x + box.width * 0.3,
+    centre.y - box.height * 0.3,
+    {
+      steps: 12,
+    },
+  );
+  await expect
+    .poll(() => peakBrightness(page, reach), { timeout: 15_000 })
+    .toBeGreaterThan(80);
+  await page.mouse.move(heading.x + 20, heading.y + 20, { steps: 6 });
+  await expect
+    .poll(() => peakBrightness(page, reach), { timeout: 15_000 })
+    .toBeLessThan(45);
+  await expect(
+    page.getByRole("link", { name: "See it in action" }),
+  ).toBeVisible();
+});
+
+test("liquid silver pauses offscreen and holds a still frame under reduced motion", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const canvas = page.locator("#intro [data-liquid-silver] canvas");
+  await expect(canvas).toHaveAttribute("data-state", "animating", {
+    timeout: 15_000,
+  });
+  await page.locator("#run").scrollIntoViewIfNeeded();
+  await expect(canvas).toHaveAttribute("data-state", "paused");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(canvas).toHaveAttribute("data-state", "animating");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(canvas).toHaveAttribute("data-state", "still", {
+    timeout: 15_000,
+  });
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.2);
+  const first = await canvas.screenshot();
+  await page.waitForTimeout(700);
+  expect(first.equals(await canvas.screenshot())).toBe(true);
+});
+
+test("hero keeps a static liquid fallback without WebGL", async ({ page }) => {
   await page.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;
-    Object.assign(window, { webglRequests: 0 });
     HTMLCanvasElement.prototype.getContext = function (
       this: HTMLCanvasElement,
       kind: string,
       ...args: unknown[]
     ) {
-      if (kind === "webgl" || kind === "webgl2")
-        (window as unknown as { webglRequests: number }).webglRequests++;
+      if (kind === "webgl" || kind === "webgl2") return null;
       return original.call(this, kind, ...args);
     } as typeof original;
   });
   await page.goto("/");
-  await expect(
-    page.locator(
-      "#intro canvas, #intro button, .silver-fallback, [data-silver-sculpture]",
-    ),
-  ).toHaveCount(0);
+  await expect(page.locator("#intro [data-liquid-fallback]")).toBeVisible();
+  await expect(page.locator("#intro canvas")).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await page.locator("#run").scrollIntoViewIfNeeded();
-  expect(
-    await page.evaluate(
-      () => (window as unknown as { webglRequests: number }).webglRequests,
-    ),
-  ).toBe(0);
+  // The atom's 2D canvas is unaffected.
+  await expect(page.locator("[data-atom-fallback]")).toHaveCount(0);
+});
+
+test("liquid silver sits below the hero copy on phones", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const liquid = (await page
+    .locator("#intro [data-liquid-silver]")
+    .boundingBox())!;
+  const status = (await page
+    .locator("#intro")
+    .getByText("Local prototype · simulated execution.", { exact: false })
+    .boundingBox())!;
+  expect(liquid.y).toBeGreaterThan(status.y);
+  expect(liquid.x).toBeGreaterThanOrEqual(0);
+  expect(liquid.x + liquid.width).toBeLessThanOrEqual(390);
 });
 
 test("atom keeps its static fallback without canvas support", async ({
