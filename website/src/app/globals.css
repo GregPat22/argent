@@ -1,0 +1,269 @@
+@import "tailwindcss";
+
+/*
+ * Argent tokens. The page is monochrome silver; hue appears only when it
+ * reports a run state (running, verified, needs attention).
+ */
+@theme {
+  --color-oxide: #08090c;
+  --color-pewter: #13151a;
+  --color-pewter-2: #1b1e25;
+  --color-hairline: rgb(214 220 230 / 0.12);
+  --color-hairline-strong: rgb(214 220 230 / 0.24);
+  --color-sterling: #a9b0bb;
+  --color-sterling-dim: #929aa7;
+  --color-polished: #eef1f5;
+
+  --color-running: #a8bdff;
+  --color-verified: #8ee6b5;
+  --color-attention: #f5c26b;
+
+  --font-display: var(--font-space), ui-sans-serif, system-ui, sans-serif;
+  --font-logo: var(--font-bodoni), "Bodoni 72", "Didot", serif;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", monospace;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background: var(--color-oxide);
+    color: var(--color-polished);
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    overflow-x: clip;
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+  }
+
+  ::selection {
+    background: rgb(238 241 245 / 0.9);
+    color: var(--color-oxide);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-polished);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  /* Geometric display type, with the original serif reserved for the logo. */
+  .display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-weight: 400;
+    letter-spacing: -0.065em;
+    line-height: 1.04;
+  }
+
+  /* Brushed-silver text fill used for the wordmark and key numerals. */
+  .silver-text {
+    background-image: linear-gradient(
+      100deg,
+      #7d848f 0%,
+      #f6f8fb 18%,
+      #9aa1ac 34%,
+      #e9edf2 52%,
+      #6f7681 70%,
+      #dfe4ea 86%,
+      #8b929d 100%
+    );
+    background-size: 220% 100%;
+    background-position: var(--sheen, 30%) 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hairline {
+    border-color: var(--color-hairline);
+  }
+
+  /* Engraved guilloché ground used behind certificate-like surfaces. */
+  .guilloche {
+    background-image:
+      repeating-radial-gradient(
+        circle at 120% 50%,
+        rgb(214 220 230 / 0.05) 0 1px,
+        transparent 1px 9px
+      ),
+      repeating-radial-gradient(
+        circle at -20% 50%,
+        rgb(214 220 230 / 0.04) 0 1px,
+        transparent 1px 11px
+      );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+.logo-display {
+  font-family: var(--font-logo);
+  font-weight: 450;
+  letter-spacing: -0.025em;
+}
+
+.silver-surface {
+  background:
+    linear-gradient(135deg, rgb(238 241 245 / 0.06), transparent 45%), #0e1015;
+  box-shadow:
+    inset 0 1px 0 rgb(238 241 245 / 0.07),
+    0 24px 64px -40px #000;
+}
+
+.metal-node {
+  background: conic-gradient(
+    from 35deg,
+    #727d8b,
+    #fff 12%,
+    #8e99a8 28%,
+    #242a33 48%,
+    #e4eaf2 67%,
+    #798695 82%,
+    #e7edf5
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.3),
+    0 4px 14px #000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0s !important;
+  }
+}
+
+/* Readable silver throughout; one slow highlight passes on entry and hover. */
+.conductor-silver {
+  color: #dbe4ef;
+  background-image: linear-gradient(
+    110deg,
+    #8b97a7 4%,
+    #e1e8f0 22%,
+    #fff 30%,
+    #8592a5 38%,
+    #dce5ef 52%,
+    #a1adbd 70%,
+    #f8fbff 84%,
+    #b4bfce 96%
+  );
+  background-size: 240% 100%;
+  background-position: 100% 50%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.conductor-silver.is-revealed {
+  animation: conduct-silver 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (hover: hover) {
+  .conductor-silver:hover {
+    animation: conduct-silver-hover 1.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes conduct-silver {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0% 50%;
+  }
+}
+@keyframes conduct-silver-hover {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+.silver-fallback {
+  position: absolute;
+  left: 81%;
+  top: 50%;
+  width: min(34vw, 29rem);
+  aspect-ratio: 0.92;
+  border-radius: 56% 44% 60% 40% / 45% 42% 58% 55%;
+  mask-image: radial-gradient(
+    ellipse 24% 31% at 50% 55%,
+    transparent 90%,
+    #000 100%
+  );
+  transform: translate(-50%, -50%) rotate(-20deg);
+  background: radial-gradient(
+    ellipse at 30% 20%,
+    #fff,
+    #8b98a8 20%,
+    #242a34 40%,
+    #dce4ef 62%,
+    #657286 78%,
+    #eef4ff
+  );
+  box-shadow:
+    inset 4px 4px 12px rgb(255 255 255 / 0.7),
+    inset -12px -14px 30px #151b25;
+}
+@media (max-width: 767px) {
+  .silver-fallback {
+    left: 50%;
+    width: 54vw;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .conductor-silver {
+    background-position: 40% 50%;
+  }
+}
+
+/* Spring curve generated by the authenticated Motion+ easing tool. */
+.workflow-tab {
+  transition:
+    transform 600ms
+      linear(
+        0,
+        0.0664,
+        0.2076,
+        0.3671,
+        0.5163,
+        0.6431,
+        0.7445,
+        0.822,
+        0.8792,
+        0.9202,
+        0.9488,
+        0.9682,
+        0.981,
+        0.9892,
+        0.9944,
+        0.9974,
+        0.9992,
+        1.0001,
+        1,
+        1
+      ),
+    background-color 0.2s,
+    color 0.2s;
+}
+@media (hover: hover) {
+  .workflow-tab:hover {
+    transform: translateY(-2px);
+  }
+}

@@ -7,22 +7,18 @@ Private chat access is not required to continue development.
 
 ## Where the work is saved
 
-| Location                                           | State at this handoff                                                     | How to use it                                                                                                                                                                                                |
-| -------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `main`                                             | M0 runtime, product/research context, agent entry points and this handoff | Starting point for general new worktrees. P1 is not yet merged here.                                                                                                                                         |
-| `codex/desktop-handoff`                            | P1 source plus refresh fix `f929ae3` and edge-case tests `b888840`        | Review [draft PR #1](https://github.com/GregPat22/argent/pull/1). Use this branch for desktop continuation until an explicit merge decision.                                                                 |
-| `codex/p1-original`                                | Original completed P1 commit `a4f3d52`, preserved unchanged               | Provenance/backup, rather than the preferred development base.                                                                                                                                               |
-| `GregPat22/argent-landing-page-draft` in Conductor | Active local landing-page work, based on the shared context               | At audit time `website/` and `docs/specs/0005-website-landing-draft.md` are uncommitted. They are not included in PR #1 or this publication. Preserve them and let the landing agent commit/push when ready. |
+| Location                                           | State at this handoff                                                                     | How to use it                                                                                             |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `main`                                             | M0 and P1 desktop prototype integrated at `fd60a5a`                                       | Starting point for new worktrees; PRs #1 and #2 are merged.                                               |
+| `codex/desktop-handoff`                            | P1 source plus refresh fix `f929ae3` and edge-case tests `b888840`                        | Historical desktop review source, integrated through [PR #1](https://github.com/GregPat22/argent/pull/1). |
+| `codex/p1-original`                                | Original completed P1 commit `a4f3d52`, preserved unchanged                               | Provenance/backup.                                                                                        |
+| `GregPat22/argent-landing-page-draft` in Conductor | Landing draft and W0.1/W0.2 refinements, with `origin/main` integrated for PR preparation | Review this branch for the landing page; it has not been merged into main or deployed.                    |
 
-The default branch's M0-only descriptions refer to its actual runtime, not the
-latest completed work on every branch. The review branch's README, architecture,
-context and spec describe P1. When PR #1 is reviewed and explicitly approved for
-merge, update this table and the main-branch status references as part of that
-integration. Do not silently merge, deploy or publish a binary release.
-
-The original integrated P1 source matched the completed prototype. The updated
-review branch adds the selected-workspace refresh fix and renderer regression
-tests described below; dependency versions and packaging settings are unchanged.
+The desktop prototype is now part of main. Historical review records below retain
+their original revision-specific evidence. The landing remains a separate
+Next.js package alongside the desktop's static download preview in `website/`;
+see the PR preparation update below for current checks and ownership. Do not
+silently merge to main, deploy or publish a binary release.
 
 ## Product decisions already made
 
@@ -322,3 +318,153 @@ review the actual diff, and commit/push the intended work. Do not rely on a
 private chat, ignored `context-log.md` or a session ID as the sole project memory.
 Do not commit another active agent's unreviewed files. If sources disagree,
 inspect the checkout and evidence and correct the documentation explicitly.
+
+## W0.1 landing refinement — 6 November 2026
+
+Branch: `GregPat22/argent-landing-page-draft`, based on landing commit `c70cb4c`.
+A fresh fetch found `origin/main` at `a5a96cb`, with no main-only commits ahead
+of this branch and one landing commit outside main before this refinement. The
+initial working tree was clean. The landing source was committed/pushed on its
+branch; it was not integrated into main. P1 remains on its separate desktop
+review branch. No merge, deployment or public installer was performed.
+
+The founder approved the Ag logo and overall silver concept, then requested a
+better graphic, new typography, a complete Laws of UX agent audit and premium
+animation throughout. The refinement preserves the Ag mark and serif wordmark,
+uses Space Grotesk/Manrope elsewhere, replaces droplets with a connected silver
+loop sculpture, adds “Argent is a good conductor” as the second heading, and
+shares silver orbit/trace/seal details across sections and roadmap.
+
+The UX audit and second independent diff review prompted mobile navigation,
+44px targets, readable workflow copy, shorter pacing, explicit simulated-evidence
+labels and corrected P1/planned-cloud claims. Native anchor scrolling replaces
+Lenis, avoiding a motion-preference change remounting the page. The hero has a
+30fps cap, bounded buffer, pause/resume, offscreen/hidden suspension, a static
+reduced-motion frame and CSS fallback. Motion AI/Motion+ tools were not exposed;
+no premium source, private dependency or credential was used.
+
+Evidence: website typecheck and production build passed; **8 Playwright browser
+tests passed** against that production build, covering desktop/mobile/tablet,
+keyboard, reconnect, slider bounds, reduced motion, actual pause/resume rendering,
+fallback and copy feedback. Root `npm run check` passed **22 tests**, typechecking
+and formatting. `.context/` is excluded from formatting so ignored workspace
+attachments/tools do not break source checks. Screenshots remain locally in
+`.context/refinement/`. The [W0.1 spec](docs/specs/0005-website-landing-draft.md)
+and [UX review](docs/research/landing-ux-review.md) record details and limits.
+
+Next: founder visual feedback; optional Safari/real-device GPU checks; explicit
+review and integration of the landing and desktop branches, reconciling their
+shared `website/` ownership. Neither the typography proposal nor the passing
+browser suite establishes a public release or validated conversion improvement.
+
+## Motion AI/Motion+ Codex recovery — 6 November 2026
+
+Branch: `GregPat22/argent-landing-page-draft`, following `012e45c`. The founder
+requested autonomous investigation and setup after the visual pass reported
+unavailable Motion tools. Root cause: the earlier installer had configured the
+hosted servers in Claude Code's machine-local settings, while this workspace's
+agent was Codex. Codex's machine-local configuration contained only its existing
+node/computer tools, with neither Motion server registered.
+
+Both hosted servers were added using the installed Codex CLI and authenticated
+through their supported browser OAuth flow. An existing Motion+ account was
+already available; no purchase, credential extraction or private package install
+was required. Other MCP servers were preserved, and a private configuration
+backup was saved outside the repository. Credentials remain in Codex's managed
+authentication storage, not in repository files.
+
+Verified using Codex's own app-server MCP client, without an inference/agent turn:
+
+- Both servers report enabled and authenticated; tool discovery succeeds.
+- `motion/search-motion-docs` returns real scroll/reveal matches, and
+  `motion://docs/react/react-scroll-animations` reads successfully.
+- `motion-plus/generate-css-easing` generates a 0.4s perceptual spring curve.
+- `motion-plus/search-motion-source` returns premium source links, and
+  `motion://examples/react/footer-reveal` reads the complete premium source.
+
+The already-running chat's native tool catalogue did not hot-reload. A direct
+connection through the official Codex app-server successfully exercised the
+servers in the same session; later Codex sessions can load the registered
+servers normally. Helpers/results are local ignored evidence in `.context/`.
+The earlier statements about unavailable tools describe the visual pass, not
+the current machine configuration. The website still uses the public Motion
+runtime; MCP access and a premium runtime dependency are separate. No premium
+example source was copied into the public repository. The site remains available
+on loopback port 3000.
+
+Acceptance: configured, OAuth authenticated, tools discovered and real free/paid
+requests plus resource reads verified. Root `npm run check` passed 22 tests,
+strict types and formatting for this documentation update. No site behavior,
+engine, merge, deployment or spending changed.
+
+## W0.2 simplification and fluid interaction — 6 November 2026
+
+Branch: `GregPat22/argent-landing-page-draft`, following `1ec78e3`. Founder
+feedback removed the W0.1 signature system: numbered labels, small icons and
+section divider lines. Navbar/roadmap reading-progress traces and the long
+workflow's left rail are also removed. Approved logo and meaningful headings
+remain. The long seven-step scroll becomes three keyboard-selectable stages
+(define, bounded execution, evidence/human decision) with adjacent illustration
+labels and all original execution/verification authority boundaries retained.
+
+The hero now uses a varying-thickness implicit silver loop with smoothly joined
+volumes, studio reflections and an actual spring-following surface lobe under
+hover. Pointer exit restores its rest geometry. “Conductor” gets a readable
+silver sweep on arrival/hover. The atom renders 47 depth-shaded electrons across
+five stylized shells, with trails, pause/resume, offscreen/hidden suspension,
+reduced-motion still frame and SVG fallback. The atom is a visual metaphor, not
+a quantum simulation. No new runtime dependency was added.
+
+Research included primary creator/graphics sources and live authenticated Motion
+AI/Motion+ documentation and example reads. Premium reference source remains
+outside the public tree; a Motion+ generated CSS spring is used for workflow
+hover. See [the study](docs/research/fluid-motion-refinement.md) and
+[W0.2 spec/evidence](docs/specs/0005-website-landing-draft.md).
+
+Website production build and strict types passed; **12 production browser tests
+passed**. Hover is verified against rendered pixel area with ambient time held
+constant. Atom tests compare actual frames, pause/resume, offscreen stop and
+live reduced-motion changes. The latter caught Motion 14.10's snapshot-only
+hook, now handled by a shared reactive media-query subscription. Root
+`npm run check` passed **22 tests**, strict types and formatting. The actual
+diff and production desktop/mobile screenshots in `.context/w02/` were reviewed.
+The production preview on **localhost:3000** was restarted with the verified build.
+
+Next: founder visual feedback, then optional real-device/Safari GPU evaluation.
+The website/desktop branches still need explicit integration review; no main
+merge, deployment or public download was performed. Engine and desktop packaging
+are unchanged. `.context/` contains only local research/browser evidence and
+helpers; it is not the sole durable handoff.
+
+## Landing PR preparation — 6 November 2026
+
+Branch: `GregPat22/argent-landing-page-draft`. Fetched main at `fd60a5a` and
+integrated it into this feature branch in `e3e82f9`; main itself was not changed.
+Resolved the handoff/index conflicts by preserving desktop and landing evidence.
+Updated the current status references and roadmap copy because P1 is now on
+main. Root `npm run site:preview` still serves the static desktop download page
+on port 4320, with its existing local screenshot/archive prerequisites. The
+separate Next.js package serves the landing on port 3000; neither entry point
+imports or overwrites the other. No engine or packaging diff remains against main.
+
+Independent actual-diff/coverage review found an arrival-animation race in the
+comparison slider: early keyboard or pointer input could be overwritten by its
+delayed spring. The hint now stops permanently on user input and cleans up on
+preference changes/unmount. Acceptance: immediate keyboard and pointer selections
+survive the hint's full duration and subsequent reduced-motion changes. Two new
+normal-motion browser regressions cover this, and the focused fix was independently
+reviewed with no remaining findings.
+
+Fresh checks on the integrated tree: root `npm run check` passed **41 tests**,
+strict types and formatting; website strict typecheck and production build passed;
+**14 production Playwright tests passed (38.2s)**. Credential-pattern scanning and
+`git diff --check` passed. The full PR diff was reviewed against `origin/main`.
+Website checks are local evidence; the existing GitHub workflow runs root checks
+only. Native Electron smoke/package/download streaming was not rerun: generated
+screenshot/archive prerequisites are absent in this workspace. Their source is
+unchanged from main. Safari and real-device GPU validation remain open.
+
+Next: review the landing PR and founder visuals, then make an explicit integration
+decision. This task authorizes branch push and PR creation, not a main merge,
+website deployment or binary release. The package remains version `0.0.1`, matching
+the repository's existing prelaunch convention.
