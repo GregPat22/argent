@@ -129,8 +129,9 @@ are implemented and verified. See [spec 0007](docs/specs/0007-cloud-workspace-li
 `Store.repositories` adds a separate repository operation/event queue on the same
 SQLite connection. Bootstrap binds a ready lifecycle workspace and provider ID;
 its enrollment and lifecycle requests serialize under the same write lock.
-Pending or uncertain bootstrap blocks pause/delete. One bootstrap per workspace
-is allowed; even a successful checkout is not repeated under a new request key.
+Pending or uncertain bootstrap blocks pause/delete. At most one non-failed
+bootstrap per workspace is allowed; even a successful checkout is not repeated
+under a new request key. Clean pre-mint failures permit a fresh request.
 
 The simulation-only worker asks a trusted server-side authority to validate the
 operator/repository/ref and return numeric repository/installation IDs. Client
@@ -147,11 +148,24 @@ Exceptions are never persisted. Unknown outcomes, expired ownership and cleanup
 failure retain `needs_attention` plus token/channel obligations; reconnect only
 reads. This is a separate bootstrap status, not a new lifecycle-ready guarantee.
 
+An internal, simulation-only recovery path accepts the original authenticated
+operator and performs bounded, read-only independent inspection. Only fresh,
+identity-bound confirmation of settled effects, revoked/absent credentials,
+cleared/absent channels and no partial checkout can resolve uncertainty. The
+original attempt becomes `failed`, retaining its phase and cleanup history;
+an attributed receipt and event commit with that transition. A new request key
+must reauthorize before bootstrap. Rejections remain blocked and record only a
+fixed reason. Completed duplicate keys read their receipt; concurrent inspections
+are read-only and their settlements serialize with lifecycle requests. This
+does not implement actual cleanup or bypass uncertain external outcomes.
+
 The fixtures prove contract handling only. There is no HTTP GitHub adapter, real
 authorization/sign-in service, secret vault, isolated Git runner or dependency
 execution. A crash after mint intent may leave an unknown token; no durable secret
-or revocation mechanism is implemented. An audited resolution/cleanup path and
-live isolation/credential-leak tests are mandatory before enabling real adapters.
+or revocation mechanism is implemented. A real audited cleanup/recovery service,
+durable secret custody and live isolation/credential-leak tests are mandatory
+before enabling real adapters. In particular, an inspector must independently
+prove old requests cannot complete after resolution; simulation does not prove it.
 The installed client, public API and normal service worker remain on M0/P1.
 
 ## Managed target
