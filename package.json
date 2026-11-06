@@ -1,8 +1,17 @@
 {
-  "name": "persistent-agent-platform",
+  "name": "argent",
   "version": "0.0.1",
   "private": true,
-  "description": "A headless, durable execution foundation for a self-hostable coding-agent platform.",
+  "description": "Open-source control plane for AI coding agents in persistent workspaces, with durable runs, independent verification, and human control. M0 simulator.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GregPat22/argent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GregPat22/argent/issues"
+  },
+  "homepage": "https://github.com/GregPat22/argent#readme",
   "type": "module",
   "engines": {
     "node": ">=22.19.0 <23"

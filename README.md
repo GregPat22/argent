@@ -1,8 +1,11 @@
-# Persistent Agent Platform
+# Argent
 
 A headless foundation for an open-source, self-hostable development platform where
 coding agents work in persistent environments and developers reconnect to inspect
-verifiable results. The working name is provisional.
+verifiable results.
+
+The name combines **argento**, Italian for silver and a conductor, with **agent**.
+Repository: [GregPat22/argent](https://github.com/GregPat22/argent).
 
 **Current milestone: M0, a local orchestration simulator.** The API, durable queue,
 worker, crash reconciliation and reconnectable event history work. A scripted
