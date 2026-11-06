@@ -34,6 +34,8 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
    raw operator credentials. A narrow bridge validates requests and destinations.
 6. Workspace and run lists are paginated and persisted, not seeded fake state.
    Errors, empty states, disconnected state and verification outcomes are usable.
+   A selected workspace beyond the first list page must refresh its authoritative
+   state after another client stops or starts it, including after reconnect.
 7. The app makes simulation status visible. Unavailable real-cloud/agent/PR
    capabilities are described accurately and are not fabricated working controls.
 8. Automated bridge/API/lifecycle tests pass, plus hands-on desktop flow checks.
@@ -45,6 +47,11 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
     operating systems, and the real cloud MVP acceptance contract.
 
 ## Boundaries
+
+Review follow-up, 6 November 2026: [PR #1 review](../research/p1-pr-review.md)
+at `6104961` reproduced a selected-workspace refresh gap in criterion 6.
+The source fix and renderer regression remain on the desktop continuation path;
+this main-based branch records the review without integrating P1.
 
 No upstream fork/import without founder approval. No silent purchase, cloud
 provisioning, merge, deployment or public release. Prefer a thin desktop shell
