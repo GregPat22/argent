@@ -26,10 +26,13 @@ native application icons or release artifacts.
 During W0.6 the founder supplied the wide silver ARGENT artwork to replace the
 typed footer wordmark. `argent-wordmark-source.png` preserves the supplied
 2172 × 724 RGBA image byte for byte. Source attachment:
-`ChatGPT Image Nov 6, 2026, 08_27_44 PM.png`.
-SHA-256: `6807f3a2c9d8829b90d0138116479568d614acfb097df5d80adbec98e6fdcec9`.
+`ChatGPT Image Nov 6, 2026, 11_10_47 PM.png` (replaced the 08_27_44 PM
+version).
+SHA-256: `c34b759a729ac3751575b3b9ad9275dd09ed67ed325b4994d6e8f0ed48b3c139`.
 
 `argent-wordmark-800.webp` and `argent-wordmark-1600.webp` are faithful width
 derivatives, generated with Sharp 0.35.5, WebP quality 95 and alpha quality 100.
+The source's black matte is converted to transparency (alpha from the brightest
+channel, colour un-premultiplied) so the wordmark sits on any dark background.
 No redrawing or cropping was applied. The rendered footer image links to the
 page top; it is separate from the official A icon.

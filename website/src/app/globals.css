@@ -357,9 +357,49 @@
   position: absolute;
   left: max(24px, calc((100vw - 1240px) / 2));
   top: 20px;
-  width: 64px;
-  height: 64px;
+  width: 204px;
+  height: 68px;
   pointer-events: auto;
+  transition:
+    top 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    left 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-wordmark,
+.nav-mark {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition:
+    opacity 360ms ease,
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-wordmark {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: left center;
+}
+.nav-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.7);
+}
+.nav-mark .argent-mark {
+  width: 100%;
+  height: 100%;
+}
+.is-compact .nav-wordmark {
+  opacity: 0;
+  transform: scale(0.6);
+  transform-origin: left center;
+}
+.is-compact .nav-mark {
+  opacity: 1;
+  transform: scale(1);
 }
 .nav-logo-control {
   display: flex;
@@ -374,10 +414,6 @@
   border-radius: 12px;
   background: transparent;
   cursor: pointer;
-}
-.nav-logo-control .argent-mark {
-  width: 100%;
-  height: 100%;
 }
 .nav-full {
   position: absolute;
@@ -404,16 +440,17 @@
   font-size: 0.875rem;
   color: var(--color-sterling);
   text-decoration: none;
-  transition: color 180ms;
+  background: linear-gradient(currentColor, currentColor) 0 calc(100% - 10px) /
+    0 1px no-repeat;
+  transition:
+    color 180ms,
+    background-size 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .nav-section-link:hover,
+.nav-section-link:focus-visible,
 .nav-section-link[aria-current="location"] {
   color: var(--color-polished);
-}
-.nav-section-link[aria-current="location"] {
-  text-decoration: underline;
-  text-underline-offset: 7px;
-  text-decoration-thickness: 1px;
+  background-size: 100% 1px;
 }
 .nav-cta {
   min-height: 48px;
@@ -440,41 +477,90 @@
   font-size: 1.4rem;
 }
 .is-compact .nav-logo-dock {
-  top: 16px;
+  top: 12px;
   left: 20px;
-  width: 48px;
-  height: 48px;
+  width: 68px;
+  height: 68px;
 }
-.nav-disclosure {
-  position: absolute;
-  top: 100px;
-  left: max(24px, calc((100vw - 1240px) / 2));
-  width: min(320px, calc(100vw - 40px));
-  padding: 16px;
-  border-radius: 20px;
-  background: rgb(17 20 27 / 0.97);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 18px 60px rgb(0 0 0 / 0.35);
+/* A soft top fade keeps the links legible without drawing a panel. */
+.nav-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
   pointer-events: auto;
+  background: linear-gradient(
+    to bottom,
+    rgb(8 9 12 / 0.94),
+    rgb(8 9 12 / 0.7) 200px,
+    rgb(8 9 12 / 0.35) 100%
+  );
+  backdrop-filter: blur(12px);
+  mask-image: linear-gradient(to bottom, #000 260px, rgb(0 0 0 / 0.5));
 }
-.is-compact .nav-disclosure {
-  top: 80px;
-  left: 20px;
+.nav-mark-pulse {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
-.nav-disclosure-link {
+/* Links emerge from the A in one row; no panel, border or background. */
+.nav-squeeze {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 52px;
-  padding: 0 14px;
-  border-radius: 10px;
-  color: var(--color-sterling);
-  font-size: 0.9375rem;
+  gap: 4px;
+  margin-left: 8px;
+  white-space: nowrap;
+  pointer-events: none;
 }
-.nav-disclosure-link:hover,
-.nav-disclosure-link[aria-current="location"] {
-  background: rgb(222 233 250 / 0.07);
+.nav-squeeze > li {
+  transform-origin: left center;
+  pointer-events: auto;
+}
+.nav-squeeze-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
   color: var(--color-polished);
+  text-shadow: 0 1px 14px rgb(8 9 12 / 0.9);
+  background: linear-gradient(currentColor, currentColor) 14px
+    calc(100% - 10px) / 0 1px no-repeat;
+  transition: background-size 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-squeeze-link:hover,
+.nav-squeeze-link:focus-visible,
+.nav-squeeze-link[aria-current="location"] {
+  background-size: calc(100% - 28px) 1px;
+}
+.nav-logo-control[data-open="true"] .nav-mark {
+  filter: drop-shadow(0 0 14px rgb(190 210 255 / 0.45));
+}
+.site-header:not(.is-compact) .nav-squeeze {
+  left: 0;
+  top: 100%;
+  transform: none;
+  flex-wrap: wrap;
+  margin: 8px 0 0;
+  max-width: calc(100vw - 48px);
+}
+@media (max-width: 639px) {
+  .nav-squeeze {
+    left: 0;
+    top: 100%;
+    transform: none;
+    flex-wrap: wrap;
+    margin: 8px 0 0;
+    max-width: calc(100vw - 40px);
+    white-space: normal;
+  }
+  .nav-squeeze-link {
+    font-size: 1rem;
+  }
 }
 @media (max-width: 1023px) {
   .nav-links,
@@ -497,16 +583,16 @@
   .nav-logo-dock {
     top: 16px;
     left: 20px;
-    width: 56px;
-    height: 56px;
+    width: 180px;
+    height: 60px;
+  }
+  .is-compact .nav-logo-dock {
+    width: 60px;
+    height: 60px;
   }
   .nav-full {
     top: 20px;
     right: 16px;
-  }
-  .nav-disclosure {
-    left: 20px;
-    top: 88px;
   }
   .hero-actions > a {
     min-height: 54px;
@@ -538,12 +624,6 @@
 .footer-wordmark {
   overflow: hidden;
 }
-.footer-wordmark img {
-  transition: opacity 240ms;
-}
-.footer-wordmark:hover img {
-  opacity: 0.85;
-}
 .workflow-tab {
   transition:
     border-color 200ms,
@@ -560,8 +640,12 @@
 @media (prefers-reduced-motion: reduce) {
   .argent-button,
   .argent-control,
-  .button-arrow,
-  .footer-wordmark img {
+  .nav-logo-dock,
+  .nav-section-link,
+  .nav-squeeze-link,
+  .nav-wordmark,
+  .nav-mark,
+  .button-arrow {
     transition: none;
   }
 }
