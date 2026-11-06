@@ -1,6 +1,7 @@
 # P1: downloadable desktop prototype
 
-Status: accepted product direction, 6 November 2026. Implementation follows M0.
+Status: implemented as a local macOS Apple Silicon prototype, 6 November 2026.
+Public signing/distribution and the real cloud MVP remain separate milestones.
 
 ## Founder requirement
 

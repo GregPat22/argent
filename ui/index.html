@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>Argent</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <header class="titlebar">
+      <div class="titlebar-brand">
+        <span class="brand-symbol" aria-hidden="true">A</span> Argent
+      </div>
+      <div class="titlebar-label">
+        Persistent development, under your control
+      </div>
+      <span class="prototype-label">DESKTOP PREVIEW</span>
+    </header>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Workspaces">
+        <div class="sidebar-heading">
+          <span>Workspaces</span
+          ><button
+            id="new-workspace"
+            class="icon-button"
+            aria-label="Add workspace"
+            title="Add workspace"
+          >
+            +
+          </button>
+        </div>
+        <div id="workspace-list" class="workspace-list"></div>
+        <button id="more-workspaces" class="load-more" hidden>
+          Load more workspaces
+        </button>
+        <div id="sidebar-empty" class="sidebar-empty">
+          Your work starts here.<br />Add a repository workspace.
+        </div>
+        <div class="sidebar-bottom">
+          <div class="environment-label">
+            <span class="environment-icon" aria-hidden="true">⌘</span>
+            <div>
+              <strong>Local environment</strong><span>This computer</span>
+            </div>
+          </div>
+          <div class="service-row">
+            <span
+              id="service-indicator"
+              class="status-dot offline"
+              aria-hidden="true"
+            ></span
+            ><span id="service-status">Connecting…</span
+            ><button id="service-toggle" class="text-button" disabled>
+              Reconnect
+            </button>
+          </div>
+        </div>
+      </aside>
+      <main class="main-content">
+        <header class="workspace-header">
+          <div class="workspace-heading">
+            <span class="eyebrow">WORKSPACE</span>
+            <h1 id="workspace-title">Welcome to Argent</h1>
+            <p id="workspace-repository">
+              A durable place for your development tasks.
+            </p>
+          </div>
+          <div class="workspace-actions">
+            <span id="workspace-state" class="badge" hidden></span
+            ><button id="workspace-lifecycle" class="button secondary" hidden>
+              Stop workspace</button
+            ><button id="new-task" class="button primary" disabled>
+              <span aria-hidden="true">+</span> New task
+            </button>
+          </div>
+        </header>
+        <div class="simulation-notice">
+          <span class="notice-icon" aria-hidden="true">◈</span
+          ><span
+            ><strong>Local simulation</strong
+            ><span class="notice-detail">
+              · Scripted execution and verified artifacts. No model, cloud
+              resource or pull request.</span
+            ></span
+          >
+        </div>
+        <div id="error-banner" class="error-banner" role="alert" hidden>
+          <span id="error-text"></span
+          ><button
+            id="dismiss-error"
+            class="icon-button"
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
+        </div>
+        <div
+          id="disconnected-banner"
+          class="offline-banner"
+          role="status"
+          hidden
+        >
+          The local service is offline. Your saved history remains here.
+          Reconnect to refresh and continue.
+        </div>
+        <section id="welcome" class="welcome-panel">
+          <div class="welcome-mark" aria-hidden="true">A</div>
+          <span class="eyebrow">A CLEAR VIEW OF THE WORK</span>
+          <h2>Give your next task a home.</h2>
+          <p>
+            Create a workspace to try durable execution. Close the app, come
+            back, and pick up the history exactly where you left it.
+          </p>
+          <button id="welcome-create" class="button primary">
+            Add your first workspace <span aria-hidden="true">↗</span>
+          </button>
+          <div class="welcome-facts">
+            <span>Persistent history</span><span>Independent verification</span
+            ><span>You stay in control</span>
+          </div>
+        </section>
+        <div id="workspace-content" class="workspace-content" hidden>
+          <section class="tasks-panel" aria-label="Tasks">
+            <div class="panel-heading">
+              <h2>Tasks <span id="task-count" class="count">0</span></h2>
+              <span id="task-list-label">Recent activity</span>
+            </div>
+            <div id="run-list" class="run-list"></div>
+            <div id="tasks-empty" class="tasks-empty">
+              <span class="empty-icon" aria-hidden="true">↗</span>
+              <h3>A fresh workspace.</h3>
+              <p>
+                Start a task to see execution, activity and verification in one
+                place.
+              </p>
+              <button id="empty-new-task" class="button secondary">
+                Create a task
+              </button>
+            </div>
+            <button id="more-runs" class="load-more" hidden>
+              Load older tasks
+            </button>
+            <div class="task-list-footer">
+              Runs and evidence are saved locally.
+            </div>
+          </section>
+          <section class="detail-panel" aria-label="Task details">
+            <div id="detail-empty" class="detail-empty">
+              <span class="empty-icon" aria-hidden="true">≡</span>
+              <h3>The whole story, in one place.</h3>
+              <p>
+                Select a task to inspect its activity and independent
+                verification.
+              </p>
+            </div>
+            <div id="run-detail" class="run-detail" hidden>
+              <div class="detail-heading">
+                <div>
+                  <div class="detail-kicker">
+                    <span id="run-state" class="badge"></span
+                    ><span id="run-id" class="mono"></span>
+                  </div>
+                  <h2 id="run-title"></h2>
+                  <p id="run-meta"></p>
+                </div>
+                <button id="cancel-run" class="button danger" hidden>
+                  Cancel task
+                </button>
+              </div>
+              <div id="attention-panel" class="attention-panel" hidden>
+                <strong>This run needs your review</strong>
+                <p>
+                  The worker lost its lease. Argent did not replay the task.
+                  Review the activity, then mark this simulation as abandoned to
+                  release the workspace.
+                </p>
+                <button id="resolve-run" class="button secondary">
+                  Review and resolve
+                </button>
+              </div>
+              <nav
+                class="detail-tabs"
+                role="tablist"
+                aria-label="Task inspection"
+              >
+                <button
+                  id="activity-tab"
+                  class="tab active"
+                  role="tab"
+                  aria-controls="activity-pane"
+                  aria-selected="true"
+                >
+                  Activity <span id="event-count" class="count">0</span></button
+                ><button
+                  id="verification-tab"
+                  class="tab"
+                  role="tab"
+                  aria-controls="verification-pane"
+                  tabindex="-1"
+                  aria-selected="false"
+                >
+                  Verification
+                  <span id="verification-indicator" aria-hidden="true">○</span>
+                </button>
+              </nav>
+              <div
+                id="activity-pane"
+                class="inspection-pane"
+                role="tabpanel"
+                aria-labelledby="activity-tab"
+              >
+                <div
+                  id="activity-list"
+                  class="activity-list"
+                  aria-live="polite"
+                  aria-relevant="additions"
+                ></div>
+                <p id="activity-empty" class="muted pane-message">
+                  Waiting for the first recorded event…
+                </p>
+              </div>
+              <div
+                id="verification-pane"
+                class="inspection-pane"
+                role="tabpanel"
+                aria-labelledby="verification-tab"
+                hidden
+              >
+                <div id="verification-empty" class="verification-empty">
+                  <span class="empty-icon" aria-hidden="true">◇</span>
+                  <h3 id="verification-empty-title">Evidence comes first.</h3>
+                  <p id="verification-empty-text">
+                    A completed simulation will include an independently checked
+                    artifact and its SHA-256 fingerprint.
+                  </p>
+                </div>
+                <div
+                  id="verification-result"
+                  class="verification-result"
+                  hidden
+                >
+                  <div class="verified-heading">
+                    <span aria-hidden="true">✓</span>
+                    <div>
+                      <h3>Artifact verified</h3>
+                      <p>Independent simulation check passed</p>
+                    </div>
+                    <span class="badge neutral">SIMULATION</span>
+                  </div>
+                  <dl class="evidence-fields">
+                    <div>
+                      <dt>Check</dt>
+                      <dd>Artifact identity and content</dd>
+                    </div>
+                    <div>
+                      <dt>Artifact</dt>
+                      <dd id="artifact-name" class="mono"></dd>
+                    </div>
+                    <div>
+                      <dt>SHA-256</dt>
+                      <dd id="artifact-sha" class="mono fingerprint"></dd>
+                    </div>
+                  </dl>
+                  <div class="artifact-heading">
+                    <h4>Artifact contents</h4>
+                    <span>Persisted JSON</span>
+                  </div>
+                  <pre id="artifact-content" class="artifact-content"></pre>
+                  <p class="evidence-note">
+                    This verifies a simulation artifact. It is not evidence of
+                    repository tests or a pull request.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+        <footer class="statusbar">
+          <span
+            ><span class="status-dot silver" aria-hidden="true"></span> Argent ·
+            Local prototype</span
+          ><span id="sync-status"
+            >Execution stays with the service when this window closes.</span
+          >
+        </footer>
+      </main>
+    </div>
+
+    <dialog id="workspace-dialog" aria-labelledby="workspace-dialog-title">
+      <form id="workspace-form">
+        <div class="dialog-heading">
+          <span class="eyebrow">GET STARTED</span>
+          <h2 id="workspace-dialog-title">Add a workspace</h2>
+          <p>A persistent place for tasks and their history.</p>
+        </div>
+        <label for="repository-input">GitHub repository</label
+        ><input
+          id="repository-input"
+          type="url"
+          required
+          maxlength="250"
+          placeholder="https://github.com/owner/repository"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="field-note">
+          Repository metadata only in this preview. Argent will not clone it or
+          request GitHub access.
+        </p>
+        <p id="workspace-form-error" class="form-error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button type="button" class="button secondary" data-close-dialog>
+            Cancel</button
+          ><button id="workspace-submit" type="submit" class="button primary">
+            Create workspace
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="task-dialog" aria-labelledby="task-dialog-title">
+      <form id="task-form">
+        <div class="dialog-heading">
+          <span class="eyebrow">LOCAL SIMULATION</span>
+          <h2 id="task-dialog-title">Start a task</h2>
+          <p>
+            The scripted adapter will record activity and create a verifiable
+            artifact.
+          </p>
+        </div>
+        <label for="task-input">What would you like to work on?</label
+        ><textarea
+          id="task-input"
+          required
+          maxlength="4000"
+          rows="5"
+          placeholder="Describe a small, verifiable task…"
+        ></textarea>
+        <div class="runtime-field">
+          <div>
+            <label for="runtime-input">Execution limit</label>
+            <p class="field-note">Stop a run that exceeds this time.</p>
+          </div>
+          <div class="input-suffix">
+            <input
+              id="runtime-input"
+              type="number"
+              min="1"
+              max="300"
+              value="30"
+              required
+            /><span>seconds</span>
+          </div>
+        </div>
+        <p id="task-form-error" class="form-error" role="alert" hidden></p>
+        <p id="pending-notice" class="field-note pending-notice" hidden>
+          The previous request may have been accepted. Retry checks the same
+          submission without creating a duplicate.
+        </p>
+        <div class="dialog-actions">
+          <button type="button" class="button secondary" data-close-dialog>
+            Close</button
+          ><button id="task-submit" type="submit" class="button primary">
+            Start simulation <span aria-hidden="true">↗</span>
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="resolve-dialog" aria-labelledby="resolve-dialog-title">
+      <form id="resolve-form">
+        <div class="dialog-heading">
+          <span class="eyebrow">HUMAN REVIEW</span>
+          <h2 id="resolve-dialog-title">Resolve this simulation</h2>
+          <p>
+            This marks the uncertain run as abandoned. It preserves its history
+            and does not replay any work.
+          </p>
+        </div>
+        <label for="resolution-input">Review note</label
+        ><textarea
+          id="resolution-input"
+          required
+          maxlength="1000"
+          rows="3"
+          placeholder="Explain what you reviewed and why this run can be abandoned."
+        ></textarea>
+        <p id="resolve-form-error" class="form-error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button type="button" class="button secondary" data-close-dialog>
+            Keep unresolved</button
+          ><button id="resolution-submit" type="submit" class="button primary">
+            Mark reviewed and abandon
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="stop-dialog" aria-labelledby="stop-dialog-title">
+      <div class="dialog-heading">
+        <span class="eyebrow">LOCAL SERVICE</span>
+        <h2 id="stop-dialog-title">Stop execution on this computer?</h2>
+        <p>
+          Active simulations may be interrupted and require review. Workspaces,
+          files and activity history remain saved.
+        </p>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="button secondary" data-close-dialog>
+          Keep running</button
+        ><button id="service-stop-confirm" class="button danger">
+          Stop local service
+        </button>
+      </div>
+    </dialog>
+  </body>
+</html>

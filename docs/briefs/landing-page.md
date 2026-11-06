@@ -46,9 +46,11 @@ development. A grid of simultaneous chat windows does not tell the whole story.
 
 ## Stage, evidence and claims
 
-The public source is pre-launch software: a tested M0 simulator with accepted
-desktop requirements. A local desktop prototype is being built separately; a
-local unsigned package does not establish a public production download.
+The source is pre-launch software. This branch contains a completed P1 local
+desktop prototype with simulated execution and a local unsigned macOS package.
+See the [P1 completion report](../milestones/0001-completion.md). This does not
+establish a signed public production download. Coordinate the existing static
+download page with the new Conductor landing-page package; both use `website/`.
 
 - No approved customer logos, testimonials, adoption statistics or benchmark
   claims have been supplied. Omit social proof instead of inventing it.
