@@ -74,9 +74,10 @@ serve or overwrite them. Keep that preview separate from this landing package.
   metaphorical copy, typed footer branding and bordered navbar.
 - The borderless navbar compacts after 120px of scrolling to one logo at the
   viewport top-left; click it to reopen the navigation. It expands again near the
-  page top (48px threshold), with instant changes under reduced motion. The
-  supplied footer artwork is a normal home anchor, and resource links remain
-  separate, avoiding nested click targets.
+  page top (48px threshold), with instant changes under reduced motion. Focus
+  follows the remaining logo when scrolling hides a focused control or disclosure
+  link. The supplied footer artwork is a normal home anchor, and resource links
+  remain separate, avoiding nested click targets.
 - Read the [full-page UX review](../docs/research/landing-ux-review.md) for findings,
   applied changes and the limits of this heuristic assessment.
 

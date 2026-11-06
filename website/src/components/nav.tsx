@@ -21,7 +21,7 @@ export function Nav() {
   const compactButton = useRef<HTMLButtonElement>(null);
   const mobileButton = useRef<HTMLButtonElement>(null);
   const homeLink = useRef<HTMLAnchorElement>(null);
-  const fullNavigation = useRef<HTMLDivElement>(null);
+  const navigation = useRef<HTMLElement>(null);
   const moveFocus = useRef(false);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export function Nav() {
     const next = compact ? value > 48 : value > 120;
     if (next === compact) return;
     moveFocus.current = Boolean(
-      fullNavigation.current?.contains(document.activeElement),
+      navigation.current?.contains(document.activeElement),
     );
     setCompact(next);
     setMenuOpen(false);
@@ -78,7 +78,7 @@ export function Nav() {
         if (event.key === "Escape" && menuOpen) closeMenu();
       }}
     >
-      <nav aria-label="Main">
+      <nav ref={navigation} aria-label="Main">
         <motion.div layout transition={transition} className="nav-logo-dock">
           {compact ? (
             <button
@@ -106,7 +106,6 @@ export function Nav() {
           )}
         </motion.div>
         <motion.div
-          ref={fullNavigation}
           className="nav-full"
           inert={compact}
           aria-hidden={compact}

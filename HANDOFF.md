@@ -949,3 +949,42 @@ Limits: Chromium/heuristic review; no measured conversion lift, Safari or
 real-device performance evidence. Native packaging was not rerun. Original
 branch name and local uncommitted work are preserved; no push/PR, merge,
 deployment or provisioning. Next: founder visual feedback on the concrete pass.
+
+## Landing refinement PR preparation — 6 November 2026
+
+On unchanged branch `GregPat22/motion-landing-page-improve`, preserved the full
+W0.3–W0.6 landing pass in `8ce1d6e` and its documentation in `8dc3804`, then
+integrated freshly fetched main `1cc0598` (PR #7) via `fbf262a`. Documentation
+conflicts were resolved by preserving upstream continuity/lifecycle/repository
+history alongside the landing decisions and updating current branch locations.
+The final diff against main is confined to website assets/source/tests and
+landing/context documentation; engine, desktop packaging and dependencies are
+unchanged. Existing prelaunch version `0.0.1` is retained without introducing a
+VERSION/CHANGELOG release scheme.
+
+Independent coverage and source/design review found one actionable keyboard
+regression: crossing a scroll threshold while the logo or a disclosure link had
+focus could leave focus on the page body. The containment check now covers the
+whole navigation, and focus moves to the remaining logo in either direction.
+A focused browser regression covers both logo and open-disclosure transitions;
+native PageDown waits for scroll completion before reversal. No outstanding
+source-review finding remains; no measured line/branch coverage percentage is
+claimed.
+
+Fresh integrated-tree evidence: root `npm run check` passed strict types,
+formatting, compilation and **129 tests, 0 failures, 0 skips**; website strict
+types and optimized production build passed; **26 production Playwright tests
+passed (35.8s)**. Logs are `.context/pr-checks/root.log` and
+`.context/pr-checks/website.log`. Actual diff, conflict markers, whitespace and
+all 98 relative file links in changed Markdown were checked. A credential scan
+found no secret; its only medium classification was the public loopback FAQ
+fixture URL in a browser test, not a private service or credential.
+
+Limits: Chromium verification, not Safari/Firefox or real-device performance;
+no measured conversion lift or native packaging rerun. An extra 320px probe
+measured a 5px terminal-grid overflow without establishing an introduced cause;
+360/768px automated responsive checks pass. Screenshots remain local under
+`.context/plain-redesign/`. The founder has authorized commit, branch push and
+PR creation against main. Next: review the PR and address reviewer findings;
+merging, deployment, binary release and provisioning remain separate decisions.
+Historical local/uncommitted statements above describe their original revisions.

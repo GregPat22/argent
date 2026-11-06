@@ -757,3 +757,56 @@ test("scroll compaction reverses, handles deep links and respects live reduced m
     )
     .toBeCloseTo(64, 0);
 });
+
+test("scrolling transfers keyboard focus when navigation controls are replaced", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const home = page.getByRole("link", { name: "Argent home", exact: true });
+  const logo = page.getByRole("button", {
+    name: "Open navigation",
+    exact: true,
+  });
+  const menu = page.locator("#mobile-navigation");
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await menu.getByRole("link", { name: "How it works", exact: true }).focus();
+  // Native PageDown can keep scrolling after the compact threshold is crossed.
+  // Wait for its scrollend before reversing, so this verifies focus continuity
+  // rather than racing an unfinished browser scroll animation.
+  await Promise.all([
+    page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          window.addEventListener("scrollend", () => resolve(), { once: true });
+        }),
+    ),
+    page.keyboard.press("PageDown"),
+  ]);
+  await expect(logo).toBeFocused();
+  await expect(menu).toBeHidden();
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await expect(home).toBeFocused();
+  // Native PageDown can keep scrolling after the compact threshold is crossed.
+  // Wait for its scrollend before reversing, so this verifies focus continuity
+  // rather than racing an unfinished browser scroll animation.
+  await Promise.all([
+    page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          window.addEventListener("scrollend", () => resolve(), { once: true });
+        }),
+    ),
+    page.keyboard.press("PageDown"),
+  ]);
+  await expect(logo).toBeFocused();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await expect(
+    menu.getByRole("link", { name: "How it works", exact: true }),
+  ).toBeFocused();
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await expect(home).toBeFocused();
+  await expect(menu).toBeHidden();
+});

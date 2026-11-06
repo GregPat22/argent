@@ -2,6 +2,25 @@
 
 Status: draft requested by the founder, 6 November 2026.
 
+## PR integration verification — 6 November 2026
+
+Branch `GregPat22/motion-landing-page-improve` integrates main `1cc0598` (PR #7)
+via `fbf262a`, preserving W0.3–W0.6 and upstream engine/context changes. Current
+acceptance is W0.6 plus retained W0.5 hero removal and atom behavior; earlier
+hero/navbar designs below are historical. The founder accepted the current
+visual pass and authorized a PR against main.
+
+Fresh checks: root `npm run check` passed **129 tests**, strict types, formatting
+and compilation; website strict types/production build passed and **26 production
+browser tests passed (35.8s)**. Review found and fixed focus loss when either
+scroll threshold replaces a focused logo or hides a focused disclosure link.
+The regression exercises both directions and waits for native keyboard scrolling
+to finish before reversal. Full evidence, exact integration commits, review
+scope and remaining browser/device/native limits are in the
+[PR preparation handoff](../../HANDOFF.md#landing-refinement-pr-preparation--6-november-2026).
+No measured coverage or conversion percentage is claimed; no deployment or binary
+release is part of this PR.
+
 ## W0.6: direct copy, plain headings and compact navigation
 
 Branch: `GregPat22/motion-landing-page-improve`, continuing local work on
@@ -23,7 +42,9 @@ Acceptance criteria:
 4. Remove navbar border and typed Argent name. Expanded navigation shows the logo
    and familiar links; scrolling compacts to a single logo at viewport top-left.
    The compact logo opens a keyboard-accessible navigation disclosure, including
-   a home link. Escape returns focus to its trigger. Use interruptible Motion
+   a home link. Escape returns focus to its trigger. Crossing either scroll
+   threshold transfers focus from a replaced or hidden navigation control to the
+   remaining logo, including an open disclosure. Use interruptible Motion
    transitions and instant state changes under reduced motion.
 5. Verify top/scrolled/reversed navbar states, deep links, keyboard and mobile
    disclosure, footer click/asset delivery, actual fonts, atom caption absence
