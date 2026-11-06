@@ -38,6 +38,41 @@ Update this register with the reason and supporting evidence when a choice is
 resolved. Provider and market observations live in the
 [dated research](research/technical-due-diligence.md), not as permanent guarantees.
 
+## Conductor shutdown review: adopted roadmap direction
+
+On `GregPat22/grok-conductor-shutdown-analysis`, based on main `fd60a5a`,
+the [Grok report review](research/conductor-shutdown-analysis.md) found alignment
+with our headless/cloud design, but unresolved customer, authentication and
+portability questions. The founder then authorized saving the findings and
+updating the roadmap. The following planning directions are adopted; capabilities
+remain unimplemented and provider eligibility remains unverified:
+
+- Serve all three overlapping audiences through
+  a shared core with staged personal-cloud, team-handoff and organization features;
+  do not infer a feature ranking from unsampled X posts.
+- Evaluate permitted subscription routes by provider and deployment. Current
+  official-binary and open-source sign-in options need a more specific assessment
+  than the earlier API-key-only recommendation. No credential extraction or
+  managed-cloud eligibility is authorized or established by this research.
+  Prefer supported subscription sign-in for eventual onboarding and API keys as
+  an alternative/technical-pilot route. The feasibility matrix must establish the
+  applicable provider/deployment permissions before product promises change.
+  No silent billable fallback after subscription quota exhaustion.
+- Add independently demonstrated export/restore and visible execution/recovery
+  controls to the managed release contract.
+- Keep one real agent/workspace for the first proof. Stage additional agents,
+  scoped team handoff and lightweight mobile access before dependency orchestration.
+  Native mobile and advanced organization capabilities remain later. Retain
+  Electron pending actual user/performance evidence; no foundation replacement.
+
+The [continuity spec](specs/0006-continuity-and-market-validation.md) records
+acceptance criteria and decision gates; M1 now references these release additions.
+The first technical proof remains one repository/workspace/agent, with API-key auth.
+Exact launch packaging, prices, provider permissions and the implementation details
+of team/mobile features remain open. Detailed specs precede those implementations.
+The founder confirms they verified Grok's underlying X material; independent
+retrieval and representative-sampling limits remain documented in the review.
+
 ## Name and publication
 
 The founder selected **Argent**, combining _argento_ and _agent_. The
@@ -54,6 +89,34 @@ The [pinned T3 source spike](research/t3-adoption-spike.md) evaluated revision
 forked or imported. Runtime conformance and founder approval still precede any
 foundation replacement. The [P1 report](milestones/0001-completion.md) records the
 local desktop implementation and its limits.
+
+## Landing visual refinement — 6 November 2026
+
+The founder approved the existing Ag logo and general silver website concept,
+then requested improved artwork, new typography, a full Laws of UX review and
+premium motion throughout. On `GregPat22/argent-landing-page-draft`, the revision
+preserves the original logo/wordmark, uses Space Grotesk with Manrope, and shares
+a silver conductivity motif between a connected-loop hero, drawn section accents
+and the roadmap. “Argent is a good conductor” is the second section heading, with
+concrete explanatory copy and planned-capability qualifiers. The typography and
+artwork are implemented proposals awaiting visual feedback, not a public launch.
+
+See [the UX review](research/landing-ux-review.md) and
+[W0 acceptance criteria](specs/0005-website-landing-draft.md). Motion+ tooling was
+unavailable; public Motion supports the implementation without private packages.
+No engine, desktop packaging, merge or deployment decision changes here.
+
+## W0.2 visual simplification — 6 November 2026
+
+Founder feedback supersedes the W0.1 section-signature proposal: remove its
+labels, numbers, icons and rules, the navbar progress trace and the workflow
+rail. Preserve approved branding. On `GregPat22/argent-landing-page-draft`,
+concentrate motion in the fluid silver hero, the “conductor” word and a stylized
+47-electron silver atom. The seven-step scroll presentation becomes three
+keyboard-selectable stages while retaining its product/verification boundaries.
+See [the research and tradeoffs](research/fluid-motion-refinement.md) and
+[W0.2 acceptance criteria](specs/0005-website-landing-draft.md). Neither visual
+illustration is a physical simulation or evidence of real agent execution.
 
 ## Foundation decision for bounded M1a, 6 November 2026
 

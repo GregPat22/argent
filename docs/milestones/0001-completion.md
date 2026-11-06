@@ -4,9 +4,10 @@ Completed 6 November 2026. This is the first usable **local desktop prototype**,
 not the real-agent/cloud MVP or a signed public release.
 
 This report records original source `a4f3d52`, preserved on `codex/p1-original`.
-The context-integrated review source is preserved on `codex/desktop-handoff`;
-[PR #1](https://github.com/GregPat22/argent/pull/1) is integrated in main as
-`fd60a5a`. See
+The context-integrated source was reviewed on `codex/desktop-handoff` in
+[PR #1](https://github.com/GregPat22/argent/pull/1), integrated into main at
+`fd60a5a` with the subsequent refresh fix/tests. The original 33-test/native
+evidence below remains historical; later checks record 41 tests. See
 [HANDOFF.md](../../HANDOFF.md) for current branch and integration status.
 
 ## Delivered

@@ -5,8 +5,11 @@ understand the project without access to private chats. It describes accepted
 product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
-**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). P1 is integrated
-in main at `fd60a5a` (PR #1); real cloud execution remains unimplemented.
+**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). Main integrated P1
+at `fd60a5a`, then landing PR #3 at `b5e763f`; this checkout includes both.
+The desktop still uses simulation, and the landing is not deployed.
+The [roadmap](../ROADMAP.md) incorporates the founder-authorized shutdown-review
+follow-up. No real cloud capability follows from this documentation update.
 
 ## What we are building
 
@@ -23,9 +26,41 @@ mean cloud tasks depend on that computer remaining connected.
 
 Conductor provides installation and workflow context. Argent's differentiator is
 reliable execution, visible evidence and human control, rather than the number of
-agent terminals on a screen. The first users we design for are developers who
-want to delegate bounded implementation tasks and return to inspect verifiable
-work. This is a product focus, not evidence of validated customer demand.
+agent terminals on a screen. We intend to serve developers and small teams,
+including displaced Conductor users and engineering teams wanting handoff and
+inspectable evidence. These groups overlap; a shared core supports all three.
+The first technical proof remains bounded delegation and review. Team handoff
+is staged after that proof. This is product direction, not validated demand.
+
+## What we learned from the Conductor shutdown review
+
+The founder authorized saving the findings and updating the roadmap on
+`GregPat22/grok-conductor-shutdown-analysis`, based on main `fd60a5a`.
+Read the [full research](research/conductor-shutdown-analysis.md) for dated sources
+and the [continuity contract](specs/0006-continuity-and-market-validation.md)
+for planned acceptance criteria.
+
+- The official cloud closure is real; it reinforces independent execution and
+  practical ownership. Existing hosted and self-hosted alternatives already
+  overlap our promise. Compare actual workflows before claiming a unique gap.
+- The founder verified Grok's underlying X material. Our direct retrieval of
+  several posts was blocked; sentiment prevalence, demand, willingness to pay and
+  competitor reliability remain unmeasured. Do not promote anecdotes into metrics.
+- Prefer supported subscription sign-in for product onboarding, with API keys as
+  an alternative and the first controlled technical-pilot baseline. Provider
+  policy differs between local, customer-operated remote and managed deployment.
+  Eligibility must be verified; never extract host credentials or silently switch
+  to billable API usage after a subscription quota is exhausted.
+- Add visible execution location, durable progress, freshness, blocked-input and
+  recovery controls to real execution. Autonomous work still needs human steering.
+- Practical independence requires versioned export/restore to another installation
+  with our hosted endpoints unavailable. Preserve uncertain outcomes; never replay
+  an external effect merely because records were imported. Full Conductor
+  live-session migration is unproven and not promised.
+- Sequence additional agent support, scoped team handoff and lightweight mobile
+  access before dependency orchestration. Native mobile and advanced enterprise
+  capabilities remain later. Retain Electron until measured evidence warrants a
+  change; the research does not approve a foundation replacement.
 
 ## Intended developer journey
 
@@ -57,15 +92,15 @@ claims, pause/resume/delete, uncertain outcomes and read-only reconciliation.
 It is not connected to the desktop API and proves no real cloud capability. See the
 [P1 completion report](milestones/0001-completion.md).
 
-| Area         | Implemented in this publication                                         | Remaining product work                                                   |
-| ------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Interface    | Electron desktop, loopback API, CLI demo and local download-page source | Signed public desktop distribution, new landing design and remote access |
-| Workspaces   | Local metadata, retained artifact directories, stop/start guards        | Git checkout, isolated local execution and real cloud lifecycle          |
-| Dispatch     | Durable SQLite queue, atomic claims, fenced leases                      | Real provider dispatch and external-effect reconciliation                |
-| Recovery     | Ordered events, API restart/reconnect, uncertain-run blocking           | Audited operator resolution, cloud reconciliation and backup drills      |
-| Execution    | Bounded scripted simulation, cancellation and deadlines                 | Official coding-agent integrations with permitted authentication         |
-| Verification | Independent JSON identity check and SHA-256 evidence                    | Trusted repository tests, exact-commit evidence and review policy        |
-| GitHub       | This source repository and its CI workflow                              | Product GitHub App, scoped tokens, push and draft-PR broker              |
+| Area         | Implemented in this publication                                                    | Remaining product work                                                   |
+| ------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Interface    | Electron desktop, loopback API, CLI demo, local download preview and landing draft | Signed public desktop distribution, website deployment and remote access |
+| Workspaces   | Local metadata, retained artifact directories, stop/start guards                   | Git checkout, isolated local execution and real cloud lifecycle          |
+| Dispatch     | Durable SQLite queue, atomic claims, fenced leases                                 | Real provider dispatch and external-effect reconciliation                |
+| Recovery     | Ordered events, API restart/reconnect, uncertain-run blocking                      | Audited operator resolution, cloud reconciliation and backup drills      |
+| Execution    | Bounded scripted simulation, cancellation and deadlines                            | Official coding-agent integrations with permitted authentication         |
+| Verification | Independent JSON identity check and SHA-256 evidence                               | Trusted repository tests, exact-commit evidence and review policy        |
+| GitHub       | This source repository and its CI workflow                                         | Product GitHub App, scoped tokens, push and draft-PR broker              |
 
 Publishing this source to GitHub does not implement the product's GitHub
 integration. A passing simulation is not a tested pull request. The [desktop specification](specs/0004-desktop-prototype.md) is implemented
@@ -191,14 +226,16 @@ prototype may use simulation while the real-cloud MVP remains incomplete.
 
 P1 is integrated on main, and a pinned upstream source evaluation is recorded. The
 [source evaluation](research/t3-adoption-spike.md) did not run upstream code or
-prove runtime conformance. The engineering decision is to retain the current
-core for bounded M1a; a runtime spike is deferred until measured need.
-The proposed [M1a contract](specs/0006-cloud-workspace-lifecycle.md) specifies
-read-only GitHub access, lifecycle, reconciliation, cleanup and required tests.
-Its internal lifecycle simulation is implemented; read-only GitHub bootstrap
-is next. Approve concrete provider limits before live tests. Then build and test real isolated
-workspaces, one official agent, trusted exact-commit verification and a draft-PR broker. Avoid a full IDE,
-multi-agent swarms, billing, mobile apps and autonomous merging in the MVP.
+prove runtime conformance. Retain the current core for bounded M1a; the runtime
+spike is deferred until measured need. The
+[M1a contract](specs/0007-cloud-workspace-lifecycle.md) specifies read-only GitHub
+access, lifecycle, reconciliation and cleanup. Its internal lifecycle simulation
+is implemented; GitHub bootstrap is next, alongside customer/provider-authentication
+validation in the roadmap. Approve concrete provider limits before live tests.
+Then prove real isolated workspaces, one official agent, trusted exact-commit
+verification and a draft-PR broker, followed by portable continuity before managed
+release. Avoid a full IDE, swarms, billing, native mobile apps and autonomous
+merging in the MVP.
 
 Every task needs acceptance criteria, a focused implementation, appropriate tests,
 actual-diff review and an honest completion report. Use isolated worktrees for

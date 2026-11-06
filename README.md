@@ -19,6 +19,12 @@ Start with [Project context](docs/PROJECT_CONTEXT.md), the
 and [pinned T3 source evaluation](docs/research/t3-adoption-spike.md) record the
 latest completed work and its limits.
 
+The [updated roadmap](ROADMAP.md) incorporates the
+[Conductor shutdown findings](docs/research/conductor-shutdown-analysis.md):
+provider-specific authentication validation, visible execution/control, portable
+export/restore, and staged agent breadth/team handoff before dependency orchestration.
+These are planned capabilities; P1 execution remains simulated.
+
 **Current milestone: P1, a working local desktop prototype.** Install and launch
 Argent as an application, create a workspace, submit a task, inspect live activity
 and verified artifacts, close the window and reconnect to persisted work. The
@@ -30,7 +36,7 @@ separate verifier checks. There is no real GitHub authorization, repository
 checkout, AI agent, cloud compute or pull request. The desktop architecture keeps
 those next integrations behind the existing headless engine.
 
-Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0006-cloud-workspace-lifecycle.md). The current core is retained for bounded M1a. An internal simulation-only lifecycle store/worker now exercises durable operations and failure recovery; read-only GitHub bootstrap and live-provider validation remain next.
+Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). The current core is retained for bounded M1a. An internal simulation-only lifecycle store/worker now exercises durable operations and failure recovery; read-only GitHub bootstrap and live-provider validation remain next.
 
 ## Tech Stack
 
@@ -130,6 +136,11 @@ and Intel Mac packages have not been built or tested.
 `npm run site:preview` serves the unpublished website at
 `http://127.0.0.1:4320` after the smoke screenshot and package exist. Its download
 links stream the actual local archive and checksum. Nothing is uploaded.
+
+The interactive landing draft is a separate Next.js package in `website/`:
+run `cd website`, `npm ci` and `npm run dev` for `http://localhost:3000`.
+See [the website README](website/README.md) for its build and browser checks.
+This leaves the static desktop download preview and packaging independent.
 
 `npm run demo` remains available for the headless M0 demonstration:
 
