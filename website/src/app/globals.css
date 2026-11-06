@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+/*
+ * Argent tokens. The page is monochrome silver; hue appears only when it
+ * reports a run state (running, verified, needs attention).
+ */
+@theme {
+  --color-oxide: #08090c;
+  --color-pewter: #13151a;
+  --color-pewter-2: #1b1e25;
+  --color-hairline: rgb(214 220 230 / 0.12);
+  --color-hairline-strong: rgb(214 220 230 / 0.24);
+  --color-sterling: #a9b0bb;
+  --color-sterling-dim: #757c88;
+  --color-polished: #eef1f5;
+
+  --color-running: #a8bdff;
+  --color-verified: #8ee6b5;
+  --color-attention: #f5c26b;
+
+  --font-display: var(--font-bodoni), "Bodoni 72", "Didot", serif;
+  --font-sans: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", monospace;
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+@layer base {
+  html {
+    background: var(--color-oxide);
+    color: var(--color-polished);
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    overflow-x: clip;
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+  }
+
+  ::selection {
+    background: rgb(238 241 245 / 0.9);
+    color: var(--color-oxide);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-polished);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
+
+/* Lenis */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+
+.lenis [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+@layer components {
+  /* Display serif at its highest optical size: the thin strokes read as polish. */
+  .display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-weight: 450;
+    letter-spacing: -0.025em;
+    line-height: 0.96;
+  }
+
+  /* Brushed-silver text fill used for the wordmark and key numerals. */
+  .silver-text {
+    background-image: linear-gradient(
+      100deg,
+      #7d848f 0%,
+      #f6f8fb 18%,
+      #9aa1ac 34%,
+      #e9edf2 52%,
+      #6f7681 70%,
+      #dfe4ea 86%,
+      #8b929d 100%
+    );
+    background-size: 220% 100%;
+    background-position: var(--sheen, 30%) 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hairline {
+    border-color: var(--color-hairline);
+  }
+
+  /* Engraved guilloché ground used behind certificate-like surfaces. */
+  .guilloche {
+    background-image:
+      repeating-radial-gradient(
+        circle at 120% 50%,
+        rgb(214 220 230 / 0.05) 0 1px,
+        transparent 1px 9px
+      ),
+      repeating-radial-gradient(
+        circle at -20% 50%,
+        rgb(214 220 230 / 0.04) 0 1px,
+        transparent 1px 11px
+      );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

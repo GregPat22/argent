@@ -30,6 +30,7 @@ refer to the default branch's runtime until P1 is integrated.
 | [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)   | Proposed real-provider release contract; unimplemented here.       |
 | [Project identity and repository setup](specs/0003-project-identity.md) | Name, MIT rationale, metadata and namespace availability.          |
 | [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)    | Accepted product requirements; implementation proceeds separately. |
+| [W0 website landing page draft](specs/0005-website-landing-draft.md)    | Draft in `website/`; not deployed.                                 |
 
 ## Build and contribute
 
