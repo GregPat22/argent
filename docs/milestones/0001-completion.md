@@ -4,8 +4,9 @@ Completed 6 November 2026. This is the first usable **local desktop prototype**,
 not the real-agent/cloud MVP or a signed public release.
 
 This report records original source `a4f3d52`, preserved on `codex/p1-original`.
-The context-integrated source is on `codex/desktop-handoff` in
-[draft PR #1](https://github.com/GregPat22/argent/pull/1). See
+The context-integrated review source is preserved on `codex/desktop-handoff`;
+[PR #1](https://github.com/GregPat22/argent/pull/1) is integrated in main as
+`fd60a5a`. See
 [HANDOFF.md](../../HANDOFF.md) for current branch and integration status.
 
 ## Delivered

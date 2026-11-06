@@ -11,9 +11,8 @@ execution remains part of the product, even though its primary client is desktop
 
 ## Read the context for your task
 
-**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). It includes the
-completed P1 prototype on this review branch. The default main runtime remains
-M0 until that work is explicitly approved and integrated.
+**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). P1 is integrated in
+main at `fd60a5a` (PR #1); new desktop and engine work starts from `origin/main`.
 
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,6 +27,8 @@ simulated execution. See the [completion report](docs/milestones/0001-completion
 execution and a tested-PR flow are future acceptance contracts, not live features
 in this revision. The source repository is public and MIT-licensed. No published
 production download, approved pricing or customer proof is established here.
+
+Next engineering contract: [M1a repository access and workspace lifecycle](docs/specs/0006-cloud-workspace-lifecycle.md). It is proposed; foundation selection and live-provider budget approval remain open.
 
 ## If this folder appears empty
 

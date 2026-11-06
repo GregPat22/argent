@@ -3,6 +3,8 @@
 Status: proposed; not implemented. Depends on the foundation adoption decision
 and explicit approval before billable resources are provisioned.
 
+M1a is narrowed in [repository access and workspace lifecycle](0006-cloud-workspace-lifecycle.md), including proposed GitHub permissions, explicit transitions and crash/cleanup evidence. That contract is not an implemented cloud adapter.
+
 ## User journey
 
 An authenticated developer authorizes one GitHub repository, creates one persistent

@@ -19,8 +19,9 @@ and a pinned T3 source evaluation. See `docs/milestones/0001-completion.md` and
 `docs/research/t3-adoption-spike.md`. The website and macOS archive are available
 locally; a public signed release has not been published.
 
-Next is a runtime foundation decision and M1a: specify GitHub App scopes and the
-isolated workspace lifecycle contract, then validate real provider behavior. The
+Next is a runtime foundation decision and review of the proposed
+[M1a access/lifecycle contract](docs/specs/0006-cloud-workspace-lifecycle.md),
+then bounded implementation and approved real-provider validation. The
 source evaluation does not replace runtime conformance tests. No paid resources
 are provisioned until the founder explicitly authorizes the concrete provider,
 region, resource shape and budget. Real integration credentials are not required

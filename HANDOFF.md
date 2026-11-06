@@ -7,22 +7,22 @@ Private chat access is not required to continue development.
 
 ## Where the work is saved
 
-| Location                                           | State at this handoff                                                     | How to use it                                                                                                                                                                                                |
-| -------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `main`                                             | M0 runtime, product/research context, agent entry points and this handoff | Starting point for general new worktrees. P1 is not yet merged here.                                                                                                                                         |
-| `codex/desktop-handoff`                            | P1 source plus refresh fix `f929ae3` and edge-case tests `b888840`        | Review [draft PR #1](https://github.com/GregPat22/argent/pull/1). Use this branch for desktop continuation until an explicit merge decision.                                                                 |
-| `codex/p1-original`                                | Original completed P1 commit `a4f3d52`, preserved unchanged               | Provenance/backup, rather than the preferred development base.                                                                                                                                               |
-| `GregPat22/argent-landing-page-draft` in Conductor | Active local landing-page work, based on the shared context               | At audit time `website/` and `docs/specs/0005-website-landing-draft.md` are uncommitted. They are not included in PR #1 or this publication. Preserve them and let the landing agent commit/push when ready. |
+Current integration status checked against freshly fetched `origin/main` on
+6 November 2026. PR #1 is integrated as `fd60a5a`; the review entries later in
+this file describe historical evidence and decisions before that merge.
 
-The default branch's M0-only descriptions refer to its actual runtime, not the
-latest completed work on every branch. The review branch's README, architecture,
-context and spec describe P1. When PR #1 is reviewed and explicitly approved for
-merge, update this table and the main-branch status references as part of that
-integration. Do not silently merge, deploy or publish a binary release.
+| Location                              | Current state                                                                       | How to use it                                                                                                                |
+| ------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `origin/main` at `fd60a5a`            | M0 plus P1 desktop, selected-workspace refresh fix and eight renderer regressions   | Base for new engine and desktop work. PR #1 is already integrated.                                                           |
+| `codex/desktop-handoff` at `850d46f`  | Preserved pre-merge P1 review source                                                | Historical review/package evidence, not the preferred continuation base.                                                     |
+| `codex/p1-original` at `a4f3d52`      | Original completed P1 source                                                        | Provenance/backup.                                                                                                           |
+| `GregPat22/argent-landing-page-draft` | Separate landing design; remote ref at `c70cb4c` when checked                       | Coordinate website ownership before integration; no landing files are changed here. Local unfinished work was not inspected. |
+| `GregPat22/next-step-v2`              | M1a lifecycle/access contract and post-merge context correction, based on `fd60a5a` | Review [spec 0006](docs/specs/0006-cloud-workspace-lifecycle.md); no cloud runtime implementation.                           |
 
-The original integrated P1 source matched the completed prototype. The updated
-review branch adds the selected-workspace refresh fix and renderer regression
-tests described below; dependency versions and packaging settings are unchanged.
+The integrated source includes refresh fix `f929ae3` and regression tests
+`b888840` through the squash merge. Dependency versions and packaging settings
+are unchanged. Source integration does not publish a signed desktop release or
+implement real execution.
 
 ## Product decisions already made
 
@@ -68,14 +68,14 @@ Expired/uncertain work blocks the workspace as `needs_attention` and is not
 automatically repeated. The [M0 contract](docs/specs/0001-durable-local-run.md) and
 [completion report](docs/milestones/0000-completion.md) record the behavior.
 
-The main/context publication passed **22 tests**, strict type checks and
+The earlier M0/context publication passed **22 tests**, strict type checks and
 formatting, with GitHub CI also passing. Earlier review repaired lease validation
 using a pre-lock timestamp and demo cleanup. Those are historical results for the
 recorded revision, not certification of all future changes.
 
 ### P1: local desktop prototype
 
-The local desktop prototype is complete on the review branch. It adds:
+The local desktop prototype is integrated on main at `fd60a5a`. It adds:
 
 - Electron 45.2.3, sandboxed renderer, context isolation, a narrow validated IPC
   bridge and service credentials kept outside the renderer.
@@ -150,9 +150,9 @@ is retained on a local backup ref. Existing worktrees do not automatically updat
 when GitHub receives new commits: fetch and inspect the base before starting work,
 and preserve local modifications when bringing an existing branch up to date.
 
-New general worktrees should start from current `origin/main`. Desktop work that
-depends on P1 should use `origin/codex/desktop-handoff` until PR #1 is integrated.
-Do not base new work on the provenance branch or the old empty commit.
+New general and desktop worktrees should start from current `origin/main`,
+which includes P1. Do not base new work on the historical review/provenance
+branches or the old empty commit.
 
 There are two website sources to coordinate: P1's static local download source
 (`website/index.html`, `website/styles.css`, `site:preview`) and the active
@@ -169,8 +169,8 @@ numbers, logos, testimonials or public download links may be fabricated.
 
 The active Conductor spec `0005-website-landing-draft.md` was written against M0
 and still calls the macOS app in development. That predates the P1 completion:
-update its status/copy to reflect the completed local prototype on the review
-branch, while keeping public distribution and real integrations unfinished.
+update its status/copy to reflect the completed local prototype now integrated
+on main, while keeping public distribution and real integrations unfinished.
 
 ## Motion tooling and machine-local state
 
@@ -207,20 +207,22 @@ needed. Desktop application data lives in its local app-support profile;
 
 Next actions, in order:
 
-1. Review the updated [draft PR #1](https://github.com/GregPat22/argent/pull/1),
-   including refresh fix `f929ae3` and edge-case tests `b888840`, then obtain
-   the explicit founder merge decision. Main remains M0 until that decision.
-2. Continue the landing draft with the founder's unresolved design/CTA answers;
-   reconcile the shared website directory and record completed work in Git.
-3. Decide whether to run an isolated, pinned T3 runtime conformance spike before
-   expanding the core. No fork or replacement without founder approval.
-4. Specify GitHub App scopes and cloud workspace lifecycle/cleanup contracts,
-   then pursue M1a persistent isolated workspaces and official agent integration.
-5. Complete trusted exact-commit checks, independent review, draft-PR broker,
-   PostgreSQL, remote user authorization, credential broker, budgets/quotas,
-   audited resolution/cleanup and backup/restore evidence before a managed release.
-6. Address Developer ID signing/notarization, update verification, other platforms
-   and actual versioned public downloads before distributing a public installer.
+1. Review the proposed [M1a access/lifecycle contract](docs/specs/0006-cloud-workspace-lifecycle.md).
+   Obtain the foundation decision: authorize a pinned isolated T3 runtime spike
+   or explicitly retain Argent for the bounded M1a implementation. No foundation
+   fork or replacement is approved.
+2. After that decision, implement lifecycle records and fake-provider crash/race
+   tests, then the read-only GitHub credential broker and bootstrap boundary.
+   Live tests require concrete provider/account/region/resource/budget approval.
+3. Continue the separate landing draft and reconcile shared website ownership
+   before integration, preserving actual local download availability.
+4. Prove real isolated persistence, quiescence and cleanup before M1b agent work;
+   then implement trusted exact-commit checks, independent review and the M1c
+   authorized draft-PR broker.
+5. Complete PostgreSQL, remote authorization, credential broker, budgets/quotas,
+   audited resolution/cleanup and backup/restore before a managed release.
+6. Address signing/notarization, update verification, other platforms and actual
+   versioned public downloads before public installer distribution.
 
 No billable resources, domain purchase, cloud deployment, upstream adoption,
 production service or binary release has been authorized by this handoff.
@@ -306,6 +308,34 @@ draft status and replace its stale validation summary. No main merge, deployment
 release or billable provisioning is authorized. The founder's explicit decision
 on PR #1 is next. Coordinate the separate landing branch before integrating its
 website; this update does not touch that workspace or its files.
+
+### Post-merge M1a preparation, 6 November 2026
+
+On `GregPat22/next-step-v2`, based on `fd60a5a`, a fresh fetch confirmed PR #1
+is already integrated in `origin/main`. Corrected the entry points and current
+branch guidance; historical review/package evidence above remains historical.
+No branch was renamed and the separate landing workspace was not modified.
+
+Prepared [spec 0006](docs/specs/0006-cloud-workspace-lifecycle.md): proposed
+read-only GitHub App access, credential/bootstrap boundaries, durable lifecycle
+intent/acknowledgment, atomic operation ownership, quiescence, conservative
+reconciliation, persistence manifests and cleanup inventory. Ten acceptance
+criteria separate deterministic fixture coverage from required live evidence.
+Official GitHub/E2B documentation was checked on this date and linked in the spec;
+no SDK was installed and no provider integration was tested.
+
+Fresh `npm run check` passed strict types, formatting, compilation and **41 tests,
+0 failures, 0 skips**. The documentation diff was reviewed, relative Markdown
+file targets resolved and whitespace checks passed. Native/package smoke was
+not repeated because runtime and dependencies are unchanged. Local check output
+is `.context/next-check.log`; the tracked results here are the durable summary.
+
+Next decision: authorize the pinned isolated T3 runtime conformance spike or
+explicitly retain the current core for bounded M1a implementation. Then build
+lifecycle records/fake-provider failure tests and the read-only bootstrap broker.
+Live tests still require concrete provider/account/region/resource/budget and
+cleanup authorization. No cloud code, billable resources, remote publication,
+website deployment or binary release is part of this preparation.
 
 ## Keep the context complete
 

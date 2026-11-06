@@ -5,8 +5,8 @@ understand the project without access to private chats. It describes accepted
 product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
-**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). This review branch
-contains P1; the default main runtime remains M0 until explicit integration.
+**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). P1 is integrated
+in main at `fd60a5a` (PR #1); real cloud execution remains unimplemented.
 
 ## What we are building
 
@@ -186,12 +186,14 @@ Read the [documentation index](README.md), [founding brief](FOUNDING_BRIEF.md),
 Keep the desktop requirement and cloud execution requirement together. A desktop
 prototype may use simulation while the real-cloud MVP remains incomplete.
 
-P1 and a pinned upstream source evaluation are complete on this branch. The
+P1 is integrated on main, and a pinned upstream source evaluation is recorded. The
 [source evaluation](research/t3-adoption-spike.md) did not run upstream code or
 prove runtime conformance. Next is the foundation runtime decision and M1a.
-Before real cloud work, specify GitHub App scopes and provider lifecycle and
-cleanup contracts. Then build and test real isolated workspaces, one official
-agent, trusted exact-commit verification and a draft-PR broker. Avoid a full IDE,
+The proposed [M1a contract](specs/0006-cloud-workspace-lifecycle.md) specifies
+read-only GitHub access, lifecycle, reconciliation, cleanup and required tests.
+Review it and resolve the foundation decision before implementation; approve
+concrete provider limits before live tests. Then build and test real isolated
+workspaces, one official agent, trusted exact-commit verification and a draft-PR broker. Avoid a full IDE,
 multi-agent swarms, billing, mobile apps and autonomous merging in the MVP.
 
 Every task needs acceptance criteria, a focused implementation, appropriate tests,
