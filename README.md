@@ -72,8 +72,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [research and recommendations](docs/rese
 
 ## Project Structure
 
-`src/` contains the API boundary, durable store, worker and two narrow adapter
-interfaces. They remain modules in one package until deployment or ownership
+`src/` contains the API boundary, durable store, worker and narrow simulation
+adapter contracts. They remain modules in one package until deployment or ownership
 requires splitting packages. `tests/` covers state transitions and real process
 death/reconnection. `scripts/` holds a runnable demo and its process harness.
 `docs/specs/` distinguishes the implemented M0 contract from the actual cloud MVP.
