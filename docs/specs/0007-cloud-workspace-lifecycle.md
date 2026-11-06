@@ -331,3 +331,54 @@ of the hardening criteria:
 
 Evidence: `npm run check` passes **131 tests, 0 failures, 0 skips**. See the
 [review-fix handoff](../../HANDOFF.md#repository-bootstrap-review-fixes--6-november-2026).
+
+## Third implementation slice: audited simulated bootstrap resolution
+
+Acceptance criteria for `GregPat22/next-step-v4`, based on main `86255f8`:
+
+- Add an internal operator resolution path for `needs_attention` repository
+  operations only. The actor comes from a trusted authenticated caller and must
+  match the operation's operator. No desktop/API endpoint or live adapter is added.
+- Resolution performs only bounded, read-only inspection through a separately
+  injected simulation-only recovery inspector. It never mints, clones, revokes,
+  clears a channel or repeats the old dispatch. Cleanup itself must already have
+  happened outside this path; a request or an agent statement is not evidence.
+- Require a fresh observation bound to the exact operation, workspace, provider,
+  repository and installation. It must confirm all outstanding effects have
+  settled (including late mint/checkout requests), every operation credential is
+  revoked/absent, its channel is cleared/absent and its partial checkout is absent.
+  Expiry, a lost lease or an isolated cleanup acknowledgment alone is insufficient.
+- Persist an attributed, idempotent resolution receipt and its event in the same
+  transaction as changing the original operation to `failed`. Preserve its phase,
+  identity and original credential/channel states as historical evidence. Never
+  promote the old attempt to success. A fresh bootstrap requires a new request key
+  and fresh authorization; lifecycle serialization continues to apply.
+- Inspection failure, timeout, stale/mismatched/incomplete evidence records only
+  a fixed rejection reason and leaves the operation blocked. A new resolution key
+  may inspect again; completed duplicate keys read the original receipt without adapter work.
+  Store no raw observation, adapter exception or secret-bearing text.
+- Cover restart/idempotency, unauthorized actors, malformed/stale observations,
+  late responses, concurrent resolution/lifecycle requests, transactional rollback,
+  schema upgrades and canary-secret exclusion with deterministic simulation tests.
+
+This does not implement durable secret custody, crash-time token revocation,
+provider cleanup or a real authorization/recovery service. In particular, a live
+inspector must independently establish that old requests cannot complete after
+resolution; a provider list response or caller assertion cannot prove that.
+All live A1–A10 gates remain open.
+
+The schema advances to version 3 by adding resolution receipts linked to their
+event cursors; versions 1/2 retain their operations and events. Concurrent calls
+may perform the same read-only inspection, but one key commits only one receipt.
+An inspection interrupted by process death has no receipt and may safely be
+repeated: the inspection itself cannot dispatch an external effect.
+
+Evidence on `GregPat22/next-step-v4`, based on `86255f8`: fresh
+`npm run check` passes strict types, formatting, compilation and **156 tests,
+0 failures, 0 skips**, including **25 new recovery simulation tests**. The actual
+diff was reviewed by the implementing agent. PR preparation added independent
+read-only code/security and bounded acceptance/coverage reviews, with no blocking
+findings; no measured coverage percentage is claimed. Live-provider evidence and
+human review remain open. See the
+[resolution handoff](../../HANDOFF.md#audited-simulated-bootstrap-resolution--6-november-2026)
+for exact coverage, limitations and next steps.

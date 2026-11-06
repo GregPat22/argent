@@ -2,6 +2,11 @@ import { createHash, randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { DomainError, requireInteger, requireString } from "./domain.js";
 import { fullSha } from "./repository-access.js";
+import {
+  recoveryObservation,
+  type RepositoryResolution,
+  type ResolutionReason,
+} from "./repository-recovery.js";
 
 export interface RepositoryOperation {
   id: string;
@@ -54,7 +59,7 @@ const COLUMNS = `id,workspace_id,operator_id,repository,ref,provider_id,reposito
   installation_id,head_sha,request_key,fingerprint,status,phase,credential,channel,
   token_expires_at,max_runtime_ms,created_at,lease_token,lease_expires_at,deadline_at`;
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 function operationsTable(name: string): string {
   return `CREATE TABLE IF NOT EXISTS ${name} (
@@ -100,6 +105,19 @@ export class RepositoryStore {
           type TEXT NOT NULL, created_at INTEGER NOT NULL
         ) STRICT;
         CREATE INDEX IF NOT EXISTS repository_event_cursor ON repository_events(operation_id, cursor);
+        CREATE TABLE IF NOT EXISTS repository_resolutions (
+          id TEXT PRIMARY KEY,
+          operation_id TEXT NOT NULL REFERENCES repository_operations(id),
+          operator_id TEXT NOT NULL, request_key TEXT NOT NULL UNIQUE,
+          status TEXT NOT NULL CHECK(status IN ('resolved','rejected')),
+          reason TEXT CHECK(reason IN ('unconfirmed','inspection_failed','timeout')),
+          observed_at INTEGER, created_at INTEGER NOT NULL,
+          event_cursor INTEGER NOT NULL UNIQUE REFERENCES repository_events(cursor),
+          CHECK((status = 'resolved' AND reason IS NULL AND observed_at IS NOT NULL)
+            OR (status = 'rejected' AND reason IS NOT NULL AND observed_at IS NULL))
+        ) STRICT;
+        CREATE INDEX IF NOT EXISTS repository_resolution_operation
+          ON repository_resolutions(operation_id,event_cursor);
       `);
       db.prepare(
         "INSERT INTO schema_versions (component,version) VALUES ('repository',?) ON CONFLICT(component) DO UPDATE SET version = excluded.version",
@@ -166,12 +184,13 @@ export class RepositoryStore {
     }
   }
 
-  private event(id: string, type: string, now: number): void {
-    this.db
+  private event(id: string, type: string, now: number): number {
+    const result = this.db
       .prepare(
         "INSERT INTO repository_events (operation_id,type,created_at) VALUES (?,?,?)",
       )
       .run(id, type, now);
+    return Number(result.lastInsertRowid);
   }
 
   operation(id: string): RepositoryOperation {
@@ -196,6 +215,104 @@ export class RepositoryStore {
         createdAt: row.created_at as number,
         simulation: true as const,
       }));
+  }
+
+  private resolutionActor(id: string, operatorId: string): RepositoryOperation {
+    requireString(operatorId, "operatorId", 128);
+    const op = this.operation(id);
+    if (op.operatorId !== operatorId)
+      throw new DomainError(403, "Repository resolution is not authorized");
+    return op;
+  }
+
+  resolution(
+    id: string,
+    operatorId: string,
+    key: unknown,
+  ): RepositoryResolution | null {
+    this.resolutionActor(id, operatorId);
+    const requestKey = requireString(key, "Idempotency-Key", 128);
+    const row = this.db
+      .prepare("SELECT * FROM repository_resolutions WHERE request_key = ?")
+      .get(requestKey);
+    if (!row) return null;
+    if (row.operation_id !== id || row.operator_id !== operatorId)
+      throw new DomainError(
+        409,
+        "Resolution key already used for another operation",
+      );
+    return {
+      id: row.id as string,
+      operationId: row.operation_id as string,
+      operatorId: row.operator_id as string,
+      status: row.status as RepositoryResolution["status"],
+      reason: row.reason as ResolutionReason | null,
+      observedAt: row.observed_at as number | null,
+      createdAt: row.created_at as number,
+      eventCursor: row.event_cursor as number,
+      simulation: true,
+    };
+  }
+
+  // Inspection is read-only and happens outside the lock. Recheck status, actor,
+  // freshness and idempotency under the same lock used by lifecycle requests.
+  recordResolution(
+    id: string,
+    operatorId: string,
+    key: unknown,
+    startedAt: number,
+    deadlineAt: number,
+    evidence: unknown,
+    failure: ResolutionReason | null,
+  ): RepositoryResolution {
+    requireInteger(startedAt, "startedAt", 1, Number.MAX_SAFE_INTEGER);
+    requireInteger(deadlineAt, "deadlineAt", startedAt + 100, startedAt + 5000);
+    if (
+      failure !== null &&
+      !["unconfirmed", "inspection_failed", "timeout"].includes(failure)
+    )
+      throw new DomainError(400, "Invalid resolution reason");
+    return this.transaction((now) => {
+      const previous = this.resolution(id, operatorId, key);
+      if (previous) return previous;
+      const op = this.resolutionActor(id, operatorId);
+      if (op.status !== "needs_attention")
+        throw new DomainError(
+          409,
+          "Repository operation does not need resolution",
+        );
+      const observedAt = recoveryObservation(evidence, op, startedAt, now);
+      const reason =
+        now >= deadlineAt
+          ? "timeout"
+          : (failure ?? (observedAt === null ? "unconfirmed" : null));
+      const status = reason === null ? "resolved" : "rejected";
+      if (status === "resolved")
+        this.db
+          .prepare(
+            "UPDATE repository_operations SET status = 'failed' WHERE id = ?",
+          )
+          .run(id);
+      const cursor = this.event(id, `repository.resolution_${status}`, now);
+      this.db
+        .prepare(
+          `INSERT INTO repository_resolutions
+        (id,operation_id,operator_id,request_key,status,reason,observed_at,created_at,event_cursor)
+        VALUES (?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          randomUUID(),
+          id,
+          operatorId,
+          key as string,
+          status,
+          reason,
+          reason === null ? observedAt : null,
+          now,
+          cursor,
+        );
+      return this.resolution(id, operatorId, key)!;
+    });
   }
 
   // operatorId comes from a trusted authenticated caller, never request JSON.

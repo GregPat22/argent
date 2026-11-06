@@ -36,7 +36,7 @@ separate verifier checks. There is no real GitHub authorization, repository
 checkout, AI agent, cloud compute or pull request. The desktop architecture keeps
 those next integrations behind the existing headless engine.
 
-Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). The current core is retained for bounded M1a. Internal simulation-only lifecycle and repository-bootstrap queues now exercise durable operations, read-only credential policy and failure recovery. Live GitHub access, isolated checkout and approved provider validation remain next.
+Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). The current core is retained for bounded M1a. Internal simulation-only lifecycle and repository-bootstrap queues exercise durable operations, read-only credential policy and audited bootstrap resolution. Fresh independent cleanup observations can resolve blocked simulated bootstrap attempts as failed, preserving their audit history. Durable secret custody, real recovery/cleanup, live GitHub access, isolated checkout and approved provider validation remain next.
 
 ## Tech Stack
 
