@@ -1,6 +1,10 @@
 # Engineering instructions
 
-Read README.md, ARCHITECTURE.md and the relevant docs/specs file before edits.
+Read START_HERE.md, README.md, ARCHITECTURE.md and the relevant docs/specs file
+before edits. Product context is in docs/PROJECT_CONTEXT.md. For landing-page
+work, also read docs/briefs/landing-page.md before asking for product information.
+If these files are missing in a new worktree, inspect its branch and origin/main;
+do not conclude the product is undocumented from an empty or stale checkout.
 
 - This is a headless cloud-oriented control plane. Clients never own execution.
 - The primary product is a downloadable desktop app, distributed from a website.

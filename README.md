@@ -7,6 +7,10 @@ verifiable results.
 The name combines **argento**, Italian for silver and a conductor, with **agent**.
 Repository: [GregPat22/argent](https://github.com/GregPat22/argent).
 
+**New worktree or agent? Read [START_HERE.md](START_HERE.md).** For website design,
+use the [landing-page brief](docs/briefs/landing-page.md). Claude Code also has a
+root [CLAUDE.md](CLAUDE.md) entry point pointing to the shared context and rules.
+
 **Product direction: a downloadable desktop app.** Developers will download Argent
 from our website, install it locally and launch it like Conductor. The desktop
 client will control both local and persistent cloud execution; the headless engine
