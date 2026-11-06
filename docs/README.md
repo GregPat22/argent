@@ -25,9 +25,22 @@ evidence, Conductor setup and next actions. This branch contains P1 source.
 | ----------------------------------------------------------------------- | -------------------------------------------------------------- |
 | [M0 durable local run](specs/0001-durable-local-run.md)                 | Implemented simulation contract.                               |
 | [M0 completion report](milestones/0000-completion.md)                   | Actual test and review evidence, with limits.                  |
-| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)   | Proposed real-provider release contract; unimplemented here.   |
+| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)   | Planned real-provider release contract; unimplemented here.    |
 | [Project identity and repository setup](specs/0003-project-identity.md) | Name, MIT rationale, metadata and namespace availability.      |
 | [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)    | Implemented local macOS prototype; see P1 completion evidence. |
+
+## Conductor shutdown research and roadmap follow-up
+
+- [Evidence and strategy review](research/conductor-shutdown-analysis.md): checks
+  the founder's Grok report against primary sources and Argent's actual plan;
+  distinguishes X anecdotes, vendor claims, verified facts and remaining unknowns.
+- [Original Grok report](research/sources/grok-conductor-report-2026-11-06.txt):
+  preserved unchanged for provenance; an attributed secondary report, not a set
+  of independently verified assertions.
+- [Continuity and market-validation contract](specs/0006-continuity-and-market-validation.md):
+  founder-authorized roadmap additions for authentication/customer validation,
+  visible control and export/restore. Planned and unimplemented; provider
+  eligibility and exact launch packaging remain open.
 
 ## Build and contribute
 
@@ -56,7 +69,7 @@ published product context; unrelated chat history is not part of this repository
   smoke at `6104961`, plus the older-workspace fix, eight renderer regressions
   and fresh packaged-app verification before the explicit merge decision.
 - [P1 completion report](milestones/0001-completion.md): completed local desktop
-  prototype and recorded native/package evidence; source is in draft PR #1.
+  prototype and recorded native/package evidence; PR #1 integrated in `fd60a5a`.
 - [Pinned T3 source evaluation](research/t3-adoption-spike.md): source-only
   evaluation at an exact revision; runtime conformance remains open.
 - [Development handoff](../HANDOFF.md): exact branches, sources, tests, limits,

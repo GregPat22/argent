@@ -132,6 +132,22 @@ No real agent is installed or invoked by M0. There is no subscription-token reus
 or model charge. ACP interoperability and official SDKs can reduce adapter work;
 they do not provide our durable workflow, tested-commit policy or cloud lifecycle.
 
+### Authentication qualification from the shutdown review
+
+The [6 November shutdown analysis](conductor-shutdown-analysis.md) rechecked
+current official guidance. OpenAI documents ChatGPT plan use for open-source/local
+tools and self-hosted VMs, with a separate eligibility path for paid/remotely
+hosted apps. Anthropic distinguishes SDK applications from hosting the unmodified
+Claude Code binary with end-user authentication under stated commercial
+conditions. Do not extend an SDK restriction into a blanket claim that all
+hosted official-binary subscription use is prohibited, or assume a competitor's
+support establishes permission for Argent's design. The linked review supplies
+the primary sources, boundaries and proposed validation gate.
+
+API-key auth remains the M1 technical-pilot baseline. No subscription route, account
+entitlement or commercial approval has been tested or adopted. Existing rules
+against extracting host credentials remain in force.
+
 ## Build versus reuse
 
 Own product policy, task/run identity, evidence requirements, human approval,

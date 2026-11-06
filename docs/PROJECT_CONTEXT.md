@@ -5,8 +5,10 @@ understand the project without access to private chats. It describes accepted
 product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
-**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). This review branch
-contains P1; the default main runtime remains M0 until explicit integration.
+**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). Main integrated P1
+at `fd60a5a`; this checkout includes the local simulation prototype and fixes.
+The [roadmap](../ROADMAP.md) incorporates the founder-authorized shutdown-review
+follow-up. No real cloud capability follows from this documentation update.
 
 ## What we are building
 
@@ -23,9 +25,41 @@ mean cloud tasks depend on that computer remaining connected.
 
 Conductor provides installation and workflow context. Argent's differentiator is
 reliable execution, visible evidence and human control, rather than the number of
-agent terminals on a screen. The first users we design for are developers who
-want to delegate bounded implementation tasks and return to inspect verifiable
-work. This is a product focus, not evidence of validated customer demand.
+agent terminals on a screen. We intend to serve developers and small teams,
+including displaced Conductor users and engineering teams wanting handoff and
+inspectable evidence. These groups overlap; a shared core supports all three.
+The first technical proof remains bounded delegation and review. Team handoff
+is staged after that proof. This is product direction, not validated demand.
+
+## What we learned from the Conductor shutdown review
+
+The founder authorized saving the findings and updating the roadmap on
+`GregPat22/grok-conductor-shutdown-analysis`, based on main `fd60a5a`.
+Read the [full research](research/conductor-shutdown-analysis.md) for dated sources
+and the [continuity contract](specs/0006-continuity-and-market-validation.md)
+for planned acceptance criteria.
+
+- The official cloud closure is real; it reinforces independent execution and
+  practical ownership. Existing hosted and self-hosted alternatives already
+  overlap our promise. Compare actual workflows before claiming a unique gap.
+- The founder verified Grok's underlying X material. Our direct retrieval of
+  several posts was blocked; sentiment prevalence, demand, willingness to pay and
+  competitor reliability remain unmeasured. Do not promote anecdotes into metrics.
+- Prefer supported subscription sign-in for product onboarding, with API keys as
+  an alternative and the first controlled technical-pilot baseline. Provider
+  policy differs between local, customer-operated remote and managed deployment.
+  Eligibility must be verified; never extract host credentials or silently switch
+  to billable API usage after a subscription quota is exhausted.
+- Add visible execution location, durable progress, freshness, blocked-input and
+  recovery controls to real execution. Autonomous work still needs human steering.
+- Practical independence requires versioned export/restore to another installation
+  with our hosted endpoints unavailable. Preserve uncertain outcomes; never replay
+  an external effect merely because records were imported. Full Conductor
+  live-session migration is unproven and not promised.
+- Sequence additional agent support, scoped team handoff and lightweight mobile
+  access before dependency orchestration. Native mobile and advanced enterprise
+  capabilities remain later. Retain Electron until measured evidence warrants a
+  change; the research does not approve a foundation replacement.
 
 ## Intended developer journey
 
@@ -188,11 +222,13 @@ prototype may use simulation while the real-cloud MVP remains incomplete.
 
 P1 and a pinned upstream source evaluation are complete on this branch. The
 [source evaluation](research/t3-adoption-spike.md) did not run upstream code or
-prove runtime conformance. Next is the foundation runtime decision and M1a.
+prove runtime conformance. Next are the foundation runtime decision and the
+customer/provider-authentication validation described in the roadmap, then M1a.
 Before real cloud work, specify GitHub App scopes and provider lifecycle and
 cleanup contracts. Then build and test real isolated workspaces, one official
-agent, trusted exact-commit verification and a draft-PR broker. Avoid a full IDE,
-multi-agent swarms, billing, mobile apps and autonomous merging in the MVP.
+agent, trusted exact-commit verification and a draft-PR broker, followed by portable
+continuity before managed release. Avoid a full IDE, multi-agent swarms, billing,
+native mobile apps and autonomous merging in the MVP.
 
 Every task needs acceptance criteria, a focused implementation, appropriate tests,
 actual-diff review and an honest completion report. Use isolated worktrees for

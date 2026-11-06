@@ -11,9 +11,10 @@ execution remains part of the product, even though its primary client is desktop
 
 ## Read the context for your task
 
-**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). It includes the
-completed P1 prototype on this review branch. The default main runtime remains
-M0 until that work is explicitly approved and integrated.
+**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). P1 was merged
+into main at `fd60a5a`; this checkout includes that local simulation prototype.
+Read the [roadmap](ROADMAP.md) and [decision register](docs/DECISIONS.md) before
+choosing the next implementation task.
 
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -56,6 +57,16 @@ diverged branch or unrelated empty initial commit needs an explicit branch repai
 not repeated claims that Argent has no description. Ask for help if unsure.
 
 ## What is still a founder decision
+
+The shutdown review is saved in tracked documents. Serve the three overlapping
+audiences through a shared core and staged delivery. Supported subscription
+sign-in is the preferred product direction; API keys remain the technical-pilot
+baseline and alternative. Managed eligibility is unverified. Add portable
+export/restore and visible control before managed release; agent breadth and team
+handoff precede dependency orchestration. These are planned, unimplemented work.
+Read the [research](docs/research/conductor-shutdown-analysis.md) and
+[continuity contract](docs/specs/0006-continuity-and-market-validation.md).
+Do not ask the founder to choose only one of these audiences again.
 
 The product purpose, desktop requirement, open-source intent and desire for a
 high-impact animated landing-page draft are recorded. Final branding, page

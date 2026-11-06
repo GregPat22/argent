@@ -176,3 +176,21 @@ do not silently orphan resources.
 
 See [due diligence](docs/research/technical-due-diligence.md) for dated evidence
 and [MVP acceptance criteria](docs/specs/0002-cloud-mvp.md) for release gates.
+
+## Planned continuity and control requirements
+
+The founder-authorized [roadmap update](ROADMAP.md) adds portable history/evidence
+restore and visible real-execution controls to managed release. The
+[continuity contract](docs/specs/0006-continuity-and-market-validation.md) defines
+manifest integrity/completeness, credential exclusion and restore to an independent
+installation with our hosted endpoints unavailable. Imported active/uncertain
+work must reconcile or remain `needs_attention`; restore cannot dispatch an old
+external effect or promote imported agent statements into trusted evidence.
+
+Expose execution location, durable progress, connection freshness, blocked input
+and verification separately. Specify approval/input transitions and timeouts with
+the real agent adapter. Supported subscription sign-in is a product preference,
+subject to provider/deployment validation; API keys remain the technical-pilot
+path. Neither preference permits extracting host credentials or silently switching
+to paid API usage. These requirements are unimplemented; process boundaries and
+the target diagram above remain unchanged.

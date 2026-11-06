@@ -19,6 +19,12 @@ Start with [Project context](docs/PROJECT_CONTEXT.md), the
 and [pinned T3 source evaluation](docs/research/t3-adoption-spike.md) record the
 latest completed work and its limits.
 
+The [updated roadmap](ROADMAP.md) incorporates the
+[Conductor shutdown findings](docs/research/conductor-shutdown-analysis.md):
+provider-specific authentication validation, visible execution/control, portable
+export/restore, and staged agent breadth/team handoff before dependency orchestration.
+These are planned capabilities; P1 execution remains simulated.
+
 **Current milestone: P1, a working local desktop prototype.** Install and launch
 Argent as an application, create a workspace, submit a task, inspect live activity
 and verified artifacts, close the window and reconnect to persisted work. The

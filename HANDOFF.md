@@ -5,24 +5,28 @@ the latest known state across the project chats and checkouts. Read it alongside
 [START_HERE.md](START_HERE.md), [AGENTS.md](AGENTS.md) and the relevant specification.
 Private chat access is not required to continue development.
 
+**Current checkout correction, 6 November:**
+`GregPat22/grok-conductor-shutdown-analysis` starts at
+`fd60a5a878fdde3f129c0f276b74b647ea373760`, also the observed `origin/main`.
+That commit integrates desktop PR #1, including the selected-workspace refresh
+fix and tests. Older statements below that main is M0 and PR #1 awaits merge
+are historical and superseded for this checkout. P1 remains simulation; no real
+cloud execution or public signed release follows from that merge.
+
 ## Where the work is saved
 
-| Location                                           | State at this handoff                                                     | How to use it                                                                                                                                                                                                |
-| -------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `main`                                             | M0 runtime, product/research context, agent entry points and this handoff | Starting point for general new worktrees. P1 is not yet merged here.                                                                                                                                         |
-| `codex/desktop-handoff`                            | P1 source plus refresh fix `f929ae3` and edge-case tests `b888840`        | Review [draft PR #1](https://github.com/GregPat22/argent/pull/1). Use this branch for desktop continuation until an explicit merge decision.                                                                 |
-| `codex/p1-original`                                | Original completed P1 commit `a4f3d52`, preserved unchanged               | Provenance/backup, rather than the preferred development base.                                                                                                                                               |
-| `GregPat22/argent-landing-page-draft` in Conductor | Active local landing-page work, based on the shared context               | At audit time `website/` and `docs/specs/0005-website-landing-draft.md` are uncommitted. They are not included in PR #1 or this publication. Preserve them and let the landing agent commit/push when ready. |
+| Location                                      | Current known state                                                                       | How to use it                                                                                            |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `origin/main` at `fd60a5a`                    | M0 plus the merged P1 desktop prototype and refresh regressions.                          | Base for new general/desktop work; execution remains simulated.                                          |
+| `GregPat22/grok-conductor-shutdown-analysis`  | Shutdown research, founder follow-up, updated roadmap and continuity acceptance criteria. | Integrate this branch's documentation commit to carry the findings into main/other workspaces.           |
+| `codex/desktop-handoff` / `codex/p1-original` | Earlier P1 review/provenance branches.                                                    | Historical evidence; PR #1 is already integrated in `fd60a5a`.                                           |
+| `GregPat22/argent-landing-page-draft`         | Separate landing-page worktree.                                                           | Preserve its work. Recheck that branch's current status before reconciling the shared website directory. |
 
-The default branch's M0-only descriptions refer to its actual runtime, not the
-latest completed work on every branch. The review branch's README, architecture,
-context and spec describe P1. When PR #1 is reviewed and explicitly approved for
-merge, update this table and the main-branch status references as part of that
-integration. Do not silently merge, deploy or publish a binary release.
-
-The original integrated P1 source matched the completed prototype. The updated
-review branch adds the selected-workspace refresh fix and renderer regression
-tests described below; dependency versions and packaging settings are unchanged.
+The PR review/package notes below preserve historical evidence and branch states.
+Their earlier instructions to merge PR #1 are superseded by main `fd60a5a`.
+This branch's documentation update does not merge, deploy or publish a binary.
+Existing worktrees will not receive these findings automatically: integrate the
+saved documentation commit through the normal reviewed Git workflow.
 
 ## Product decisions already made
 
@@ -207,20 +211,23 @@ needed. Desktop application data lives in its local app-support profile;
 
 Next actions, in order:
 
-1. Review the updated [draft PR #1](https://github.com/GregPat22/argent/pull/1),
-   including refresh fix `f929ae3` and edge-case tests `b888840`, then obtain
-   the explicit founder merge decision. Main remains M0 until that decision.
-2. Continue the landing draft with the founder's unresolved design/CTA answers;
-   reconcile the shared website directory and record completed work in Git.
-3. Decide whether to run an isolated, pinned T3 runtime conformance spike before
-   expanding the core. No fork or replacement without founder approval.
-4. Specify GitHub App scopes and cloud workspace lifecycle/cleanup contracts,
-   then pursue M1a persistent isolated workspaces and official agent integration.
-5. Complete trusted exact-commit checks, independent review, draft-PR broker,
-   PostgreSQL, remote user authorization, credential broker, budgets/quotas,
-   audited resolution/cleanup and backup/restore evidence before a managed release.
-6. Address Developer ID signing/notarization, update verification, other platforms
-   and actual versioned public downloads before distributing a public installer.
+1. Read the updated [roadmap](ROADMAP.md), [decision register](docs/DECISIONS.md)
+   and [continuity contract](docs/specs/0006-continuity-and-market-validation.md).
+   Serve the overlapping audiences through a shared core and staged delivery.
+2. Resolve the bounded pinned-T3 runtime/foundation gate and verify authentication
+   by provider and local/customer-operated remote/managed deployment. Supported
+   subscriptions are preferred for eventual onboarding; API keys remain the pilot
+   path and alternative. No silent billable fallback or extracted credentials.
+3. Specify GitHub App scopes and isolated cloud lifecycle/cleanup, then complete
+   M1a–M1c: one real workspace/agent, observable control, trusted exact-commit
+   checks, independent review and an authorized draft PR.
+4. Complete M1d portable export/restore, plus PostgreSQL, remote authorization,
+   credential brokering, limits, cleanup and backup/restore before managed release.
+5. Stage additional agent support, scoped team handoff and lightweight mobile
+   access before dependency orchestration. Native mobile/advanced enterprise
+   features remain later; detailed acceptance contracts precede implementation.
+6. Continue the separate landing effort and reconcile website ownership. Address
+   signing/notarization, verified updates and real public downloads before release.
 
 No billable resources, domain purchase, cloud deployment, upstream adoption,
 production service or binary release has been authorized by this handoff.
@@ -306,6 +313,76 @@ draft status and replace its stale validation summary. No main merge, deployment
 release or billable provisioning is authorized. The founder's explicit decision
 on PR #1 is next. Coordinate the separate landing branch before integrating its
 website; this update does not touch that workspace or its files.
+
+## Initial Grok shutdown analysis, 6 November 2026
+
+Historical proposal stage: the roadmap/context integration section below records
+the founder's subsequent authorization and supersedes proposal-status statements
+in this initial review record.
+
+On `GregPat22/grok-conductor-shutdown-analysis`, based on `fd60a5a`, reviewed the
+founder's attachment, project context, architecture, current simulator adapters
+and M1/P1 contracts. The [research review](docs/research/conductor-shutdown-analysis.md)
+records verified official shutdown dates, existing cloud competition, direct-X
+403 limits, subscription-authentication qualifications and conditional product
+recommendations. No representative X sentiment count, customer demand, competitor
+runtime quality or Argent provider eligibility was established.
+
+The [proposal](docs/specs/0006-continuity-and-market-validation.md) adds reviewable
+customer/authentication validation and export/restore criteria without changing
+accepted M1 scope. Founder follow-up asks why all three audiences cannot be served,
+requests an auth recommendation and confirms verifying the underlying X research.
+The review recommends a common core with staged delivery, supported subscription
+sign-in as preferred eventual onboarding, and API keys as an alternative/technical
+pilot path. This does not establish managed provider eligibility or alter the
+current API-key M1 contract. Next: define launch scope, prove the provider-specific
+auth path and resolve the foundation runtime gate, then pursue isolated M1a with
+existing authorization/security constraints. Do not rush a production migration
+claim to match Conductor's read-only deadline.
+
+Documentation only; no runtime/dependency changes, external outreach, fork,
+credential transfer, remote publication, merge, deployment or paid provisioning.
+Fresh `npm run check` passed strict types, formatting, compilation and **41 tests,
+0 failures, 0 skips**. All 48 relative file links in the six changed documents
+resolve; whitespace checks passed and the actual edits were reviewed. The local
+check log is `.context/shutdown-analysis-check.log`. Native/package smoke and
+real-provider checks were not run for this documentation change. Installation
+reported the existing five moderate packaging dependency findings; no versions
+or lockfile changed. These checks validate the prototype, not the market claims.
+
+## Roadmap/context integration, 6 November 2026
+
+The founder explicitly requested saving all findings and updating the roadmap so
+future agents retain context. On `GregPat22/grok-conductor-shutdown-analysis`,
+based on `fd60a5a`, the research proposals became adopted planning direction:
+shared audiences with staged delivery; supported subscription onboarding subject
+to verified provider/deployment eligibility; API-key pilot/alternative; visible
+control and portable restore before managed release; agent breadth/team handoff
+before dependency orchestration. No real capability is implemented by these docs.
+
+Updated ROADMAP, START_HERE, project context, decisions, M1 and continuity specs,
+architecture, README, Claude entry point and documentation index. Corrected stale
+current-status references to PR #1; original milestone/review evidence remains
+attributed to its tested revisions. Read the research for source links, founder
+verification and independent-access/sampling limits. No market metrics, customer
+validation or managed provider eligibility were established.
+
+Save this documentation in a commit on the unchanged branch. Other workspaces
+must integrate that commit; editing one worktree does not update them. No main
+merge, customer outreach, deployment, provider sign-up, paid provisioning or
+runtime/dependency change is authorized by this context update.
+
+Validation: `npm run check` passed strict types, formatting, compilation and
+**41 tests, 0 failures, 0 skips**. All **129 relative file links in 16 changed
+Markdown documents** resolve. The original 7,820-byte Grok report is preserved
+byte-for-byte in `docs/research/sources/` and linked from the research/index.
+Credential-pattern and whitespace scans passed; the actual documentation diff
+was reviewed. Current API/setup how-to coverage and architecture diagrams need
+no changes because runtime boundaries/commands are unchanged. No version bump.
+Native/package smoke and real-provider/customer/competitor validation were not
+run for this documentation update. The local check log is
+`.context/roadmap-context-check.log`; the existing five moderate packaging audit
+findings remain outside this change. No dependency versions/lockfile changed.
 
 ## Keep the context complete
 
