@@ -1,7 +1,8 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
-import { SectionSignature } from "@/components/section-signature";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
+
+import { motion } from "motion/react";
 import { StatusTag } from "@/components/ui";
 import type { Status } from "@/lib/site";
 
@@ -44,11 +45,6 @@ export function Commitments() {
       aria-labelledby="commitments-title"
       className="mx-auto max-w-[1320px] px-6 py-24 md:px-10 md:py-32"
     >
-      <SectionSignature
-        number="05"
-        label="Independence by design"
-        kind="orbit"
-      />
       <div className="grid gap-12 lg:grid-cols-12">
         <h2
           id="commitments-title"

@@ -87,3 +87,57 @@ Motion AI/Motion+ tools were unavailable in this session; public Motion was used
 Main remained at `a5a96cb` when fetched: the preceding landing commit `c70cb4c`
 is on the landing branch only. The separate desktop review branch also remains
 unmerged. This refinement neither merges nor deploys either branch.
+
+## W0.2: fluid interaction and simpler composition
+
+Branch: `GregPat22/argent-landing-page-draft`, following `1ec78e3`. Founder
+feedback supersedes W0.1's section-signature direction. Acceptance criteria:
+
+1. Remove every numbered section signature, its kicker, icon and horizontal
+   divider; remove the navbar reading-progress bar and workflow left-hand rail.
+   Preserve meaningful headings, the approved logo and functional panel borders.
+2. Replace the rigid silver loop with an original flowing silver material, using
+   researched smooth distance-field blending, studio reflections, antialiasing
+   and spring-damped pointer deformation. Hover must visibly change geometry,
+   beyond just changing the light. Pointer exit returns to rest.
+3. Animate “conductor” with a legible silver highlight on arrival and hover.
+4. Replace static atom artwork with depth-aware moving electrons, orbital traces
+   and a pause control. This is a stylized silver atom, not a quantum simulation.
+5. Rethink the workflow as three compact, keyboard-selectable stages: define,
+   bounded execution, independent evidence and human decision. Keep planned-flow
+   and simulated-evidence labels adjacent; retain all original control boundaries.
+6. Both ambient visuals pause offscreen/when hidden, support reduced motion and
+   have usable static fallbacks. Avoid hydration differences based on preferences.
+7. Verify hover geometry, leave-to-rest, pause, atom motion, stage keyboard controls,
+   360/768/1440px layouts, reduced motion and fallback. Run production build,
+   browser suite and root `npm run check`; inspect actual diff and screenshots.
+8. Use the configured Motion AI/Motion+ tools for live guidance, record research
+   sources and limitations, and keep premium reference source/credentials out
+   of the public repository. No merge, deployment or billable provisioning.
+
+### W0.2 verification evidence
+
+- Strict website typecheck and optimized production build passed.
+- **12 production Playwright tests passed (34.6s)**: existing navigation,
+  responsive layout, reconnect, slider, clipboard and fallback checks; new
+  section/progress removal checks; compact workflow keyboard selection; actual
+  atom frame changes, pause/resume, offscreen stop and live reduced-motion
+  switching; plus framebuffer-area evidence of hover deformation and return.
+- Hover verification fixes the ambient clock, samples rendered alpha coverage,
+  requires a >1.5% geometry change and a return within 0.5% of rest. It does not
+  infer interaction from an animation class, lighting change or agent statement.
+- Initial browser testing passed 11 scenarios and caught one real issue: Motion
+  14.10's hook did not notify React when the OS preference changed after mount.
+  A shared reactive preference hook corrected this, then all 12 scenarios passed.
+- Root `npm run check` passed 22 tests, strict types and formatting.
+- Motion and Motion+ MCP guidance/source resources were actually searched/read.
+  Original shader/canvas code and generated spring data are in the product;
+  private example source and credentials are not.
+- The [fluid-motion research](../research/fluid-motion-refinement.md) records
+  primary references, implementation decisions and limits. The actual diff and
+  production screenshots at `.context/w02/` were reviewed. The verified build
+  serves on `http://localhost:3000`. No merge or deployment occurred.
+
+Visual checks cover desktop 1440px, tablet 768px and mobile 360/390px. Chromium
+with SwiftShader is not a real-device GPU or Safari benchmark. The silver form
+and orbital artwork are stylized; they are not physical fluid/quantum solvers.

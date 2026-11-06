@@ -1,10 +1,11 @@
 "use client";
 
+import { useReducedMotion } from "@/lib/use-reduced-motion";
+
 import {
   type HTMLMotionProps,
   motion,
   useMotionValue,
-  useReducedMotion,
   useSpring,
 } from "motion/react";
 import { useId, type ReactNode } from "react";

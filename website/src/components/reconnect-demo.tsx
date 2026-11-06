@@ -1,7 +1,5 @@
 "use client";
 
-import { SectionSignature } from "@/components/section-signature";
-
 import { AnimatePresence, motion, useInView } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { AgMark, StatusTag } from "@/components/ui";
@@ -172,11 +170,6 @@ export function ReconnectDemo() {
       aria-labelledby="reconnect-title"
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 py-24 md:px-10 md:py-36"
     >
-      <SectionSignature
-        number="02"
-        label="Connection is optional"
-        kind="trace"
-      />
       <div className="grid gap-10 md:grid-cols-12 md:items-end">
         <div className="md:col-span-7">
           <h2

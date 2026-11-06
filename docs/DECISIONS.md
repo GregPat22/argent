@@ -70,3 +70,15 @@ See [the UX review](research/landing-ux-review.md) and
 [W0 acceptance criteria](specs/0005-website-landing-draft.md). Motion+ tooling was
 unavailable; public Motion supports the implementation without private packages.
 No engine, desktop packaging, merge or deployment decision changes here.
+
+## W0.2 visual simplification — 6 November 2026
+
+Founder feedback supersedes the W0.1 section-signature proposal: remove its
+labels, numbers, icons and rules, the navbar progress trace and the workflow
+rail. Preserve approved branding. On `GregPat22/argent-landing-page-draft`,
+concentrate motion in the fluid silver hero, the “conductor” word and a stylized
+47-electron silver atom. The seven-step scroll presentation becomes three
+keyboard-selectable stages while retaining its product/verification boundaries.
+See [the research and tradeoffs](research/fluid-motion-refinement.md) and
+[W0.2 acceptance criteria](specs/0005-website-landing-draft.md). Neither visual
+illustration is a physical simulation or evidence of real agent execution.

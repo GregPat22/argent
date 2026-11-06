@@ -152,7 +152,7 @@ test("reduced motion keeps hero copy static and draws one sculpture frame", asyn
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addInitScript(countDraws);
   await page.goto("/");
-  await expect(page.locator("canvas")).toBeVisible();
+  await expect(page.locator("[data-silver-sculpture] canvas")).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(
@@ -222,12 +222,13 @@ test("hero can be paused and WebGL has a static fallback", async ({ page }) => {
       kind: string,
       ...args: unknown[]
     ) {
-      if (kind === "webgl2") return null;
+      if (kind === "webgl2" || kind === "2d") return null;
       return original.call(this, kind, ...args);
     } as typeof original;
   });
   await page.reload();
   await expect(page.locator(".silver-fallback")).toBeVisible();
+  await expect(page.locator("[data-atom-fallback]")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
@@ -272,4 +273,202 @@ test("copy commands reports success and provides a failure fallback", async ({
   expect(await terminal.evaluate((el) => getComputedStyle(el).overflowY)).toBe(
     "auto",
   );
+});
+
+test("section chrome and navbar reading progress are removed", async ({
+  page,
+}) => {
+  await page.goto("/");
+  for (const label of [
+    "The nature of Argent",
+    "A considered process",
+    "Conducting what comes next",
+    "A continuous thread",
+  ]) {
+    await expect(page.getByText(label, { exact: true })).toHaveCount(0);
+  }
+  await expect(page.locator("header > div > div[aria-hidden]")).toHaveCount(0);
+  await expect(page.locator("#lifecycle > div[aria-hidden]")).toHaveCount(0);
+  for (const section of await page.locator("main > section").all()) {
+    expect(
+      await section.evaluate((el) => getComputedStyle(el).borderTopWidth),
+    ).toBe("0px");
+  }
+});
+
+test("workflow stages are compact and keyboard selectable", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const tabs = page.getByRole("tablist", {
+    name: "Explore the planned workflow",
+  });
+  await expect(tabs.getByRole("tab")).toHaveCount(3);
+  const first = page.getByRole("tab", { name: "Define the work" });
+  await first.focus();
+  await page.keyboard.press("ArrowRight");
+  const run = page.getByRole("tab", { name: "Run within limits" });
+  await expect(run).toBeFocused();
+  await expect(run).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tabpanel")).toContainText(
+    "Room to work. Boundaries in place.",
+  );
+  await page.keyboard.press("End");
+  await expect(
+    page.getByRole("tab", { name: "Review the evidence" }),
+  ).toBeFocused();
+  await expect(page.getByRole("tabpanel")).toContainText(
+    "The agent finishes. You decide.",
+  );
+  await expect(page.getByRole("tabpanel")).toContainText(
+    "At most one repair, then recheck",
+  );
+  await page.keyboard.press("Home");
+  await expect(first).toBeFocused();
+  await expect(page.getByRole("tabpanel")).toContainText(
+    "Written acceptance criteria",
+  );
+  expect(
+    await page
+      .locator("#lifecycle")
+      .evaluate((el) => el.getBoundingClientRect().height),
+  ).toBeLessThan(1500);
+});
+
+test("atom animates, pauses, stops offscreen and respects reduced motion", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const original = CanvasRenderingContext2D.prototype.clearRect;
+    Object.assign(window, { atomFrames: 0 });
+    CanvasRenderingContext2D.prototype.clearRect = function (...args) {
+      if (this.canvas.closest("[data-silver-atom]"))
+        (window as unknown as { atomFrames: number }).atomFrames++;
+      return original.apply(this, args);
+    };
+  });
+  await page.goto("/");
+  const atom = page.locator("[data-silver-atom] canvas");
+  await atom.scrollIntoViewIfNeeded();
+  const image = await atom.evaluate((el) =>
+    (el as HTMLCanvasElement).toDataURL(),
+  );
+  await expect
+    .poll(() => atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL()))
+    .not.toBe(image);
+  await page.getByRole("button", { name: "Pause atom", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Resume atom", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  const paused = await atom.evaluate((el) =>
+    (el as HTMLCanvasElement).toDataURL(),
+  );
+  await page.waitForTimeout(400);
+  expect(
+    (await atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL())) ===
+      paused,
+  ).toBe(true);
+  await page.getByRole("button", { name: "Resume atom", exact: true }).click();
+  await expect
+    .poll(() => atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL()))
+    .not.toBe(paused);
+  await page.locator("#roadmap").scrollIntoViewIfNeeded();
+  await page.waitForTimeout(250);
+  const frames = await page.evaluate(
+    () => (window as unknown as { atomFrames: number }).atomFrames,
+  );
+  await page.waitForTimeout(400);
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { atomFrames: number }).atomFrames,
+    ),
+  ).toBe(frames);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await atom.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(250);
+  const still = await atom.evaluate((el) =>
+    (el as HTMLCanvasElement).toDataURL(),
+  );
+  await page.waitForTimeout(400);
+  expect(
+    (await atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL())) ===
+      still,
+  ).toBe(true);
+  await expect(
+    page.getByRole("button", { name: "Pause atom", exact: true }),
+  ).toBeHidden();
+  expect(
+    await page
+      .locator(".conductor-silver")
+      .evaluate((el) => getComputedStyle(el).animationName),
+  ).toBe("none");
+});
+
+test("hover changes the silver geometry and leaving restores it", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const names = new WeakMap<WebGLUniformLocation, string>();
+    const getLocation = WebGL2RenderingContext.prototype.getUniformLocation;
+    const setFloat = WebGL2RenderingContext.prototype.uniform1f;
+    const draw = WebGL2RenderingContext.prototype.drawArrays;
+    Object.assign(window, { captureSilver: false, silverPixels: -1 });
+    WebGL2RenderingContext.prototype.getUniformLocation = function (
+      program,
+      name,
+    ) {
+      const location = getLocation.call(this, program, name);
+      if (location) names.set(location, name);
+      return location;
+    };
+    WebGL2RenderingContext.prototype.uniform1f = function (location, value) {
+      // Freeze ambient time so the pixel-area change can only come from hover.
+      return setFloat.call(
+        this,
+        location,
+        location && names.get(location) === "uTime" ? 4 : value,
+      );
+    };
+    WebGL2RenderingContext.prototype.drawArrays = function (...args) {
+      draw.apply(this, args);
+      const state = window as unknown as {
+        captureSilver: boolean;
+        silverPixels: number;
+      };
+      if (!state.captureSilver) return;
+      const w = this.drawingBufferWidth,
+        h = this.drawingBufferHeight;
+      const pixels = new Uint8Array(w * h * 4);
+      this.readPixels(0, 0, w, h, this.RGBA, this.UNSIGNED_BYTE, pixels);
+      let filled = 0;
+      for (let i = 3; i < pixels.length; i += 4) if (pixels[i]! > 200) filled++;
+      state.silverPixels = filled;
+      state.captureSilver = false;
+    };
+  });
+  await page.goto("/");
+  const capture = async () => {
+    await page.evaluate(() => Object.assign(window, { captureSilver: true }));
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as unknown as { captureSilver: boolean }).captureSilver,
+        ),
+      )
+      .toBe(false);
+    return page.evaluate(
+      () => (window as unknown as { silverPixels: number }).silverPixels,
+    );
+  };
+  await page.mouse.move(10, 10);
+  const rest = await capture();
+  expect(rest).toBeGreaterThan(1000);
+  await page.mouse.move(1260, 400, { steps: 12 });
+  await expect
+    .poll(async () => Math.abs((await capture()) - rest) / rest)
+    .toBeGreaterThan(0.015);
+  await page.mouse.move(10, 10, { steps: 12 });
+  await expect
+    .poll(async () => Math.abs((await capture()) - rest) / rest)
+    .toBeLessThan(0.005);
 });

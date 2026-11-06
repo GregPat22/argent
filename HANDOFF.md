@@ -317,3 +317,42 @@ Acceptance: configured, OAuth authenticated, tools discovered and real free/paid
 requests plus resource reads verified. Root `npm run check` passed 22 tests,
 strict types and formatting for this documentation update. No site behavior,
 engine, merge, deployment or spending changed.
+
+## W0.2 simplification and fluid interaction — 6 November 2026
+
+Branch: `GregPat22/argent-landing-page-draft`, following `1ec78e3`. Founder
+feedback removed the W0.1 signature system: numbered labels, small icons and
+section divider lines. Navbar/roadmap reading-progress traces and the long
+workflow's left rail are also removed. Approved logo and meaningful headings
+remain. The long seven-step scroll becomes three keyboard-selectable stages
+(define, bounded execution, evidence/human decision) with adjacent illustration
+labels and all original execution/verification authority boundaries retained.
+
+The hero now uses a varying-thickness implicit silver loop with smoothly joined
+volumes, studio reflections and an actual spring-following surface lobe under
+hover. Pointer exit restores its rest geometry. “Conductor” gets a readable
+silver sweep on arrival/hover. The atom renders 47 depth-shaded electrons across
+five stylized shells, with trails, pause/resume, offscreen/hidden suspension,
+reduced-motion still frame and SVG fallback. The atom is a visual metaphor, not
+a quantum simulation. No new runtime dependency was added.
+
+Research included primary creator/graphics sources and live authenticated Motion
+AI/Motion+ documentation and example reads. Premium reference source remains
+outside the public tree; a Motion+ generated CSS spring is used for workflow
+hover. See [the study](docs/research/fluid-motion-refinement.md) and
+[W0.2 spec/evidence](docs/specs/0005-website-landing-draft.md).
+
+Website production build and strict types passed; **12 production browser tests
+passed**. Hover is verified against rendered pixel area with ambient time held
+constant. Atom tests compare actual frames, pause/resume, offscreen stop and
+live reduced-motion changes. The latter caught Motion 14.10's snapshot-only
+hook, now handled by a shared reactive media-query subscription. Root
+`npm run check` passed **22 tests**, strict types and formatting. The actual
+diff and production desktop/mobile screenshots in `.context/w02/` were reviewed.
+The production preview on **localhost:3000** was restarted with the verified build.
+
+Next: founder visual feedback, then optional real-device/Safari GPU evaluation.
+The website/desktop branches still need explicit integration review; no main
+merge, deployment or public download was performed. Engine and desktop packaging
+are unchanged. `.context/` contains only local research/browser evidence and
+helpers; it is not the sole durable handoff.

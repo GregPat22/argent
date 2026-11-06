@@ -1,13 +1,8 @@
 "use client";
 
-import { SectionSignature } from "@/components/section-signature";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
-import {
-  AnimatePresence,
-  motion,
-  useInView,
-  useReducedMotion,
-} from "motion/react";
+import { AnimatePresence, motion, useInView } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { GitHubIcon, MagneticLink } from "@/components/ui";
 import { DOCS_URL, REPO_URL } from "@/lib/site";
@@ -110,7 +105,6 @@ export function RunIt() {
       aria-labelledby="run-title"
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 py-24 md:px-10 md:py-32"
     >
-      <SectionSignature number="07" label="An open invitation" kind="trace" />
       <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
         <div className="lg:col-span-5">
           <h2

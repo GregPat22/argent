@@ -1,9 +1,8 @@
 "use client";
 
-import { motion, useReducedMotion, useScroll, useSpring } from "motion/react";
-import { useRef } from "react";
-import { SectionSignature } from "@/components/section-signature";
-import { AgMark } from "@/components/ui";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
+
+import { motion } from "motion/react";
 import { M0, ROADMAP_URL } from "@/lib/site";
 
 const MILESTONES = [
@@ -45,24 +44,13 @@ const MILESTONES = [
 ];
 
 export function Roadmap() {
-  const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start 0.85", "end 0.65"],
-  });
-  const progress = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
   return (
     <section
       id="roadmap"
       aria-labelledby="roadmap-title"
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 py-24 md:px-10 md:py-32"
     >
-      <SectionSignature
-        number="06"
-        label="Conducting what comes next"
-        kind="trace"
-      />
       <div className="grid gap-8 md:grid-cols-12 md:items-end">
         <h2
           id="roadmap-title"
@@ -86,35 +74,8 @@ export function Roadmap() {
           .
         </p>
       </div>
-      <div
-        ref={ref}
-        className="silver-surface relative mt-12 overflow-hidden rounded-3xl border border-hairline-strong px-6 py-8 md:px-10"
-      >
-        <div className="mb-8 flex items-center justify-between border-b border-hairline pb-6">
-          <div className="flex items-center gap-3">
-            <AgMark size={32} />
-            <p className="font-mono text-[0.6875rem] tracking-[0.14em] text-sterling uppercase">
-              A continuous thread
-            </p>
-          </div>
-          <span className="hidden text-xs text-sterling-dim sm:block">
-            Built on evidence. Always.
-          </span>
-        </div>
-        <div className="relative">
-          <div
-            aria-hidden
-            className="absolute inset-y-6 left-[11px] w-px bg-hairline-strong md:inset-x-3 md:top-[11px] md:bottom-auto md:h-px md:w-auto"
-          >
-            <motion.div
-              style={reduce ? { scale: 1 } : { scaleX: progress }}
-              className="hidden h-full origin-left bg-gradient-to-r from-sterling-dim via-polished to-sterling md:block"
-            />
-            <motion.div
-              style={reduce ? { scale: 1 } : { scaleY: progress }}
-              className="h-full origin-top bg-gradient-to-b from-polished to-sterling md:hidden"
-            />
-          </div>
+      <div className="silver-surface relative mt-12 overflow-hidden rounded-3xl border border-hairline-strong px-6 py-8 md:px-10">
+        <div>
           <ol className="grid gap-8 md:grid-cols-5 md:gap-6">
             {MILESTONES.map((milestone, index) => (
               <motion.li
@@ -156,10 +117,6 @@ export function Roadmap() {
             ))}
           </ol>
         </div>
-        <p className="mt-8 border-t border-hairline pt-5 text-xs text-sterling-dim">
-          The silver trace follows your reading progress. Milestone labels show
-          delivery status.
-        </p>
       </div>
     </section>
   );

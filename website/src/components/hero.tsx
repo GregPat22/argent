@@ -1,11 +1,8 @@
 "use client";
 
-import {
-  motion,
-  useReducedMotion,
-  useScroll,
-  useTransform,
-} from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
+
+import { motion, useScroll, useTransform } from "motion/react";
 import { useRef, useState } from "react";
 import { Mercury } from "@/components/mercury";
 import { GitHubIcon, MagneticLink } from "@/components/ui";
@@ -42,7 +39,7 @@ export function Hero() {
         transition={{ duration: 1.8, ease }}
         className="absolute inset-x-0 top-0 -z-10 h-[46svh] [mask-image:linear-gradient(to_bottom,transparent_0%,black_22%,black_64%,transparent_100%)] md:inset-y-0 md:h-auto md:[mask-image:linear-gradient(to_right,transparent_34%,black_68%)]"
       >
-        <Mercury className="size-full" paused={paused} />
+        <Mercury className="size-full" paused={paused} interactionRef={ref} />
       </motion.div>
 
       <button
@@ -58,9 +55,6 @@ export function Hero() {
         style={reduce ? undefined : { y: copyY, opacity: copyOpacity }}
         className="mx-auto w-full max-w-[1320px] px-6 md:px-10"
       >
-        <p className="mb-6 font-mono text-[0.6875rem] tracking-[0.16em] text-sterling uppercase">
-          Open source. Independent by design.
-        </p>
         <h1 className="display text-[clamp(2rem,10vw,4.5rem)] md:text-[clamp(2.7rem,6vw,6rem)] text-polished">
           {LINES.map((line, index) => (
             <span key={line} className="block overflow-hidden pb-[0.08em]">

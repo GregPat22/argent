@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  useReducedMotion,
-} from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
+
+import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { AgMark } from "@/components/ui";
 import { DOCS_URL, LICENSE_URL, REPO_URL, ROADMAP_URL } from "@/lib/site";
 
@@ -25,7 +21,7 @@ export function Footer() {
 
   return (
     <footer
-      className="relative overflow-hidden border-t border-hairline"
+      className="relative overflow-hidden"
       onPointerMove={(event) => {
         if (reduce) return;
         const rect = event.currentTarget.getBoundingClientRect();

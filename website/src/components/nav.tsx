@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  motion,
-  useMotionValueEvent,
-  useScroll,
-  useSpring,
-  useReducedMotion,
-} from "motion/react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
+
+import { motion, useMotionValueEvent, useScroll } from "motion/react";
 import { useRef, useState } from "react";
 import { AgMark, GitHubIcon } from "@/components/ui";
 import { REPO_URL } from "@/lib/site";
@@ -19,12 +15,7 @@ const LINKS = [
 ];
 
 export function Nav() {
-  const { scrollY, scrollYProgress } = useScroll();
-  const progress = useSpring(scrollYProgress, {
-    stiffness: 160,
-    damping: 30,
-    restDelta: 0.001,
-  });
+  const { scrollY } = useScroll();
   const reduce = useReducedMotion();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -133,11 +124,6 @@ export function Nav() {
             ))}
           </ul>
         </div>
-        <motion.div
-          aria-hidden
-          style={{ scaleX: progress }}
-          className="h-px origin-left bg-gradient-to-r from-sterling-dim via-polished to-sterling-dim"
-        />
       </div>
     </motion.header>
   );

@@ -1,382 +1,171 @@
 "use client";
 
-import { SectionSignature } from "@/components/section-signature";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
-import {
-  AnimatePresence,
-  motion,
-  useInView,
-  useReducedMotion,
-  useScroll,
-  useSpring,
-} from "motion/react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { type KeyboardEvent, useRef, useState } from "react";
 
-type Step = { title: string; body: string; visual: () => ReactNode };
-
-const ease = [0.22, 1, 0.36, 1] as const;
-
-function Panel({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="w-full max-w-[30rem] rounded-2xl border border-hairline-strong bg-pewter p-5 shadow-[0_40px_120px_-40px_rgb(0_0_0/0.9)]">
-      <p className="font-mono text-[0.75rem] text-sterling-dim">{title}</p>
-      <div className="mt-4">{children}</div>
-    </div>
-  );
-}
-
-function Reveal({
-  index,
-  children,
-  listItem = false,
-}: {
-  index: number;
-  children: ReactNode;
-  listItem?: boolean;
-}) {
-  const Component = listItem ? motion.li : motion.div;
-  return (
-    <Component
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.15 + index * 0.09, duration: 0.5, ease }}
-    >
-      {children}
-    </Component>
-  );
-}
-
-function SpecVisual() {
-  const criteria = [
-    "Five failed logins lock the account for 15 minutes",
-    "A successful login resets the counter",
-    "Locked responses return 429 with Retry-After",
-    "Existing login tests still pass",
-  ];
-  return (
-    <Panel title="specs/rate-limit-login.md">
-      <p className="display text-2xl">Rate-limit the login endpoint</p>
-      <p className="mt-4 text-[0.8125rem] text-sterling-dim">
-        Acceptance criteria
-      </p>
-      <ul className="mt-2 space-y-2">
-        {criteria.map((item, index) => (
-          <Reveal key={item} index={index} listItem>
-            <p className="flex items-start gap-3 text-[0.9375rem] text-polished">
-              <span className="mt-1 size-3.5 shrink-0 rounded-[4px] border border-hairline-strong" />
-              {item}
-            </p>
-          </Reveal>
-        ))}
-      </ul>
-    </Panel>
-  );
-}
-
-function WorkspaceVisual() {
-  const files = [
-    "src/auth/login.ts",
-    "src/auth/limits.ts",
-    "tests/login.test.ts",
-    "node_modules/ (kept)",
-  ];
-  return (
-    <Panel title="workspace / example/project">
-      <div className="flex items-center justify-between rounded-xl border border-hairline bg-oxide/60 px-3 py-2.5">
-        <span className="font-mono text-[0.8125rem] text-polished">
-          argent/rate-limit-login
-        </span>
-        <span className="text-[0.8125rem] text-sterling-dim">own worktree</span>
-      </div>
-      <ul className="mt-4 space-y-1.5 font-mono text-[0.8125rem] text-sterling">
-        {files.map((file, index) => (
-          <Reveal key={file} index={index} listItem>
-            <p>{file}</p>
-          </Reveal>
-        ))}
-      </ul>
-      <div className="mt-5 grid grid-cols-2 gap-3 text-[0.8125rem]">
-        <div className="rounded-xl border border-hairline p-3">
-          <p className="text-sterling-dim">Compute</p>
-          <p className="mt-1 text-polished">Asleep while idle</p>
-        </div>
-        <div className="rounded-xl border border-hairline p-3">
-          <p className="text-sterling-dim">Files and dependencies</p>
-          <p className="mt-1 text-polished">Still there</p>
-        </div>
-      </div>
-    </Panel>
-  );
-}
-
-function Meter({
-  label,
-  value,
-  max,
-  unit,
-  index,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  unit: string;
-  index: number;
-}) {
-  return (
-    <div>
-      <div className="flex justify-between text-[0.8125rem]">
-        <span className="text-sterling">{label}</span>
-        <span className="tabular-nums text-sterling-dim">
-          {value} of {max} {unit}
-        </span>
-      </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-oxide">
-        <motion.div
-          className="h-full origin-left rounded-full bg-gradient-to-r from-sterling-dim to-polished"
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: value / max }}
-          transition={{ delay: 0.2 + index * 0.12, duration: 1.1, ease }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function RunVisual() {
-  return (
-    <Panel title="limits set before the agent starts">
-      <div className="space-y-5">
-        <Meter label="Wall time" value={12} max={30} unit="min" index={0} />
-        <Meter label="Agent turns" value={18} max={60} unit="turns" index={1} />
-        <Meter label="Spend" value={2} max={5} unit="USD" index={2} />
-      </div>
-      <p className="mt-6 rounded-xl border border-hairline bg-oxide/60 px-3 py-2.5 text-[0.875rem] text-sterling">
-        No production credentials. Network limited to the package registry.
-      </p>
-    </Panel>
-  );
-}
-
-function VerifyVisual() {
-  const checks = [
-    "Type check",
-    "Unit tests, 38 of 38",
-    "Integration tests, 6 of 6",
-    "Format",
-  ];
-  return (
-    <Panel title="checks from a policy the agent can’t edit">
-      <div className="flex items-baseline justify-between">
-        <p className="text-[0.8125rem] text-sterling-dim">Commit</p>
-        <p className="font-mono text-[0.875rem] text-polished">4f2a9c1</p>
-      </div>
-      <ul className="mt-4 space-y-2">
-        {checks.map((check, index) => (
-          <Reveal key={check} index={index} listItem>
-            <div className="flex items-center justify-between rounded-lg border border-hairline px-3 py-2 text-[0.9375rem]">
-              {check}
-              <span className="text-[0.8125rem] text-verified">Passed</span>
-            </div>
-          </Reveal>
-        ))}
-      </ul>
-    </Panel>
-  );
-}
-
-function ReviewVisual() {
-  return (
-    <Panel title="src/auth/login.ts">
-      <pre className="overflow-hidden rounded-xl bg-oxide/70 p-3 font-mono text-[0.75rem] leading-relaxed">
-        <span className="block text-sterling-dim">
-          {" "}
-          const attempts = await limits.get(user)
-        </span>
-        <span className="block text-verified/90">
-          + if (attempts &gt;= 5) return locked(res, 900)
-        </span>
-        <span className="block text-verified/90">
-          + await limits.increment(user)
-        </span>
-        <span className="block text-sterling-dim">
-          {" "}
-          const ok = await verify(password)
-        </span>
-      </pre>
-      <Reveal index={1}>
-        <div className="mt-4 rounded-xl border border-attention/30 bg-attention/[0.06] px-3 py-2.5 text-[0.875rem]">
-          <p className="text-attention">Review finding</p>
-          <p className="mt-1 text-polished">
-            Resetting the counter after a successful login has no test.
-          </p>
-        </div>
-      </Reveal>
-      <Reveal index={3}>
-        <p className="mt-3 text-[0.875rem] text-sterling">
-          Repair 1 of 1 applied. Checks ran again on{" "}
-          <span className="font-mono text-polished">9b1e07d</span>.
-        </p>
-      </Reveal>
-    </Panel>
-  );
-}
-
-function PullRequestVisual() {
-  const evidence = [
-    ["Checks", "39 of 39 passed on 9b1e07d"],
-    ["Review", "1 finding, repaired"],
-    ["Limits", "12 min, 18 turns used"],
-  ];
-  return (
-    <Panel title="pull request">
-      <div className="flex items-center gap-2">
-        <span className="rounded-full border border-hairline-strong px-2 py-0.5 text-[0.75rem] text-sterling">
-          Draft
-        </span>
-        <p className="text-[0.9375rem] text-polished">
-          Add rate limiting to the login endpoint
-        </p>
-      </div>
-      <dl className="mt-4 divide-y divide-hairline rounded-xl border border-hairline">
-        {evidence.map(([label, value], index) => (
-          <Reveal key={label} index={index}>
-            <div className="flex justify-between gap-4 px-3 py-2.5 text-[0.875rem]">
-              <dt className="text-sterling-dim">{label}</dt>
-              <dd className="text-right text-polished">{value}</dd>
-            </div>
-          </Reveal>
-        ))}
-      </dl>
-    </Panel>
-  );
-}
-
-function MergeVisual() {
-  const reduceMotion = useReducedMotion();
-  return (
-    <Panel title="the last step is yours">
-      <p className="text-[0.9375rem] text-sterling">
-        Argent prepares the pull request and stops. Merging, deploying and
-        spending stay with people.
-      </p>
-      <motion.div
-        className="mt-6 flex h-12 items-center justify-center rounded-full bg-polished text-[0.9375rem] font-medium text-oxide"
-        initial={{ boxShadow: "0 0 0 0 rgb(238 241 245 / 0)" }}
-        animate={
-          reduceMotion
-            ? undefined
-            : {
-                boxShadow: [
-                  "0 0 0 0 rgb(238 241 245 / 0.35)",
-                  "0 0 0 14px rgb(238 241 245 / 0)",
-                ],
-              }
-        }
-        transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
-      >
-        Merge pull request
-      </motion.div>
-      <p className="mt-3 text-center text-[0.8125rem] text-sterling-dim">
-        Only a person can press this.
-      </p>
-    </Panel>
-  );
-}
-
-const STEPS: Step[] = [
+const STAGES = [
   {
-    title: "Write the task as a spec",
-    body: "Describe the outcome and how anyone could check it. The acceptance criteria become the bar the work has to clear.",
-    visual: SpecVisual,
+    tab: "Define the work",
+    title: "A clear brief. A place to work.",
+    body: "Describe the outcome and the checks that would prove it. Argent’s planned workflow gives the task its own branch or worktree in a persistent workspace.",
+    details: [
+      "Written acceptance criteria",
+      "An isolated task branch",
+      "Files and dependencies retained",
+    ],
   },
   {
-    title: "Give it its own workspace",
-    body: "Each task gets an isolated branch or worktree in a persistent workspace. Files and dependencies survive while idle compute sleeps.",
-    visual: WorkspaceVisual,
+    tab: "Run within limits",
+    title: "Room to work. Boundaries in place.",
+    body: "The worker owns execution. Set time, turns and spend before the agent starts. Close the app and return to the record; an unknown outcome stops for inspection.",
+    details: [
+      "Scoped credentials and permissions",
+      "Explicit execution limits",
+      "Reconnect reads saved history",
+    ],
   },
   {
-    title: "Run the agent within limits",
-    body: "Wall time, turns, permissions and spend are bounded before the agent starts. It gets scoped credentials, never yours.",
-    visual: RunVisual,
-  },
-  {
-    title: "Verify the exact commit",
-    body: "Trusted checks run against the commit the agent produced. The agent’s own report of success doesn’t count as evidence.",
-    visual: VerifyVisual,
-  },
-  {
-    title: "Review it independently",
-    body: "A separate review reads the actual diff. One bounded repair is allowed, then the checks run again.",
-    visual: ReviewVisual,
-  },
-  {
-    title: "Draft the pull request",
-    body: "The draft carries its evidence: which checks ran, on which commit, and what the review found.",
-    visual: PullRequestVisual,
-  },
-  {
-    title: "You decide to merge",
-    body: "Argent never merges, deploys or spends money on its own. Dependent tasks wait for your decision.",
-    visual: MergeVisual,
+    tab: "Review the evidence",
+    title: "The agent finishes. You decide.",
+    body: "Trusted checks verify the exact commit. An independent review can request one bounded repair. The draft pull request carries that evidence, and the merge stays yours.",
+    details: [
+      "Exact-commit checks and separate review",
+      "At most one repair, then recheck",
+      "A draft pull request; human merge authority",
+    ],
   },
 ];
 
-function StepText({
-  index,
-  step,
-  onActive,
-}: {
-  index: number;
-  step: Step;
-  onActive: (index: number) => void;
-}) {
-  const ref = useRef<HTMLLIElement>(null);
-  const inView = useInView(ref, { margin: "-45% 0px -45% 0px" });
-  useEffect(() => {
-    if (inView) onActive(index);
-  }, [inView, index, onActive]);
-
-  const Visual = step.visual;
+function WorkspacePreview() {
   return (
-    <li
-      ref={ref}
-      className="flex min-h-0 flex-col justify-center py-10 lg:min-h-[52vh]"
-    >
-      <motion.div
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-        className="flex gap-6"
-      >
-        <span className="display w-10 shrink-0 text-[2.75rem] leading-none text-sterling-dim tabular-nums">
-          {index + 1}
-        </span>
-        <div>
-          <h3 className="display text-[clamp(1.9rem,3.2vw,2.9rem)] leading-[1.02]">
-            {step.title}
-          </h3>
-          <p className="mt-4 max-w-[30rem] text-sterling">{step.body}</p>
-        </div>
-      </motion.div>
-      <div className="mt-8 lg:hidden">
-        <Visual />
+    <div className="space-y-6">
+      <p className="font-mono text-xs text-sterling-dim">
+        specs / rate-limit-login.md
+      </p>
+      <p className="display max-w-[19ch] text-[1.9rem]">
+        Rate-limit the login endpoint.
+      </p>
+      <ul className="space-y-3 text-sm text-sterling">
+        {[
+          "Five failed logins lock the account for 15 minutes",
+          "Successful login resets the counter",
+          "Locked responses return 429 with Retry-After",
+        ].map((text) => (
+          <li key={text} className="flex gap-3">
+            <span
+              aria-hidden
+              className="mt-1.5 size-3 shrink-0 rounded-[3px] border border-hairline-strong"
+            />
+            {text}
+          </li>
+        ))}
+      </ul>
+      <div className="rounded-xl bg-oxide/70 p-4">
+        <p className="text-xs text-sterling-dim">
+          Task branch · persistent workspace
+        </p>
+        <p className="mt-2 break-all font-mono text-sm text-polished">
+          argent/rate-limit-login
+        </p>
       </div>
-    </li>
+    </div>
   );
 }
 
+function ExecutionPreview() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="font-mono text-xs text-sterling-dim">
+          workspace / example-project
+        </p>
+        <span className="text-xs text-running">Running</span>
+      </div>
+      <p className="display text-[1.9rem]">The work has a boundary.</p>
+      <dl className="space-y-5">
+        {[
+          ["Wall time", "12 / 30 min", 0.4],
+          ["Agent turns", "18 / 60 turns", 0.3],
+          ["Spend", "$2 / $5", 0.4],
+        ].map(([label, value, ratio]) => (
+          <div key={label}>
+            <div className="flex justify-between gap-4 text-sm">
+              <dt className="text-sterling">{label}</dt>
+              <dd className="font-mono text-xs text-polished">{value}</dd>
+            </div>
+            <div aria-hidden className="mt-2 h-1 rounded-full bg-oxide">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-sterling-dim to-polished"
+                style={{ width: `${Number(ratio) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </dl>
+      <p className="rounded-xl bg-oxide/70 p-4 text-sm text-sterling">
+        The app can disconnect. The worker retains its record. Uncertain effects
+        are inspected before another attempt.
+      </p>
+    </div>
+  );
+}
+
+function EvidencePreview() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <p className="font-mono text-xs text-sterling-dim">
+          draft pull request
+        </p>
+        <span className="text-xs text-verified">Awaiting your review</span>
+      </div>
+      <p className="display text-[1.9rem]">A result you can inspect.</p>
+      <dl className="divide-y divide-hairline">
+        {[
+          ["Commit", "9b1e07d"],
+          ["Trusted checks", "39 / 39 passed"],
+          ["Independent review", "1 finding, repaired"],
+          ["Repair budget", "1 / 1 used"],
+          ["Merge authority", "You"],
+        ].map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-5 py-3 text-sm">
+            <dt className="text-sterling-dim">{label}</dt>
+            <dd className="text-right text-polished">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="text-sm text-sterling">
+        Inspect the diff, checks and review. Decide what lands.
+      </p>
+    </div>
+  );
+}
+const PREVIEWS = [WorkspacePreview, ExecutionPreview, EvidencePreview];
+
 export function Lifecycle() {
-  const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start 0.5", "end 0.5"],
-  });
-  const rail = useSpring(scrollYProgress, {
-    stiffness: 140,
-    damping: 30,
-    restDelta: 0.001,
-  });
-  const ActiveVisual = STEPS[active]!.visual;
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const reduce = useReducedMotion();
+  const stage = STAGES[active]!;
+  const Preview = PREVIEWS[active]!;
+  const onKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+  ) => {
+    let next = index;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown")
+      next = (index + 1) % STAGES.length;
+    else if (event.key === "ArrowLeft" || event.key === "ArrowUp")
+      next = (index + STAGES.length - 1) % STAGES.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = STAGES.length - 1;
+    else return;
+    event.preventDefault();
+    setActive(next);
+    tabs.current[next]?.focus();
+  };
 
   return (
     <section
@@ -384,66 +173,90 @@ export function Lifecycle() {
       aria-labelledby="lifecycle-title"
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 py-24 md:px-10 md:py-32"
     >
-      <SectionSignature number="03" label="A considered process" kind="trace" />
-      <div className="grid gap-8 md:grid-cols-12 md:items-end">
+      <div className="grid items-end gap-8 md:grid-cols-12">
         <h2
           id="lifecycle-title"
-          className="display text-[clamp(2.4rem,5vw,4.6rem)] md:col-span-7"
+          className="display max-w-[16ch] text-[clamp(2.4rem,5vw,4.6rem)] md:col-span-7"
         >
-          From spec to pull request, with a checkpoint at every step.
+          Your intent.
+          <br />
+          Your agents.
+          <br />
+          Your call.
         </h2>
         <p className="max-w-[34rem] text-sterling md:col-span-5">
-          This is the flow Argent is being built around. In M0, a scripted agent
-          runs it as a simulation: the run, its limits and an independent
-          artifact check work for real, without a repository or a model.
+          A shorter path from a clear task to a change you can trust. This is
+          the planned workflow. Today’s local prototype uses simulated work;
+          real agents, cloud workspaces and repository checks are still ahead.
         </p>
       </div>
-
       <div
-        ref={ref}
-        className="relative mt-10 grid grid-cols-[minmax(0,1fr)] lg:grid-cols-12"
+        role="tablist"
+        aria-label="Explore the planned workflow"
+        className="mt-12 grid gap-2 sm:grid-cols-3"
       >
-        <div
-          aria-hidden
-          className="absolute top-0 bottom-0 left-[1.15rem] w-px bg-hairline"
-        >
+        {STAGES.map((item, index) => (
+          <button
+            key={item.tab}
+            ref={(el) => {
+              tabs.current[index] = el;
+            }}
+            type="button"
+            role="tab"
+            id={`workflow-tab-${index}`}
+            aria-controls="workflow-panel"
+            aria-selected={active === index}
+            tabIndex={active === index ? 0 : -1}
+            onClick={() => setActive(index)}
+            onKeyDown={(event) => onKeyDown(event, index)}
+            className={`workflow-tab min-h-14 rounded-xl px-5 text-left text-sm ${active === index ? "bg-polished text-oxide" : "bg-pewter/50 text-sterling hover:bg-pewter hover:text-polished"}`}
+          >
+            {item.tab}
+          </button>
+        ))}
+      </div>
+      <div
+        id="workflow-panel"
+        role="tabpanel"
+        aria-labelledby={`workflow-tab-${active}`}
+        tabIndex={0}
+        className="mt-6 rounded-3xl bg-gradient-to-br from-pewter/80 to-oxide p-6 md:p-10"
+      >
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            style={{ scaleY: rail }}
-            className="h-full w-full origin-top bg-polished"
-          />
-        </div>
-
-        <ol className="min-w-0 pl-14 lg:col-span-6">
-          {STEPS.map((step, index) => (
-            <StepText
-              key={step.title}
-              index={index}
-              step={step}
-              onActive={setActive}
-            />
-          ))}
-        </ol>
-
-        <div className="hidden lg:col-span-6 lg:block">
-          <div className="sticky top-0 flex h-[100svh] items-center justify-center">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={active}
-                className="flex w-full justify-center"
-                initial={{
-                  opacity: 0,
-                  y: 24,
-                  scale: 0.97,
-                }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -16, scale: 0.98 }}
-                transition={{ duration: 0.45, ease }}
-              >
-                <ActiveVisual />
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </div>
+            key={active}
+            initial={{ opacity: 0, y: reduce ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: reduce ? 0 : -8 }}
+            transition={{ duration: reduce ? 0 : 0.22 }}
+            className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16"
+          >
+            <div>
+              <h3 className="display max-w-[18ch] text-[clamp(1.8rem,3vw,2.8rem)]">
+                {stage.title}
+              </h3>
+              <p className="mt-5 max-w-[30rem] text-sterling">{stage.body}</p>
+              <ul className="mt-7 space-y-3 text-sm text-polished">
+                {stage.details.map((detail) => (
+                  <li key={detail} className="flex gap-3">
+                    <span
+                      aria-hidden
+                      className="mt-[.6em] size-1 shrink-0 rounded-full bg-sterling-dim"
+                    />
+                    {detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-hairline bg-pewter/60 p-5 md:p-7">
+              <Preview />
+            </div>
+          </motion.div>
+        </AnimatePresence>
+        <p className="mt-8 text-xs text-sterling-dim">
+          Illustrative planned workflow · example limits, commit and check
+          results.
+        </p>
       </div>
     </section>
   );

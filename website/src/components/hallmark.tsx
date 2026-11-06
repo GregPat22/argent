@@ -1,6 +1,6 @@
 "use client";
 
-import { SectionSignature } from "@/components/section-signature";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 import {
   animate,
@@ -8,7 +8,6 @@ import {
   useInView,
   useMotionValue,
   useMotionValueEvent,
-  useReducedMotion,
   useSpring,
   useTransform,
 } from "motion/react";
@@ -295,7 +294,6 @@ export function Hallmark() {
       aria-labelledby="hallmark-title"
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 py-24 md:px-10 md:py-36"
     >
-      <SectionSignature number="04" label="Proof, not promises" kind="seal" />
       <div className="grid gap-10 md:grid-cols-12">
         <h2
           id="hallmark-title"
