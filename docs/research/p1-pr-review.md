@@ -147,3 +147,40 @@ Logs are local, ignored artifacts at `.context/refresh-check.log` and
 `.context/refresh-desktop-smoke.log`. Next: review and carry the fix to the desktop
 PR, then request the explicit founder merge decision and reconcile website
 ownership. No remote push, PR update, merge, deployment or release occurred here.
+
+## Desktop PR update verification
+
+6 November 2026. On `GregPat22/next-step-request`, synced main `9763f3a` into
+this continuation as `556584d`, retaining the completed fix and evidence during
+documentation conflict resolution. Runtime fix `f929ae3` is unchanged. Additional
+tests `b888840` cover a missing saved workspace, a selected-workspace 404 with
+later recovery, and a late rejected read after selection changes. The harness
+also initializes the error banner to match its hidden HTML state.
+
+Independent read-only review of the actual fix and additional test diff found no
+correctness or security findings. Its fresh focused run passed 8/8 renderer
+tests. The parent run of `npm run check` passed **41 tests, 0 failures, 0 skips**,
+strict types, formatting and compilation on Node 22.19.0 / npm 10.9.3.
+
+Rebuilt the unsigned local macOS Apple Silicon package from the same runtime
+source. Its actual packaged executable passed `desktop:smoke`: verified
+simulation artifact, background run, cancellation, renderer isolation,
+close/reopen, service stop/reconnect and detached-service survival after app exit.
+The harness cleaned its temporary profile and owned service. The generated zip
+passed `shasum -a 256 -c`; SHA-256 is
+`8a42f54f40c7c150af303fa5752e4a6a60bb058dab04809137605f3606104e60`.
+This supersedes the previous packaged-executable/archive verification gap.
+
+The older-selection regression still uses controlled bridge responses and a
+minimal DOM, rather than two live desktop clients. All product execution is
+simulation. Signing/notarization, public downloads, updates, other platforms,
+real agents, cloud execution and product GitHub integration remain unfinished.
+Five moderate development packaging audit entries remain unchanged.
+
+The publication updates existing draft PR #1 through a normal fast-forward of
+`codex/desktop-handoff`, without a force push or a main merge. No release-version
+scheme, dependency change, binary publication or deployment is part of this fix.
+After publication, inspect GitHub checks at the actual new PR head and obtain the
+explicit founder merge decision. See the [handoff](../../HANDOFF.md) for branch
+coordination and limits. Local logs: `.context/pr1-update-check.log`,
+`.context/pr1-package.log` and `.context/pr1-packaged-smoke.log`.

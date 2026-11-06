@@ -55,12 +55,15 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
 Review follow-up, 6 November 2026: [PR #1 review](../research/p1-pr-review.md)
 at `6104961` reproduced a selected-workspace refresh gap in criterion 6.
 Fix commit `f929ae3` on `GregPat22/next-step-request` refreshes the selected
-workspace independently of retained history. Five compiled-renderer regressions
-pass, and `npm run check` passes 38 tests with strict types and formatting.
+workspace independently of retained history. Eight compiled-renderer regressions
+pass with edge-case tests `b888840`, and `npm run check` passes 41 tests with
+strict types and formatting. A rebuilt local package passed packaged-executable
+smoke and archive checksum validation.
 The harness uses controlled bridge responses and a minimal DOM; native smoke
 results and remaining limits are in the [review follow-up](../research/p1-pr-review.md#fix-verification-follow-up).
-The fix is local to this continuation branch; PR #1 and main still need explicit
-integration and a merge decision.
+The update targets the existing draft PR #1 head `codex/desktop-handoff`; main
+remains M0 until the explicit founder merge decision. The package remains
+unsigned, unnotarized and unpublished.
 
 No upstream fork/import without founder approval. No silent purchase, cloud
 provisioning, merge, deployment or public release. Prefer a thin desktop shell

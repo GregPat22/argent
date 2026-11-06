@@ -53,8 +53,8 @@ published product context; unrelated chat history is not part of this repository
 ## P1 branch evidence
 
 - [P1 PR review](research/p1-pr-review.md): fresh checks and native development
-  smoke at `6104961`, plus a reproduced older-workspace refresh issue to fix
-  before the explicit merge decision.
+  smoke at `6104961`, plus the older-workspace fix, eight renderer regressions
+  and fresh packaged-app verification before the explicit merge decision.
 - [P1 completion report](milestones/0001-completion.md): completed local desktop
   prototype and recorded native/package evidence; source is in draft PR #1.
 - [Pinned T3 source evaluation](research/t3-adoption-spike.md): source-only
