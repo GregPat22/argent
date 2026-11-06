@@ -11,13 +11,13 @@ Current integration status checked against freshly fetched `origin/main` on
 6 November 2026. PR #1 is integrated as `fd60a5a`; the review entries later in
 this file describe historical evidence and decisions before that merge.
 
-| Location                              | Current state                                                                       | How to use it                                                                                                                |
-| ------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `origin/main` at `fd60a5a`            | M0 plus P1 desktop, selected-workspace refresh fix and eight renderer regressions   | Base for new engine and desktop work. PR #1 is already integrated.                                                           |
-| `codex/desktop-handoff` at `850d46f`  | Preserved pre-merge P1 review source                                                | Historical review/package evidence, not the preferred continuation base.                                                     |
-| `codex/p1-original` at `a4f3d52`      | Original completed P1 source                                                        | Provenance/backup.                                                                                                           |
-| `GregPat22/argent-landing-page-draft` | Separate landing design; remote ref at `c70cb4c` when checked                       | Coordinate website ownership before integration; no landing files are changed here. Local unfinished work was not inspected. |
-| `GregPat22/next-step-v2`              | M1a lifecycle/access contract and post-merge context correction, based on `fd60a5a` | Review [spec 0006](docs/specs/0006-cloud-workspace-lifecycle.md); no cloud runtime implementation.                           |
+| Location                              | Current state                                                                          | How to use it                                                                                                                |
+| ------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `origin/main` at `fd60a5a`            | M0 plus P1 desktop, selected-workspace refresh fix and eight renderer regressions      | Base for new engine and desktop work. PR #1 is already integrated.                                                           |
+| `codex/desktop-handoff` at `850d46f`  | Preserved pre-merge P1 review source                                                   | Historical review/package evidence, not the preferred continuation base.                                                     |
+| `codex/p1-original` at `a4f3d52`      | Original completed P1 source                                                           | Provenance/backup.                                                                                                           |
+| `GregPat22/argent-landing-page-draft` | Separate landing design; remote ref at `c70cb4c` when checked                          | Coordinate website ownership before integration; no landing files are changed here. Local unfinished work was not inspected. |
+| `GregPat22/next-step-v2`              | M1a contract, retained-core decision and simulated lifecycle slice, based on `fd60a5a` | Review [spec 0006](docs/specs/0006-cloud-workspace-lifecycle.md); real cloud execution remains unimplemented.                |
 
 The integrated source includes refresh fix `f929ae3` and regression tests
 `b888840` through the squash merge. Dependency versions and packaging settings
@@ -207,13 +207,13 @@ needed. Desktop application data lives in its local app-support profile;
 
 Next actions, in order:
 
-1. Review the proposed [M1a access/lifecycle contract](docs/specs/0006-cloud-workspace-lifecycle.md).
-   Obtain the foundation decision: authorize a pinned isolated T3 runtime spike
-   or explicitly retain Argent for the bounded M1a implementation. No foundation
-   fork or replacement is approved.
-2. After that decision, implement lifecycle records and fake-provider crash/race
-   tests, then the read-only GitHub credential broker and bootstrap boundary.
-   Live tests require concrete provider/account/region/resource/budget approval.
+1. Continue bounded M1a on the retained Argent core. The engineering agent owns
+   routine technical choices; T3 runtime evaluation is deferred unless measured
+   complexity warrants it. No foundation fork/replacement is approved.
+2. Lifecycle records and simulated failure tests are implemented internally.
+   Next implement the read-only GitHub credential broker/bootstrap boundary from
+   [spec 0006](docs/specs/0006-cloud-workspace-lifecycle.md). Live tests require
+   concrete provider/account/region/resource/budget approval.
 3. Continue the separate landing draft and reconcile shared website ownership
    before integration, preserving actual local download availability.
 4. Prove real isolated persistence, quiescence and cleanup before M1b agent work;
@@ -309,7 +309,7 @@ release or billable provisioning is authorized. The founder's explicit decision
 on PR #1 is next. Coordinate the separate landing branch before integrating its
 website; this update does not touch that workspace or its files.
 
-### Post-merge M1a preparation, 6 November 2026
+### Post-merge M1a preparation, 6 November 2026 (historical gate)
 
 On `GregPat22/next-step-v2`, based on `fd60a5a`, a fresh fetch confirmed PR #1
 is already integrated in `origin/main`. Corrected the entry points and current
@@ -336,6 +336,46 @@ lifecycle records/fake-provider failure tests and the read-only bootstrap broker
 Live tests still require concrete provider/account/region/resource/budget and
 cleanup authorization. No cloud code, billable resources, remote publication,
 website deployment or binary release is part of this preparation.
+
+### Retained-core decision and lifecycle slice, 6 November 2026
+
+On `GregPat22/next-step-v2`, continuing from `74068ae` (main base `fd60a5a`),
+the founder delegated technical decisions to the engineering agent. Retain
+Argent for bounded M1a; defer T3 runtime evaluation until measured need. This
+supersedes the technical selection question in the previous entry. The rationale
+and engineering ownership are in [DECISIONS.md](docs/DECISIONS.md#foundation-decision-for-bounded-m1a-6-november-2026).
+Foundation replacement and billable provisioning remain separately controlled.
+
+Implemented the first [spec 0006](docs/specs/0006-cloud-workspace-lifecycle.md)
+slice: internal lifecycle tables/events on the existing SQLite connection,
+idempotent operation intent, atomic fenced claims, quiescence acknowledgment,
+dispatch receipts, deadlines/heartbeats and read-only outcome reconciliation.
+Lifecycle enrollment serializes with M0 submission/claims and disables local
+adapter execution for that workspace. Uncertain effects are never reclaimed or
+replayed. Delete keeps its identity and `deleting` state until absence is observed.
+
+The worker only accepts the simulation-only adapter contract and is not wired to
+the desktop bridge, HTTP API or service loop. It runs no target repository code
+and adds no SDK or runtime dependencies. Twenty-seven focused tests include
+independent-process claims, enrollment versus M0 submission, actual worker
+termination around simulated effects, lost acknowledgments for all four actions,
+late/hung calls, post-lock expiry, invalid observations, event rollback and
+preservation of old P1 data when lifecycle tables are introduced.
+
+Fresh `npm run check` passed strict types, formatting, compilation and **68 tests,
+0 failures, 0 skips**. Reviewed the actual implementation/test/documentation diff;
+relative Markdown targets and whitespace checks pass. Local logs are
+`.context/lifecycle-tests.log` and `.context/lifecycle-check.log`. Native/package
+smoke was not repeated; desktop behavior is covered by the automated suite.
+
+This is simulation evidence, not M1a completion or a tested PR. GitHub
+credential brokerage, trusted checkout/bootstrap, filesystem retention manifests,
+full resource/credential cleanup inventories, operator resolution, real isolation,
+remote authorization and live budget/provider validation remain unimplemented.
+Next: implement read-only GitHub bootstrap on the retained core, then exercise
+real-provider persistence/cleanup only with concrete authorized limits. Technical
+choices stay with the engineering agent. No remote push, merge, deployment,
+binary release, real provider call or billable provisioning occurred here.
 
 ## Keep the context complete
 

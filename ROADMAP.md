@@ -19,9 +19,11 @@ and a pinned T3 source evaluation. See `docs/milestones/0001-completion.md` and
 `docs/research/t3-adoption-spike.md`. The website and macOS archive are available
 locally; a public signed release has not been published.
 
-Next is a runtime foundation decision and review of the proposed
-[M1a access/lifecycle contract](docs/specs/0006-cloud-workspace-lifecycle.md),
-then bounded implementation and approved real-provider validation. The
+Retain the current core for bounded M1a; the technical decision is recorded in
+[the decision register](docs/DECISIONS.md#foundation-decision-for-bounded-m1a-6-november-2026).
+The internal lifecycle simulation is implemented. Next is read-only GitHub
+bootstrap, then approved real-provider validation under the
+[M1a access/lifecycle contract](docs/specs/0006-cloud-workspace-lifecycle.md). The
 source evaluation does not replace runtime conformance tests. No paid resources
 are provisioned until the founder explicitly authorizes the concrete provider,
 region, resource shape and budget. Real integration credentials are not required

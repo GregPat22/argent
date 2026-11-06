@@ -1,11 +1,13 @@
 # M1a: repository access and persistent isolated workspace
 
-Status: proposed contract, not implemented or provider-certified. Prepared on
+Status: proposed live-provider contract; internal lifecycle simulation implemented,
+not provider-certified. Prepared on
 `GregPat22/next-step-v2` from main `fd60a5a` on 6 November 2026. P1 is integrated
 in that main revision; execution remains simulated.
 
 This narrows [M1 criteria 1–3, 6, 11–13](0002-cloud-mvp.md) before provider code.
-It does not select a foundation, provision resources or authorize GitHub writes.
+It retains the current foundation without provisioning resources or authorizing
+GitHub writes.
 
 ## Scope and entry gates
 
@@ -16,10 +18,12 @@ commands only in isolated compute. Keep the desktop client, control plane and
 workspace compute separate. Real coding-agent turns and tested draft PRs belong
 to M1b/M1c.
 
-Before provider implementation, record the founder's foundation decision: authorize
-the pinned T3 runtime conformance spike, or explicitly retain Argent for this
-bounded milestone. The [source spike](../research/t3-adoption-spike.md) is input
-to that decision, not runtime evidence or approval for replacement.
+Technical decision, 6 November 2026: retain Argent's current core for bounded
+M1a implementation. The founder delegated technical decisions to the engineering
+agent. The [source spike](../research/t3-adoption-spike.md) found no demonstrated
+runtime advantage that justifies replacement now. Reconsider T3 if measured
+adapter complexity warrants a separate spike; do not fork or replace the core
+without the separately required founder approval.
 
 Before a live provider test, record concrete authorization for the provider,
 account/project, region, resource shape, maximum concurrent workspaces (one),
@@ -190,8 +194,48 @@ exact Argent revision, provider/SDK/image versions, command argv, timestamps,
 redacted receipts, manifests and cleanup/usage results. Fakes and provider docs
 cannot satisfy live isolation, persistence or budget evidence.
 
-Implement in bounded slices after the foundation decision: lifecycle records
-and fake-provider failure tests; read-only credential broker/bootstrap; then the
+Continue in bounded slices on the retained core: lifecycle records and
+fake-provider failure tests (implemented below); read-only credential
+broker/bootstrap (next); then the
 approved live persistence and cleanup harness. Expand the adapter interface only
 alongside these tests. Keep M0/P1 checks passing and independently review the
 actual diff. Do not claim M1a until every criterion has recorded passing evidence.
+
+## First implementation slice: simulated lifecycle operations
+
+Acceptance criteria for the bounded first slice (not M1a completion):
+
+- Add internal lifecycle records and ordered events to the same local SQLite
+  database as M0. Persist requests, ownership, dispatch intent, quiescence and
+  settlement transactionally. Keep the installed desktop API unchanged.
+- Support simulated create, pause, resume and delete using a separately injected
+  simulation-only provider. No SDK, GitHub broker, target repository commands or
+  billable calls are included. Cloud repository/bootstrap metadata is deferred.
+- Deduplicate identical request keys; reject changed inputs, invalid transitions
+  and concurrent operations. A workspace enrolled in the lifecycle harness cannot
+  run the M0 local adapter or use metadata-only stop/start. Enrollment and M0 run
+  submission/claims share the database lock.
+- An expired claim/deadline or any uncertain adapter failure blocks the workspace
+  and operation without automatic dispatch retry. Deletion retains `deleting`
+  until absence is confirmed. Reject stale owner writes after lock contention.
+- Reconciliation uses read-only provider inspection only. Settle only matching
+  identities/target states with recorded dispatch intent, plus a retained
+  quiescence acknowledgment for pause. An absent create marker is inconclusive.
+  Wrong identities and missing/mismatched observations leave uncertainty intact.
+- Demonstrate persistence/reconnect reads, independent-connection/process claim
+  races, worker death and acknowledgment loss around provider effects, bounded
+  hung calls, quiescence refusal, stale settlements and event rollback. Label all
+  provider fixtures and their evidence simulation.
+
+This slice deliberately leaves real authorization, trusted checkout/bootstrap,
+retention manifests, cleanup inventory, live isolation/budget evidence and an
+operator resolution workflow unimplemented. These remain required before M1a;
+none may be inferred from the lifecycle fixture tests.
+
+Evidence on `GregPat22/next-step-v2`, continuing from `74068ae`: 27 focused
+simulation tests pass, including actual child-process death/claim races and
+transaction rollback, with 68 tests passing in the full `npm run check`. The
+implementation is internal `Store.lifecycle` plus its bounded simulation worker;
+no API or desktop integration is enabled. Native/package smoke and real-provider
+checks were not run. See the [handoff](../../HANDOFF.md#retained-core-decision-and-lifecycle-slice-6-november-2026)
+for exact limits and next work.

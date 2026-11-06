@@ -30,7 +30,7 @@ separate verifier checks. There is no real GitHub authorization, repository
 checkout, AI agent, cloud compute or pull request. The desktop architecture keeps
 those next integrations behind the existing headless engine.
 
-Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0006-cloud-workspace-lifecycle.md). The proposed contract defines read-only GitHub access, persistence and cleanup evidence; foundation selection and live-provider approval remain open.
+Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0006-cloud-workspace-lifecycle.md). The current core is retained for bounded M1a. An internal simulation-only lifecycle store/worker now exercises durable operations and failure recovery; read-only GitHub bootstrap and live-provider validation remain next.
 
 ## Tech Stack
 

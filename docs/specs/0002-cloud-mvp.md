@@ -1,7 +1,8 @@
 # M1: persistent cloud workspace to a tested pull request
 
-Status: proposed; not implemented. Depends on the foundation adoption decision
-and explicit approval before billable resources are provisioned.
+Status: real-cloud MVP proposed and unimplemented. Retain the current core for
+bounded M1a work; an internal simulation-only lifecycle harness is implemented.
+Billable provisioning still requires explicit authorization.
 
 M1a is narrowed in [repository access and workspace lifecycle](0006-cloud-workspace-lifecycle.md), including proposed GitHub permissions, explicit transitions and crash/cleanup evidence. That contract is not an implemented cloud adapter.
 
