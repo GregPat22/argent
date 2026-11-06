@@ -38,7 +38,10 @@ class Element {
 const settle = async (): Promise<void> =>
   new Promise((resolve) => setImmediate(resolve));
 
-async function launch(saved = true) {
+async function launch(
+  saved = true,
+  initialReadError: boolean | string = false,
+) {
   const recent: Workspace[] = Array.from({ length: 50 }, (_, index) => ({
     id: `recent-${index}`,
     repository: `https://github.com/example/recent-${index}`,
@@ -59,7 +62,7 @@ async function launch(saved = true) {
   }
   let timer: (() => void) | undefined;
   let connected = true;
-  let readError = false;
+  let readError = initialReadError;
   let pendingRead: Promise<Workspace> | undefined;
   const reads: string[] = [];
   const runReads: string[] = [];
@@ -68,6 +71,7 @@ async function launch(saved = true) {
       ? [["argent.selection", JSON.stringify({ workspaceId: older.id })]]
       : [],
   );
+  element("error-banner").hidden = true;
   runInNewContext(renderer, {
     Error,
     exports: {},
@@ -84,7 +88,12 @@ async function launch(saved = true) {
         }),
         getWorkspace: async (id: string) => {
           reads.push(id);
-          if (readError) throw new Error("Workspace read unavailable");
+          if (readError)
+            throw new Error(
+              typeof readError === "string"
+                ? readError
+                : "Workspace read unavailable",
+            );
           return pendingRead ?? { ...older };
         },
         listRuns: async (id: string) => {
@@ -125,12 +134,18 @@ async function launch(saved = true) {
     setConnected: (value: boolean) => {
       connected = value;
     },
-    setReadError: (value: boolean) => {
+    setReadError: (value: boolean | string) => {
       readError = value;
     },
     holdRead: () =>
       new Promise<(workspace: Workspace) => void>((resolve) => {
         pendingRead = new Promise<Workspace>((release) => resolve(release));
+      }),
+    holdReadFailure: () =>
+      new Promise<(error: Error) => void>((resolve) => {
+        pendingRead = new Promise<Workspace>((_release, reject) =>
+          resolve(reject),
+        );
       }),
     async poll() {
       assert.ok(timer, "renderer must schedule its next poll");
@@ -231,4 +246,45 @@ test("late workspace response cannot update a changed selection", async () => {
   app.assertState("running");
   assert.equal(app.element("workspace-title").textContent, "recent-0");
   assert.deepEqual(app.runReads, ["older", "recent-0"]);
+});
+
+test("missing saved workspace falls back to the first page", async () => {
+  const app = await launch(true, "Request rejected (404): Workspace not found");
+  app.assertState("running");
+  assert.equal(app.element("workspace-title").textContent, "recent-0");
+  assert.deepEqual(app.runReads, ["recent-0"]);
+  await app.poll();
+  assert.deepEqual(app.reads, ["older"]);
+});
+
+test("missing selected workspace surfaces the error without changing selection", async () => {
+  const app = await launch();
+  app.setReadError("Request rejected (404): Workspace not found");
+  await app.poll();
+  assert.equal(app.element("error-banner").hidden, false);
+  assert.equal(
+    app.element("error-text").textContent,
+    "Request rejected (404): Workspace not found",
+  );
+  assert.equal(app.element("workspace-title").textContent, "older");
+  assert.deepEqual(app.runReads, ["older"]);
+  app.setReadError(false);
+  app.setState("stopped");
+  await app.poll();
+  app.assertState("stopped");
+});
+
+test("late workspace read failure cannot surface an error for a changed selection", async () => {
+  const app = await launch();
+  const reject = await app.holdReadFailure();
+  await app.poll();
+  assert.equal(app.reads.length, 2);
+  app.select("recent-0");
+  reject(new Error("Read failed for previous selection"));
+  await settle();
+  assert.equal(app.element("error-banner").hidden, true);
+  assert.deepEqual(app.runReads, ["older"]);
+  await app.poll();
+  app.assertState("running");
+  assert.equal(app.element("workspace-title").textContent, "recent-0");
 });
