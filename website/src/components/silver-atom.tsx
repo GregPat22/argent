@@ -3,10 +3,11 @@
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 import { useEffect, useRef, useState } from "react";
-import { AgMark } from "@/components/ui";
+import { ArgentMark } from "@/components/ui";
 
-// Silver's shell population is 2, 8, 18, 18, 1. Orbits are an artistic
-// classical model; this does not calculate quantum probability distributions.
+// Neutral Ag: [Kr] 4d10 5s1 (NIST), giving shells 2, 8, 18, 18, 1.
+// https://physics.nist.gov/PhysRefData/Handbook/Tables/silvertable1.htm
+// Positions, paths and depths are artistic, not quantum orbital probabilities.
 const SHELLS = [2, 8, 18, 18, 1];
 const TAU = Math.PI * 2;
 
@@ -14,7 +15,6 @@ export function SilverAtom() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const time = useRef(0);
   const reduce = useReducedMotion();
-  const [paused, setPaused] = useState(false);
   const [supported, setSupported] = useState(true);
 
   useEffect(() => {
@@ -108,9 +108,11 @@ export function SilverAtom() {
     };
     const resize = () => {
       const ratio = Math.min(devicePixelRatio || 1, 2);
-      canvas.width = Math.round(320 * ratio);
-      canvas.height = Math.round(320 * ratio);
-      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      const size = Math.min(canvas.getBoundingClientRect().width, 480);
+      canvas.width = Math.max(1, Math.round(size * ratio));
+      canvas.height = canvas.width;
+      const scale = canvas.width / 320;
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
       draw();
     };
     const stop = () => {
@@ -125,7 +127,7 @@ export function SilverAtom() {
       draw();
     };
     const start = () => {
-      if (frame || !visible || document.hidden || reduce || paused) return;
+      if (frame || !visible || document.hidden || reduce) return;
       last = performance.now();
       frame = requestAnimationFrame(loop);
     };
@@ -146,13 +148,13 @@ export function SilverAtom() {
       resizeObserver.disconnect();
       document.removeEventListener("visibilitychange", visibility);
     };
-  }, [reduce, paused, supported]);
+  }, [reduce, supported]);
 
   return (
-    <div className="relative mx-auto w-full max-w-80" data-silver-atom>
+    <div className="relative mx-auto w-full max-w-[30rem]" data-silver-atom>
       <div
         role="img"
-        aria-label="Stylized silver atom with moving electrons across five shells; an artistic orbital model."
+        aria-label="Silver (Ag): 47 electrons in five shells, 2, 8, 18, 18, 1. Stylized depth-projected shell model, not a quantum orbital visualization."
         className="relative aspect-square"
       >
         {supported ? (
@@ -164,19 +166,33 @@ export function SilverAtom() {
             className="size-full"
             data-atom-fallback
           >
-            {SHELLS.map((_, index) => (
-              <ellipse
-                key={index}
-                cx="160"
-                cy="160"
-                rx={47 + index * 20}
-                ry={25 + index * 9}
-                transform={`rotate(${index * 37} 160 160)`}
-                fill="none"
-                stroke="#8997ab"
-                strokeOpacity=".3"
-                strokeWidth=".8"
-              />
+            {SHELLS.map((count, index) => (
+              <g key={index} transform={`rotate(${index * 37} 160 160)`}>
+                <ellipse
+                  cx="160"
+                  cy="160"
+                  rx={47 + index * 20}
+                  ry={25 + index * 9}
+                  fill="none"
+                  stroke="#8997ab"
+                  strokeOpacity=".3"
+                  strokeWidth=".8"
+                />
+                {Array.from({ length: count }, (_, electron) => {
+                  const angle = (electron / count) * TAU;
+                  return (
+                    <circle
+                      key={electron}
+                      data-atom-electron
+                      cx={160 + (47 + index * 20) * Math.cos(angle)}
+                      cy={160 + (25 + index * 9) * Math.sin(angle)}
+                      r={index === 4 ? 2.8 : 1.75}
+                      fill="#e1ecfa"
+                      opacity={Math.sin(angle) > 0 ? 0.9 : 0.35}
+                    />
+                  );
+                })}
+              </g>
             ))}
           </svg>
         )}
@@ -184,17 +200,9 @@ export function SilverAtom() {
           aria-hidden
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
-          <AgMark size={54} />
+          <ArgentMark size={72} />
         </span>
       </div>
-      <button
-        type="button"
-        onClick={() => setPaused((value) => !value)}
-        aria-pressed={paused}
-        className="motion-reduce:hidden mx-auto flex min-h-11 items-center rounded-full px-4 text-xs text-sterling-dim transition-colors hover:text-polished"
-      >
-        {paused ? "Resume atom" : "Pause atom"}
-      </button>
     </div>
   );
 }

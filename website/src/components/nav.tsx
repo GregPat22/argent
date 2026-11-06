@@ -1,130 +1,208 @@
 "use client";
 
+import { motion, useMotionValueEvent, useScroll } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { ArgentMark, LiquidLink } from "@/components/ui";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 
-import { motion, useMotionValueEvent, useScroll } from "motion/react";
-import { useRef, useState } from "react";
-import { AgMark, GitHubIcon } from "@/components/ui";
-import { REPO_URL } from "@/lib/site";
-
 const LINKS = [
-  { href: "#reconnect", label: "Disconnect" },
   { href: "#lifecycle", label: "How it works" },
   { href: "#hallmark", label: "Proof" },
   { href: "#roadmap", label: "Roadmap" },
+  { href: "#faq", label: "FAQ" },
 ];
 
 export function Nav() {
   const { scrollY } = useScroll();
   const reduce = useReducedMotion();
+  const [compact, setCompact] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuButton = useRef<HTMLButtonElement>(null);
-  const [hidden, setHidden] = useState(false);
-  const [solid, setSolid] = useState(false);
+  const [active, setActive] = useState<string | null>(null);
+  const compactButton = useRef<HTMLButtonElement>(null);
+  const mobileButton = useRef<HTMLButtonElement>(null);
+  const homeLink = useRef<HTMLAnchorElement>(null);
+  const fullNavigation = useRef<HTMLDivElement>(null);
+  const moveFocus = useRef(false);
 
-  useMotionValueEvent(scrollY, "change", (current) => {
-    const previous = scrollY.getPrevious() ?? 0;
-    setHidden(
-      !reduce &&
-        !menuOpen &&
-        current > previous &&
-        current > 240 &&
-        !document.querySelector("header")?.contains(document.activeElement),
+  useEffect(() => {
+    setCompact(window.scrollY > 120);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries)
+          if (entry.isIntersecting) setActive(`#${entry.target.id}`);
+      },
+      { rootMargin: "-15% 0px -65% 0px" },
     );
-    setSolid(current > 24);
+    document
+      .querySelectorAll("main > section[id]")
+      .forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
+  useMotionValueEvent(scrollY, "change", (value) => {
+    const next = compact ? value > 48 : value > 120;
+    if (next === compact) return;
+    moveFocus.current = Boolean(
+      fullNavigation.current?.contains(document.activeElement),
+    );
+    setCompact(next);
+    setMenuOpen(false);
   });
+
+  useEffect(() => {
+    if (moveFocus.current) {
+      (compact ? compactButton.current : homeLink.current)?.focus({
+        preventScroll: true,
+      });
+      moveFocus.current = false;
+    }
+  }, [compact]);
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    (compact ? compactButton.current : mobileButton.current)?.focus({
+      preventScroll: true,
+    });
+  };
+  const transition = reduce
+    ? { duration: 0 }
+    : { type: "spring" as const, visualDuration: 0.6, bounce: 0.08 };
 
   return (
     <motion.header
-      initial={{ y: -24, opacity: 0 }}
-      animate={{ y: hidden ? "-100%" : "0%", opacity: 1 }}
-      transition={{ type: "spring", visualDuration: 0.45, bounce: 0 }}
-      onFocusCapture={() => setHidden(false)}
+      layoutRoot
+      initial={false}
+      data-compact={compact}
+      className={`site-header ${compact ? "is-compact" : ""}`}
       onKeyDown={(event) => {
-        if (event.key === "Escape" && menuOpen) {
-          setMenuOpen(false);
-          menuButton.current?.focus();
-        }
+        if (event.key === "Escape" && menuOpen) closeMenu();
       }}
-      className="fixed inset-x-0 top-0 z-50"
     >
-      <div
-        className={`transition-[background-color,backdrop-filter,border-color] duration-300 ${
-          solid || menuOpen
-            ? "border-b border-hairline bg-oxide/70 backdrop-blur-xl"
-            : "border-b border-transparent"
-        }`}
-      >
-        <nav
-          aria-label="Main"
-          className="mx-auto flex h-[4.25rem] max-w-[1320px] items-center justify-between gap-6 px-6 md:px-10"
-        >
-          <a
-            href="#top"
-            className="flex min-h-11 items-center gap-3 rounded-lg"
-            aria-label="Argent home"
-          >
-            <AgMark size={32} />
-            <span className="logo-display text-[1.6rem] leading-none tracking-[-0.01em]">
-              Argent
-            </span>
-          </a>
-
-          <ul className="hidden items-center gap-8 text-[0.9375rem] text-sterling lg:flex">
-            {LINKS.map((link) => (
-              <li key={link.href}>
-                <a
-                  href={link.href}
-                  className="inline-flex min-h-11 items-center transition-colors hover:text-polished"
-                >
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-
-          <div className="flex items-center gap-2">
+      <nav aria-label="Main">
+        <motion.div layout transition={transition} className="nav-logo-dock">
+          {compact ? (
             <button
-              ref={menuButton}
+              ref={compactButton}
               type="button"
+              className="nav-logo-control"
+              aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+              title={menuOpen ? "Close navigation" : "Open navigation"}
               aria-expanded={menuOpen}
               aria-controls="mobile-navigation"
               onClick={() => setMenuOpen((value) => !value)}
-              className="min-h-11 rounded-full border border-hairline-strong px-4 text-sm lg:hidden"
             >
-              {menuOpen ? "Close" : "Menu"}
+              <ArgentMark size={64} />
             </button>
+          ) : (
             <a
-              href={REPO_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-hairline-strong px-4 text-[0.875rem] text-polished transition-colors hover:border-polished/60"
+              ref={homeLink}
+              href="#top"
+              aria-label="Argent home"
+              className="nav-logo-control"
+              onClick={() => setMenuOpen(false)}
             >
-              <GitHubIcon />
-              <span>GitHub</span>
+              <ArgentMark size={64} />
             </a>
-          </div>
-        </nav>
-        <div
-          id="mobile-navigation"
-          hidden={!menuOpen}
-          className="border-t border-hairline bg-oxide px-6 py-4 lg:hidden"
+          )}
+        </motion.div>
+        <motion.div
+          ref={fullNavigation}
+          className="nav-full"
+          inert={compact}
+          aria-hidden={compact}
+          initial={false}
+          animate={{
+            opacity: compact ? 0 : 1,
+            transform: compact
+              ? "translateY(-28px) scale(0.96)"
+              : "translateY(0px) scale(1)",
+          }}
+          transition={
+            reduce
+              ? { duration: 0 }
+              : { duration: 0.32, ease: [0.22, 1, 0.36, 1] }
+          }
         >
-          <ul className="grid grid-cols-2 gap-2">
+          <ul className="nav-links">
             {LINKS.map((link) => (
               <li key={link.href}>
                 <a
                   href={link.href}
-                  onClick={() => setMenuOpen(false)}
-                  className="flex min-h-12 items-center rounded-lg px-3 text-sm text-sterling hover:bg-pewter hover:text-polished"
+                  aria-current={active === link.href ? "location" : undefined}
+                  className="nav-section-link"
                 >
                   {link.label}
                 </a>
               </li>
             ))}
           </ul>
-        </div>
-      </div>
+          <LiquidLink href="#run" className="nav-cta">
+            Try locally{" "}
+            <span aria-hidden className="button-arrow">
+              ↗
+            </span>
+          </LiquidLink>
+          {!compact && (
+            <button
+              ref={mobileButton}
+              type="button"
+              className="nav-menu-toggle"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-navigation"
+              onClick={() => setMenuOpen((value) => !value)}
+            >
+              {menuOpen ? "Close" : "Menu"}
+              <span aria-hidden>{menuOpen ? "×" : "+"}</span>
+            </button>
+          )}
+        </motion.div>
+        <motion.div
+          id="mobile-navigation"
+          hidden={!menuOpen}
+          initial={false}
+          animate={{
+            opacity: menuOpen ? 1 : 0,
+            transform:
+              menuOpen || reduce ? "translateY(0px)" : "translateY(-10px)",
+          }}
+          transition={{ duration: reduce ? 0 : 0.2 }}
+          className="nav-disclosure"
+        >
+          <ul className="grid gap-1">
+            {LINKS.map((link) => (
+              <li key={link.href}>
+                <a
+                  href={link.href}
+                  aria-current={active === link.href ? "location" : undefined}
+                  onClick={() => setMenuOpen(false)}
+                  className="nav-disclosure-link"
+                >
+                  {link.label}
+                  <span aria-hidden>↗</span>
+                </a>
+              </li>
+            ))}
+            <li>
+              <a
+                href="#top"
+                onClick={() => setMenuOpen(false)}
+                className="nav-disclosure-link"
+              >
+                Back to top <span aria-hidden>↑</span>
+              </a>
+            </li>
+            <li className="mt-2">
+              <LiquidLink
+                href="#run"
+                onClick={() => setMenuOpen(false)}
+                className="w-full"
+              >
+                Try locally <span aria-hidden>↗</span>
+              </LiquidLink>
+            </li>
+          </ul>
+        </motion.div>
+      </nav>
     </motion.header>
   );
 }

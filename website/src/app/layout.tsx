@@ -1,22 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Bodoni_Moda,
-  JetBrains_Mono,
-  Space_Grotesk,
-  Manrope,
-} from "next/font/google";
+import { Inter, JetBrains_Mono, Manrope } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const bodoni = Bodoni_Moda({
-  variable: "--font-bodoni",
-  subsets: ["latin"],
-  axes: ["opsz"],
-  display: "swap",
-});
-
-const space = Space_Grotesk({
-  variable: "--font-space",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
 });
@@ -47,7 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${bodoni.variable} ${space.variable} ${manrope.variable} ${jetbrains.variable}`}
+      className={`${inter.variable} ${manrope.variable} ${jetbrains.variable}`}
     >
       <body>
         <Providers>{children}</Providers>

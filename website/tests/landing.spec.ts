@@ -1,14 +1,5 @@
 import { expect, test } from "@playwright/test";
 
-function countDraws() {
-  const original = WebGL2RenderingContext.prototype.drawArrays;
-  Object.assign(window, { argentFrames: 0 });
-  WebGL2RenderingContext.prototype.drawArrays = function (...args) {
-    (window as unknown as { argentFrames: number }).argentFrames++;
-    return original.apply(this, args);
-  };
-}
-
 test("page hydrates cleanly and every section has a readable heading", async ({
   page,
 }) => {
@@ -20,10 +11,10 @@ test("page hydrates cleanly and every section has a readable heading", async ({
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Argent is a good conductor." }),
+    page.getByRole("heading", { name: /Assign a task.*Review the changes/ }),
   ).toBeVisible();
   const sections = page.locator("main > section");
-  await expect(sections).toHaveCount(8);
+  await expect(sections).toHaveCount(9);
   for (const section of await sections.all()) {
     await section.scrollIntoViewIfNeeded();
     await expect(section.locator("h1,h2").first()).toBeVisible();
@@ -172,91 +163,47 @@ test("illustrated reconnect preserves history and worker loss requires attention
   ).toBeEnabled();
 });
 
-test("reduced motion keeps hero copy static and draws one sculpture frame", async ({
+test("hero contains no bubble renderer, fallback or pause controls", async ({
   page,
 }) => {
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.addInitScript(countDraws);
-  await page.goto("/");
-  await expect(page.locator("[data-silver-sculpture] canvas")).toBeVisible();
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () => (window as unknown as { argentFrames: number }).argentFrames,
-      ),
-    )
-    .toBeGreaterThan(0);
-  await page.waitForTimeout(500);
-  const frames = await page.evaluate(
-    () => (window as unknown as { argentFrames: number }).argentFrames,
-  );
-  await page.waitForTimeout(500);
-  expect(
-    await page.evaluate(
-      () => (window as unknown as { argentFrames: number }).argentFrames,
-    ),
-  ).toBe(frames);
-  await expect(
-    page.getByRole("button", { name: "Pause sculpture" }),
-  ).toBeHidden();
-  await page.evaluate(() => scrollTo({ top: 400, behavior: "instant" }));
-  expect(
-    await page
-      .locator("h1")
-      .evaluate((el) => getComputedStyle(el.parentElement!).opacity),
-  ).toBe("1");
-  expect(errors).toEqual([]);
-});
-
-test("hero can be paused and WebGL has a static fallback", async ({ page }) => {
-  await page.addInitScript(countDraws);
-  await page.goto("/");
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () => (window as unknown as { argentFrames: number }).argentFrames,
-      ),
-    )
-    .toBeGreaterThan(2);
-  const pause = page.getByRole("button", { name: "Pause sculpture" });
-  await pause.click();
-  await expect(
-    page.getByRole("button", { name: "Resume sculpture" }),
-  ).toHaveAttribute("aria-pressed", "true");
-  await page.waitForTimeout(250);
-  const frames = await page.evaluate(
-    () => (window as unknown as { argentFrames: number }).argentFrames,
-  );
-  await page.waitForTimeout(500);
-  expect(
-    await page.evaluate(
-      () => (window as unknown as { argentFrames: number }).argentFrames,
-    ),
-  ).toBe(frames);
-  await page.getByRole("button", { name: "Resume sculpture" }).click();
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () => (window as unknown as { argentFrames: number }).argentFrames,
-      ),
-    )
-    .toBeGreaterThan(frames);
   await page.addInitScript(() => {
     const original = HTMLCanvasElement.prototype.getContext;
+    Object.assign(window, { webglRequests: 0 });
     HTMLCanvasElement.prototype.getContext = function (
       this: HTMLCanvasElement,
       kind: string,
       ...args: unknown[]
     ) {
-      if (kind === "webgl2" || kind === "2d") return null;
+      if (kind === "webgl" || kind === "webgl2")
+        (window as unknown as { webglRequests: number }).webglRequests++;
       return original.call(this, kind, ...args);
     } as typeof original;
   });
-  await page.reload();
-  await expect(page.locator(".silver-fallback")).toBeVisible();
+  await page.goto("/");
+  await expect(
+    page.locator(
+      "#intro canvas, #intro button, .silver-fallback, [data-silver-sculpture]",
+    ),
+  ).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await page.locator("#run").scrollIntoViewIfNeeded();
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { webglRequests: number }).webglRequests,
+    ),
+  ).toBe(0);
+});
+
+test("atom keeps its static fallback without canvas support", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    HTMLCanvasElement.prototype.getContext = (() =>
+      null) as typeof HTMLCanvasElement.prototype.getContext;
+  });
+  await page.goto("/");
   await expect(page.locator("[data-atom-fallback]")).toBeVisible();
+  await expect(page.locator("[data-atom-electron]")).toHaveCount(47);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
@@ -363,7 +310,7 @@ test("workflow stages are compact and keyboard selectable", async ({
   ).toBeLessThan(1500);
 });
 
-test("atom animates, pauses, stops offscreen and respects reduced motion", async ({
+test("larger silver atom has no pause control, stops offscreen and respects reduced motion", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -384,22 +331,13 @@ test("atom animates, pauses, stops offscreen and respects reduced motion", async
   await expect
     .poll(() => atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL()))
     .not.toBe(image);
-  await page.getByRole("button", { name: "Pause atom", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Resume atom", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
-  const paused = await atom.evaluate((el) =>
-    (el as HTMLCanvasElement).toDataURL(),
+  await expect(page.locator("[data-silver-atom] button")).toHaveCount(0);
+  expect((await atom.boundingBox())!.width).toBeGreaterThanOrEqual(440);
+  await expect(page.locator("[data-silver-atom] p")).toHaveCount(0);
+  await expect(page.locator("[data-silver-atom] [role=img]")).toHaveAttribute(
+    "aria-label",
+    /47 electrons/,
   );
-  await page.waitForTimeout(400);
-  expect(
-    (await atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL())) ===
-      paused,
-  ).toBe(true);
-  await page.getByRole("button", { name: "Resume atom", exact: true }).click();
-  await expect
-    .poll(() => atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL()))
-    .not.toBe(paused);
   await page.locator("#roadmap").scrollIntoViewIfNeeded();
   await page.waitForTimeout(250);
   const frames = await page.evaluate(
@@ -424,79 +362,398 @@ test("atom animates, pauses, stops offscreen and respects reduced motion", async
   ).toBe(true);
   await expect(
     page.getByRole("button", { name: "Pause atom", exact: true }),
-  ).toBeHidden();
-  expect(
-    await page
-      .locator(".conductor-silver")
-      .evaluate((el) => getComputedStyle(el).animationName),
-  ).toBe("none");
+  ).toHaveCount(0);
 });
 
-test("hover changes the silver geometry and leaving restores it", async ({
+test("hero next steps and prototype status fit the first mobile screen", async ({
   page,
 }) => {
-  await page.addInitScript(() => {
-    const names = new WeakMap<WebGLUniformLocation, string>();
-    const getLocation = WebGL2RenderingContext.prototype.getUniformLocation;
-    const setFloat = WebGL2RenderingContext.prototype.uniform1f;
-    const draw = WebGL2RenderingContext.prototype.drawArrays;
-    Object.assign(window, { captureSilver: false, silverPixels: -1 });
-    WebGL2RenderingContext.prototype.getUniformLocation = function (
-      program,
-      name,
-    ) {
-      const location = getLocation.call(this, program, name);
-      if (location) names.set(location, name);
-      return location;
-    };
-    WebGL2RenderingContext.prototype.uniform1f = function (location, value) {
-      // Freeze ambient time so the pixel-area change can only come from hover.
-      return setFloat.call(
-        this,
-        location,
-        location && names.get(location) === "uTime" ? 4 : value,
-      );
-    };
-    WebGL2RenderingContext.prototype.drawArrays = function (...args) {
-      draw.apply(this, args);
-      const state = window as unknown as {
-        captureSilver: boolean;
-        silverPixels: number;
-      };
-      if (!state.captureSilver) return;
-      const w = this.drawingBufferWidth,
-        h = this.drawingBufferHeight;
-      const pixels = new Uint8Array(w * h * 4);
-      this.readPixels(0, 0, w, h, this.RGBA, this.UNSIGNED_BYTE, pixels);
-      let filled = 0;
-      for (let i = 3; i < pixels.length; i += 4) if (pixels[i]! > 200) filled++;
-      state.silverPixels = filled;
-      state.captureSilver = false;
-    };
-  });
-  await page.goto("/");
-  const capture = async () => {
-    await page.evaluate(() => Object.assign(window, { captureSilver: true }));
-    await expect
-      .poll(() =>
-        page.evaluate(
-          () => (window as unknown as { captureSilver: boolean }).captureSilver,
-        ),
-      )
-      .toBe(false);
-    return page.evaluate(
-      () => (window as unknown as { silverPixels: number }).silverPixels,
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const [width, height] of [
+    [360, 800],
+    [390, 844],
+  ]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    await page.goto("/");
+    const hero = page.locator("#intro");
+    const demo = hero.getByRole("link", { name: "See it in action" });
+    const github = hero.getByRole("link", { name: "View on GitHub" });
+    await expect(demo).toHaveAttribute("href", "#reconnect");
+    await expect(github).toHaveAttribute(
+      "href",
+      "https://github.com/GregPat22/argent",
     );
-  };
-  await page.mouse.move(10, 10);
-  const rest = await capture();
-  expect(rest).toBeGreaterThan(1000);
-  await page.mouse.move(1260, 400, { steps: 12 });
+    await expect(github).toHaveText("View on GitHub");
+    expect((await github.innerText()).trim()).toBe("GitHub");
+    const boxes = await Promise.all([demo.boundingBox(), github.boundingBox()]);
+    expect(Math.abs(boxes[0]!.y - boxes[1]!.y)).toBeLessThan(2);
+    const status = await hero
+      .getByText("Local prototype · simulated execution.", { exact: false })
+      .boundingBox();
+    expect(status!.y + status!.height).toBeLessThanOrEqual(height!);
+    await demo.click();
+    await expect(page).toHaveURL(/#reconnect$/);
+    await expect(
+      page.getByRole("heading", { name: /Close the app/ }),
+    ).toBeInViewport();
+  }
+});
+
+test("navigation follows the current section and local entry reaches the terminal", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  for (const id of ["lifecycle", "hallmark", "faq", "roadmap"]) {
+    await page
+      .locator(`#${id}`)
+      .evaluate((el) =>
+        el.scrollIntoView({ block: "start", behavior: "instant" }),
+      );
+    await expect(page.locator(`.nav-full a[href='#${id}']`)).toHaveAttribute(
+      "aria-current",
+      "location",
+    );
+  }
+  await page
+    .getByRole("button", { name: "Open navigation", exact: true })
+    .click();
+  await page
+    .locator("#mobile-navigation")
+    .getByRole("link", { name: "Try locally" })
+    .click();
+  await expect(page).toHaveURL(/#run$/);
+  await expect(
+    page.getByRole("heading", {
+      name: "Built in the open. Run the engine today.",
+    }),
+  ).toBeInViewport();
+});
+
+for (const reducedMotion of ["no-preference", "reduce"] as const) {
+  test(`FAQ supports keyboard, rapid toggles and truthful copy (${reducedMotion})`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion });
+    await page.goto("/#faq");
+    const items = page.locator("#faq details");
+    await expect(items).toHaveCount(5);
+    await expect(items.first()).toHaveAttribute("open", "");
+    const item = items.nth(1);
+    const summary = item.locator("summary");
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(item).toHaveAttribute("open", "");
+    await expect(item.locator("p")).toBeVisible();
+    await expect(item).toContainText("your Mac must stay awake");
+    await page.keyboard.press("Space");
+    await expect(item).not.toHaveAttribute("open");
+    for (let i = 0; i < 5; i++) await summary.click();
+    await expect(item).toHaveAttribute("open", "");
+    await expect(item.locator("p")).toBeVisible();
+    await expect(summary).toBeFocused();
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect(item).toHaveAttribute("open", "");
+    expect(
+      await item.evaluate(
+        (el) => getComputedStyle(el, "::details-content").transitionDuration,
+      ),
+    ).toBe("0s");
+    await expect(items.first()).toContainText(
+      "signed public downloads are still planned",
+    );
+  });
+}
+
+test("FAQ answers remain readable without JavaScript", async ({ browser }) => {
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    reducedMotion: "reduce",
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto("http://127.0.0.1:3100/#faq");
+    const question = page.locator("#faq details").nth(2);
+    await question.locator("summary").click();
+    await expect(question.locator("p")).toBeVisible();
+    await expect(question).toContainText("no AI model or repository connected");
+    expect(
+      await question
+        .locator("p")
+        .evaluate((el) => getComputedStyle(el.parentElement!).opacity),
+    ).toBe("1");
+  } finally {
+    await context.close();
+  }
+});
+
+test("magnetic links keep their hit area stable and stop moving under reduced motion", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const link = page
+    .locator("#intro")
+    .getByRole("link", { name: "See it in action" });
+  await expect(link).toBeVisible();
+  // Measure after the hero's delayed arrival has actually settled.
+  await expect(page.locator("#intro .hero-actions").locator("..")).toHaveCSS(
+    "transform",
+    "none",
+  );
+  const before = (await link.boundingBox())!;
+  await page.mouse.move(before.x + before.width - 8, before.y + 8);
+  const after = (await link.boundingBox())!;
+  expect(after.x).toBeCloseTo(before.x, 0);
+  expect(after.y).toBeCloseTo(before.y, 0);
+  const content = link.locator(":scope > span");
   await expect
-    .poll(async () => Math.abs((await capture()) - rest) / rest)
-    .toBeGreaterThan(0.015);
-  await page.mouse.move(10, 10, { steps: 12 });
+    .poll(() => content.evaluate((el) => getComputedStyle(el).transform))
+    .not.toBe("none");
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await expect
-    .poll(async () => Math.abs((await capture()) - rest) / rest)
-    .toBeLessThan(0.005);
+    .poll(() => content.evaluate((el) => getComputedStyle(el).transform))
+    .toBe("none");
+  await link.focus();
+  await expect(link).toBeFocused();
+});
+
+test("official Argent icon loads consistently and the headline is concise", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Delegate work.Keep control.",
+  );
+  const marks = page.locator("img.argent-mark");
+  expect(await marks.count()).toBeGreaterThanOrEqual(2);
+  for (const mark of await marks.all()) {
+    await expect(mark).toHaveAttribute("src", "/brand/argent-icon-96.webp");
+    expect(
+      await mark.evaluate(
+        (el) =>
+          (el as HTMLImageElement).complete &&
+          (el as HTMLImageElement).naturalWidth > 0,
+      ),
+    ).toBeTruthy();
+  }
+  const icons = await page
+    .locator("link[rel=icon],link[rel=apple-touch-icon]")
+    .evaluateAll((links) =>
+      links.map((link) => (link as HTMLLinkElement).href),
+    );
+  expect(icons.length).toBeGreaterThanOrEqual(2);
+  for (const icon of icons) {
+    const response = await request.get(icon);
+    expect(response.ok()).toBeTruthy();
+    expect(response.headers()["content-type"]).toMatch(/image\//);
+  }
+});
+
+test("borderless navigation compacts to one logo and preserves keyboard access", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const header = page.locator("header");
+  await expect(header).toHaveAttribute("data-compact", "false");
+  await expect(page.getByRole("link", { name: "Argent home" })).toHaveText("");
+  expect(await header.evaluate((el) => getComputedStyle(el).borderWidth)).toBe(
+    "0px",
+  );
+  await page
+    .locator("#roadmap")
+    .evaluate((el) => el.scrollIntoView({ behavior: "instant" }));
+  await expect(header).toHaveAttribute("data-compact", "true");
+  const logo = page.locator(
+    ".nav-logo-control[aria-controls=mobile-navigation]",
+  );
+  await expect(logo).toBeInViewport();
+  await expect(header.getByRole("link")).toHaveCount(0);
+  await expect(header.getByRole("button")).toHaveCount(1);
+  await expect
+    .poll(async () => (await logo.boundingBox())!.x)
+    .toBeCloseTo(20, 0);
+  await expect
+    .poll(async () => (await logo.boundingBox())!.y)
+    .toBeCloseTo(16, 0);
+  await expect
+    .poll(async () => (await logo.boundingBox())!.width)
+    .toBeCloseTo(48, 0);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await logo.focus();
+  await page.keyboard.press("Enter");
+  await expect(logo).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("Tab");
+  await expect(
+    page
+      .locator("#mobile-navigation")
+      .getByRole("link", { name: "How it works" }),
+  ).toBeFocused();
+  for (const target of await page.locator("#mobile-navigation a").all()) {
+    const rect = (await target.boundingBox())!;
+    expect(rect.height).toBeGreaterThanOrEqual(48);
+    expect(rect.width).toBeGreaterThanOrEqual(48);
+  }
+  await page.keyboard.press("Escape");
+  await expect(logo).toBeFocused();
+  await expect(logo).toHaveAttribute("aria-expanded", "false");
+});
+
+test("liquid buttons reflect on hover without moving the target and respect reduced motion", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const button = page
+    .locator("#intro")
+    .getByRole("link", { name: "See it in action" });
+  const before = (await button.boundingBox())!;
+  const reflectionBefore = await button.evaluate(
+    (el) => getComputedStyle(el, "::before").transform,
+  );
+  await button.hover();
+  await expect
+    .poll(() =>
+      button.evaluate((el) => getComputedStyle(el, "::before").transform),
+    )
+    .not.toBe(reflectionBefore);
+  await expect
+    .poll(() =>
+      button.evaluate((el) => getComputedStyle(el).borderTopLeftRadius),
+    )
+    .toBe("26px");
+  const after = (await button.boundingBox())!;
+  expect(after.x).toBeCloseTo(before.x, 0);
+  expect(after.y).toBeCloseTo(before.y, 0);
+  expect(after.width).toBeCloseTo(before.width, 0);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(
+    await button.evaluate(
+      (el) => getComputedStyle(el, "::before").transitionDuration,
+    ),
+  ).toBe("0s");
+  await button.focus();
+  expect(await button.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe(
+    "solid",
+  );
+});
+
+test("headings use Inter and product paragraphs describe the actual workflow", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const statement = page.locator("#statement-title").locator("..");
+  await expect(statement).toContainText(
+    "code changes, test results and independent review",
+  );
+  await expect(statement).toContainText(
+    "Today’s local desktop prototype runs simulated tasks",
+  );
+  await expect(
+    page.getByText("Silver connects. Argent coordinates.", { exact: false }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator("[data-silver-atom] p, [data-silver-atom] button"),
+  ).toHaveCount(0);
+  for (const heading of await page.locator("h1, h2, h3").all()) {
+    expect(
+      await heading.evaluate((el) => getComputedStyle(el).fontFamily),
+    ).toMatch(/Inter/i);
+  }
+});
+
+test("footer uses the supplied artwork as a working home link", async ({
+  page,
+  request,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const footer = page.locator("footer");
+  const home = footer.getByRole("link", {
+    name: "Argent — back to top",
+    exact: true,
+  });
+  await home.scrollIntoViewIfNeeded();
+  const wordmark = home.getByRole("img", { name: "Argent", exact: true });
+  await expect
+    .poll(() =>
+      wordmark.evaluate((el) => (el as HTMLImageElement).naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await expect(wordmark).toHaveAttribute(
+    "src",
+    "/brand/argent-wordmark-1600.webp",
+  );
+  expect(
+    (await request.get("/brand/argent-wordmark-800.webp")).ok(),
+  ).toBeTruthy();
+  await expect(footer).not.toContainText("Italian");
+  await expect(footer).not.toContainText("conducts electricity");
+  await expect(footer.locator("a a")).toHaveCount(0);
+  await expect(
+    footer.getByRole("link", { name: "GitHub", exact: true }),
+  ).toHaveAttribute("href", "https://github.com/GregPat22/argent");
+  for (const width of [360, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await footer.evaluate((el) => el.scrollWidth <= innerWidth),
+    ).toBeTruthy();
+  }
+  await home.click();
+  await expect(page).toHaveURL(/#top$/);
+  await expect(page.getByRole("heading", { level: 1 })).toBeInViewport();
+});
+
+test("scroll compaction reverses, handles deep links and respects live reduced motion", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  const widths = await page.evaluate(async () => {
+    const samples: number[] = [];
+    const started = performance.now();
+    window.scrollTo({ top: 500, behavior: "instant" });
+    while (performance.now() - started < 850) {
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
+      samples.push(
+        document.querySelector(".nav-logo-dock")!.getBoundingClientRect().width,
+      );
+    }
+    return samples;
+  });
+  // Read actual intermediate geometry, rather than inferring animation from props.
+  expect(widths.some((width) => width > 49 && width < 63)).toBeTruthy();
+  await page.goto("/#faq");
+  const header = page.locator("header");
+  await expect(header).toHaveAttribute("data-compact", "true");
+  await page
+    .getByRole("button", { name: "Open navigation", exact: true })
+    .click();
+  await page
+    .locator("#mobile-navigation")
+    .getByRole("link", { name: "Back to top", exact: true })
+    .click();
+  await expect(header).toHaveAttribute("data-compact", "false");
+  await expect(
+    page.getByRole("link", { name: "Argent home" }),
+  ).toBeInViewport();
+  for (const top of [500, 0, 500])
+    await page.evaluate(
+      (top) => window.scrollTo({ top, behavior: "instant" }),
+      top,
+    );
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(header).toHaveAttribute("data-compact", "true");
+  await expect
+    .poll(async () => (await page.locator(".nav-logo-dock").boundingBox())!.x)
+    .toBeCloseTo(20, 0);
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await expect(header).toHaveAttribute("data-compact", "false");
+  await expect
+    .poll(
+      async () => (await page.locator(".nav-logo-dock").boundingBox())!.width,
+    )
+    .toBeCloseTo(64, 0);
 });

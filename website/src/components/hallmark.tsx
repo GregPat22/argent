@@ -316,14 +316,14 @@ export function Hallmark() {
           id="hallmark-title"
           className="display text-[clamp(2.4rem,5vw,4.6rem)] md:col-span-7"
         >
-          A silversmith can’t hallmark their own silver.
+          Independent checks. Evidence you can review.
         </h2>
         <div className="md:col-span-5 md:pt-3">
-          <p className="max-w-[34rem] text-sterling">
-            For over seven hundred years, silver has gone to an independent
-            assay office before it gets its stamp. Argent applies the same rule
-            to code. The agent does the work, something else checks it, and the
-            record says exactly what was checked.
+          <p className="max-w-[34rem] leading-[1.75] text-sterling">
+            An agent’s success message is only a claim. Argent’s planned
+            verification workflow runs trusted tests against the exact proposed
+            commit and records the results separately. You inspect the diff and
+            evidence before deciding what to merge.
           </p>
         </div>
       </div>
