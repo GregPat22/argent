@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { DomainError, requireInteger, requireString } from "./domain.js";
 import { fullSha } from "./repository-access.js";
+import type { SealedRepositoryCredential } from "./repository-credentials.js";
 import {
   recoveryObservation,
   type RepositoryResolution,
@@ -23,6 +24,7 @@ export interface RepositoryOperation {
   credential: "none" | "unknown" | "issued" | "revoked";
   channel: "none" | "unknown" | "cleared";
   tokenExpiresAt: number | null;
+  credentialReference: string | null;
   maxRuntimeMs: number;
   leaseToken: string | null;
   leaseExpiresAt: number | null;
@@ -46,6 +48,8 @@ function operation(row: Record<string, unknown>): RepositoryOperation {
     credential: row.credential as RepositoryOperation["credential"],
     channel: row.channel as RepositoryOperation["channel"],
     tokenExpiresAt: row.token_expires_at as number | null,
+    credentialReference:
+      (row.credential_reference as string | undefined) ?? null,
     maxRuntimeMs: row.max_runtime_ms as number,
     leaseToken: row.lease_token as string | null,
     leaseExpiresAt: row.lease_expires_at as number | null,
@@ -59,7 +63,7 @@ const COLUMNS = `id,workspace_id,operator_id,repository,ref,provider_id,reposito
   installation_id,head_sha,request_key,fingerprint,status,phase,credential,channel,
   token_expires_at,max_runtime_ms,created_at,lease_token,lease_expires_at,deadline_at`;
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 function operationsTable(name: string): string {
   return `CREATE TABLE IF NOT EXISTS ${name} (
@@ -118,6 +122,16 @@ export class RepositoryStore {
         ) STRICT;
         CREATE INDEX IF NOT EXISTS repository_resolution_operation
           ON repository_resolutions(operation_id,event_cursor);
+        CREATE TABLE IF NOT EXISTS repository_credentials (
+          reference_id TEXT PRIMARY KEY,
+          operation_id TEXT NOT NULL UNIQUE REFERENCES repository_operations(id),
+          state TEXT NOT NULL CHECK(state IN ('pending','stored','erased')),
+          key_id TEXT, nonce BLOB, tag BLOB, ciphertext BLOB,
+          CHECK((state = 'stored' AND key_id IS NOT NULL AND nonce IS NOT NULL
+            AND tag IS NOT NULL AND ciphertext IS NOT NULL)
+            OR (state IN ('pending','erased') AND key_id IS NULL AND nonce IS NULL
+              AND tag IS NULL AND ciphertext IS NULL))
+        ) STRICT;
       `);
       db.prepare(
         "INSERT INTO schema_versions (component,version) VALUES ('repository',?) ON CONFLICT(component) DO UPDATE SET version = excluded.version",
@@ -195,7 +209,11 @@ export class RepositoryStore {
 
   operation(id: string): RepositoryOperation {
     const row = this.db
-      .prepare("SELECT * FROM repository_operations WHERE id = ?")
+      .prepare(
+        `SELECT o.*,c.reference_id AS credential_reference
+        FROM repository_operations o LEFT JOIN repository_credentials c
+        ON c.operation_id = o.id WHERE o.id = ?`,
+      )
       .get(id);
     if (!row) throw new DomainError(404, "Repository operation not found");
     return operation(row);
@@ -287,12 +305,14 @@ export class RepositoryStore {
           ? "timeout"
           : (failure ?? (observedAt === null ? "unconfirmed" : null));
       const status = reason === null ? "resolved" : "rejected";
-      if (status === "resolved")
+      if (status === "resolved") {
         this.db
           .prepare(
             "UPDATE repository_operations SET status = 'failed' WHERE id = ?",
           )
           .run(id);
+        this.eraseCredential(id);
+      }
       const cursor = this.event(id, `repository.resolution_${status}`, now);
       this.db
         .prepare(
@@ -348,7 +368,7 @@ export class RepositoryStore {
             409,
             "Idempotency key already used with a different payload",
           );
-        return operation(previous);
+        return this.operation(previous.id as string);
       }
       const workspace = this.db
         .prepare(
@@ -478,15 +498,88 @@ export class RepositoryStore {
     this.step(id, token, "authorizing", "repository.mint_intent", () => {
       this.db
         .prepare(
+          `INSERT INTO repository_credentials
+          (reference_id,operation_id,state) VALUES (?,?,'pending')`,
+        )
+        .run(randomUUID(), id);
+      this.db
+        .prepare(
           "UPDATE repository_operations SET repository_id = ?,installation_id = ?,phase = 'minting',credential = 'unknown' WHERE id = ?",
         )
         .run(repositoryId, installationId, id);
     });
   }
 
+  captureCredential(
+    id: string,
+    token: string,
+    sealed: SealedRepositoryCredential,
+  ): void {
+    if (
+      !/^[A-Za-z0-9_-]{1,64}$/.test(sealed.keyId) ||
+      !(sealed.nonce instanceof Uint8Array) ||
+      sealed.nonce.byteLength !== 12 ||
+      !(sealed.tag instanceof Uint8Array) ||
+      sealed.tag.byteLength !== 16 ||
+      !(sealed.ciphertext instanceof Uint8Array) ||
+      sealed.ciphertext.byteLength < 8 ||
+      sealed.ciphertext.byteLength > 512
+    )
+      throw new DomainError(400, "Invalid sealed repository credential");
+    this.step(id, token, "minting", "repository.credential_stored", () => {
+      const updated = this.db
+        .prepare(
+          `UPDATE repository_credentials
+        SET state = 'stored',key_id = ?,nonce = ?,tag = ?,ciphertext = ?
+        WHERE operation_id = ? AND state = 'pending'`,
+        )
+        .run(sealed.keyId, sealed.nonce, sealed.tag, sealed.ciphertext, id);
+      if (updated.changes !== 1)
+        throw new DomainError(
+          409,
+          "Repository credential already captured or unavailable",
+        );
+    });
+  }
+
+  credentialRecord(id: string, operatorId: string): SealedRepositoryCredential {
+    this.resolutionActor(id, operatorId);
+    const row = this.db
+      .prepare(
+        `SELECT key_id,nonce,tag,ciphertext
+      FROM repository_credentials WHERE operation_id = ? AND state = 'stored'`,
+      )
+      .get(id);
+    if (!row) throw new DomainError(409, "Repository credential unavailable");
+    return {
+      keyId: row.key_id as string,
+      nonce: row.nonce as Uint8Array,
+      tag: row.tag as Uint8Array,
+      ciphertext: row.ciphertext as Uint8Array,
+    };
+  }
+
+  private eraseCredential(id: string): void {
+    this.db
+      .prepare(
+        `UPDATE repository_credentials SET state = 'erased',
+      key_id = NULL,nonce = NULL,tag = NULL,ciphertext = NULL WHERE operation_id = ?`,
+      )
+      .run(id);
+  }
+
   minted(id: string, token: string, expiresAt: number): void {
     requireInteger(expiresAt, "expiresAt", 1, Number.MAX_SAFE_INTEGER);
     this.step(id, token, "minting", "repository.token_accepted", () => {
+      if (
+        !this.db
+          .prepare(
+            `SELECT reference_id FROM repository_credentials
+        WHERE operation_id = ? AND state = 'stored'`,
+          )
+          .get(id)
+      )
+        throw new DomainError(409, "Repository credential custody is missing");
       this.db
         .prepare(
           "UPDATE repository_operations SET phase = 'resolving',credential = 'issued',token_expires_at = ? WHERE id = ?",
@@ -528,6 +621,7 @@ export class RepositoryStore {
           )
           .run(id);
         this.event(id, "repository.token_revoked", now);
+        this.eraseCredential(id);
       } else if (kind === "channel") {
         if (op.channel !== "unknown")
           throw new DomainError(409, "Channel cleanup is not pending");

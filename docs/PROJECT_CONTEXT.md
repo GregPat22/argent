@@ -6,9 +6,9 @@ product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
 **Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). Current branch
-`GregPat22/next-step-v4` starts from main at `86255f8` (PR #9),
+`GregPat22/next-step-v5` starts from main at `7b2eeca` (PR #10),
 including P1, the refined landing, continuity research and simulated lifecycle/
-repository bootstrap. This branch adds audited simulated bootstrap resolution; execution remains simulated
+repository bootstrap. This branch adds encrypted simulated credential custody; execution remains simulated
 and the website is unpublished. The [roadmap](../ROADMAP.md) retains the
 founder-authorized shutdown-review follow-up.
 
@@ -93,15 +93,15 @@ claims, pause/resume/delete, uncertain outcomes and read-only reconciliation.
 It is not connected to the desktop API and proves no real cloud capability. See the
 [P1 completion report](milestones/0001-completion.md).
 
-| Area         | Implemented in this publication                                                               | Remaining product work                                                   |
-| ------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Interface    | Electron desktop, loopback API, CLI demo, local download preview and landing draft            | Signed public desktop distribution, website deployment and remote access |
-| Workspaces   | Local metadata, retained artifact directories, stop/start guards                              | Git checkout, isolated local execution and real cloud lifecycle          |
-| Dispatch     | Durable SQLite queue, atomic claims, fenced leases                                            | Real provider dispatch and external-effect reconciliation                |
-| Recovery     | Ordered events, API restart/reconnect, uncertain-run blocking, simulated bootstrap resolution | Real audited cleanup/resolution, cloud reconciliation and backup drills  |
-| Execution    | Bounded scripted simulation, cancellation and deadlines                                       | Official coding-agent integrations with permitted authentication         |
-| Verification | Independent JSON identity check and SHA-256 evidence                                          | Trusted repository tests, exact-commit evidence and review policy        |
-| GitHub       | This source repository and its CI workflow                                                    | Product GitHub App, scoped tokens, push and draft-PR broker              |
+| Area         | Implemented in this publication                                                                                 | Remaining product work                                                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Interface    | Electron desktop, loopback API, CLI demo, local download preview and landing draft                              | Signed public desktop distribution, website deployment and remote access             |
+| Workspaces   | Local metadata, retained artifact directories, stop/start guards                                                | Git checkout, isolated local execution and real cloud lifecycle                      |
+| Dispatch     | Durable SQLite queue, atomic claims, fenced leases                                                              | Real provider dispatch and external-effect reconciliation                            |
+| Recovery     | Ordered events, API restart/reconnect, uncertain-run blocking, simulated resolution and encrypted token custody | Real audited cleanup, production key custody, cloud reconciliation and backup drills |
+| Execution    | Bounded scripted simulation, cancellation and deadlines                                                         | Official coding-agent integrations with permitted authentication                     |
+| Verification | Independent JSON identity check and SHA-256 evidence                                                            | Trusted repository tests, exact-commit evidence and review policy                    |
+| GitHub       | This source repository and its CI workflow                                                                      | Product GitHub App, scoped tokens, push and draft-PR broker                          |
 
 Publishing this source to GitHub does not implement the product's GitHub
 integration. A passing simulation is not a tested pull request. The [desktop specification](specs/0004-desktop-prototype.md) is implemented
