@@ -12,6 +12,41 @@ roadmap. Main's audited simulated repository recovery is preserved. Execution
 remains simulated; real accounts/cloud/migration/mobile and website publication
 remain unfinished.
 
+## Desktop PR preparation — 6 November 2026
+
+On unchanged branch `GregPat22/conductor-layout-create`, preserved the approved
+workspace changes in `e9c10e2` (active-stop fix), `a4c38ff` (desktop layout/UX/icons)
+and `6a83f42` (roadmap/specs), then integrated freshly fetched main `7b2eeca`
+(PR #10) via `5a0d6cf`. Documentation conflicts preserve both the new desktop
+requirements and upstream audited simulated repository recovery. Final code/test
+revision is `1bea516`; documentation-only preparation follows it. The source diff
+against current main changes no repository-recovery module or website file.
+
+Fresh `npm run check` passes strict types, formatting, compilation and **161 tests,
+0 failures, 0 skips**; native `npm run desktop:smoke` passes at 900×620/1380×900,
+including reduced-motion emulation, SVG loading, forms, keyboard tabs/search,
+composer review/draft preservation and clearing, cancellation, artifact inspection,
+window close/reopen, service stop/reconnect and uncertain-run resolution.
+The service survives desktop exit and renderer isolation remains verified.
+Logs are `.context/pr-check.log` and `.context/pr-desktop-smoke.log`.
+
+Independent read-only source/security, coverage and plan-completion reviews found
+no blocking issue. The small coverage findings were addressed by asserting search
+ArrowUp/ArrowDown/Enter, the Changes/Run previews, preservation of a different
+unsent draft and clearing of an accepted draft in native smoke. No measured
+line/branch coverage percentage is claimed. Actual diff, Markdown references,
+conflict markers, asset provenance/license and a public-source credential scan
+were reviewed. The existing prelaunch version `0.0.1` is retained; this repository
+has no VERSION/CHANGELOG release scheme to introduce for a prototype PR.
+
+The founder authorized commits, branch push and PR creation against `main`.
+Historical local/uncommitted/no-publication statements below describe the earlier
+implementation passes. Next is PR/CI review and any reviewer fixes; merging,
+deployment, signed binary publication and billable resources remain separate.
+Execution is still simulated; real account/cloud/migration/mobile/terminal/diff
+integrations, signed packaging and screen-reader/device certification remain
+unverified. No additional website, packaged installer or live-provider check ran.
+
 ## P2.1 desktop icon and UX refinement — 6 November 2026
 
 Continues the same unchanged branch `GregPat22/conductor-layout-create`, base main
