@@ -477,18 +477,18 @@ async function refresh(): Promise<void> {
     if (version !== epoch) return;
     workspaces = merge(workspaces, page.items);
     if (!workspacePaging) workspaceCursor = page.nextCursor;
-    if (
-      !selectedWorkspace &&
-      savedSelection.workspaceId &&
-      !workspaces.some((item) => item.id === savedSelection.workspaceId)
-    ) {
+    const workspaceId = selectedWorkspace || savedSelection.workspaceId;
+    if (workspaceId && !page.items.some((item) => item.id === workspaceId)) {
       try {
-        const remembered = await api().getWorkspace(savedSelection.workspaceId);
+        const remembered = await api().getWorkspace(workspaceId);
         if (version !== epoch) return;
         workspaces = merge(workspaces, [remembered]);
       } catch (error) {
         if (version !== epoch) return;
-        if (/^Request rejected \(404\):/.test(message(error))) {
+        if (
+          !selectedWorkspace &&
+          /^Request rejected \(404\):/.test(message(error))
+        ) {
           delete savedSelection.workspaceId;
           delete savedSelection.runId;
         } else {
