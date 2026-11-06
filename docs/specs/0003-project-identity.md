@@ -4,6 +4,10 @@
 
 - Name: **Argent**, selected by the founder. It combines _argento_ (Italian for
   silver, a conductor) and _agent_.
+- Official icon: founder-supplied silver A, selected 6 November 2026 during W0.4.
+  The [original and derivative record](../../website/public/brand/README.md)
+  supersedes the earlier periodic-table Ag branding. Website/browser use is
+  implemented; native desktop packaging remains separate.
 - Repository: <https://github.com/GregPat22/argent>, public from the start to
   support the intended open-source community and self-hostable core.
 - Description: Open-source control plane for AI coding agents in persistent

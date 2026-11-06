@@ -12,8 +12,8 @@ execution remains part of the product, even though its primary client is desktop
 ## Read the context for your task
 
 **Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). The completed P1
-prototype is integrated into main; the landing-page refinement remains on
-`GregPat22/argent-landing-page-draft` pending its own PR.
+prototype and initial landing are integrated into main (`b5e763f`, PRs #1–#3).
+The current landing refinement is on `GregPat22/motion-landing-page-improve`.
 
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |

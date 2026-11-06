@@ -6,8 +6,8 @@ product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
 **Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). P1 is integrated into
-main. The separate landing-page refinement is pending review on
-`GregPat22/argent-landing-page-draft`.
+main alongside the initial landing (PR #3, `b5e763f`). The next landing refinement
+is on `GregPat22/motion-landing-page-improve`.
 
 ## What we are building
 
