@@ -382,3 +382,47 @@ findings; no measured coverage percentage is claimed. Live-provider evidence and
 human review remain open. See the
 [resolution handoff](../../HANDOFF.md#audited-simulated-bootstrap-resolution--6-november-2026)
 for exact coverage, limitations and next steps.
+
+## Fourth implementation slice: encrypted simulated credential custody
+
+Acceptance criteria for `GregPat22/next-step-v5`, based on main `7b2eeca`:
+
+- Reserve an opaque credential reference with mint intent and its event in the
+  same transaction. Keep all credential custody internal to the simulation;
+  no API, desktop, live adapter or automatic cleanup dispatcher is enabled.
+- Require an explicitly injected dedicated 256-bit key and safe key identifier;
+  never discover host credentials, persist the key or generate a production key.
+  Encrypt received supported-format token bytes with AES-256-GCM and a fresh nonce, authenticating
+  the reference and operation/operator/workspace/provider/repository/installation
+  identities. Commit ciphertext and its event before token acceptance or use,
+  including received tokens whose scope is subsequently rejected.
+- Fence capture by the current lease, deadline, phase and pending reference.
+  Reject overwrites. Recover only through a trusted internal caller matching the
+  operation's operator and correct key; malformed or unauthentic ciphertext
+  fails closed without recording plaintext or cryptographic exception text.
+- On acknowledged revocation, erase the active ciphertext in the same transaction
+  as the credential transition/event. Successful independent audited resolution
+  also erases custody without rewriting historical credential/channel states.
+  Event failure rolls both actions back. Retain the opaque reference as history.
+- Demonstrate process death/restart recovery, wrong actor/key, tampering and
+  cross-operation substitution, capture/erase rollback, stale ownership,
+  concurrent capture, old-schema preservation and secret canaries in SQLite/WAL.
+  Reads/restart never mint, revoke, clone, clear channels or unblock uncertainty.
+
+This slice stores synthetic credentials only. Key custody/rotation/backup and
+remote authentication remain unimplemented. A lost key makes ciphertext
+unrecoverable. Erasure removes the active row payload; it does not prove physical
+removal from WAL, snapshots or backups. A crash before the mint response is
+captured can still leave an unknown token; late mint responses and external
+request fencing are not solved here. Recovery cleanup/inspection and all live
+A1–A10 gates remain required before enabling real credentials or adapters.
+
+Evidence on `GregPat22/next-step-v5`, based on `7b2eeca`: fresh `npm run check`
+passes strict types, formatting, compilation and **176 tests, 0 failures,
+0 skips**, including **20 new custody simulation tests**. Actual child-process
+kill/restart and competing capture processes exercise durability/serialization;
+SQLite/WAL canaries check both token and key bytes. The implementing agent
+reviewed the actual source/test/docs diff; no external cryptographic/security
+review or measured coverage percentage is claimed. Production key custody,
+audited recovery cleanup and every live A1–A10 gate remain open. See the
+[custody handoff](../../HANDOFF.md#encrypted-simulated-credential-custody--6-november-2026).
