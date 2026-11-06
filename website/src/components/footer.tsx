@@ -36,12 +36,12 @@ export function Footer() {
         <a
           href="#top"
           aria-label="Argent — back to top"
-          className="footer-wordmark mt-10 block rounded-xl md:mt-12"
+          className="footer-wordmark mx-auto mt-10 block w-full max-w-[640px] rounded-xl md:mt-12"
         >
           <img
             src="/brand/argent-wordmark-1600.webp"
             srcSet="/brand/argent-wordmark-800.webp 800w, /brand/argent-wordmark-1600.webp 1600w"
-            sizes="(max-width: 1320px) calc(100vw - 48px), 1240px"
+            sizes="(max-width: 688px) calc(100vw - 48px), 640px"
             width={2172}
             height={724}
             alt="Argent"
