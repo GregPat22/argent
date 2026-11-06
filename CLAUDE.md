@@ -11,6 +11,10 @@ Before asking the founder to explain the product again, read:
 4. [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md): accepted requirements,
    implementation status, decisions and business direction.
 5. For website work, [the landing-page brief](docs/briefs/landing-page.md).
+6. For next steps, [the roadmap](ROADMAP.md), [decision register](docs/DECISIONS.md)
+   and [shutdown findings](docs/research/conductor-shutdown-analysis.md). The
+   founder wants the overlapping audiences served through a shared core and
+   staged delivery; the saved context already records authentication advice.
 
 The repository is public. Never commit credentials, token-bearing dependency URLs
 or private configuration. Keep the website separate from the headless engine and

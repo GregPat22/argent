@@ -6,6 +6,12 @@ prototype now; retain T3 as the leading adoption candidate, pending founder
 approval and runtime conformance testing before replacing or substantially
 expanding the core.**
 
+Follow-up on `GregPat22/next-step-v2`, 6 November 2026: the engineering agent
+retained Argent for bounded M1a after the founder delegated technical decisions.
+The runtime spike is deferred until measured complexity warrants it; no upstream
+code was imported. See [the decision register](../DECISIONS.md#foundation-decision-for-bounded-m1a-6-november-2026).
+The next-decision recommendation below records the source review's original gate.
+
 ## Pin and method
 
 Official repository: `pingdotgg/t3code`. Read-only `git ls-remote` resolved

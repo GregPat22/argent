@@ -1,0 +1,960 @@
+import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { test, type TestContext } from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
+import { stopService } from "../scripts/harness.js";
+import type {
+  CheckoutPlan,
+  RepositoryAuthorization,
+  SimulatedGitHubAccess,
+  SimulatedRepositoryAuthority,
+  SimulatedRepositoryBootstrap,
+} from "../src/repository-access.js";
+import { tokenExpiry } from "../src/repository-access.js";
+import { workRepository } from "../src/repository-worker.js";
+import { Store } from "../src/store.js";
+
+const repository = "https://github.com/example/private-fixture";
+const ref = "refs/heads/main";
+const sha = "a".repeat(40);
+const secret = "simulated_canary_bootstrap_secret_12345678";
+
+// No network, Git command, dependency script or provider resource is involved.
+class SimulationAccess
+  implements
+    SimulatedRepositoryAuthority,
+    SimulatedGitHubAccess,
+    SimulatedRepositoryBootstrap
+{
+  readonly simulation = true;
+  readonly calls: string[] = [];
+  grant: unknown = {
+    operatorId: "operator",
+    repository,
+    ref,
+    repositoryId: 101,
+    installationId: 202,
+  };
+  token: Record<string, unknown> = {
+    token: secret,
+    expires_at: new Date(Date.now() + 3500000).toISOString(),
+    repository_selection: "selected",
+    permissions: { contents: "read", metadata: "read" },
+    repositories: [{ id: 101, full_name: "example/private-fixture" }],
+  };
+  resolved: unknown = sha;
+  fail: string | null = null;
+  hang: string | null = null;
+  checkoutPlan: CheckoutPlan | null = null;
+  inspection: Record<string, unknown> = {};
+  channel: string | null = null;
+  revoked = false;
+  mintedScope: unknown = null;
+  onCall: (name: string) => void = () => {};
+
+  private async call(name: string): Promise<void> {
+    this.calls.push(name);
+    this.onCall(name);
+    if (this.fail === name)
+      throw new Error(`Untrusted adapter error ${secret}`);
+    if (this.hang === name) await new Promise(() => {});
+  }
+
+  async authorize(
+    operatorId: string,
+    url: string,
+    branch: string,
+  ): Promise<unknown> {
+    assert.equal(operatorId, "operator");
+    assert.equal(url, repository);
+    assert.equal(branch, ref);
+    await this.call("authorize");
+    return this.grant;
+  }
+  async mint(
+    installationId: number,
+    scope: { repository_ids: [number]; permissions: { contents: "read" } },
+  ): Promise<unknown> {
+    assert.equal(installationId, 202);
+    this.mintedScope = structuredClone(scope);
+    await this.call("mint");
+    return this.token;
+  }
+  async resolve(token: string, url: string, branch: string): Promise<unknown> {
+    assert.equal(token, secret);
+    assert.equal(url, repository);
+    assert.equal(branch, ref);
+    await this.call("resolve");
+    return this.resolved;
+  }
+  async revoke(token: string): Promise<void> {
+    assert.equal(token, secret);
+    await this.call("revoke");
+    this.revoked = true;
+  }
+  async checkout(plan: CheckoutPlan, token: string): Promise<void> {
+    assert.equal(token, secret);
+    this.channel = token;
+    this.checkoutPlan = structuredClone(plan);
+    await this.call("checkout");
+  }
+  async inspect(): Promise<unknown> {
+    await this.call("inspect");
+    return {
+      ...this.checkoutPlan,
+      credentialPersisted: false,
+      ...this.inspection,
+    };
+  }
+  async clearCredential(): Promise<void> {
+    await this.call("clear");
+    this.channel = null;
+  }
+}
+
+function ready(store: Store) {
+  const workspace = store.createWorkspace(repository);
+  const intent = store.lifecycle.request(
+    workspace.id,
+    "create",
+    `create-${workspace.id}`,
+  );
+  const claim = store.lifecycle.claim(1000)!;
+  store.lifecycle.dispatch(claim.id, claim.leaseToken!);
+  store.lifecycle.complete(claim.id, claim.leaseToken!, {
+    state: "ready",
+    providerId: `sim-${workspace.id}`,
+    creationMarker: intent.id,
+  });
+  return workspace;
+}
+
+function fixture(t: TestContext) {
+  const root = mkdtempSync(join(tmpdir(), "argent-repository-"));
+  const path = join(root, "platform.sqlite");
+  const f = {
+    root,
+    path,
+    store: new Store(path),
+    adapter: new SimulationAccess(),
+    reopen() {
+      f.store.close();
+      f.store = new Store(path);
+    },
+    work(leaseMs = 1000, cleanupMs = 100) {
+      return workRepository(
+        f.store.repositories,
+        f.adapter,
+        f.adapter,
+        f.adapter,
+        leaseMs,
+        cleanupMs,
+      );
+    },
+  };
+  const workspace = ready(f.store);
+  const request = (key = "request", runtime = 30000) =>
+    f.store.repositories.request(workspace.id, "operator", ref, key, runtime);
+  t.after(() => {
+    f.store.close();
+    rmSync(root, { recursive: true, force: true });
+  });
+  return Object.assign(f, { workspace, request });
+}
+
+test("simulated repository bootstrap pins identity, narrows scope and cleans credentials before success", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.onCall = (call) => {
+    const persisted = f.store.repositories.operation(op.id);
+    if (call === "mint") {
+      assert.equal(persisted.phase, "minting");
+      assert.equal(persisted.credential, "unknown");
+    }
+    if (call === "checkout") {
+      assert.equal(persisted.phase, "checkout");
+      assert.equal(persisted.headSha, sha);
+      assert.equal(persisted.channel, "unknown");
+    }
+    if (call === "revoke" || call === "clear")
+      assert.equal(persisted.status, "running");
+  };
+  assert.equal(await f.work(), true);
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "succeeded");
+  assert.equal(result.headSha, sha);
+  assert.equal(result.repositoryId, 101);
+  assert.equal(result.installationId, 202);
+  assert.equal(result.credential, "revoked");
+  assert.equal(result.channel, "cleared");
+  assert.equal(result.simulation, true);
+  assert.equal(f.adapter.channel, null);
+  assert.equal(f.adapter.revoked, true);
+  assert.deepEqual(f.adapter.mintedScope, {
+    repository_ids: [101],
+    permissions: { contents: "read" },
+  });
+  assert.deepEqual(f.adapter.calls, [
+    "authorize",
+    "mint",
+    "resolve",
+    "checkout",
+    "inspect",
+    "revoke",
+    "clear",
+  ]);
+  const events = f.store.repositories.events(op.id);
+  assert.equal(events.at(-1)!.type, "repository.succeeded");
+  assert.ok(
+    events.findIndex((event) => event.type === "repository.token_revoked") <
+      events.length - 1,
+  );
+  assert.deepEqual(
+    f.store.repositories.events(op.id, events[0]!.cursor),
+    events.slice(1),
+  );
+  assert.equal(
+    JSON.stringify([result, events, f.adapter.checkoutPlan]).includes(secret),
+    false,
+  );
+  for (const suffix of ["", "-wal"])
+    assert.equal(
+      readFileSync(f.path + suffix).includes(Buffer.from(secret)),
+      false,
+    );
+  f.reopen();
+  assert.equal(f.store.repositories.operation(op.id).status, "succeeded");
+  assert.equal(f.request().id, op.id);
+  assert.equal(await f.work(), false);
+  assert.equal(f.adapter.calls.length, 7);
+  assert.throws(() => f.request("new-key"), /already has/);
+  // Completion unblocks explicitly requested lifecycle mutations.
+  assert.equal(
+    f.store.lifecycle.request(f.workspace.id, "pause", "after-checkout").kind,
+    "pause",
+  );
+});
+
+for (const [name, patch] of [
+  ["another operator", { operatorId: "intruder" }],
+  ["second repository", { repository: "https://github.com/example/other" }],
+  ["unapproved ref", { ref: "refs/heads/other" }],
+  ["forged installation", { installationId: 0 }],
+  ["invalid repository id", { repositoryId: "101" }],
+] as const) {
+  test(`simulated authorization rejects ${name} before minting`, async (t) => {
+    const f = fixture(t);
+    const op = f.request();
+    f.adapter.grant = {
+      ...(f.adapter.grant as RepositoryAuthorization),
+      ...patch,
+    };
+    await f.work();
+    assert.deepEqual(f.adapter.calls, ["authorize"]);
+    assert.equal(f.store.repositories.operation(op.id).status, "failed");
+    assert.equal(f.store.repositories.operation(op.id).credential, "none");
+  });
+}
+
+test("simulated denial before minting fails cleanly and a new request can retry", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.grant = null;
+  await f.work();
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "failed");
+  assert.equal(result.leaseToken, null);
+  assert.equal(
+    f.store.repositories.events(op.id).at(-1)!.type,
+    "repository.failed",
+  );
+  // The same key still names the failed attempt; a retry needs a new key.
+  assert.equal(f.request().id, op.id);
+  assert.equal(await f.work(), false);
+  f.adapter.grant = {
+    operatorId: "operator",
+    repository,
+    ref,
+    repositoryId: 101,
+    installationId: 202,
+  };
+  const retry = f.request("retry");
+  assert.notEqual(retry.id, op.id);
+  assert.equal(await f.work(), true);
+  assert.equal(f.store.repositories.operation(retry.id).status, "succeeded");
+  assert.equal(f.store.repositories.operation(op.id).status, "failed");
+  assert.throws(() => f.request("third"), /already has/);
+});
+
+test("simulated denial before minting leaves lifecycle requests available", async (t) => {
+  const f = fixture(t);
+  f.request();
+  f.adapter.fail = "authorize";
+  await f.work();
+  assert.equal(
+    f.store.lifecycle.request(f.workspace.id, "delete", "after-denial").kind,
+    "delete",
+  );
+});
+
+test("simulated revoked access is rechecked for another workspace and cannot mint", async (t) => {
+  const f = fixture(t);
+  f.request();
+  await f.work();
+  const second = ready(f.store);
+  const op = f.store.repositories.request(second.id, "operator", ref, "second");
+  f.adapter.grant = null;
+  await f.work();
+  assert.equal(
+    f.adapter.calls.filter((call) => call === "authorize").length,
+    2,
+  );
+  assert.equal(f.adapter.calls.filter((call) => call === "mint").length, 1);
+  assert.equal(f.store.repositories.operation(op.id).status, "failed");
+});
+
+for (const [name, patch] of [
+  ["write permission", { permissions: { contents: "write" } }],
+  [
+    "extra read permission",
+    { permissions: { contents: "read", issues: "read" } },
+  ],
+  [
+    "extra repository",
+    {
+      repositories: [
+        { id: 101, full_name: "example/private-fixture" },
+        { id: 102, full_name: "example/other" },
+      ],
+    },
+  ],
+  [
+    "wrong repository id",
+    { repositories: [{ id: 102, full_name: "example/private-fixture" }] },
+  ],
+  ["wrong name", { repositories: [{ id: 101, full_name: "example/other" }] }],
+  ["all repositories", { repository_selection: "all" }],
+  ["expired token", { expires_at: new Date(0).toISOString() }],
+  [
+    "unbounded expiration",
+    { expires_at: new Date(Date.now() + 7200000).toISOString() },
+  ],
+  ["invalid expiration", { expires_at: "never" }],
+] as const) {
+  test(`simulated token validation rejects ${name} and revokes without checkout`, async (t) => {
+    const f = fixture(t);
+    const op = f.request();
+    Object.assign(f.adapter.token, patch);
+    await f.work();
+    assert.deepEqual(f.adapter.calls, ["authorize", "mint", "revoke"]);
+    const result = f.store.repositories.operation(op.id);
+    assert.equal(result.status, "needs_attention");
+    assert.equal(result.credential, "revoked");
+    assert.equal(result.channel, "none");
+  });
+}
+
+for (const [name, patch] of [
+  ["wrong provider", { providerId: "sim-other" }],
+  ["wrong operation", { operationId: "other" }],
+  ["wrong SHA", { headSha: "b".repeat(40) }],
+  ["wrong repository", { repositoryId: 102 }],
+  [
+    "credential in remote",
+    { remoteUrl: `https://${secret}@github.com/example/private-fixture` },
+  ],
+  ["persisted credential", { credentialPersisted: true }],
+  ["submodules", { submodules: true }],
+  ["LFS", { lfs: true }],
+  ["hooks", { hooks: true }],
+] as const) {
+  test(`simulated independent checkout inspection rejects ${name} and cleans up`, async (t) => {
+    const f = fixture(t);
+    const op = f.request();
+    f.adapter.inspection = patch;
+    await f.work();
+    const result = f.store.repositories.operation(op.id);
+    assert.equal(result.status, "needs_attention");
+    assert.equal(result.credential, "revoked");
+    assert.equal(result.channel, "cleared");
+    assert.equal(
+      JSON.stringify([result, f.store.repositories.events(op.id)]).includes(
+        secret,
+      ),
+      false,
+    );
+  });
+}
+
+for (const failure of [
+  "mint",
+  "resolve",
+  "checkout",
+  "inspect",
+  "revoke",
+  "clear",
+]) {
+  test(`simulated ${failure} failure retains cleanup obligations and never replays`, async (t) => {
+    const f = fixture(t);
+    const op = f.request();
+    f.adapter.fail = failure;
+    await f.work();
+    const result = f.store.repositories.operation(op.id);
+    assert.equal(result.status, "needs_attention");
+    if (["resolve", "checkout", "inspect", "clear"].includes(failure))
+      assert.equal(result.credential, "revoked");
+    if (["checkout", "inspect", "revoke"].includes(failure))
+      assert.equal(result.channel, "cleared");
+    if (failure === "mint") assert.equal(result.credential, "unknown");
+    if (failure === "revoke") assert.equal(result.credential, "issued");
+    if (failure === "clear") assert.equal(result.channel, "unknown");
+    const calls = [...f.adapter.calls];
+    const events = f.store.repositories.events(op.id);
+    assert.equal(JSON.stringify([result, events]).includes(secret), false);
+    f.reopen();
+    assert.equal(f.request().id, op.id);
+    assert.equal(await f.work(), false);
+    assert.deepEqual(f.adapter.calls, calls);
+    assert.deepEqual(f.store.repositories.events(op.id), events);
+    assert.throws(
+      () => f.store.lifecycle.request(f.workspace.id, "pause", "blocked"),
+      /repository bootstrap/,
+    );
+    assert.throws(
+      () =>
+        f.store.lifecycle.request(f.workspace.id, "delete", "blocked-delete"),
+      /repository bootstrap/,
+    );
+  });
+}
+
+test("simulated invalid SHA never dispatches checkout", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.resolved = "main";
+  await f.work();
+  assert.deepEqual(f.adapter.calls, ["authorize", "mint", "resolve", "revoke"]);
+  assert.equal(f.store.repositories.operation(op.id).headSha, null);
+});
+
+for (const malformed of [
+  "null",
+  "missing-token",
+  "non-string-token",
+  "missing-permissions",
+]) {
+  test(`simulated malformed mint response (${malformed}) never reaches checkout`, async (t) => {
+    const f = fixture(t);
+    const op = f.request();
+    f.adapter.mint = async () => {
+      f.adapter.calls.push("mint");
+      if (malformed === "null") return null;
+      const value = { ...f.adapter.token };
+      if (malformed === "missing-token") delete value.token;
+      if (malformed === "non-string-token") value.token = 123;
+      if (malformed === "missing-permissions") delete value.permissions;
+      return value;
+    };
+    await f.work();
+    const result = f.store.repositories.operation(op.id);
+    assert.equal(result.status, "needs_attention");
+    assert.equal(result.channel, "none");
+    const knownToken = malformed === "missing-permissions";
+    assert.equal(result.credential, knownToken ? "revoked" : "unknown");
+    assert.deepEqual(
+      f.adapter.calls,
+      knownToken ? ["authorize", "mint", "revoke"] : ["authorize", "mint"],
+    );
+    assert.equal(
+      JSON.stringify([result, f.store.repositories.events(op.id)]).includes(
+        secret,
+      ),
+      false,
+    );
+  });
+}
+
+test("simulated heartbeat failure aborts an outstanding authorization call", async (t) => {
+  const f = fixture(t);
+  const op = f.request("request", 1000);
+  f.adapter.hang = "authorize";
+  let heartbeats = 0;
+  f.store.repositories.heartbeat = () => {
+    heartbeats++;
+    throw new Error(secret);
+  };
+  await f.work(100);
+  assert.equal(heartbeats, 1);
+  assert.deepEqual(f.adapter.calls, ["authorize"]);
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "failed");
+  assert.equal(result.credential, "none");
+  assert.equal(
+    JSON.stringify([result, f.store.repositories.events(op.id)]).includes(
+      secret,
+    ),
+    false,
+  );
+});
+
+test("simulated checkout adapter cannot mutate its verification baseline", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.checkout = async (plan) => {
+    plan.headSha = "b".repeat(40);
+  };
+  await f.work();
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "needs_attention");
+  assert.equal(result.headSha, sha);
+  assert.equal(result.credential, "revoked");
+  assert.equal(result.channel, "cleared");
+  assert.equal(f.adapter.calls.includes("inspect"), false);
+});
+
+for (const hang of ["mint", "checkout", "revoke", "clear"]) {
+  test(`simulated hung ${hang} is bounded, blocked and not retried`, async (t) => {
+    const f = fixture(t);
+    const op = f.request(
+      "request",
+      hang === "mint" || hang === "checkout" ? 100 : 30000,
+    );
+    f.adapter.hang = hang;
+    await f.work(1000, 100);
+    const result = f.store.repositories.operation(op.id);
+    assert.equal(result.status, "needs_attention");
+    if (hang === "mint") assert.equal(result.credential, "unknown");
+    if (hang === "revoke") {
+      assert.equal(result.credential, "issued");
+      assert.equal(result.channel, "cleared");
+    }
+    if (hang === "clear") assert.equal(result.channel, "unknown");
+    const calls = [...f.adapter.calls];
+    assert.equal(await f.work(), false);
+    assert.deepEqual(f.adapter.calls, calls);
+  });
+}
+
+test("simulated bootstrap ownership expiry rejects stale writes and restart retains intent", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  const claimed = f.store.repositories.claim(100)!;
+  f.store.repositories.authorize(op.id, claimed.leaseToken!, 101, 202);
+  await delay(120);
+  f.reopen();
+  assert.throws(
+    () =>
+      f.store.repositories.minted(
+        op.id,
+        claimed.leaseToken!,
+        Date.now() + 3500000,
+      ),
+    /ownership lost/,
+  );
+  assert.equal(f.store.repositories.reconcileExpired(), 1);
+  assert.equal(f.store.repositories.operation(op.id).credential, "unknown");
+  assert.equal(f.store.repositories.operation(op.id).status, "needs_attention");
+  assert.equal(await f.work(), false);
+  assert.deepEqual(f.adapter.calls, []);
+});
+
+test("simulated heartbeat keeps a slow authorization claim alive", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  const original = f.adapter.authorize.bind(f.adapter);
+  f.adapter.authorize = async (...args) => {
+    await delay(250);
+    return original(...args);
+  };
+  await f.work(100);
+  assert.equal(f.store.repositories.operation(op.id).status, "succeeded");
+});
+
+test("simulated repository submissions enforce idempotency, readiness and lifecycle serialization", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  assert.equal(f.request().id, op.id);
+  assert.throws(
+    () => f.store.repositories.request(f.workspace.id, "other", ref, "request"),
+    /different payload/,
+  );
+  assert.throws(
+    () =>
+      f.store.repositories.request(
+        f.workspace.id,
+        "operator",
+        "refs/heads/other",
+        "request",
+      ),
+    /different payload/,
+  );
+  assert.throws(() => f.request("request", 100), /different payload/);
+  assert.throws(
+    () =>
+      f.store.repositories.request(
+        f.workspace.id,
+        "operator",
+        "--upload-pack=bad",
+        "bad",
+      ),
+    /explicit branch/,
+  );
+  assert.throws(
+    () => f.store.lifecycle.request(f.workspace.id, "pause", "pause"),
+    /repository bootstrap/,
+  );
+  const plain = f.store.createWorkspace(repository);
+  assert.throws(
+    () => f.store.repositories.request(plain.id, "operator", ref, "plain"),
+    /ready lifecycle/,
+  );
+  const pausing = ready(f.store);
+  f.store.lifecycle.request(pausing.id, "pause", "pausing");
+  assert.throws(
+    () =>
+      f.store.repositories.request(
+        pausing.id,
+        "operator",
+        ref,
+        "pausing-bootstrap",
+      ),
+    /ready lifecycle/,
+  );
+});
+
+test("simulated atomic repository claim has one winner across independent connections", (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  const second = new Store(f.path);
+  try {
+    assert.equal(f.store.repositories.claim(1000)!.id, op.id);
+    assert.equal(second.repositories.claim(1000), null);
+    assert.equal(second.repositories.operation(op.id).status, "running");
+  } finally {
+    second.close();
+  }
+});
+
+test("simulated repository transition and event roll back together", (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  const claimed = f.store.repositories.claim(1000)!;
+  const db = new DatabaseSync(f.path);
+  try {
+    db.exec(
+      "CREATE TRIGGER reject_repository_event BEFORE INSERT ON repository_events BEGIN SELECT RAISE(ABORT, 'fixture rollback'); END",
+    );
+    assert.throws(
+      () =>
+        f.store.repositories.authorize(op.id, claimed.leaseToken!, 101, 202),
+      /fixture rollback/,
+    );
+    assert.equal(f.store.repositories.operation(op.id).phase, "authorizing");
+    assert.equal(f.store.repositories.operation(op.id).credential, "none");
+    assert.equal(f.store.repositories.operation(op.id).repositoryId, null);
+  } finally {
+    db.close();
+  }
+});
+
+test("simulated store rejects phase skipping and success before cleanup", (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  const claim = f.store.repositories.claim(1000)!;
+  const fence = claim.leaseToken!;
+  assert.throws(
+    () => f.store.repositories.complete(op.id, fence),
+    /Invalid repository transition/,
+  );
+  f.store.repositories.authorize(op.id, fence, 101, 202);
+  f.store.repositories.minted(op.id, fence, Date.now() + 3500000);
+  f.store.repositories.checkout(op.id, fence, sha);
+  f.store.repositories.verified(op.id, fence);
+  assert.throws(
+    () => f.store.repositories.complete(op.id, fence),
+    /cleanup is incomplete/,
+  );
+});
+
+test("repository worker refuses non-simulation adapters before claiming", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  const unsafe = Object.assign(Object.create(f.adapter), {
+    simulation: false,
+  }) as SimulatedGitHubAccess;
+  await assert.rejects(
+    workRepository(f.store.repositories, f.adapter, unsafe, f.adapter),
+    /Only simulated/,
+  );
+  assert.equal(f.store.repositories.operation(op.id).status, "queued");
+});
+
+async function child(
+  t: TestContext,
+  path: string,
+  mode: string,
+  workspaceId: string,
+) {
+  const process = spawn(
+    globalThis.process.execPath,
+    [
+      fileURLToPath(new URL("./repository-fixture.js", import.meta.url)),
+      path,
+      mode,
+      workspaceId,
+    ],
+    { env: {}, stdio: ["ignore", "pipe", "pipe", "ipc"] },
+  );
+  t.after(() => stopService(process));
+  const exit = new Promise<void>((resolve, reject) => {
+    process.once("error", reject);
+    process.once("exit", (code, signal) =>
+      code === 0 || signal === "SIGKILL"
+        ? resolve()
+        : reject(new Error("Simulation child failed")),
+    );
+  });
+  const ready = await Promise.race([
+    once(process, "message"),
+    exit.then(() => {
+      throw new Error("Simulation child exited before ready");
+    }),
+  ]);
+  assert.equal(ready[0], "ready");
+  return {
+    process,
+    exit,
+    async go(): Promise<{ id?: string | null; conflict?: true }> {
+      const response = Promise.race([
+        once(process, "message"),
+        exit.then(() => {
+          throw new Error("Simulation child exited before response");
+        }),
+      ]);
+      process.send("go");
+      return (await response)[0];
+    },
+  };
+}
+
+test("simulated repository claims race in separate processes with one winner", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  const children = await Promise.all([
+    child(t, f.path, "claim", f.workspace.id),
+    child(t, f.path, "claim", f.workspace.id),
+  ]);
+  const results = await Promise.all(children.map((entry) => entry.go()));
+  assert.deepEqual(
+    results.map((result) => result.id).sort(),
+    [null, op.id].sort(),
+  );
+  await Promise.all(children.map((entry) => entry.exit));
+  assert.equal(
+    f.store.repositories
+      .events(op.id)
+      .filter((event) => event.type === "repository.claimed").length,
+    1,
+  );
+});
+
+test("simulated bootstrap enrollment and pause race in separate processes", async (t) => {
+  const f = fixture(t);
+  const children = await Promise.all([
+    child(t, f.path, "request", f.workspace.id),
+    child(t, f.path, "pause", f.workspace.id),
+  ]);
+  const results = await Promise.all(children.map((entry) => entry.go()));
+  assert.equal(results.filter((result) => result.id).length, 1);
+  assert.equal(results.filter((result) => result.conflict).length, 1);
+  await Promise.all(children.map((entry) => entry.exit));
+});
+
+test("simulated process death after mint intent preserves unknown credential without redispatch", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  const worker = await child(t, f.path, "crash", f.workspace.id);
+  assert.equal((await worker.go()).id, op.id);
+  worker.process.kill("SIGKILL");
+  await worker.exit;
+  await delay(120);
+  f.reopen();
+  assert.equal(await f.work(), false);
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "needs_attention");
+  assert.equal(result.credential, "unknown");
+  assert.deepEqual(f.adapter.calls, []);
+});
+
+test("simulated late checkout acknowledgment never promotes timed-out bootstrap", async (t) => {
+  const f = fixture(t);
+  const op = f.request("request", 100);
+  let release!: () => void;
+  f.adapter.checkout = async () =>
+    new Promise<void>((resolve) => {
+      release = resolve;
+    });
+  await f.work();
+  release();
+  await delay(0);
+  assert.equal(f.store.repositories.operation(op.id).status, "needs_attention");
+  assert.equal(f.adapter.calls.includes("inspect"), false);
+  assert.equal(await f.work(), false);
+});
+
+test("simulated repository ownership is rechecked after database lock contention", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  const claim = f.store.repositories.claim(500)!;
+  const lock = spawn(
+    process.execPath,
+    [fileURLToPath(new URL("./lock-fixture.js", import.meta.url))],
+    { env: { PLATFORM_DATA_DIR: f.root }, stdio: ["ignore", "pipe", "pipe"] },
+  );
+  t.after(() => stopService(lock));
+  await Promise.race([
+    once(lock.stdout!, "data"),
+    once(lock, "exit").then(() => {
+      throw new Error("Lock fixture exited before locking");
+    }),
+  ]);
+  assert.ok(Date.now() < claim.leaseExpiresAt!);
+  assert.throws(
+    () => f.store.repositories.authorize(op.id, claim.leaseToken!, 101, 202),
+    /ownership lost/,
+  );
+  assert.equal(f.store.repositories.operation(op.id).credential, "none");
+  assert.equal(f.store.repositories.reconcileExpired(), 1);
+});
+
+test("simulated token scope accepts GitHub's canonical name for mixed-case and .git URLs", () => {
+  const now = Date.now();
+  const token = {
+    token: secret,
+    expires_at: new Date(now + 3500000).toISOString(),
+    repository_selection: "selected",
+    permissions: { contents: "read" },
+    repositories: [{ id: 101, full_name: "example/private-fixture" }],
+  };
+  const grant = {
+    operatorId: "operator",
+    repository: "https://github.com/Example/Private-Fixture.git",
+    ref,
+    repositoryId: 101,
+    installationId: 202,
+  };
+  assert.equal(tokenExpiry(token, grant, now), Date.parse(token.expires_at));
+  assert.throws(
+    () =>
+      tokenExpiry(
+        {
+          ...token,
+          repositories: [{ id: 101, full_name: "example/private-fixture2" }],
+        },
+        grant,
+        now,
+      ),
+    /scope or expiration/,
+  );
+});
+
+test("simulated requests accept dotted branch names and reject invalid Git refs", (t) => {
+  const f = fixture(t);
+  for (const branch of [
+    "refs/heads/release-1.2",
+    "refs/heads/v2.0",
+    "refs/heads/feature/x.y_z",
+  ]) {
+    const workspace = ready(f.store);
+    assert.equal(
+      f.store.repositories.request(workspace.id, "operator", branch, branch)
+        .ref,
+      branch,
+    );
+  }
+  for (const branch of [
+    "refs/heads/.hidden",
+    "refs/heads/a/.b",
+    "refs/heads/a..b",
+    "refs/heads/a.",
+    "refs/heads/a.lock",
+    "refs/heads/a.lock/b",
+    "refs/tags/v1.0",
+  ])
+    assert.throws(
+      () =>
+        f.store.repositories.request(
+          f.workspace.id,
+          "operator",
+          branch,
+          branch,
+        ),
+      /explicit branch ref/,
+    );
+});
+
+test("simulated token that expires before the deadline is revoked before resolve", async (t) => {
+  const f = fixture(t);
+  const op = f.request("request", 300000);
+  f.adapter.token.expires_at = new Date(Date.now() + 90000).toISOString();
+  await f.work();
+  assert.deepEqual(f.adapter.calls, ["authorize", "mint", "revoke"]);
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "needs_attention");
+  assert.equal(result.credential, "revoked");
+  assert.equal(result.channel, "none");
+});
+
+test("simulated expiry before mint intent fails cleanly and allows a retry", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.store.repositories.claim(100);
+  await delay(120);
+  f.reopen();
+  assert.equal(f.store.repositories.reconcileExpired(), 1);
+  assert.equal(f.store.repositories.operation(op.id).status, "failed");
+  assert.equal(f.store.repositories.operation(op.id).credential, "none");
+  assert.notEqual(f.request("retry").id, op.id);
+});
+
+test("simulated repository schema rebuilds an empty first-version table", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "argent-repository-schema-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const path = join(root, "platform.sqlite");
+  const legacy = (rows: boolean) => {
+    const db = new DatabaseSync(path);
+    db.exec(`
+      DROP TABLE IF EXISTS repository_events;
+      DROP TABLE IF EXISTS repository_operations;
+      CREATE TABLE repository_operations (
+        id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','needs_attention'))
+      ) STRICT;
+    `);
+    if (rows)
+      db.exec(
+        "INSERT INTO repository_operations VALUES ('op','ws','needs_attention')",
+      );
+    db.close();
+  };
+  legacy(false);
+  const store = new Store(path);
+  store.close();
+  const db = new DatabaseSync(path);
+  const sql = db
+    .prepare(
+      "SELECT sql FROM sqlite_master WHERE name = 'repository_operations'",
+    )
+    .get()!.sql as string;
+  db.close();
+  assert.match(sql, /'failed'/);
+  assert.doesNotMatch(sql, /workspace_id TEXT NOT NULL UNIQUE/);
+  legacy(true);
+  assert.throws(() => new Store(path), /manual migration/);
+});

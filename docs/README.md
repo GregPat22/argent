@@ -21,14 +21,28 @@ evidence, Conductor setup and next actions. This branch contains P1 source.
 
 ## Acceptance contracts and evidence
 
-| Document                                                                | Status in this publication                                   |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------ |
-| [M0 durable local run](specs/0001-durable-local-run.md)                 | Implemented simulation contract.                             |
-| [M0 completion report](milestones/0000-completion.md)                   | Actual test and review evidence, with limits.                |
-| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)   | Proposed real-provider release contract; unimplemented here. |
-| [Project identity and repository setup](specs/0003-project-identity.md) | Name, MIT rationale, metadata and namespace availability.    |
-| [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)    | Implemented local macOS prototype, integrated into main.     |
-| [W0 website landing page draft](specs/0005-website-landing-draft.md)    | Separate Next.js draft in `website/`; not deployed.          |
+| Document                                                                                 | Status in this publication                                                                                       |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [M0 durable local run](specs/0001-durable-local-run.md)                                  | Implemented simulation contract.                                                                                 |
+| [M0 completion report](milestones/0000-completion.md)                                    | Actual test and review evidence, with limits.                                                                    |
+| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)                    | Planned real-provider release contract; unimplemented here.                                                      |
+| [Project identity and repository setup](specs/0003-project-identity.md)                  | Name, MIT rationale, metadata and namespace availability.                                                        |
+| [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)                     | Implemented local macOS prototype; see P1 completion evidence.                                                   |
+| [W0 website landing page draft](specs/0005-website-landing-draft.md)                     | Next.js draft integrated through PR #3; not deployed.                                                            |
+| [M1a repository access and workspace lifecycle](specs/0007-cloud-workspace-lifecycle.md) | Internal lifecycle and repository-bootstrap simulations implemented; live GitHub/provider evidence remains open. |
+
+## Conductor shutdown research and roadmap follow-up
+
+- [Evidence and strategy review](research/conductor-shutdown-analysis.md): checks
+  the founder's Grok report against primary sources and Argent's actual plan;
+  distinguishes X anecdotes, vendor claims, verified facts and remaining unknowns.
+- [Original Grok report](research/sources/grok-conductor-report-2026-11-06.txt):
+  preserved unchanged for provenance; an attributed secondary report, not a set
+  of independently verified assertions.
+- [Continuity and market-validation contract](specs/0006-continuity-and-market-validation.md):
+  founder-authorized roadmap additions for authentication/customer validation,
+  visible control and export/restore. Planned and unimplemented; provider
+  eligibility and exact launch packaging remain open.
 
 ## Build and contribute
 
@@ -51,13 +65,13 @@ Keep secrets, private transcripts, customer data, local databases and generated
 artifacts out of source control. The founding brief is included as intentionally
 published product context; unrelated chat history is not part of this repository.
 
-## P1 branch evidence
+## P1 integration evidence
 
 - [P1 PR review](research/p1-pr-review.md): fresh checks and native development
   smoke at `6104961`, plus the older-workspace fix, eight renderer regressions
   and fresh packaged-app verification before the explicit merge decision.
 - [P1 completion report](milestones/0001-completion.md): completed local desktop
-  prototype and recorded native/package evidence; source was integrated through PR #1.
+  prototype and recorded native/package evidence; PR #1 integrated in `fd60a5a`.
 - [Pinned T3 source evaluation](research/t3-adoption-spike.md): source-only
   evaluation at an exact revision; runtime conformance remains open.
 - [Development handoff](../HANDOFF.md): exact branches, sources, tests, limits,

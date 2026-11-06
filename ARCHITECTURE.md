@@ -103,6 +103,57 @@ path. An unsigned local build must not be represented as a public-ready installe
 The website must describe available builds truthfully and never offer fabricated
 download links. No publication or paid signing account is implied by development.
 
+## Internal lifecycle simulation
+
+`Store.lifecycle` shares M0's SQLite connection through a separate
+`LifecycleStore` module. Dedicated lifecycle workspace/operation/event tables
+keep cloud lifecycle states distinct from metadata-only local stop/start.
+Enrollment and M0 submission/claims serialize through the same database;
+enrolled workspaces cannot execute via the local adapter, even when ready.
+
+The internal simulation-only worker claims operations, records dispatch intent,
+requires quiescence before pause and bounds calls with an absolute deadline and
+fenced heartbeat. Expiry and ambiguous outcomes block dispatch. Read-only
+provider inspection may settle the original operation if identity and target
+state match; an absent create marker remains inconclusive. Delete requires
+confirmed absence and retains its provider ID in an audit tombstone.
+
+This harness is not wired into the public API, desktop bridge or service worker
+loop. It has no live GitHub credentials, real checkout, persistence manifest,
+real provider, resource policy or full cleanup inventory. Its simulation-only
+adapter contract must not be expanded for real execution before those boundaries
+are implemented and verified. See [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md).
+
+## Internal repository access simulation
+
+`Store.repositories` adds a separate repository operation/event queue on the same
+SQLite connection. Bootstrap binds a ready lifecycle workspace and provider ID;
+its enrollment and lifecycle requests serialize under the same write lock.
+Pending or uncertain bootstrap blocks pause/delete. One bootstrap per workspace
+is allowed; even a successful checkout is not repeated under a new request key.
+
+The simulation-only worker asks a trusted server-side authority to validate the
+operator/repository/ref and return numeric repository/installation IDs. Client
+input cannot select the installation or permissions. Each new operation checks
+authority before requesting a single-repository Contents-read token. Returned
+scope/expiry is validated before resolving a full commit SHA. Checkout receives
+a credential-free fixed plan and a separate ephemeral credential argument; a
+separate inspection call must match the plan with hooks/submodules/LFS disabled.
+
+Intent precedes mint/checkout dispatch; leases fence state writes. The worker
+attempts bounded token revocation and channel clearing on success or failure.
+Success requires checkout verification and both cleanup acknowledgments.
+Exceptions are never persisted. Unknown outcomes, expired ownership and cleanup
+failure retain `needs_attention` plus token/channel obligations; reconnect only
+reads. This is a separate bootstrap status, not a new lifecycle-ready guarantee.
+
+The fixtures prove contract handling only. There is no HTTP GitHub adapter, real
+authorization/sign-in service, secret vault, isolated Git runner or dependency
+execution. A crash after mint intent may leave an unknown token; no durable secret
+or revocation mechanism is implemented. An audited resolution/cleanup path and
+live isolation/credential-leak tests are mandatory before enabling real adapters.
+The installed client, public API and normal service worker remain on M0/P1.
+
 ## Managed target
 
 Use PostgreSQL before multiple hosts or tenants. Preserve atomic state/event
@@ -110,9 +161,9 @@ writes, idempotency receipts, fenced claims and conservative reconciliation.
 Use database-backed work dispatch initially; introduce an outbox when dispatch
 crosses another service boundary, not a second uncoordinated queue.
 
-Evaluate T3 Code against our conformance tests before expanding this small core.
-Its existing command/outbox and recovery machinery may be worth adopting. Do
-not build a large custom workflow system before that spike. Temporal or DBOS is
+Retain the current core for bounded M1a. T3 runtime evaluation is deferred until
+measured complexity justifies it; source review alone does not prove superiority.
+Keep lifecycle machinery narrow and do not build a general workflow system. Temporal or DBOS is
 an option once actual branching/retry complexity justifies the operational cost.
 
 First cloud candidate: E2B; alternatives are Vercel Sandbox or a maintained
@@ -176,3 +227,21 @@ do not silently orphan resources.
 
 See [due diligence](docs/research/technical-due-diligence.md) for dated evidence
 and [MVP acceptance criteria](docs/specs/0002-cloud-mvp.md) for release gates.
+
+## Planned continuity and control requirements
+
+The founder-authorized [roadmap update](ROADMAP.md) adds portable history/evidence
+restore and visible real-execution controls to managed release. The
+[continuity contract](docs/specs/0006-continuity-and-market-validation.md) defines
+manifest integrity/completeness, credential exclusion and restore to an independent
+installation with our hosted endpoints unavailable. Imported active/uncertain
+work must reconcile or remain `needs_attention`; restore cannot dispatch an old
+external effect or promote imported agent statements into trusted evidence.
+
+Expose execution location, durable progress, connection freshness, blocked input
+and verification separately. Specify approval/input transitions and timeouts with
+the real agent adapter. Supported subscription sign-in is a product preference,
+subject to provider/deployment validation; API keys remain the technical-pilot
+path. Neither preference permits extracting host credentials or silently switching
+to paid API usage. These requirements are unimplemented; process boundaries and
+the target diagram above remain unchanged.

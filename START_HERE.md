@@ -11,9 +11,11 @@ execution remains part of the product, even though its primary client is desktop
 
 ## Read the context for your task
 
-**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). The completed P1
-prototype and initial landing are integrated into main (`b5e763f`, PRs #1–#3).
-The current landing refinement is on `GregPat22/motion-landing-page-improve`.
+**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). Current branch
+`GregPat22/motion-landing-page-improve` integrates main at `1cc0598` (PR #7)
+and refines the initial landing from PR #3. Execution remains simulated and the
+website is unpublished. Read the [roadmap](ROADMAP.md) and
+[decision register](docs/DECISIONS.md) before choosing the next implementation task.
 
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,6 +30,8 @@ simulated execution. See the [completion report](docs/milestones/0001-completion
 execution and a tested-PR flow are future acceptance contracts, not live features
 in this revision. The source repository is public and MIT-licensed. No published
 production download, approved pricing or customer proof is established here.
+
+Next engineering contract: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). Retain the current core for bounded implementation. The internal lifecycle and repository-bootstrap harnesses are simulated; live GitHub access, isolated checkout and approved provider validation remain next.
 
 ## If this folder appears empty
 
@@ -56,6 +60,16 @@ diverged branch or unrelated empty initial commit needs an explicit branch repai
 not repeated claims that Argent has no description. Ask for help if unsure.
 
 ## What is still a founder decision
+
+The shutdown review is saved in tracked documents. Serve the three overlapping
+audiences through a shared core and staged delivery. Supported subscription
+sign-in is the preferred product direction; API keys remain the technical-pilot
+baseline and alternative. Managed eligibility is unverified. Add portable
+export/restore and visible control before managed release; agent breadth and team
+handoff precede dependency orchestration. These are planned, unimplemented work.
+Read the [research](docs/research/conductor-shutdown-analysis.md) and
+[continuity contract](docs/specs/0006-continuity-and-market-validation.md).
+Do not ask the founder to choose only one of these audiences again.
 
 The product purpose, desktop requirement, open-source intent and desire for a
 high-impact animated landing-page draft are recorded. Final branding, page

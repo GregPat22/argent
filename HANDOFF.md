@@ -5,7 +5,133 @@ the latest known state across the project chats and checkouts. Read it alongside
 [START_HERE.md](START_HERE.md), [AGENTS.md](AGENTS.md) and the relevant specification.
 Private chat access is not required to continue development.
 
+**Current checkout:** `GregPat22/motion-landing-page-improve`, integrating
+`origin/main` at `1cc0598` (PR #7). The landing refinement continues the initial
+landing from PR #3; main also contains the continuity research, lifecycle
+simulation and simulated repository bootstrap/hardening. Execution remains
+simulated and the website is unpublished.
+
 ## Where the work is saved
+
+| Location                                            | Current state                                                                                    | How to use it                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `origin/main` at `1cc0598`                          | M0/P1, initial landing, continuity plans, simulated lifecycle and repository bootstrap/hardening | Base integrated into this branch; no live cloud execution or public release. |
+| `GregPat22/motion-landing-page-improve`             | W0.3–W0.6 landing refinement                                                                     | Current PR branch; latest preparation evidence is below.                     |
+| `GregPat22/code-review`                             | Bootstrap hardening integrated through PR #7                                                     | Historical simulation review evidence.                                       |
+| `GregPat22/next-step-v3` / `GregPat22/next-step-v2` | Repository and lifecycle slices integrated through PRs #6/#5                                     | Historical simulated engine work.                                            |
+| `codex/desktop-handoff` / `codex/p1-original`       | Earlier P1 review/provenance branches                                                            | Historical evidence; PR #1 is integrated.                                    |
+| `GregPat22/argent-landing-page-draft`               | Initial landing integrated through PR #3                                                         | Historical source; preserve any later worktree changes.                      |
+| `GregPat22/grok-conductor-shutdown-analysis`        | Research and roadmap integrated through PR #4                                                    | Current continuity/customer/authentication criteria remain preserved.        |
+
+Historical sections retain revision-specific evidence and branch states. The
+Next.js landing remains separate from desktop packaging and the static download
+preview. PR preparation does not authorize merging, deployment or binary release.
+
+### Repository bootstrap hardening — 6 November 2026
+
+On `GregPat22/code-review`, based on freshly fetched `origin/main` at `757f8eb`
+(PR #6). A code review of PR #6 found eight issues. The founder chose to fix the
+inexpensive correctness issues before the real GitHub adapter, and directed that
+user-facing GitHub behavior follow Conductor: a refusal is shown and can be
+retried rather than locking the workspace.
+
+- Token scope compares GitHub's canonical `owner/name` case-insensitively and
+  ignores a `.git` suffix in the workspace URL.
+- Branch refs accept dots where Git allows them (`release-1.2`), still rejecting
+  leading dots, `..`, a trailing dot and `.lock` components.
+- A minted token must outlive the operation deadline; otherwise it is revoked
+  before ref resolution. The later database re-read was removed.
+- Any failure before mint intent, including authorization denial, timeout and
+  lease expiry, ends as `failed` with a `repository.failed` event. No token or
+  channel can exist, so lifecycle requests stay available and a new
+  Idempotency-Key may retry. Everything from mint intent onward still becomes
+  `needs_attention`. The repository table drops the per-workspace UNIQUE in
+  favor of a partial index over non-failed rows; an empty first-version table is
+  rebuilt automatically and a non-empty one stops with a manual-migration error.
+
+Evidence: `npm run check` passes **129 tests, 0 failures, 0 skips**, strict
+types, formatting and compilation (log `.context/check.log`); six tests are new
+and four existing denial expectations changed from `needs_attention` to `failed`.
+Still open from the review, deliberately: lost-ownership cleanup is not recorded
+and there is no operator-resolution workflow (both belong to the planned audited
+resolution work); token-format capture, the lifecycle store's dependency on the
+repository table and duplicated `bounded`/`transaction` helpers. All adapters
+remain simulated.
+
+### Repository access/bootstrap slice — 6 November 2026
+
+On the unchanged branch `GregPat22/next-step-v3`, based on freshly fetched
+`origin/main` at `1424b92` (lifecycle PR #5). Added internal
+`Store.repositories`, simulation-only authorization/GitHub/bootstrap contracts
+and a bounded worker. Bootstrap enrollment serializes with lifecycle requests;
+active/uncertain bootstrap blocks pause/delete. One bootstrap per workspace is
+allowed, including after success. No API, desktop, website or dependency behavior
+was changed.
+
+The authority binds the authenticated operator, selected repository and allowed
+ref before minting; callers cannot submit installation IDs or permission maps.
+The broker requests one numeric repository ID and Contents read, validates
+returned identity/scope/expiry, resolves a full SHA and checks a separate synthetic
+checkout observation. Tokens are passed separately from the fixed checkout plan.
+Known tokens are revoked and channels cleared on success/failure; both
+acknowledgments are mandatory for success. Mint/checkout intent is transactional
+with its event. Fenced leases, deadlines and uncertainty prevent automatic replay.
+Only fixed event names and validated metadata are stored, never adapter exceptions
+or raw tokens.
+
+Fresh `npm run check` passed strict types, formatting, compilation and **118 tests,
+0 failures, 0 skips**. The **50 new simulation tests** include scope/identity
+rejections, secret canaries in SQLite/WAL and checkout plans, cleanup refusal/hangs,
+heartbeat/ownership expiry, independent-process claim and pause/enrollment races,
+worker death after mint intent, late checkout acknowledgment, lock contention,
+transaction rollback and durable cursor/idempotent reconnect. Logs are local
+`.context/check.log` and `.context/repository-tests.log`; tracked source/specs
+remain the reproducible evidence. The actual source/test/documentation diff was
+reviewed; this is not an external independent review or live security validation.
+Diff review also found that an adapter could mutate the shared checkout plan
+used as its verification baseline. The plan is now frozen, with a regression
+confirming mutation blocks bootstrap and still cleans credentials.
+
+Limits: all adapters and checkout observations are simulated. There is no real
+GitHub App, authenticated operator service, live HTTP/token issuance, Git clone,
+isolated runner, secret vault, dependency execution or provider resource. No
+native/package smoke, website build/browser test or live-provider test was run.
+After worker death, token/channel obligations remain blocked; process-memory
+credentials cannot be recovered for automatic revocation. A denied authorization
+also remains blocked conservatively. An audited resolution/cleanup workflow is
+still missing. M1a is not complete, and these tests prove no live isolation,
+credential erasure or tested pull request.
+
+Next: implement the real server-side authorization/GitHub adapter and isolated
+checkout/ephemeral-channel adapter with durable secret references and audited
+uncertain-outcome cleanup. Establish concrete account/resource/budget approval
+before live provider tests, then prove private-fixture checkout, persistence,
+isolation and deletion against spec 0007. Continue provider/deployment auth and
+customer validation in parallel when authorized. No branch rename, commit, push,
+PR, merge, deployment, purchase or provisioning was performed in this task.
+
+### Repository bootstrap PR preparation — 6 November 2026
+
+On `GregPat22/next-step-v3`, fetched `origin/main` at `1424b92`; the feature
+branch was already current. The founder requested a PR for this complete
+workspace diff. Added five focused regression cases for malformed token responses
+and heartbeat failure during outstanding authorization, bringing this slice to
+**55 simulation tests** and the full `npm run check` to **123 passing tests,
+0 failures, 0 skips**, with strict types, formatting and compilation.
+The fresh verification log is `.context/pr-check.log`.
+
+Independent read-only code/security and coverage reviews found no blocking issue
+or incomplete acceptance claim within the explicitly simulated second slice.
+No measured line/branch coverage percentage is claimed. The actual diff against
+main, relative documentation links, whitespace and credential scan were checked
+before publication. Existing prelaunch package version `0.0.1` is retained;
+this repository has no VERSION/CHANGELOG release scheme to update for this slice.
+
+All live-provider, isolation, credential-erasure and crash-time revocation limits
+above remain. No native/package, website or live-provider checks were run.
+Next is authorized live access/isolated bootstrap and audited credential cleanup,
+not M1a completion. Authorization here covers commit, branch push and PR creation
+against `main`; merging, deployment, binary release and spending remain separate.
 
 | Location                                             | State at this handoff                                                         | How to use it                                                                                             |
 | ---------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
@@ -65,14 +191,14 @@ Expired/uncertain work blocks the workspace as `needs_attention` and is not
 automatically repeated. The [M0 contract](docs/specs/0001-durable-local-run.md) and
 [completion report](docs/milestones/0000-completion.md) record the behavior.
 
-The main/context publication passed **22 tests**, strict type checks and
+The earlier M0/context publication passed **22 tests**, strict type checks and
 formatting, with GitHub CI also passing. Earlier review repaired lease validation
 using a pre-lock timestamp and demo cleanup. Those are historical results for the
 recorded revision, not certification of all future changes.
 
 ### P1: local desktop prototype
 
-The local desktop prototype is complete on the review branch. It adds:
+The local desktop prototype is integrated on main at `fd60a5a`. It adds:
 
 - Electron 45.2.3, sandboxed renderer, context isolation, a narrow validated IPC
   bridge and service credentials kept outside the renderer.
@@ -147,9 +273,9 @@ is retained on a local backup ref. Existing worktrees do not automatically updat
 when GitHub receives new commits: fetch and inspect the base before starting work,
 and preserve local modifications when bringing an existing branch up to date.
 
-New general worktrees should start from current `origin/main`. Desktop work that
-depends on P1 should use `origin/codex/desktop-handoff` until PR #1 is integrated.
-Do not base new work on the provenance branch or the old empty commit.
+New general and desktop worktrees should start from current `origin/main`,
+which includes P1. Do not base new work on the historical review/provenance
+branches or the old empty commit.
 
 There are two website sources to coordinate: P1's static local download source
 (`website/index.html`, `website/styles.css`, `site:preview`) and the active
@@ -166,8 +292,8 @@ numbers, logos, testimonials or public download links may be fabricated.
 
 The active Conductor spec `0005-website-landing-draft.md` was written against M0
 and still calls the macOS app in development. That predates the P1 completion:
-update its status/copy to reflect the completed local prototype on the review
-branch, while keeping public distribution and real integrations unfinished.
+update its status/copy to reflect the completed local prototype now integrated
+on main, while keeping public distribution and real integrations unfinished.
 
 ## Motion tooling and machine-local state
 
@@ -204,20 +330,26 @@ needed. Desktop application data lives in its local app-support profile;
 
 Next actions, in order:
 
-1. Review the updated [draft PR #1](https://github.com/GregPat22/argent/pull/1),
-   including refresh fix `f929ae3` and edge-case tests `b888840`, then obtain
-   the explicit founder merge decision. Main remains M0 until that decision.
-2. Continue the landing draft with the founder's unresolved design/CTA answers;
-   reconcile the shared website directory and record completed work in Git.
-3. Decide whether to run an isolated, pinned T3 runtime conformance spike before
-   expanding the core. No fork or replacement without founder approval.
-4. Specify GitHub App scopes and cloud workspace lifecycle/cleanup contracts,
-   then pursue M1a persistent isolated workspaces and official agent integration.
-5. Complete trusted exact-commit checks, independent review, draft-PR broker,
-   PostgreSQL, remote user authorization, credential broker, budgets/quotas,
-   audited resolution/cleanup and backup/restore evidence before a managed release.
-6. Address Developer ID signing/notarization, update verification, other platforms
-   and actual versioned public downloads before distributing a public installer.
+1. Continue bounded M1a on the retained Argent core. The engineering agent owns
+   routine technical choices; T3 runtime evaluation is deferred until measured need.
+   Foundation replacement is not approved.
+2. Lifecycle and repository brokerage/bootstrap simulation are implemented
+   internally. Next implement live GitHub access and an isolated checkout adapter from
+   [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md), alongside the
+   provider/deployment authentication validation in the roadmap. Supported
+   subscription onboarding remains preferred where permitted; API keys remain
+   the controlled pilot/alternative. Never silently switch to billable usage.
+3. Prove real M1a persistence, isolation and cleanup, then M1b/M1c observable
+   control, one official agent, exact-commit verification, review and an authorized
+   draft PR. Live tests require concrete provider/account/region/resource/budget approval.
+4. Complete M1d portable export/restore, PostgreSQL, remote authorization,
+   credential brokerage, enforced limits and backup/restore before managed release.
+5. Stage additional agent support, scoped team handoff and lightweight mobile
+   access before dependency orchestration, with separate acceptance contracts.
+   Customer outreach and paid competitor trials require their own authorization.
+6. The landing is integrated via PR #3. Keep Next.js separate from the static
+   desktop preview; signing/notarization, verified updates and real public
+   downloads remain release requirements.
 
 No billable resources, domain purchase, cloud deployment, upstream adoption,
 production service or binary release has been authorized by this handoff.
@@ -303,6 +435,144 @@ draft status and replace its stale validation summary. No main merge, deployment
 release or billable provisioning is authorized. The founder's explicit decision
 on PR #1 is next. Coordinate the separate landing branch before integrating its
 website; this update does not touch that workspace or its files.
+
+## Initial Grok shutdown analysis, 6 November 2026
+
+Historical proposal stage: the roadmap/context integration section below records
+the founder's subsequent authorization and supersedes proposal-status statements
+in this initial review record.
+
+On `GregPat22/grok-conductor-shutdown-analysis`, based on `fd60a5a`, reviewed the
+founder's attachment, project context, architecture, current simulator adapters
+and M1/P1 contracts. The [research review](docs/research/conductor-shutdown-analysis.md)
+records verified official shutdown dates, existing cloud competition, direct-X
+403 limits, subscription-authentication qualifications and conditional product
+recommendations. No representative X sentiment count, customer demand, competitor
+runtime quality or Argent provider eligibility was established.
+
+The [proposal](docs/specs/0006-continuity-and-market-validation.md) adds reviewable
+customer/authentication validation and export/restore criteria without changing
+accepted M1 scope. Founder follow-up asks why all three audiences cannot be served,
+requests an auth recommendation and confirms verifying the underlying X research.
+The review recommends a common core with staged delivery, supported subscription
+sign-in as preferred eventual onboarding, and API keys as an alternative/technical
+pilot path. This does not establish managed provider eligibility or alter the
+current API-key M1 contract. Next: define launch scope, prove the provider-specific
+auth path and resolve the foundation runtime gate, then pursue isolated M1a with
+existing authorization/security constraints. Do not rush a production migration
+claim to match Conductor's read-only deadline.
+
+Documentation only; no runtime/dependency changes, external outreach, fork,
+credential transfer, remote publication, merge, deployment or paid provisioning.
+Fresh `npm run check` passed strict types, formatting, compilation and **41 tests,
+0 failures, 0 skips**. All 48 relative file links in the six changed documents
+resolve; whitespace checks passed and the actual edits were reviewed. The local
+check log is `.context/shutdown-analysis-check.log`. Native/package smoke and
+real-provider checks were not run for this documentation change. Installation
+reported the existing five moderate packaging dependency findings; no versions
+or lockfile changed. These checks validate the prototype, not the market claims.
+
+## Roadmap/context integration, 6 November 2026
+
+The founder explicitly requested saving all findings and updating the roadmap so
+future agents retain context. On `GregPat22/grok-conductor-shutdown-analysis`,
+based on `fd60a5a`, the research proposals became adopted planning direction:
+shared audiences with staged delivery; supported subscription onboarding subject
+to verified provider/deployment eligibility; API-key pilot/alternative; visible
+control and portable restore before managed release; agent breadth/team handoff
+before dependency orchestration. No real capability is implemented by these docs.
+
+Updated ROADMAP, START_HERE, project context, decisions, M1 and continuity specs,
+architecture, README, Claude entry point and documentation index. Corrected stale
+current-status references to PR #1; original milestone/review evidence remains
+attributed to its tested revisions. Read the research for source links, founder
+verification and independent-access/sampling limits. No market metrics, customer
+validation or managed provider eligibility were established.
+
+Save this documentation in a commit on the unchanged branch. Other workspaces
+must integrate that commit; editing one worktree does not update them. No main
+merge, customer outreach, deployment, provider sign-up, paid provisioning or
+runtime/dependency change is authorized by this context update.
+
+Validation: `npm run check` passed strict types, formatting, compilation and
+**41 tests, 0 failures, 0 skips**. All **129 relative file links in 16 changed
+Markdown documents** resolve. The original 7,820-byte Grok report is preserved
+byte-for-byte in `docs/research/sources/` and linked from the research/index.
+Credential-pattern and whitespace scans passed; the actual documentation diff
+was reviewed. Current API/setup how-to coverage and architecture diagrams need
+no changes because runtime boundaries/commands are unchanged. No version bump.
+Native/package smoke and real-provider/customer/competitor validation were not
+run for this documentation update. The local check log is
+`.context/roadmap-context-check.log`; the existing five moderate packaging audit
+findings remain outside this change. No dependency versions/lockfile changed.
+
+### Post-merge M1a preparation, 6 November 2026 (historical gate)
+
+On `GregPat22/next-step-v2`, based on `fd60a5a`, a fresh fetch confirmed PR #1
+is already integrated in `origin/main`. Corrected the entry points and current
+branch guidance; historical review/package evidence above remains historical.
+No branch was renamed and the separate landing workspace was not modified.
+
+Prepared [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md): proposed
+read-only GitHub App access, credential/bootstrap boundaries, durable lifecycle
+intent/acknowledgment, atomic operation ownership, quiescence, conservative
+reconciliation, persistence manifests and cleanup inventory. Ten acceptance
+criteria separate deterministic fixture coverage from required live evidence.
+Official GitHub/E2B documentation was checked on this date and linked in the spec;
+no SDK was installed and no provider integration was tested.
+
+Fresh `npm run check` passed strict types, formatting, compilation and **41 tests,
+0 failures, 0 skips**. The documentation diff was reviewed, relative Markdown
+file targets resolved and whitespace checks passed. Native/package smoke was
+not repeated because runtime and dependencies are unchanged. Local check output
+is `.context/next-check.log`; the tracked results here are the durable summary.
+
+Next decision: authorize the pinned isolated T3 runtime conformance spike or
+explicitly retain the current core for bounded M1a implementation. Then build
+lifecycle records/fake-provider failure tests and the read-only bootstrap broker.
+Live tests still require concrete provider/account/region/resource/budget and
+cleanup authorization. No cloud code, billable resources, remote publication,
+website deployment or binary release is part of this preparation.
+
+### Retained-core decision and lifecycle slice, 6 November 2026
+
+On `GregPat22/next-step-v2`, continuing from `74068ae` (main base `fd60a5a`),
+the founder delegated technical decisions to the engineering agent. Retain
+Argent for bounded M1a; defer T3 runtime evaluation until measured need. This
+supersedes the technical selection question in the previous entry. The rationale
+and engineering ownership are in [DECISIONS.md](docs/DECISIONS.md#foundation-decision-for-bounded-m1a-6-november-2026).
+Foundation replacement and billable provisioning remain separately controlled.
+
+Implemented the first [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md)
+slice: internal lifecycle tables/events on the existing SQLite connection,
+idempotent operation intent, atomic fenced claims, quiescence acknowledgment,
+dispatch receipts, deadlines/heartbeats and read-only outcome reconciliation.
+Lifecycle enrollment serializes with M0 submission/claims and disables local
+adapter execution for that workspace. Uncertain effects are never reclaimed or
+replayed. Delete keeps its identity and `deleting` state until absence is observed.
+
+The worker only accepts the simulation-only adapter contract and is not wired to
+the desktop bridge, HTTP API or service loop. It runs no target repository code
+and adds no SDK or runtime dependencies. Twenty-seven focused tests include
+independent-process claims, enrollment versus M0 submission, actual worker
+termination around simulated effects, lost acknowledgments for all four actions,
+late/hung calls, post-lock expiry, invalid observations, event rollback and
+preservation of old P1 data when lifecycle tables are introduced.
+
+Fresh `npm run check` passed strict types, formatting, compilation and **68 tests,
+0 failures, 0 skips**. Reviewed the actual implementation/test/documentation diff;
+relative Markdown targets and whitespace checks pass. Local logs are
+`.context/lifecycle-tests.log` and `.context/lifecycle-check.log`. Native/package
+smoke was not repeated; desktop behavior is covered by the automated suite.
+
+This is simulation evidence, not M1a completion or a tested PR. GitHub
+credential brokerage, trusted checkout/bootstrap, filesystem retention manifests,
+full resource/credential cleanup inventories, operator resolution, real isolation,
+remote authorization and live budget/provider validation remain unimplemented.
+Next: implement read-only GitHub bootstrap on the retained core, then exercise
+real-provider persistence/cleanup only with concrete authorized limits. Technical
+choices stay with the engineering agent. No remote push, merge, deployment,
+binary release, real provider call or billable provisioning occurred here.
 
 ## Keep the context complete
 
@@ -469,6 +739,53 @@ Next: review the landing PR and founder visuals, then make an explicit integrati
 decision. This task authorizes branch push and PR creation, not a main merge,
 website deployment or binary release. The package remains version `0.0.1`, matching
 the repository's existing prelaunch convention.
+
+## Shutdown research PR preparation — 6 November 2026
+
+On `GregPat22/grok-conductor-shutdown-analysis`, preserved research/roadmap commit
+`1c00e97` and integrated latest main `b5e763f` (landing PR #3) into this feature
+branch. Resolved the handoff, start-here, project-context and index overlaps by
+retaining both evidence histories and correcting current integration status.
+The actual diff against main contains 17 documentation/source-report files and
+no engine, desktop, website-code or dependency changes.
+
+Fresh `npm run check` passed strict types, formatting, compilation and **41 tests,
+0 failures, 0 skips**. All **139 relative file links** in the PR's Markdown resolve;
+conflict-marker and whitespace checks passed. Independent documentation review
+was requested for the reconciled tree. No version bump: the existing prelaunch
+`0.0.1` convention is retained. Evidence log: `.context/pr-check.log`.
+
+Native/package smoke, website production/browser checks and real-provider tests
+were not rerun for this documentation-only diff. Their earlier revision-specific
+evidence remains in the preserved reports. The user authorized creating a PR
+against main; merge, deployment and provisioning remain separate decisions.
+
+## Lifecycle PR preparation — 6 November 2026
+
+On the unchanged branch `GregPat22/next-step-v2`, preserved `74068ae` and
+`b1082b7` and integrated freshly fetched main `13eb14e` (landing PR #3 and
+shutdown/continuity PR #4). Resolved documentation overlaps by retaining both
+histories, provider/authentication validation and continuity requirements, plus
+the retained-core technical decision and implemented internal lifecycle slice.
+Renumbered this branch's lifecycle contract to `0007-cloud-workspace-lifecycle.md`
+because main already assigns 0006 to continuity/market validation.
+
+Fresh integrated-tree `npm run check` passed strict types, formatting, compilation
+and **68 tests, 0 failures, 0 skips**. Independent read-only pre-landing review
+found no concrete correctness/security issue. Coverage review identified two
+nonblocking unexercised timer paths: the periodic worker heartbeat callback and
+read-only inspection timeout; store-level heartbeat expiry and hung mutating
+calls are covered. No claim of measured full line/branch coverage is made.
+The final diff against current main and relative Markdown targets were reviewed.
+The log is `.context/pr-check.log`.
+
+Website source, desktop UI and package dependencies are unchanged relative to
+current main. Native/package smoke, website browser/build checks and live-provider
+checks were not rerun for this internal engine slice. Retain the established
+prelaunch package version `0.0.1`; no release metadata scheme is introduced for
+this source-only PR. Next implementation is read-only GitHub bootstrap with the
+remaining M1a limits above. The user authorized branch push and PR creation;
+merging main, deployment, binary release and spending remain outside this task.
 
 ## W0.3 landing refinement — 6 November 2026
 
