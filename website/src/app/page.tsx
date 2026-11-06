@@ -1,5 +1,6 @@
 import { Commitments } from "@/components/commitments";
 import { Footer } from "@/components/footer";
+import { FAQ } from "@/components/faq";
 import { Hallmark } from "@/components/hallmark";
 import { Hero } from "@/components/hero";
 import { Lifecycle } from "@/components/lifecycle";
@@ -27,6 +28,7 @@ export default function Home() {
         <Hallmark />
         <Commitments />
         <Roadmap />
+        <FAQ />
         <RunIt />
       </main>
       <Footer />

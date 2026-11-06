@@ -8,7 +8,7 @@ import {
   useMotionValue,
   useSpring,
 } from "motion/react";
-import { useId, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { STATUS_LABEL, type Status } from "@/lib/site";
 
 const STATUS_DOT: Record<Status, string> = {
@@ -46,48 +46,19 @@ export function StatusTag({
   );
 }
 
-/** Silver's periodic-table tile. Ag is also the first two letters of "agent". */
-export function AgMark({ size = 36 }: { size?: number }) {
-  const gradient = useId();
+/** Faithful web derivative of the founder-supplied official Argent icon. */
+export function ArgentMark({ size = 40 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 36 36" aria-hidden role="img">
-      <defs>
-        <linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f6f8fb" />
-          <stop offset="0.45" stopColor="#9aa1ac" />
-          <stop offset="0.7" stopColor="#e3e7ec" />
-          <stop offset="1" stopColor="#6f7681" />
-        </linearGradient>
-      </defs>
-      <rect
-        x="0.5"
-        y="0.5"
-        width="35"
-        height="35"
-        rx="7"
-        fill={`url(#${gradient})`}
-      />
-      <text
-        x="5"
-        y="10.5"
-        fontSize="7"
-        fontFamily="var(--font-sans)"
-        fill="#08090c"
-      >
-        47
-      </text>
-      <text
-        x="18"
-        y="27"
-        textAnchor="middle"
-        fontSize="17"
-        fontFamily="var(--font-logo)"
-        fontWeight="600"
-        fill="#08090c"
-      >
-        Ag
-      </text>
-    </svg>
+    <img
+      src="/brand/argent-icon-96.webp"
+      srcSet="/brand/argent-icon-96.webp 1x, /brand/argent-icon-192.webp 2x"
+      alt=""
+      aria-hidden="true"
+      width={size}
+      height={size}
+      className="argent-mark shrink-0 object-contain"
+      decoding="async"
+    />
   );
 }
 
@@ -96,8 +67,8 @@ type LinkButtonProps = Omit<HTMLMotionProps<"a">, "children" | "style"> & {
   children: ReactNode;
 };
 
-/** A link styled as a button that leans toward the pointer. */
-export function MagneticLink({
+/** A button-like link whose contents follow the pointer within a fixed hit area. */
+export function LiquidLink({
   variant = "primary",
   className = "",
   children,
@@ -109,29 +80,38 @@ export function MagneticLink({
   const springX = useSpring(x, { stiffness: 260, damping: 18, mass: 0.6 });
   const springY = useSpring(y, { stiffness: 260, damping: 18, mass: 0.6 });
 
-  const styles =
-    variant === "primary"
-      ? "bg-polished text-oxide hover:bg-white"
-      : "border border-hairline-strong text-polished hover:border-polished/60";
+  useEffect(() => {
+    if (reduceMotion) {
+      x.jump(0);
+      y.jump(0);
+    }
+  }, [reduceMotion, x, y]);
 
   return (
     <motion.a
       {...rest}
-      style={{ x: springX, y: springY }}
       onPointerMove={(event) => {
         if (reduceMotion || event.pointerType !== "mouse") return;
         const rect = event.currentTarget.getBoundingClientRect();
-        x.set((event.clientX - rect.left - rect.width / 2) * 0.25);
-        y.set((event.clientY - rect.top - rect.height / 2) * 0.35);
+        x.set(((event.clientX - rect.left) / rect.width - 0.5) * 8);
+        y.set(((event.clientY - rect.top) / rect.height - 0.5) * 4);
       }}
       onPointerLeave={() => {
         x.set(0);
         y.set(0);
       }}
-      whileTap={{ scale: 0.97 }}
-      className={`inline-flex h-12 items-center justify-center gap-2.5 rounded-full px-6 text-[0.9375rem] font-medium transition-colors duration-200 ${styles} ${className}`}
+      onFocus={() => {
+        x.set(0);
+        y.set(0);
+      }}
+      className={`argent-button argent-button--${variant === "primary" ? "primary" : "secondary"} ${className}`}
     >
-      {children}
+      <motion.span
+        style={reduceMotion ? undefined : { x: springX, y: springY }}
+        className="argent-button-label relative z-10 inline-flex items-center justify-center gap-2.5"
+      >
+        {children}
+      </motion.span>
     </motion.a>
   );
 }

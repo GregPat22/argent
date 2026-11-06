@@ -5,30 +5,27 @@ the latest known state across the project chats and checkouts. Read it alongside
 [START_HERE.md](START_HERE.md), [AGENTS.md](AGENTS.md) and the relevant specification.
 Private chat access is not required to continue development.
 
-**Current checkout:** `GregPat22/code-review`, based on main `757f8eb`.
-P1, the landing/continuity work, lifecycle simulation and simulated repository
-bootstrap (PR #6) are on main. This branch hardens that bootstrap after a code
-review. No live GitHub or cloud capability follows from these changes.
+**Current checkout:** `GregPat22/motion-landing-page-improve`, integrating
+`origin/main` at `1cc0598` (PR #7). The landing refinement continues the initial
+landing from PR #3; main also contains the continuity research, lifecycle
+simulation and simulated repository bootstrap/hardening. Execution remains
+simulated and the website is unpublished.
 
 ## Where the work is saved
 
-Current integration status checked against freshly fetched `origin/main` at
-`1424b92` on 6 November 2026. It includes desktop PR #1 (`fd60a5a`), landing
-PR #3 (`b5e763f`), shutdown/continuity research PR #4 (`13eb14e`) and lifecycle
-PR #5 (`1424b92`). Historical
-review notes below retain their original evidence and branch states.
+| Location                                            | Current state                                                                                    | How to use it                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| `origin/main` at `1cc0598`                          | M0/P1, initial landing, continuity plans, simulated lifecycle and repository bootstrap/hardening | Base integrated into this branch; no live cloud execution or public release. |
+| `GregPat22/motion-landing-page-improve`             | W0.3–W0.6 landing refinement                                                                     | Current PR branch; latest preparation evidence is below.                     |
+| `GregPat22/code-review`                             | Bootstrap hardening integrated through PR #7                                                     | Historical simulation review evidence.                                       |
+| `GregPat22/next-step-v3` / `GregPat22/next-step-v2` | Repository and lifecycle slices integrated through PRs #6/#5                                     | Historical simulated engine work.                                            |
+| `codex/desktop-handoff` / `codex/p1-original`       | Earlier P1 review/provenance branches                                                            | Historical evidence; PR #1 is integrated.                                    |
+| `GregPat22/argent-landing-page-draft`               | Initial landing integrated through PR #3                                                         | Historical source; preserve any later worktree changes.                      |
+| `GregPat22/grok-conductor-shutdown-analysis`        | Research and roadmap integrated through PR #4                                                    | Current continuity/customer/authentication criteria remain preserved.        |
 
-| Location                                      | Current state                                                      | How to use it                                                              |
-| --------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `origin/main` at `1424b92`                    | M0/P1, landing, continuity plans and internal lifecycle simulation | Base for new work; execution is simulated and the website is unpublished.  |
-| `GregPat22/next-step-v3`                      | Simulated read-only repository access and bootstrap queue          | Review spec 0007; live GitHub and isolated bootstrap remain unimplemented. |
-| `GregPat22/next-step-v2`                      | Lifecycle source integrated through PR #5                          | Historical source/evidence for the first M1a slice.                        |
-| `codex/desktop-handoff` / `codex/p1-original` | Earlier P1 review/provenance branches                              | Historical evidence; PR #1 is already integrated.                          |
-| `GregPat22/argent-landing-page-draft`         | Landing source integrated via PR #3                                | Preserve any later worktree changes.                                       |
-| `GregPat22/grok-conductor-shutdown-analysis`  | Research and roadmap integrated via PR #4                          | Current continuity/customer/authentication criteria are preserved here.    |
-
-This feature branch continues current main; main itself is unchanged. Both M1a
-harnesses use simulation and add no real cloud execution or public release.
+Historical sections retain revision-specific evidence and branch states. The
+Next.js landing remains separate from desktop packaging and the static download
+preview. PR preparation does not authorize merging, deployment or binary release.
 
 ### Repository bootstrap hardening — 6 November 2026
 
@@ -135,6 +132,20 @@ above remain. No native/package, website or live-provider checks were run.
 Next is authorized live access/isolated bootstrap and audited credential cleanup,
 not M1a completion. Authorization here covers commit, branch push and PR creation
 against `main`; merging, deployment, binary release and spending remain separate.
+
+| Location                                             | State at this handoff                                                         | How to use it                                                                                             |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `main`                                               | M0, P1 desktop prototype and initial landing integrated at `b5e763f`          | Starting point for new worktrees; PRs #1–#3 are merged.                                                   |
+| `codex/desktop-handoff`                              | P1 source plus refresh fix `f929ae3` and edge-case tests `b888840`            | Historical desktop review source, integrated through [PR #1](https://github.com/GregPat22/argent/pull/1). |
+| `codex/p1-original`                                  | Original completed P1 commit `a4f3d52`, preserved unchanged                   | Provenance/backup.                                                                                        |
+| `GregPat22/argent-landing-page-draft` in Conductor   | Historical landing draft and W0.1/W0.2 refinements, integrated through PR #3  | Historical source; the landing is now in main and remains unpublished.                                    |
+| `GregPat22/motion-landing-page-improve` in Conductor | W0.6 direct copy, supplied footer artwork and compact navigation on `b5e763f` | Current working branch; see the W0.6 update below for evidence and next steps.                            |
+
+The desktop prototype is now part of main. Historical review records below retain
+their original revision-specific evidence. The landing remains a separate
+Next.js package alongside the desktop's static download preview in `website/`;
+see the W0.6 update below for current checks and ownership. Do not
+silently merge to main, deploy or publish a binary release.
 
 ## Product decisions already made
 
@@ -775,3 +786,205 @@ prelaunch package version `0.0.1`; no release metadata scheme is introduced for
 this source-only PR. Next implementation is read-only GitHub bootstrap with the
 remaining M1a limits above. The user authorized branch push and PR creation;
 merging main, deployment, binary release and spending remain outside this task.
+
+## W0.3 landing refinement — 6 November 2026
+
+Current branch: `GregPat22/motion-landing-page-improve`, based on main `b5e763f`
+(the initial landing was merged through PR #3). The founder requested stronger
+hero impact, whole-page polish and clearer next steps. Work remains local and
+uncommitted on the original branch; no branch rename, push, PR, merge or
+deployment was performed.
+
+The hero has tighter copy, silver proof emphasis, mobile actions on one row and
+an adjacent simulation/release qualifier. Its primary CTA opens the reconnect
+illustration; GitHub is secondary. Tablet keeps the stacked composition through
+1023px. Shader placement, pointer mapping and CSS fallback follow that breakpoint
+instead of inferring layout from canvas aspect ratio. Shared CTA contents follow
+the pointer gently while hit areas stay fixed, with live reduced-motion handling.
+Headings use balanced wrapping. Navigation identifies the current section and
+adds FAQ and a real local-demo entry point. A native five-question FAQ clarifies
+prototype availability, local/remote execution, agent plans, verification and
+human authority; it works without JavaScript.
+
+Live Motion AI documentation and Motion+ source/easing tools were exercised.
+Premium accordion source was evaluated, not copied. An original native disclosure
+uses generated spring data with feature detection; Motion drives the small icon
+and content transforms. No dependencies, private package URLs or credentials were
+added. Existing engine and desktop/static-download source are unchanged.
+
+Fresh evidence: website strict types and optimized build passed; **21 production
+Playwright tests passed (1.1m)**. New checks cover mobile first-screen fit and CTA
+destinations, section navigation, FAQ keyboard/rapid/reduced-motion/no-JavaScript
+behavior, fixed magnetic hit areas and framebuffer-centroid placement across
+resizing. Root `npm run check` passed **41 tests**, strict types and formatting.
+Actual source/test diff and changed Markdown links were reviewed. Screenshots are
+in `.context/landing-pass/`; the production preview for this workspace is
+`http://127.0.0.1:3200`. Port 3000 was already occupied and was left untouched.
+
+Limits: Chromium uses SwiftShader; Safari and real-device GPU checks remain open.
+The visuals are a heuristic refinement, not measured conversion improvement.
+Native desktop smoke/packaging and static archive streaming were not rerun.
+Next: founder visual feedback on this concrete pass, optional device/Safari QA,
+then separately authorized PR/release work. Product execution remains simulated;
+real agents, cloud workspaces and public downloads remain planned.
+
+## W0.4 official icon and liquid redesign — 6 November 2026
+
+Branch: `GregPat22/motion-landing-page-improve`, continuing the local W0.3 changes
+on `b5e763f`. The founder requested a completely new silver shape/animation,
+shorter conversion copy, fluid Argent buttons and a properly restyled navbar,
+always following Laws of UX. The supplied silver A is now the official icon,
+superseding the Ag tile for branding. Source/provenance and faithful derivatives
+are in `website/public/brand/`; all website marks and browser/touch icons use it.
+Native desktop packaging/icons remain a separate follow-up.
+
+The hero now says “Delegate work. Keep control.” and shows five rounded silver
+volumes with coordinated drift, broad reflective ribbons and spring pointer
+response. Pause, offscreen/hidden suspension, a bounded 30fps renderer, live
+reduced motion and a five-globule fallback are retained. Hero copy stays readable
+without scroll fades or delayed text entrances. The navbar is a persistent,
+floating glass surface with four choices, an official-icon home link, a shared
+selection surface and a native keyboard/Escape mobile disclosure. Primary and
+secondary actions and native controls share a liquid silver treatment with fixed
+targets; workflow tabs are also stationary. The mobile pause button is compact
+so it leaves the artwork visible. Simulation/release boundaries remain adjacent.
+
+Live Motion AI and Motion+ searches/resource reads and spring generation worked.
+Premium magnetic-pull reference source was evaluated, not copied. Runtime remains
+public Motion; no dependency or credential changes. The
+[Laws of UX rationale](docs/research/landing-liquid-redesign.md),
+[acceptance/evidence](docs/specs/0005-website-landing-draft.md) and
+[official asset record](website/public/brand/README.md) preserve the decisions.
+
+Verification: website strict types and optimized build passed; **26 production
+browser tests passed (1.5m)**. New checks cover icon/favicon delivery, headline,
+persistent navigation/48px targets, liquid hover/fixed bounds, actual bubble
+center fill, five rounded fallback globules, offscreen suspension/resume and
+bounded buffers. Root `npm run check` passed **41 tests**, types and formatting.
+Actual source/test diff and changed Markdown links were reviewed. Production
+localhost preview is running at `http://127.0.0.1:3200`; screenshots are under
+`.context/liquid-redesign/`. Earlier W0.3 evidence is historical, not the current
+hero design.
+
+Limits: Chromium uses SwiftShader; Safari/real-device GPU testing remains open.
+Copy and UX choices are not measured conversion-rate improvements. Native
+desktop smoke/packaging and static archive streaming were not rerun. Work remains
+local and uncommitted on the unchanged branch; no push/PR, merge, deployment or
+paid provisioning. Next: founder visual feedback, optional Safari/device checks,
+then separately authorized release work.
+
+## W0.5 hero removal and atom follow-up — 6 November 2026
+
+On unchanged branch `GregPat22/motion-landing-page-improve` (base `b5e763f`),
+the founder requested removal of the hero animation from code, then removal of
+the atom's pause control, a larger atom and a check of its scientific model.
+
+Deleted `website/src/components/mercury.tsx`, its hero mounting/state/pause UI,
+shader and CSS fallback/artwork styles. Mobile hero spacing no longer reserves
+room for artwork. The official icon, headline, liquid buttons and floating
+navigation remain. No hidden renderer or replacement still artwork was added.
+
+The atom's pause UI/state is removed. It now reaches 480px on desktop (previously
+320px), with more grid space, a larger central mark and a DPR-aware drawing
+buffer. Automatic hidden/offscreen suspension and reactive reduced-motion still
+rendering remain. Its 47-electron shell population 2/8/18/18/1 agrees with neutral
+Ag's NIST configuration [Kr] 4d¹⁰ 5s¹. The visible/accessible labels identify the
+depth projection as an illustrative shell model, not physical electron orbits or
+a quantum visualization. Static SVG fallback now includes all 47 electron marks.
+Primary sources and the exact distinction are recorded in
+[the decision register](docs/DECISIONS.md) and
+[W0.5 specification/evidence](docs/specs/0005-website-landing-draft.md).
+
+Checks: website strict types/build passed; **22 production browser tests passed
+(41.1s)**, including zero WebGL requests, no hero art/control, no atom pause UI,
+larger actual atom dimensions, moving/static/offscreen frame evidence and 47
+fallback markers. All applicable navigation, mobile, FAQ, slider, clipboard and
+button checks remain. Root `npm run check` passed **41 tests**, types and
+formatting. Actual diff, dead-reference scan and Markdown links were reviewed.
+Preview remains `http://127.0.0.1:3200`; screenshots are in `.context/hero-removal/`.
+
+Limits: this is an illustrative shell model. Safari/real-device canvas performance
+and native desktop packaging were not tested. Changes remain local/uncommitted;
+no branch rename, publication, merge, deployment or provisioning. Next: founder
+visual feedback; prior W0.4 artwork evidence is historical.
+
+## W0.6 direct copy, footer artwork and compact navigation — 6 November 2026
+
+Branch: `GregPat22/motion-landing-page-improve`, continuing local W0.3–W0.5 work on
+`b5e763f`. Founder requested removal of atom captions, explicit product paragraphs
+with fewer silver metaphors, the supplied wide footer image, simpler borderless
+navigation that compacts to its logo on scroll, and plain heading typography.
+
+Inter replaces Space Grotesk on all h1/h2/h3 elements; unused Bodoni and typed
+wordmark styling are removed. Hero/statement/verification copy explains coding
+tasks, limits, review and merge authority directly, with current simulation and
+planned integration boundaries nearby. Visible atom captions are removed; the
+accurate scientific/stylized-model accessible description remains. The larger
+automatic atom and absent hero renderer are preserved.
+
+The supplied wide silver ARGENT image is retained byte for byte, with faithful
+800/1600px WebP derivatives and recorded provenance in
+[the brand asset record](website/public/brand/README.md). It replaces the typed
+footer wordmark and is a large link back to the page top. Real resource links
+remain independent; there is no name-origin paragraph or nested-anchor wrapper.
+
+Navbar border and typed Argent name are removed. Beyond 120px of scrolling, the
+navigation springs into a single 48px logo at viewport x=20/y=16; it expands again
+below 48px. The compact logo opens a disclosure containing navigation, home and
+local-demo links. Hidden expanded controls are inert; Escape restores focus,
+deep links initialize correctly and reduced motion is instantaneous. Live Motion
+scroll guidance and the previously read fixed-layout-root guidance informed the
+original implementation; no premium source or runtime dependency was added.
+
+Evidence: website strict types and production build passed; **25 production
+browser tests passed**, including actual fonts, copy/caption changes, footer
+artwork/home action, compact bounds and keyboard access, deep links, reverse
+scroll and live reduced motion. Intermediate logo widths are sampled to verify
+real normal-motion compaction. Root `npm run check` passed **41 tests**, types and
+formatting. Actual source/test diff, dead font/metaphor references and changed
+Markdown links were reviewed. Desktop/mobile/top/compact/footer screenshots are
+in `.context/plain-redesign/`. Production preview is `http://127.0.0.1:3200`.
+
+Limits: Chromium/heuristic review; no measured conversion lift, Safari or
+real-device performance evidence. Native packaging was not rerun. Original
+branch name and local uncommitted work are preserved; no push/PR, merge,
+deployment or provisioning. Next: founder visual feedback on the concrete pass.
+
+## Landing refinement PR preparation — 6 November 2026
+
+On unchanged branch `GregPat22/motion-landing-page-improve`, preserved the full
+W0.3–W0.6 landing pass in `8ce1d6e` and its documentation in `8dc3804`, then
+integrated freshly fetched main `1cc0598` (PR #7) via `fbf262a`. Documentation
+conflicts were resolved by preserving upstream continuity/lifecycle/repository
+history alongside the landing decisions and updating current branch locations.
+The final diff against main is confined to website assets/source/tests and
+landing/context documentation; engine, desktop packaging and dependencies are
+unchanged. Existing prelaunch version `0.0.1` is retained without introducing a
+VERSION/CHANGELOG release scheme.
+
+Independent coverage and source/design review found one actionable keyboard
+regression: crossing a scroll threshold while the logo or a disclosure link had
+focus could leave focus on the page body. The containment check now covers the
+whole navigation, and focus moves to the remaining logo in either direction.
+A focused browser regression covers both logo and open-disclosure transitions;
+native PageDown waits for scroll completion before reversal. No outstanding
+source-review finding remains; no measured line/branch coverage percentage is
+claimed.
+
+Fresh integrated-tree evidence: root `npm run check` passed strict types,
+formatting, compilation and **129 tests, 0 failures, 0 skips**; website strict
+types and optimized production build passed; **26 production Playwright tests
+passed (35.8s)**. Logs are `.context/pr-checks/root.log` and
+`.context/pr-checks/website.log`. Actual diff, conflict markers, whitespace and
+all 98 relative file links in changed Markdown were checked. A credential scan
+found no secret; its only medium classification was the public loopback FAQ
+fixture URL in a browser test, not a private service or credential.
+
+Limits: Chromium verification, not Safari/Firefox or real-device performance;
+no measured conversion lift or native packaging rerun. An extra 320px probe
+measured a 5px terminal-grid overflow without establishing an introduced cause;
+360/768px automated responsive checks pass. Screenshots remain local under
+`.context/plain-redesign/`. The founder has authorized commit, branch push and
+PR creation against main. Next: review the PR and address reviewer findings;
+merging, deployment, binary release and provisioning remain separate decisions.
+Historical local/uncommitted statements above describe their original revisions.

@@ -4,7 +4,7 @@ import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 import { AnimatePresence, motion, useInView } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { GitHubIcon, MagneticLink } from "@/components/ui";
+import { GitHubIcon, LiquidLink } from "@/components/ui";
 import { DOCS_URL, REPO_URL } from "@/lib/site";
 
 type Line = {
@@ -120,18 +120,18 @@ export function RunIt() {
             model key or cloud.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <MagneticLink href={REPO_URL} target="_blank" rel="noreferrer">
+            <LiquidLink href={REPO_URL} target="_blank" rel="noreferrer">
               <GitHubIcon />
               View on GitHub
-            </MagneticLink>
-            <MagneticLink
+            </LiquidLink>
+            <LiquidLink
               href={DOCS_URL}
               target="_blank"
               rel="noreferrer"
               variant="ghost"
             >
               Read the project context
-            </MagneticLink>
+            </LiquidLink>
           </div>
           <p className="mt-8 max-w-[32rem] border-t border-hairline pt-5 text-[0.9375rem] text-sterling-dim">
             The local desktop prototype is complete with simulated execution.
@@ -151,7 +151,7 @@ export function RunIt() {
               <button
                 type="button"
                 onClick={copyCommands}
-                className="relative ml-auto h-11 min-w-[8.5rem] overflow-hidden rounded-full border border-hairline-strong px-3 text-[0.8125rem] text-polished transition-colors hover:border-polished/60"
+                className="argent-control relative ml-auto min-w-[8.5rem]"
               >
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span

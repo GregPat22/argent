@@ -11,11 +11,11 @@ execution remains part of the product, even though its primary client is desktop
 
 ## Read the context for your task
 
-**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). P1 was merged
-into main at `fd60a5a`; landing PR #3 is integrated in `b5e763f`. This checkout
-includes both, with simulated execution and an unpublished website.
-Read the [roadmap](ROADMAP.md) and [decision register](docs/DECISIONS.md) before
-choosing the next implementation task.
+**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). Current branch
+`GregPat22/motion-landing-page-improve` integrates main at `1cc0598` (PR #7)
+and refines the initial landing from PR #3. Execution remains simulated and the
+website is unpublished. Read the [roadmap](ROADMAP.md) and
+[decision register](docs/DECISIONS.md) before choosing the next implementation task.
 
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |

@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useInView } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { AgMark, StatusTag } from "@/components/ui";
+import { ArgentMark, StatusTag } from "@/components/ui";
 
 type Tone = "neutral" | "running" | "verified" | "attention";
 type RunEvent = { type: string; text: string; tone: Tone };
@@ -345,7 +345,7 @@ export function ReconnectDemo() {
                     bounce: 0.3,
                   }}
                 >
-                  <AgMark size={56} />
+                  <ArgentMark size={56} />
                 </motion.div>
                 <p className="max-w-[22rem] text-sterling">
                   Argent is closed. The workspace has stored{" "}
@@ -357,7 +357,7 @@ export function ReconnectDemo() {
                 <button
                   type="button"
                   onClick={reopenApp}
-                  className="h-11 rounded-full bg-polished px-5 text-[0.9375rem] font-medium text-oxide transition-colors hover:bg-white"
+                  className="argent-control argent-control--primary"
                 >
                   Reopen Argent
                 </button>
@@ -445,7 +445,7 @@ export function ReconnectDemo() {
         <button
           type="button"
           onClick={open ? closeApp : reopenApp}
-          className="h-11 rounded-full bg-polished px-5 text-[0.9375rem] font-medium text-oxide transition-colors hover:bg-white"
+          className="argent-control argent-control--primary"
         >
           {open ? "Close Argent" : "Reopen Argent"}
         </button>
@@ -453,15 +453,11 @@ export function ReconnectDemo() {
           type="button"
           onClick={cutPower}
           disabled={state !== "running"}
-          className="h-11 rounded-full border border-hairline-strong px-5 text-[0.9375rem] text-polished transition-colors hover:border-attention/60 disabled:cursor-not-allowed disabled:opacity-40"
+          className="argent-control disabled:cursor-not-allowed"
         >
           Cut the worker’s power
         </button>
-        <button
-          type="button"
-          onClick={restart}
-          className="h-11 rounded-full px-4 text-[0.9375rem] text-sterling underline-offset-4 transition-colors hover:text-polished hover:underline"
-        >
+        <button type="button" onClick={restart} className="argent-control">
           Start over
         </button>
         <p className="w-full text-[0.875rem] text-sterling-dim md:ml-auto md:w-auto">

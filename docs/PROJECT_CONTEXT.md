@@ -5,11 +5,12 @@ understand the project without access to private chats. It describes accepted
 product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
-**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). Main integrated P1
-at `fd60a5a`, then landing PR #3 at `b5e763f`; this checkout includes both.
-The desktop still uses simulation, and the landing is not deployed.
-The [roadmap](../ROADMAP.md) incorporates the founder-authorized shutdown-review
-follow-up. No real cloud capability follows from this documentation update.
+**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). Current branch
+`GregPat22/motion-landing-page-improve` integrates main at `1cc0598` (PR #7),
+including P1, the initial landing, continuity research and simulated lifecycle/
+repository bootstrap. This branch refines the landing; execution remains simulated
+and the website is unpublished. The [roadmap](../ROADMAP.md) retains the
+founder-authorized shutdown-review follow-up.
 
 ## What we are building
 

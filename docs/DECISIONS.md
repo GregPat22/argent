@@ -139,3 +139,62 @@ Technical implementation choices are owned by the engineering agent. Escalate
 product changes, foundation replacement and concrete external spending/actions
 where authorization is actually required, rather than asking the founder to
 choose routine architecture details.
+
+## Official Argent icon and W0.4 direction — 6 November 2026
+
+The founder supplied and selected the silver A image as Argent’s **official
+icon**, superseding the Ag periodic-table tile for product branding. The original
+RGBA image is preserved in `website/public/brand/argent-icon-source.png`; its
+provenance, hash and faithful derivatives are documented in
+[the brand asset record](../website/public/brand/README.md). Website navigation,
+footer, illustrated app marks and browser/touch icons use it. Native desktop
+packaging remains a separate follow-up, not a rebuilt release in this pass.
+
+The founder also requested a complete replacement of the silver loop with a
+more harmonious bubble composition, shorter conversion-oriented copy, fluid
+silver buttons and a properly restyled navigation bar, following Laws of UX.
+The implemented proposal uses “Delegate work. Keep control.”, five slowly
+drifting silver volumes, fixed action hit areas, a floating persistent navbar
+and four navigation choices. This is a visual/UX proposal, not evidence of a
+conversion-rate improvement. See [W0.4](specs/0005-website-landing-draft.md).
+
+## W0.5 hero removal and larger atom — 6 November 2026
+
+Founder feedback supersedes W0.4's hero artwork: delete the bubble animation,
+shader, fallback and pause control from code; keep the accepted icon, headline,
+buttons and navbar. Remove the atom's manual pause control as well, and enlarge
+it to a responsive 480px desktop maximum. Automatic offscreen/hidden suspension
+and reduced motion remain.
+
+Checked neutral silver against [NIST](https://physics.nist.gov/PhysRefData/Handbook/Tables/silvertable1.htm):
+Ag has Z=47 and ground-state configuration [Kr] 4d¹⁰ 5s¹. Grouping that
+configuration by principal shell gives 2/8/18/18/1. The depth-projected moving
+rings depict those populations artistically; they are not quantum orbitals or
+physical electron trajectories. The [DOE explanation](https://www.energy.gov/science/doe-explainselectrons)
+describes electrons through probability clouds rather than planetary paths.
+The illustration is labeled accordingly and its fallback includes 47 markers.
+
+## W0.6 direct copy and compact navigation — 6 November 2026
+
+The founder requested plainer headings, more explicit product paragraphs,
+removal of atom captions and name-origin copy, use of a supplied wide ARGENT
+image in the footer, and a borderless navbar that compacts to its logo on scroll.
+
+Inter replaces Space Grotesk for every heading; unused Bodoni/typed-wordmark
+fonts are removed. Hero, task/review and verification copy now state the intended
+workflow directly, with current simulation/integration limits nearby. Visible
+atom captions are removed; its accurate accessible description is retained.
+
+The supplied wide artwork is preserved byte for byte with faithful derivatives
+and [provenance](../website/public/brand/README.md). It is a large footer link to
+the page top, alongside real resource links. The footer does not intercept clicks
+on blank space or contain nested anchors.
+
+The navbar has no border or typed name. Scrolling beyond 120px compacts it to one
+48px logo control at the viewport top-left. That logo opens a navigation
+disclosure; ordinary links remain available at the page top. It expands again
+below 48px to avoid threshold chatter. Motion layout springs animate the change
+from a fixed layout root; reduced motion uses zero-duration transitions.
+Keyboard navigation skips collapsed controls, Escape restores trigger focus,
+and deep links initialize the correct state. This follows the founder's visual
+request while preserving target size, choice reduction and accessible navigation.

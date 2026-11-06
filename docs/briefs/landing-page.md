@@ -1,11 +1,34 @@
 # Argent landing-page brief
 
+**Current W0.6 direction:** use explicit task/review/verification copy with fewer
+silver metaphors, remove visible atom captions, use plain Inter headings and the
+new supplied wide footer wordmark as a home link. Remove navbar border/typed
+name; scrolling compacts navigation to a single logo at viewport top-left that
+opens the navigation links. This supersedes the earlier conductor heading,
+footer name-origin text, Grotesk typography and floating bordered bar.
+
+**Current W0.5 direction:** remove the hero bubble artwork/renderer entirely and
+retain the W0.4 icon, headline, buttons and navbar. Enlarge the silver atom and
+remove its manual pause UI/state, retaining reduced-motion and automatic
+offscreen/hidden suspension. The atom is an illustrative shell model with a
+verified neutral-Ag electron configuration. Earlier animated-hero requirements
+below are historical and superseded by this founder feedback.
+
 Recorded 6 November 2026. This is the handoff for the landing-page worktree.
 Product facts come from the [project context](../PROJECT_CONTEXT.md),
 [vision](../../VISION.md), [founding brief](../FOUNDING_BRIEF.md) and
 [desktop specification](../specs/0004-desktop-prototype.md). The visual request
 comes from the founder's landing-page assignment. Proposed copy and technical
 options below are starting points for a draft, not approved brand decisions.
+
+**W0.4 founder update:** the supplied silver A is now the official Argent icon,
+replacing the Ag tile for product branding. Preserve the supplied original and
+use faithful derivatives. The founder requests a new harmonious silver-bubble
+hero, shorter conversion-oriented headline, fluid silver buttons and a restyled
+navbar, always applying Laws of UX. This supersedes the earlier icon/loop choices;
+see [W0.4](../specs/0005-website-landing-draft.md) and the
+[brand asset record](../../website/public/brand/README.md). Pricing, public
+downloads and deployment remain separate decisions.
 
 ## Product and audience
 
