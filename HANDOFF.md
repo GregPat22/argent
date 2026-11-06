@@ -207,9 +207,10 @@ needed. Desktop application data lives in its local app-support profile;
 
 Next actions, in order:
 
-1. Resolve the selected older-workspace refresh finding from the
-   [PR #1 review](docs/research/p1-pr-review.md), rerun desktop verification,
-   then obtain the explicit merge decision and update branch/status documentation.
+1. Integrate the verified older-workspace refresh fix from
+   `GregPat22/next-step-request` into the desktop review path (see the follow-up
+   below), then obtain the explicit merge decision and update branch/status
+   documentation. PR #1 at `6104961` still lacks the fix.
 2. Continue the landing draft with the founder's unresolved design/CTA answers;
    reconcile the shared website directory and record completed work in Git.
 3. Decide whether to run an isolated, pinned T3 runtime conformance spike before
@@ -240,6 +241,40 @@ No PR review comment was posted, branch renamed, merge performed or release made
 The main-based documentation branch passed `npm run check` with 22 tests;
 all 34 relative links in the four changed documents resolve and diff whitespace
 checks passed. The review finding is documented, not fixed in this branch.
+
+### Selected-workspace refresh fix, 6 November 2026
+
+On `GregPat22/next-step-request`, fix commit `f929ae3` is based on desktop
+review head `6104961`, with main's review documentation replayed as `7aad6f1`.
+The placeholder branch name was preserved. This workspace now contains P1; main
+and PR #1 were not changed. Use this branch for review of the fix rather than
+assuming the unchanged PR head includes it.
+
+The renderer now reads the selected (or remembered) workspace on every refresh
+when it is absent from the fresh first page. Retained history is not used as
+proof of freshness. Existing epoch checks discard responses after selection
+changes, and missing saved selections still fall back only after a 404.
+
+The compiled-renderer regression first failed against the unmodified source
+(four failures, one passing first-page control); all five cases pass with the fix.
+Coverage includes external stop/start for restored and paged selections,
+disconnect/reconnect, read failure/recovery, avoiding redundant first-page reads,
+and a selection change during an outstanding read. These use a controlled bridge
+and minimal DOM, not a live second desktop client.
+
+Fresh `npm run check` at `f929ae3` passed strict types, formatting and **38 tests,
+0 failures, 0 skips**. Native development smoke evidence is recorded in the
+[review follow-up](docs/research/p1-pr-review.md#fix-verification-follow-up).
+Packaged-executable/archive checks were not repeated. The existing install audit
+still reports five moderate development packaging entries; dependencies were not
+changed. All product execution remains simulation.
+
+Next: carry these commits into the desktop review branch through an explicitly
+reviewed integration, then obtain the founder's merge decision. Reconcile the
+separate landing-page ownership before integrating both website sources. No
+remote push, PR update, main merge, deployment or release was performed here.
+Local reproducible logs are `.context/refresh-check.log` and
+`.context/refresh-desktop-smoke.log`; generated data is not tracked evidence.
 
 ## Keep the context complete
 

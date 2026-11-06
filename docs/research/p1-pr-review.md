@@ -101,3 +101,49 @@ its checks and native smoke, then request the explicit merge decision for the
 updated PR. Reconcile its `website/` ownership with the separate landing work
 before integrating both efforts. Do not replace the foundation or provision
 resources as a consequence of this review.
+
+## Fix verification follow-up
+
+6 November 2026, branch `GregPat22/next-step-request`, fix `f929ae3`.
+This continuation is based on `6104961` plus the main review notes replayed at
+`7aad6f1`. It preserves the workspace branch name and does not update PR #1 or
+merge P1 into main.
+
+Root cause confirmed: refresh consulted the retained workspace list and only
+fetched a missing saved selection. An older selected record therefore survived
+forever without an authoritative read. Refresh now checks the fresh page and
+fetches the current selection (or the saved selection during restoration) when
+absent. The existing epoch guard still rejects a late response after selection
+changes; a 404 discards only an unrestored saved selection.
+
+Evidence:
+
+- Added `tests/renderer-refresh.test.ts`, which executes the compiled renderer
+  through a controlled bridge, minimal DOM and manual polling clock. Against the
+  original renderer four cases failed while the first-page control passed.
+  With the fix all five pass: saved older selection with stop/start/reconnect,
+  manually paged selection with stop/start, no redundant first-page read,
+  visible read failure followed by recovery, and a selection change while a
+  workspace response is outstanding. No new dependencies were added.
+- `npm run check` passed strict types, formatting, compilation and **38 tests,
+  0 failures, 0 skips** with Node 22.19.0 / npm 10.9.3.
+- `npm run desktop:smoke` passed against the development Electron app: verified
+  simulation artifact, background run, cancellation, renderer isolation,
+  close/reopen, service stop/reconnect, and detached-service survival after
+  application exit. The harness cleaned its temporary profile and owned service.
+- Reviewed the actual fix/test diff and continuation diff against desktop head
+  `6104961`; `git diff --check` passed. The main comparison includes the existing
+  P1 implementation because it is still unmerged, rather than just this fix.
+
+The specific external-client regression uses mocked service responses, not two
+live desktop clients. Packaged executable/archive/checksum verification was not
+repeated. Installation reported the same five moderate packaging dependency
+entries; no audit fixes or dependency changes were made. No cloud execution,
+real coding agent or product-generated tested PR is established. The automated
+investigation skill's interactive host workflow was unavailable; investigation
+and verification were completed directly without changing machine skill settings.
+
+Logs are local, ignored artifacts at `.context/refresh-check.log` and
+`.context/refresh-desktop-smoke.log`. Next: review and carry the fix to the desktop
+PR, then request the explicit founder merge decision and reconcile website
+ownership. No remote push, PR update, merge, deployment or release occurred here.

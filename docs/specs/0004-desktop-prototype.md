@@ -37,6 +37,9 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
    Errors, empty states, disconnected state and verification outcomes are usable.
    A selected workspace beyond the first list page must refresh its authoritative
    state after another client stops or starts it, including after reconnect.
+   This applies to restored selections and selections from loaded older pages.
+   A response arriving after selection changes must not update the new selection;
+   read failures remain visible and later polls can recover.
 7. The app makes simulation status visible. Unavailable real-cloud/agent/PR
    capabilities are described accurately and are not fabricated working controls.
 8. Automated bridge/API/lifecycle tests pass, plus hands-on desktop flow checks.
@@ -51,8 +54,13 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
 
 Review follow-up, 6 November 2026: [PR #1 review](../research/p1-pr-review.md)
 at `6104961` reproduced a selected-workspace refresh gap in criterion 6.
-The source fix and renderer regression remain on the desktop continuation path;
-this main-based branch records the review without integrating P1.
+Fix commit `f929ae3` on `GregPat22/next-step-request` refreshes the selected
+workspace independently of retained history. Five compiled-renderer regressions
+pass, and `npm run check` passes 38 tests with strict types and formatting.
+The harness uses controlled bridge responses and a minimal DOM; native smoke
+results and remaining limits are in the [review follow-up](../research/p1-pr-review.md#fix-verification-follow-up).
+The fix is local to this continuation branch; PR #1 and main still need explicit
+integration and a merge decision.
 
 No upstream fork/import without founder approval. No silent purchase, cloud
 provisioning, merge, deployment or public release. Prefer a thin desktop shell
