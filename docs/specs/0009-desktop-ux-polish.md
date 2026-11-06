@@ -2,8 +2,8 @@
 
 6 November 2026 · `GregPat22/conductor-layout-create`, base `origin/main` at
 `333d66201a2c56a556b239abfe9777a89a8c7cd4`. Continues the P2 shell.
-PR preparation integrates main `7b2eeca` through merge `5a0d6cf`; final code/test
-revision `1bea516` passes 161 root tests and expanded native desktop smoke.
+PR preparation integrates main `9eac908` through merge `36cdf25`; the integrated
+code/test revision passes 181 root tests and expanded native desktop smoke.
 Read [the handoff](../../HANDOFF.md) for current publication state and limits.
 Scope: the entire installed application, including navigation, sessions, composer,
 inspection, settings, empty/offline/error states and every dialog. The landing

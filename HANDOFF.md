@@ -18,11 +18,15 @@ On unchanged branch `GregPat22/conductor-layout-create`, preserved the approved
 workspace changes in `e9c10e2` (active-stop fix), `a4c38ff` (desktop layout/UX/icons)
 and `6a83f42` (roadmap/specs), then integrated freshly fetched main `7b2eeca`
 (PR #10) via `5a0d6cf`. Documentation conflicts preserve both the new desktop
-requirements and upstream audited simulated repository recovery. Final code/test
-revision is `1bea516`; documentation-only preparation follows it. The source diff
-against current main changes no repository-recovery module or website file.
+requirements and upstream audited simulated repository recovery. Desktop smoke
+refinements are recorded in `1bea516`.
 
-Fresh `npm run check` passes strict types, formatting, compilation and **161 tests,
+Main advanced again during publication: encrypted simulated credential custody
+`9eac908` (PR #11) is integrated through `36cdf25`, the final integrated code/test
+revision. Documentation-only preparation follows it. The source diff against
+current main changes no repository-recovery/custody module or website file.
+
+Fresh `npm run check` passes strict types, formatting, compilation and **181 tests,
 0 failures, 0 skips**; native `npm run desktop:smoke` passes at 900×620/1380×900,
 including reduced-motion emulation, SVG loading, forms, keyboard tabs/search,
 composer review/draft preservation and clearing, cancellation, artifact inspection,
@@ -36,7 +40,9 @@ ArrowUp/ArrowDown/Enter, the Changes/Run previews, preservation of a different
 unsent draft and clearing of an accepted draft in native smoke. No measured
 line/branch coverage percentage is claimed. Actual diff, Markdown references,
 conflict markers, asset provenance/license and a public-source credential scan
-were reviewed. The existing prelaunch version `0.0.1` is retained; this repository
+were reviewed. Initial push CI hit an unchanged short-lease repository process
+fixture; its rerun passed without changing that backend test. The final integrated
+local checks below include the newer main custody tests. The existing prelaunch version `0.0.1` is retained; this repository
 has no VERSION/CHANGELOG release scheme to introduce for a prototype PR.
 
 The founder authorized commits, branch push and PR creation against `main`.

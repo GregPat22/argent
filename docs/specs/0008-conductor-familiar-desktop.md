@@ -3,8 +3,8 @@
 6 November 2026 · `GregPat22/conductor-layout-create`, based on `origin/main`
 `333d66201a2c56a556b239abfe9777a89a8c7cd4` (PR #8).
 Status: raw desktop layout implemented; verification evidence is recorded in the
-handoff. PR preparation integrates main `7b2eeca` through `5a0d6cf`; code/test
-revision `1bea516` passes 161 root tests and expanded native smoke. Real agent,
+handoff. PR preparation integrates main `9eac908` through `36cdf25`; the integrated
+code/test revision passes 181 root tests and expanded native smoke. Real agent,
 cloud, migration and mobile work below remains planned.
 
 The follow-on [P2.1 refinement](0009-desktop-ux-polish.md) replaces decorative
