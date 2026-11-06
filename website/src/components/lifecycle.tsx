@@ -1,5 +1,7 @@
 "use client";
 
+import { SectionSignature } from "@/components/section-signature";
+
 import {
   AnimatePresence,
   motion,
@@ -23,15 +25,24 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Reveal({ index, children }: { index: number; children: ReactNode }) {
+function Reveal({
+  index,
+  children,
+  listItem = false,
+}: {
+  index: number;
+  children: ReactNode;
+  listItem?: boolean;
+}) {
+  const Component = listItem ? motion.li : motion.div;
   return (
-    <motion.div
+    <Component
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 + index * 0.09, duration: 0.5, ease }}
     >
       {children}
-    </motion.div>
+    </Component>
   );
 }
 
@@ -50,11 +61,11 @@ function SpecVisual() {
       </p>
       <ul className="mt-2 space-y-2">
         {criteria.map((item, index) => (
-          <Reveal key={item} index={index}>
-            <li className="flex items-start gap-3 text-[0.9375rem] text-polished">
+          <Reveal key={item} index={index} listItem>
+            <p className="flex items-start gap-3 text-[0.9375rem] text-polished">
               <span className="mt-1 size-3.5 shrink-0 rounded-[4px] border border-hairline-strong" />
               {item}
-            </li>
+            </p>
           </Reveal>
         ))}
       </ul>
@@ -79,8 +90,8 @@ function WorkspaceVisual() {
       </div>
       <ul className="mt-4 space-y-1.5 font-mono text-[0.8125rem] text-sterling">
         {files.map((file, index) => (
-          <Reveal key={file} index={index}>
-            <li>{file}</li>
+          <Reveal key={file} index={index} listItem>
+            <p>{file}</p>
           </Reveal>
         ))}
       </ul>
@@ -161,11 +172,11 @@ function VerifyVisual() {
       </div>
       <ul className="mt-4 space-y-2">
         {checks.map((check, index) => (
-          <Reveal key={check} index={index}>
-            <li className="flex items-center justify-between rounded-lg border border-hairline px-3 py-2 text-[0.9375rem]">
+          <Reveal key={check} index={index} listItem>
+            <div className="flex items-center justify-between rounded-lg border border-hairline px-3 py-2 text-[0.9375rem]">
               {check}
               <span className="text-[0.8125rem] text-verified">Passed</span>
-            </li>
+            </div>
           </Reveal>
         ))}
       </ul>
@@ -329,10 +340,10 @@ function StepText({
   return (
     <li
       ref={ref}
-      className="flex min-h-[62vh] flex-col justify-center py-10 lg:min-h-[78vh]"
+      className="flex min-h-0 flex-col justify-center py-10 lg:min-h-[52vh]"
     >
       <motion.div
-        animate={{ opacity: inView ? 1 : 0.28 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
         className="flex gap-6"
       >
@@ -373,6 +384,7 @@ export function Lifecycle() {
       aria-labelledby="lifecycle-title"
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 py-24 md:px-10 md:py-32"
     >
+      <SectionSignature number="03" label="A considered process" kind="trace" />
       <div className="grid gap-8 md:grid-cols-12 md:items-end">
         <h2
           id="lifecycle-title"
@@ -422,10 +434,9 @@ export function Lifecycle() {
                   opacity: 0,
                   y: 24,
                   scale: 0.97,
-                  filter: "blur(6px)",
                 }}
-                animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -16, scale: 0.98, filter: "blur(6px)" }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -16, scale: 0.98 }}
                 transition={{ duration: 0.45, ease }}
               >
                 <ActiveVisual />

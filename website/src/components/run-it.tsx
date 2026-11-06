@@ -1,5 +1,7 @@
 "use client";
 
+import { SectionSignature } from "@/components/section-signature";
+
 import {
   AnimatePresence,
   motion,
@@ -108,6 +110,7 @@ export function RunIt() {
       aria-labelledby="run-title"
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 py-24 md:px-10 md:py-32"
     >
+      <SectionSignature number="07" label="An open invitation" kind="trace" />
       <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
         <div className="lg:col-span-5">
           <h2
@@ -119,13 +122,13 @@ export function RunIt() {
           <p className="mt-6 max-w-[32rem] text-sterling">
             The M0 demo starts a real API and worker, kills the API in the
             middle of a run, starts a new one and reads the same history back.
-            You need Git and Node 22, version 22.19 or later. No account, model
-            key or cloud.
+            You need Git and Node 22.19 or later within Node 22. No account,
+            model key or cloud.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <MagneticLink href={REPO_URL} target="_blank" rel="noreferrer">
               <GitHubIcon />
-              Star on GitHub
+              View on GitHub
             </MagneticLink>
             <MagneticLink
               href={DOCS_URL}
@@ -137,14 +140,14 @@ export function RunIt() {
             </MagneticLink>
           </div>
           <p className="mt-8 max-w-[32rem] border-t border-hairline pt-5 text-[0.9375rem] text-sterling-dim">
-            There is no desktop download yet. Watch the repository to hear when
-            the first macOS build is ready.
+            The local desktop prototype is complete with simulated execution.
+            Signed public downloads are still ahead.
           </p>
         </div>
 
         <div ref={ref} className="lg:col-span-7">
           <div className="overflow-hidden rounded-2xl border border-hairline-strong bg-[#0c0d11] shadow-[0_40px_120px_-40px_rgb(0_0_0/0.9)]">
-            <div className="flex h-11 items-center gap-2 border-b border-hairline px-4">
+            <div className="flex min-h-14 items-center gap-2 border-b border-hairline px-4">
               <span className="size-3 rounded-full bg-pewter-2 ring-1 ring-hairline-strong" />
               <span className="size-3 rounded-full bg-pewter-2 ring-1 ring-hairline-strong" />
               <span className="size-3 rounded-full bg-pewter-2 ring-1 ring-hairline-strong" />
@@ -154,7 +157,7 @@ export function RunIt() {
               <button
                 type="button"
                 onClick={copyCommands}
-                className="relative ml-auto h-8 min-w-[8.5rem] overflow-hidden rounded-full border border-hairline-strong px-3 text-[0.8125rem] text-polished transition-colors hover:border-polished/60"
+                className="relative ml-auto h-11 min-w-[8.5rem] overflow-hidden rounded-full border border-hairline-strong px-3 text-[0.8125rem] text-polished transition-colors hover:border-polished/60"
               >
                 <AnimatePresence mode="popLayout" initial={false}>
                   <motion.span
@@ -172,13 +175,27 @@ export function RunIt() {
                     {copy === "copied"
                       ? "Copied"
                       : copy === "failed"
-                        ? "Select to copy"
+                        ? "Copy unavailable"
                         : "Copy commands"}
                   </motion.span>
                 </AnimatePresence>
               </button>
             </div>
 
+            <p
+              role="status"
+              className={
+                copy === "failed"
+                  ? "px-5 pt-3 text-sm text-attention"
+                  : "sr-only"
+              }
+            >
+              {copy === "copied"
+                ? "Commands copied to clipboard."
+                : copy === "failed"
+                  ? "Clipboard unavailable. Select the commands in the terminal to copy them manually."
+                  : ""}
+            </p>
             <pre className="sr-only">
               {LINES.map((item) =>
                 item.kind === "command" ? `$ ${item.text}` : item.text,
@@ -186,7 +203,7 @@ export function RunIt() {
             </pre>
             <pre
               aria-hidden
-              className="h-[25rem] overflow-hidden p-5 font-mono text-[0.75rem] leading-[1.75] sm:text-[0.8125rem]"
+              className="h-[25rem] overflow-auto p-5 font-mono text-[0.75rem] leading-[1.75] sm:text-[0.8125rem]"
             >
               {LINES.map((item, index) => {
                 if (index > line) return null;

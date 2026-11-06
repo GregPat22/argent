@@ -11,15 +11,16 @@
   --color-hairline: rgb(214 220 230 / 0.12);
   --color-hairline-strong: rgb(214 220 230 / 0.24);
   --color-sterling: #a9b0bb;
-  --color-sterling-dim: #757c88;
+  --color-sterling-dim: #929aa7;
   --color-polished: #eef1f5;
 
   --color-running: #a8bdff;
   --color-verified: #8ee6b5;
   --color-attention: #f5c26b;
 
-  --font-display: var(--font-bodoni), "Bodoni 72", "Didot", serif;
-  --font-sans: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space), ui-sans-serif, system-ui, sans-serif;
+  --font-logo: var(--font-bodoni), "Bodoni 72", "Didot", serif;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", monospace;
 
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
@@ -28,6 +29,7 @@
 
 @layer base {
   html {
+    scroll-behavior: smooth;
     background: var(--color-oxide);
     color: var(--color-polished);
     color-scheme: dark;
@@ -55,28 +57,14 @@
   }
 }
 
-/* Lenis */
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-
-.lenis:not(.lenis-autoToggle).lenis-stopped {
-  overflow: clip;
-}
-
-.lenis [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
 @layer components {
-  /* Display serif at its highest optical size: the thin strokes read as polish. */
+  /* Geometric display type, with the original serif reserved for the logo. */
   .display {
     font-family: var(--font-display);
     font-optical-sizing: auto;
-    font-weight: 450;
-    letter-spacing: -0.025em;
-    line-height: 0.96;
+    font-weight: 400;
+    letter-spacing: -0.065em;
+    line-height: 1.04;
   }
 
   /* Brushed-silver text fill used for the wordmark and key numerals. */
@@ -121,5 +109,67 @@ html.lenis body {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+}
+
+.logo-display {
+  font-family: var(--font-logo);
+  font-weight: 450;
+  letter-spacing: -0.025em;
+}
+
+.silver-surface {
+  background:
+    linear-gradient(135deg, rgb(238 241 245 / 0.06), transparent 45%), #0e1015;
+  box-shadow:
+    inset 0 1px 0 rgb(238 241 245 / 0.07),
+    0 24px 64px -40px #000;
+}
+
+.metal-node {
+  background: conic-gradient(
+    from 35deg,
+    #727d8b,
+    #fff 12%,
+    #8e99a8 28%,
+    #242a33 48%,
+    #e4eaf2 67%,
+    #798695 82%,
+    #e7edf5
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.3),
+    0 4px 14px #000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition-duration: 0s !important;
+  }
+}
+
+.silver-fallback {
+  position: absolute;
+  left: 79%;
+  top: 50%;
+  width: min(38vw, 32rem);
+  aspect-ratio: 1;
+  border: clamp(36px, 6vw, 90px) solid #b5bfcd;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-24deg) scaleX(0.8);
+  background: transparent;
+  box-shadow:
+    inset 5px 6px 16px #fff,
+    inset -8px -6px 20px #202833,
+    8px 8px 22px #000,
+    -3px -3px 8px #f4f7ff;
+}
+@media (max-width: 767px) {
+  .silver-fallback {
+    left: 50%;
+    width: 60vw;
   }
 }

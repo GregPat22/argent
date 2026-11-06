@@ -1,5 +1,7 @@
 "use client";
 
+import { SectionSignature } from "@/components/section-signature";
+
 import {
   animate,
   motion,
@@ -55,6 +57,7 @@ function Comparison() {
     ["inset(0 0 0 0%)", "inset(0 0 0 100%)"],
   );
   const left = useTransform(smooth, [0, 1], ["0%", "100%"]);
+  const handleOffset = useTransform(smooth, [0, 1], [28, -28]);
   const dragging = useRef(false);
   const [percent, setPercent] = useState(86);
   useMotionValueEvent(position, "change", (value) =>
@@ -101,7 +104,7 @@ function Comparison() {
   return (
     <div
       ref={ref}
-      className="relative h-[25rem] cursor-ew-resize touch-pan-y overflow-hidden rounded-2xl border border-hairline-strong select-none sm:h-[22rem]"
+      className="relative h-[30rem] cursor-ew-resize touch-pan-y overflow-hidden rounded-2xl border border-hairline-strong select-none sm:h-[22rem]"
       onPointerDown={(event) => {
         dragging.current = true;
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -152,7 +155,8 @@ function Comparison() {
         className="pointer-events-none absolute inset-y-0 w-0"
       >
         <div className="absolute inset-y-0 -left-px w-0.5 bg-gradient-to-b from-transparent via-polished to-transparent" />
-        <div
+        <motion.div
+          style={{ x: handleOffset }}
           role="slider"
           tabIndex={0}
           aria-label="Compare the agent’s claim with Argent’s record"
@@ -173,7 +177,7 @@ function Comparison() {
           >
             <path d="M7 5 2 10l5 5M13 5l5 5-5 5" />
           </svg>
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );
@@ -291,6 +295,7 @@ export function Hallmark() {
       aria-labelledby="hallmark-title"
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 py-24 md:px-10 md:py-36"
     >
+      <SectionSignature number="04" label="Proof, not promises" kind="seal" />
       <div className="grid gap-10 md:grid-cols-12">
         <h2
           id="hallmark-title"
@@ -309,6 +314,10 @@ export function Hallmark() {
       </div>
 
       <div className="mt-14">
+        <p className="mb-4 text-sm text-sterling-dim">
+          Illustrative planned workflow · example commit and simulated check
+          results. Drag the divider or use arrow keys.
+        </p>
         <Comparison />
       </div>
 

@@ -7,12 +7,12 @@ Private chat access is not required to continue development.
 
 ## Where the work is saved
 
-| Location                                           | State at this handoff                                                           | How to use it                                                                                                                                                                                                |
-| -------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `main`                                             | M0 runtime, product/research context, agent entry points and this handoff       | Starting point for general new worktrees. P1 is not yet merged here.                                                                                                                                         |
-| `codex/desktop-handoff`                            | Completed P1 source reconciled with the shared GitHub context; commit `22ef186` | Review [draft PR #1](https://github.com/GregPat22/argent/pull/1). Use this branch for desktop continuation until an explicit merge decision.                                                                 |
-| `codex/p1-original`                                | Original completed P1 commit `a4f3d52`, preserved unchanged                     | Provenance/backup, rather than the preferred development base.                                                                                                                                               |
-| `GregPat22/argent-landing-page-draft` in Conductor | Active local landing-page work, based on the shared context                     | At audit time `website/` and `docs/specs/0005-website-landing-draft.md` are uncommitted. They are not included in PR #1 or this publication. Preserve them and let the landing agent commit/push when ready. |
+| Location                                           | State at this handoff                                                           | How to use it                                                                                                                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `main`                                             | M0 runtime, product/research context, agent entry points and this handoff       | Starting point for general new worktrees. P1 is not yet merged here.                                                                                                         |
+| `codex/desktop-handoff`                            | Completed P1 source reconciled with the shared GitHub context; commit `22ef186` | Review [draft PR #1](https://github.com/GregPat22/argent/pull/1). Use this branch for desktop continuation until an explicit merge decision.                                 |
+| `codex/p1-original`                                | Original completed P1 commit `a4f3d52`, preserved unchanged                     | Provenance/backup, rather than the preferred development base.                                                                                                               |
+| `GregPat22/argent-landing-page-draft` in Conductor | Active local landing-page work, based on the shared context                     | Initial draft committed as `c70cb4c`; visual refinement follows on this branch. Neither the landing draft nor the refinement is merged into main. See the W0.1 update below. |
 
 The default branch's M0-only descriptions refer to its actual runtime, not the
 latest completed work on every branch. The review branch's README, architecture,
@@ -239,3 +239,41 @@ review the actual diff, and commit/push the intended work. Do not rely on a
 private chat, ignored `context-log.md` or a session ID as the sole project memory.
 Do not commit another active agent's unreviewed files. If sources disagree,
 inspect the checkout and evidence and correct the documentation explicitly.
+
+## W0.1 landing refinement — 6 November 2026
+
+Branch: `GregPat22/argent-landing-page-draft`, based on landing commit `c70cb4c`.
+A fresh fetch found `origin/main` at `a5a96cb`, with no main-only commits ahead
+of this branch and one landing commit outside main before this refinement. The
+initial working tree was clean. The landing source was committed/pushed on its
+branch; it was not integrated into main. P1 remains on its separate desktop
+review branch. No merge, deployment or public installer was performed.
+
+The founder approved the Ag logo and overall silver concept, then requested a
+better graphic, new typography, a complete Laws of UX agent audit and premium
+animation throughout. The refinement preserves the Ag mark and serif wordmark,
+uses Space Grotesk/Manrope elsewhere, replaces droplets with a connected silver
+loop sculpture, adds “Argent is a good conductor” as the second heading, and
+shares silver orbit/trace/seal details across sections and roadmap.
+
+The UX audit and second independent diff review prompted mobile navigation,
+44px targets, readable workflow copy, shorter pacing, explicit simulated-evidence
+labels and corrected P1/planned-cloud claims. Native anchor scrolling replaces
+Lenis, avoiding a motion-preference change remounting the page. The hero has a
+30fps cap, bounded buffer, pause/resume, offscreen/hidden suspension, a static
+reduced-motion frame and CSS fallback. Motion AI/Motion+ tools were not exposed;
+no premium source, private dependency or credential was used.
+
+Evidence: website typecheck and production build passed; **8 Playwright browser
+tests passed** against that production build, covering desktop/mobile/tablet,
+keyboard, reconnect, slider bounds, reduced motion, actual pause/resume rendering,
+fallback and copy feedback. Root `npm run check` passed **22 tests**, typechecking
+and formatting. `.context/` is excluded from formatting so ignored workspace
+attachments/tools do not break source checks. Screenshots remain locally in
+`.context/refinement/`. The [W0.1 spec](docs/specs/0005-website-landing-draft.md)
+and [UX review](docs/research/landing-ux-review.md) record details and limits.
+
+Next: founder visual feedback; optional Safari/real-device GPU checks; explicit
+review and integration of the landing and desktop branches, reconciling their
+shared `website/` ownership. Neither the typography proposal nor the passing
+browser suite establishes a public release or validated conversion improvement.

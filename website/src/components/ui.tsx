@@ -7,7 +7,7 @@ import {
   useReducedMotion,
   useSpring,
 } from "motion/react";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { STATUS_LABEL, type Status } from "@/lib/site";
 
 const STATUS_DOT: Record<Status, string> = {
@@ -47,10 +47,11 @@ export function StatusTag({
 
 /** Silver's periodic-table tile. Ag is also the first two letters of "agent". */
 export function AgMark({ size = 36 }: { size?: number }) {
+  const gradient = useId();
   return (
     <svg width={size} height={size} viewBox="0 0 36 36" aria-hidden role="img">
       <defs>
-        <linearGradient id="ag-tile" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#f6f8fb" />
           <stop offset="0.45" stopColor="#9aa1ac" />
           <stop offset="0.7" stopColor="#e3e7ec" />
@@ -63,7 +64,7 @@ export function AgMark({ size = 36 }: { size?: number }) {
         width="35"
         height="35"
         rx="7"
-        fill="url(#ag-tile)"
+        fill={`url(#${gradient})`}
       />
       <text
         x="5"
@@ -79,7 +80,7 @@ export function AgMark({ size = 36 }: { size?: number }) {
         y="27"
         textAnchor="middle"
         fontSize="17"
-        fontFamily="var(--font-display)"
+        fontFamily="var(--font-logo)"
         fontWeight="600"
         fill="#08090c"
       >

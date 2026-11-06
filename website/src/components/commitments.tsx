@@ -1,3 +1,7 @@
+"use client";
+
+import { motion, useReducedMotion } from "motion/react";
+import { SectionSignature } from "@/components/section-signature";
 import { StatusTag } from "@/components/ui";
 import type { Status } from "@/lib/site";
 
@@ -34,11 +38,17 @@ const ITEMS: {
 ];
 
 export function Commitments() {
+  const reduce = useReducedMotion();
   return (
     <section
       aria-labelledby="commitments-title"
       className="mx-auto max-w-[1320px] px-6 py-24 md:px-10 md:py-32"
     >
+      <SectionSignature
+        number="05"
+        label="Independence by design"
+        kind="orbit"
+      />
       <div className="grid gap-12 lg:grid-cols-12">
         <h2
           id="commitments-title"
@@ -47,10 +57,19 @@ export function Commitments() {
           Yours to run, wherever you want.
         </h2>
         <div className="grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:col-span-7">
-          {ITEMS.map((item) => (
-            <article
+          {ITEMS.map((item, index) => (
+            <motion.article
               key={item.title}
-              className="border-t border-hairline-strong pt-6"
+              initial={{ opacity: 1, y: reduce ? 0 : 24 }}
+              whileInView={{ y: 0 }}
+              viewport={{ once: true, amount: 0.3 }}
+              transition={{
+                type: "spring",
+                visualDuration: 0.6,
+                bounce: 0,
+                delay: reduce ? 0 : index * 0.06,
+              }}
+              className="silver-surface rounded-2xl border border-hairline p-6"
             >
               <h3 className="display text-[1.85rem] leading-[1.05]">
                 {item.title}
@@ -61,7 +80,7 @@ export function Commitments() {
                 subject={item.subject}
                 className="mt-5"
               />
-            </article>
+            </motion.article>
           ))}
         </div>
       </div>

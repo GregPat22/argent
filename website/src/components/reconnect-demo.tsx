@@ -1,5 +1,7 @@
 "use client";
 
+import { SectionSignature } from "@/components/section-signature";
+
 import { AnimatePresence, motion, useInView } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { AgMark, StatusTag } from "@/components/ui";
@@ -170,6 +172,11 @@ export function ReconnectDemo() {
       aria-labelledby="reconnect-title"
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 py-24 md:px-10 md:py-36"
     >
+      <SectionSignature
+        number="02"
+        label="Connection is optional"
+        kind="trace"
+      />
       <div className="grid gap-10 md:grid-cols-12 md:items-end">
         <div className="md:col-span-7">
           <h2
@@ -181,10 +188,11 @@ export function ReconnectDemo() {
         </div>
         <div className="md:col-span-5">
           <p className="max-w-[34rem] text-sterling">
-            Execution belongs to a worker next to your workspace, not to the
-            window you’re looking at. Close Argent, switch machines, come back
-            tomorrow. The app reads the saved history from its last position and
-            catches up. Nothing runs twice.
+            In the planned cloud flow, a worker owns execution independently of
+            the app. Switch machines and reconnect to saved history.
+            Reconnecting only reads state; uncertain side effects require
+            reconciliation. Today’s local prototype demonstrates this with
+            simulated work.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
             <StatusTag status="live" subject="Local reconnect" />

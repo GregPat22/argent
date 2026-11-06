@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import {
   Bodoni_Moda,
   JetBrains_Mono,
-  Schibsted_Grotesk,
+  Space_Grotesk,
+  Manrope,
 } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -14,8 +15,14 @@ const bodoni = Bodoni_Moda({
   display: "swap",
 });
 
-const schibsted = Schibsted_Grotesk({
-  variable: "--font-schibsted",
+const space = Space_Grotesk({
+  variable: "--font-space",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
   display: "swap",
 });
@@ -29,7 +36,7 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Argent: AI coding agents you can verify",
   description:
-    "Argent is an open-source desktop app for running AI coding agents in persistent workspaces. Runs survive disconnects, results are checked independently, and nothing merges without you.",
+    "Argent is an open-source desktop app for running AI coding agents in persistent workspaces. A local simulated desktop prototype today. Persistent cloud execution and independently verified code are the roadmap.",
 };
 
 export const viewport: Viewport = {
@@ -40,7 +47,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${bodoni.variable} ${schibsted.variable} ${jetbrains.variable}`}
+      className={`${bodoni.variable} ${space.variable} ${manrope.variable} ${jetbrains.variable}`}
     >
       <body>
         <Providers>{children}</Providers>

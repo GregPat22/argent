@@ -1,6 +1,12 @@
 "use client";
 
-import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useReducedMotion,
+} from "motion/react";
 import { AgMark } from "@/components/ui";
 import { DOCS_URL, LICENSE_URL, REPO_URL, ROADMAP_URL } from "@/lib/site";
 
@@ -12,6 +18,7 @@ const LINKS = [
 ];
 
 export function Footer() {
+  const reduce = useReducedMotion();
   const pointer = useMotionValue(0.3);
   const smooth = useSpring(pointer, { stiffness: 60, damping: 20 });
   const sheen = useTransform(smooth, [0, 1], ["0%", "100%"]);
@@ -20,6 +27,7 @@ export function Footer() {
     <footer
       className="relative overflow-hidden border-t border-hairline"
       onPointerMove={(event) => {
+        if (reduce) return;
         const rect = event.currentTarget.getBoundingClientRect();
         pointer.set((event.clientX - rect.left) / rect.width);
       }}
@@ -42,7 +50,7 @@ export function Footer() {
                   href={link.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="transition-colors hover:text-polished"
+                  className="inline-flex min-h-11 items-center transition-colors hover:text-polished"
                 >
                   {link.label}
                 </a>
@@ -54,7 +62,7 @@ export function Footer() {
         <motion.p
           aria-hidden
           style={{ "--sheen": sheen } as Record<string, unknown>}
-          className="display silver-text mt-10 pb-[0.3em] text-center text-[clamp(6rem,27vw,26rem)] leading-[0.82] select-none"
+          className="logo-display silver-text mt-10 pb-[0.3em] text-center text-[clamp(6rem,27vw,26rem)] leading-[0.82] select-none"
         >
           Argent
         </motion.p>
