@@ -11,6 +11,7 @@ import {
   type SimulatedRepositoryBootstrap,
 } from "./repository-access.js";
 import type { RepositoryStore } from "./repository-store.js";
+import { RepositoryCredentialVault } from "./repository-credentials.js";
 
 async function bounded<T>(
   signal: AbortSignal,
@@ -34,11 +35,14 @@ export async function workRepository(
   authority: SimulatedRepositoryAuthority,
   github: SimulatedGitHubAccess,
   bootstrap: SimulatedRepositoryBootstrap,
+  custody: RepositoryCredentialVault,
   leaseMs = 1000,
   cleanupTimeoutMs = 1000,
 ): Promise<boolean> {
+  if (!custody.isFor(store))
+    throw new DomainError(400, "Repository custody does not match the store");
   if (
-    [authority, github, bootstrap].some(
+    [custody, authority, github, bootstrap].some(
       (adapter) => adapter.simulation !== true,
     )
   )
@@ -100,6 +104,9 @@ export async function workRepository(
     // Capture the credential before validating scope so an overbroad grant is
     // revoked too. Never retain arbitrary provider response/error text.
     credential = tokenFrom(minted);
+    // Commit encrypted custody before scope validation or any credential use.
+    // Overbroad tokens must remain recoverable if revocation is interrupted.
+    if (credential !== null) custody.capture(op.id, fence, credential);
     const expiresAt = tokenExpiry(minted, grant);
     store.minted(op.id, fence, expiresAt);
     // The deadline bounds every later call and revocation may run for one

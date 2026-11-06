@@ -159,12 +159,26 @@ fixed reason. Completed duplicate keys read their receipt; concurrent inspection
 are read-only and their settlements serialize with lifecycle requests. This
 does not implement actual cleanup or bypass uncertain external outcomes.
 
+Internal `RepositoryCredentialVault` adds encrypted simulation custody to the
+same SQLite database (repository schema version 4). Mint intent reserves an opaque
+reference transactionally. The caller explicitly supplies a dedicated 256-bit key
+and key ID; no key is persisted or discovered from host credentials. AES-256-GCM
+with fresh nonces authenticates the reference and operation/operator/workspace/
+provider/repository/installation identities. Fenced capture and its event commit
+before token acceptance/use, including overbroad supported-format tokens. The
+original trusted operator may recover with the correct key through an internal
+read only; this neither performs cleanup nor resolves an uncertain attempt.
+Revocation acknowledgment erases active ciphertext transactionally with its event;
+confirmed audited resolution also erases it, preserving historical states and the
+reference. This is logical erasure, not physical WAL/backup deletion.
+
 The fixtures prove contract handling only. There is no HTTP GitHub adapter, real
-authorization/sign-in service, secret vault, isolated Git runner or dependency
-execution. A crash after mint intent may leave an unknown token; no durable secret
-or revocation mechanism is implemented. A real audited cleanup/recovery service,
-durable secret custody and live isolation/credential-leak tests are mandatory
-before enabling real adapters. In particular, an inspector must independently
+authorization/sign-in service, production key custody, isolated Git runner or
+dependency execution. A crash before mint-response capture still leaves an
+unknown token, and losing the injected key prevents recovery. Key rotation,
+backup and an audited cleanup dispatcher remain unimplemented. Production secret
+custody and live isolation/credential-leak tests are mandatory before enabling
+real adapters. In particular, an inspector must independently
 prove old requests cannot complete after resolution; simulation does not prove it.
 The installed client, public API and normal service worker remain on M0/P1.
 

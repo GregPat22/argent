@@ -13,7 +13,8 @@ execution remains part of the product, even though its primary client is desktop
 
 **Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). Current branch
 `GregPat22/conductor-layout-create` started at `333d662` (PR #8) and now integrates
-main `7b2eeca` (PR #10), including audited simulated repository recovery.
+main `9eac908` (PR #11), including audited recovery and encrypted simulated
+repository credential custody.
 It adds a familiar Conductor-style raw desktop shell and reprioritizes subscriptions,
 cloud migration and mobile before team/dependency orchestration. See
 [spec 0008](docs/specs/0008-conductor-familiar-desktop.md) and the
@@ -34,7 +35,7 @@ execution and a tested-PR flow are future acceptance contracts, not live feature
 in this revision. The source repository is public and MIT-licensed. No published
 production download, approved pricing or customer proof is established here.
 
-Next engineering contract: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). Retain the current core for bounded implementation. The internal lifecycle, repository-bootstrap and audited recovery harnesses are simulated; durable secret custody, real recovery/cleanup, live GitHub access, isolated checkout and approved provider validation remain next.
+Next engineering contract: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). Retain the current core for bounded implementation. The internal lifecycle, repository-bootstrap and audited recovery harnesses are simulated; production key custody, audited recovery cleanup, live GitHub access, isolated checkout and approved provider validation remain next.
 
 ## If this folder appears empty
 

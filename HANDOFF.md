@@ -6,9 +6,9 @@ the latest known state across the project chats and checkouts. Read it alongside
 Private chat access is not required to continue development.
 
 **Current checkout:** `GregPat22/conductor-layout-create`, originally based on
-main `333d662` (PR #8), now integrating `origin/main` at `7b2eeca` (PR #10).
+main `333d662` (PR #8), now integrating `origin/main` at `9eac908` (PR #11).
 P2/P2.1 add the familiar desktop layout, UX/icon refinement and replacement
-roadmap. Main's audited simulated repository recovery is preserved. Execution
+roadmap. Main's audited recovery and encrypted simulated credential custody are preserved. Execution
 remains simulated; real accounts/cloud/migration/mobile and website publication
 remain unfinished.
 
@@ -168,8 +168,9 @@ retains historical branch provenance.
 
 | Location                                            | Current state                                                                                | How to use it                                                                |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `origin/main` at `7b2eeca`                          | M0/P1, refined landing, continuity plans, simulated lifecycle/bootstrap and audited recovery | Base integrated into this branch; no live cloud execution or public release. |
+| `origin/main` at `9eac908`                          | M0/P1, refined landing, continuity plans, simulated lifecycle/bootstrap and audited recovery | Base integrated into this branch; no live cloud execution or public release. |
 | `GregPat22/motion-landing-page-improve`             | W0.3–W0.6 landing refinement integrated through PR #8                                        | Historical landing evidence; preserve any remaining worktree changes.        |
+| `GregPat22/next-step-v5`                            | Encrypted simulated credential custody integrated through PR #11                             | Historical internal custody evidence; no production key service.             |
 | `GregPat22/next-step-v4`                            | Audited simulated bootstrap resolution integrated through PR #10                             | Historical internal recovery evidence; no live adapter.                      |
 | `GregPat22/code-review-v2`                          | Second bootstrap review integrated through PR #9                                             | Historical hardening evidence.                                               |
 | `GregPat22/code-review`                             | Bootstrap hardening integrated through PR #7                                                 | Historical simulation review evidence.                                       |
@@ -181,6 +182,76 @@ retains historical branch provenance.
 Historical sections retain revision-specific evidence and branch states. The
 Next.js landing remains separate from desktop packaging and the static download
 preview. PR preparation does not authorize merging, deployment or binary release.
+
+### Encrypted simulated credential custody — 6 November 2026
+
+On unchanged branch `GregPat22/next-step-v5`, based on `origin/main` at
+`7b2eeca98005ce52e7cf99eec893f4d9ef215a08` (PR #10). Added internal
+`RepositoryCredentialVault` and repository schema version 4. Mint intent now
+reserves an opaque reference transactionally. The simulation worker requires an
+explicitly injected dedicated 256-bit key and captures supported-format tokens
+with AES-256-GCM before scope validation or credential use. Authenticated context
+binds the reference and operation/operator/workspace/provider/repository/
+installation IDs. The key is copied into a private field and never stored in
+SQLite; tests use a clearly synthetic fixed key.
+
+Encrypted capture is fenced by lease, deadline, phase and a pending reference.
+Only the original trusted operator and correct key can recover through the
+internal custody method. Wrong keys, modified ciphertext and cross-operation
+substitution fail closed. Recovery only reads; it cannot mint, revoke, clear,
+clone or unlock work. Acknowledged revocation erases active ciphertext in the
+same transaction as its state/event. Confirmed audited resolution also erases
+custody while preserving the old credential/channel history and reference.
+Versions 1–3 preserve operations/events; older builds reject version 4.
+
+Evidence: fresh `npm run check` passes strict types, formatting, compilation and
+**176 tests, 0 failures, 0 skips**,
+including **20 new custody simulation tests**. These cover process death after
+capture, restart/no replay, wrong actor/key, ciphertext tampering and substitution,
+nonce freshness, competing process capture, stale ownership, capture/erase/
+resolution rollback, scope rejection before credential use, key/store validation,
+version 3 upgrade and plaintext/key canaries in SQLite/WAL. Log:
+`.context/check.log`. The actual source/test/documentation diff was reviewed by
+the implementing agent, including adapter guards, atomic ciphertext erasure and
+legacy-schema behavior. No external security review, live credential handling or
+measured coverage percentage is claimed.
+
+Limits: synthetic credentials only, no production key custody/rotation/backup,
+remote authentication, live GitHub or isolated checkout. Losing the key loses
+recovery. Erasure removes the active payload, not historical encrypted bytes in
+WAL/snapshots/backups. A crash before capturing the mint response still leaves an
+unknown token; late effects remain unresolved. No automatic cleanup dispatcher
+or API/desktop/service-loop integration was added. Native/package smoke, website
+checks and live A1–A10 gates were not run; M1a remains incomplete.
+
+Next: implement an audited cleanup path using recoverable references and trusted
+proof that old requests have settled, then server-side GitHub authorization and
+isolated checkout. Before live tests, establish production key custody and exact
+account/provider/resource/budget/retention limits. Work remains local and
+uncommitted; no branch rename, push, PR, merge, deployment or provisioning.
+
+### Credential custody PR preparation — 6 November 2026
+
+On unchanged branch `GregPat22/next-step-v5`, freshly fetched `origin/main`
+remains `7b2eeca`; no integration changes were needed. The founder requested a
+PR for the full workspace diff, authorizing commit, branch push and PR creation
+against `main`. Package version stays `0.0.1`; this internal prelaunch slice does
+not introduce a VERSION/CHANGELOG release scheme.
+
+Fresh `npm run check` passes strict types, formatting, compilation and
+**176 tests, 0 failures, 0 skips** (log `.context/pr-check.log`). Independent
+read-only code/security and bounded acceptance/coverage reviews found no
+blocking issue. All five fourth-slice acceptance bullets have implementation and
+behavioral evidence; no measured coverage percentage is claimed. Focused direct
+negative tests for malformed sealed envelopes, invalid/pre-intent capture,
+authentic-but-invalid plaintext and rejected resolution with stored ciphertext
+remain nonblocking test gaps. No source changes were made during PR preparation.
+
+All synthetic/live-provider, key-lifecycle, lost-mint and physical-erasure limits
+above remain. No native/package smoke, website or live-provider tests were run.
+Next is audited recovery cleanup, production key custody and then authorized
+server-side GitHub/isolated checkout. Merge, deployment, binary release and
+spending remain separate decisions.
 
 ### Audited simulated bootstrap resolution — 6 November 2026
 

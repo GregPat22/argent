@@ -259,3 +259,16 @@ reproduction traced abort → worker completion → blocked server close. The st
 response now explicitly closes that connection. A regression fails without the
 header and passes with it; interrupted work remains `needs_attention` with no
 replay. No new API operation or execution authority is introduced.
+
+## Encrypted simulation custody — 6 November 2026
+
+On `GregPat22/next-step-v5`, based on main `7b2eeca`, retain opaque credential
+references and encrypted synthetic tokens within the existing single-host SQLite
+boundary. An explicitly injected dedicated 256-bit key stays outside SQLite;
+AES-256-GCM binds ciphertext to its operation and authorization identities.
+Capture precedes token acceptance/use; acknowledged revocation or independently
+confirmed audited resolution removes the active encrypted payload transactionally.
+This is an internal engineering choice for restart testing, not selection of a
+production secret-management system. Key custody/rotation/backup, unknown mint
+outcomes, audited recovery cleanup and live adapters remain open. See
+[the bounded acceptance contract](specs/0007-cloud-workspace-lifecycle.md#fourth-implementation-slice-encrypted-simulated-credential-custody).
