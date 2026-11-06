@@ -207,3 +207,69 @@ test("detached service persists across clients, deduplicates startup, and expose
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("stopping an active desktop service closes polling connections and preserves uncertainty", async () => {
+  const root = mkdtempSync(join(tmpdir(), "argent-active-stop-"));
+  let connection;
+  const pause = () => new Promise((resolve) => setTimeout(resolve, 30));
+  try {
+    connection = await ensureService(root);
+    const workspace = (await serviceRequest(connection, "/workspaces", "POST", {
+      repository: "https://github.com/test/shutdown",
+    })) as { id: string };
+    const run = (await serviceRequest(
+      connection,
+      "/runs",
+      "POST",
+      {
+        workspaceId: workspace.id,
+        task: "Observe interrupted simulation",
+        maxRuntimeMs: 30000,
+      },
+      "active-stop",
+    )) as { id: string };
+    const runningDeadline = Date.now() + 3000;
+    while (
+      (
+        (await serviceRequest(connection, `/runs/${run.id}`)) as {
+          status: string;
+        }
+      ).status !== "running"
+    ) {
+      assert.ok(Date.now() < runningDeadline, "fixture run must start");
+      await pause();
+    }
+    await serviceRequest(connection, "/service/stop", "POST", {});
+    const deadline = Date.now() + 2500;
+    while (readConnection(root)) {
+      assert.ok(
+        Date.now() < deadline,
+        "active service must release ownership despite client polling",
+      );
+      await isServiceAlive(connection);
+      await pause();
+    }
+    assert.equal(await isServiceAlive(connection), false);
+    const store = new Store(join(root, "platform.sqlite"));
+    try {
+      assert.equal(store.getRun(run.id).status, "needs_attention");
+      assert.equal(store.claim(5000), null, "an uncertain run cannot replay");
+    } finally {
+      store.close();
+    }
+  } finally {
+    // This fixture owns its private profile and process, including on pre-fix failure.
+    if (
+      connection &&
+      readConnection(root)?.instanceId === connection.instanceId
+    ) {
+      try {
+        process.kill(connection.pid, "SIGKILL");
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+      }
+      await pause();
+    }
+    rmSync(root, { recursive: true, force: true });
+  }
+});
