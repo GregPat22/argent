@@ -119,10 +119,40 @@ state match; an absent create marker remains inconclusive. Delete requires
 confirmed absence and retains its provider ID in an audit tombstone.
 
 This harness is not wired into the public API, desktop bridge or service worker
-loop. It has no GitHub credentials, checkout/bootstrap, persistence manifest,
+loop. It has no live GitHub credentials, real checkout, persistence manifest,
 real provider, resource policy or full cleanup inventory. Its simulation-only
 adapter contract must not be expanded for real execution before those boundaries
 are implemented and verified. See [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md).
+
+## Internal repository access simulation
+
+`Store.repositories` adds a separate repository operation/event queue on the same
+SQLite connection. Bootstrap binds a ready lifecycle workspace and provider ID;
+its enrollment and lifecycle requests serialize under the same write lock.
+Pending or uncertain bootstrap blocks pause/delete. One bootstrap per workspace
+is allowed; even a successful checkout is not repeated under a new request key.
+
+The simulation-only worker asks a trusted server-side authority to validate the
+operator/repository/ref and return numeric repository/installation IDs. Client
+input cannot select the installation or permissions. Each new operation checks
+authority before requesting a single-repository Contents-read token. Returned
+scope/expiry is validated before resolving a full commit SHA. Checkout receives
+a credential-free fixed plan and a separate ephemeral credential argument; a
+separate inspection call must match the plan with hooks/submodules/LFS disabled.
+
+Intent precedes mint/checkout dispatch; leases fence state writes. The worker
+attempts bounded token revocation and channel clearing on success or failure.
+Success requires checkout verification and both cleanup acknowledgments.
+Exceptions are never persisted. Unknown outcomes, expired ownership and cleanup
+failure retain `needs_attention` plus token/channel obligations; reconnect only
+reads. This is a separate bootstrap status, not a new lifecycle-ready guarantee.
+
+The fixtures prove contract handling only. There is no HTTP GitHub adapter, real
+authorization/sign-in service, secret vault, isolated Git runner or dependency
+execution. A crash after mint intent may leave an unknown token; no durable secret
+or revocation mechanism is implemented. An audited resolution/cleanup path and
+live isolation/credential-leak tests are mandatory before enabling real adapters.
+The installed client, public API and normal service worker remain on M0/P1.
 
 ## Managed target
 

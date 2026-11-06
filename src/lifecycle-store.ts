@@ -220,6 +220,17 @@ export class LifecycleStore {
         );
 
       let from: LifecycleState | null = null;
+      if (
+        this.db
+          .prepare(
+            "SELECT id FROM repository_operations WHERE workspace_id = ? AND status != 'succeeded'",
+          )
+          .get(workspaceId)
+      )
+        throw new DomainError(
+          409,
+          "Workspace has active or uncertain repository bootstrap",
+        );
       if (kind === "create") {
         if (
           this.db

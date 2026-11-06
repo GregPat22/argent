@@ -1,7 +1,7 @@
 # M1a: repository access and persistent isolated workspace
 
-Status: proposed live-provider contract; internal lifecycle simulation implemented,
-not provider-certified. Prepared on
+Status: proposed live-provider contract; internal lifecycle and repository-bootstrap
+simulations implemented, not provider-certified. Originally prepared on
 `GregPat22/next-step-v2` from main `fd60a5a` on 6 November 2026. P1 is integrated
 in that main revision; execution remains simulated.
 
@@ -196,7 +196,7 @@ cannot satisfy live isolation, persistence or budget evidence.
 
 Continue in bounded slices on the retained core: lifecycle records and
 fake-provider failure tests (implemented below); read-only credential
-broker/bootstrap (next); then the
+broker/bootstrap (simulation implemented below; live adapters next); then the
 approved live persistence and cleanup harness. Expand the adapter interface only
 alongside these tests. Keep M0/P1 checks passing and independently review the
 actual diff. Do not claim M1a until every criterion has recorded passing evidence.
@@ -239,3 +239,64 @@ implementation is internal `Store.lifecycle` plus its bounded simulation worker;
 no API or desktop integration is enabled. Native/package smoke and real-provider
 checks were not run. See the [handoff](../../HANDOFF.md#retained-core-decision-and-lifecycle-slice-6-november-2026)
 for exact limits and next work.
+
+## Second implementation slice: simulated repository access/bootstrap
+
+Acceptance criteria for `GregPat22/next-step-v3`, based on main `1424b92`:
+
+- Add an internal, simulation-only repository bootstrap queue with transactional
+  state/events, idempotency, atomic claims, fenced leases and absolute deadlines.
+  Bind it to an existing ready lifecycle workspace/provider identity. Serialize
+  bootstrap enrollment with lifecycle operations; neither can overlap the other.
+- A trusted server-side authorization adapter must bind the authenticated
+  operator, repository URL, allowed ref and numeric repository/installation IDs
+  before minting. Requests cannot supply an installation ID or permission map.
+  Recheck authorization for every new attempt; deny forged/mismatched/revoked grants.
+- Request exactly one repository ID and Contents read. Validate returned repository
+  selection, identities, read-only permissions and bounded expiration. Reject
+  extra repositories/permissions and invalid grants before sandbox access.
+- Resolve the allowed ref to a full SHA. A trusted simulated bootstrap adapter
+  receives the credential separately from a fixed, credential-free checkout plan.
+  Keep that plan immutable across adapter calls. Disable hooks, submodules and
+  LFS. Inspect checkout identity independently of
+  the checkout call's return before accepting evidence.
+- Persist mint/channel intent before dispatch. Revoke known tokens and clear the
+  ephemeral credential channel on success and failure using bounded cleanup calls.
+  Success requires both acknowledgments and matching checkout evidence; dependency
+  scripts and agent turns are outside this slice. Persist no token/error text.
+- Unknown mint, checkout or cleanup outcomes and expired ownership become
+  `needs_attention`. Retain identity and credential/channel cleanup obligations.
+  Reads, duplicate submissions and restart never replay bootstrap or minting.
+  Block further lifecycle mutations until unresolved bootstrap is reconciled.
+- Cover scope/authorization denial, cleanup failures, secret canaries, deadline
+  and stale-worker behavior, independent database claim races, event rollback and
+  durable read-only reconnect using deterministic simulation fixtures.
+
+This slice supplies no real GitHub App, HTTP adapter, operator sign-in, secret
+vault, isolated Git runner or live clone. Adapter declarations and synthetic
+checkout observations do not prove isolation or credential erasure. Crash recovery
+retains unresolved obligations; automated revocation after process death and an
+audited operator-resolution path remain required before a live adapter is enabled.
+The desktop/API and existing simulation-only lifecycle contract stay unchanged.
+
+Evidence on `GregPat22/next-step-v3`, based on `1424b92`: **50 focused simulation
+tests** pass; the full `npm run check` passes **118 tests**, strict types,
+formatting and compilation. This includes actual independent-process claim and
+pause/enrollment races, process death after mint intent, stale ownership after
+SQLite lock contention and late acknowledgment rejection. Canary checks inspect
+the operation/events, SQLite/WAL and credential-free plan. No real credential,
+argv, remote filesystem or credential-channel erasure was tested. No GitHub or
+provider mutation, native/package smoke or website check was performed. Actual
+diff review was performed by the implementing agent; external independent review
+and all live A1–A10 evidence remain open. See the
+[current handoff](../../HANDOFF.md#repository-accessbootstrap-slice--6-november-2026).
+
+PR preparation on the same branch, 6 November 2026: five additional tests cover
+malformed mint responses and heartbeat failure during an outstanding adapter
+call. The focused suite now contains **55 simulation tests** and fresh
+`npm run check` passes **123 tests, 0 failures, 0 skips**, strict types,
+formatting and compilation. Independent read-only agent reviews of the actual
+diff and bounded acceptance coverage found no blocking issue. These supersede
+the initial review gap above; human review and all live A1–A10 evidence remain
+open. Package version `0.0.1` is unchanged. See the
+[PR preparation handoff](../../HANDOFF.md#repository-bootstrap-pr-preparation--6-november-2026).
