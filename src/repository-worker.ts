@@ -53,6 +53,7 @@ export async function workRepository(
   if (!op) return false;
   const fence = op.leaseToken!;
   let credential: string | null = null;
+  let mintDispatched = false;
   let channelDispatched = false;
   let verified = false;
   let cleanupPassed = true;
@@ -87,6 +88,7 @@ export async function workRepository(
       op.ref,
     );
     store.authorize(op.id, fence, grant.repositoryId, grant.installationId);
+    mintDispatched = true;
     const minted = await bounded(controller.signal, () =>
       github.mint(
         grant.installationId,
@@ -100,14 +102,16 @@ export async function workRepository(
     // Capture the credential before validating scope so an overbroad grant is
     // revoked too. Never retain arbitrary provider response/error text.
     credential = tokenFrom(minted);
-    store.minted(op.id, fence, tokenExpiry(minted, grant));
+    const expiresAt = tokenExpiry(minted, grant);
+    store.minted(op.id, fence, expiresAt);
+    // The deadline bounds every later call, so the token must outlive it.
+    if (expiresAt <= op.deadlineAt!)
+      throw new Error("Repository credential expires before the deadline");
     const sha = fullSha(
       await bounded(controller.signal, () =>
         github.resolve(credential!, op.repository, op.ref, controller.signal),
       ),
     );
-    if (store.operation(op.id).tokenExpiresAt! <= Date.now())
-      throw new Error("Repository credential expired");
     store.checkout(op.id, fence, sha);
     // Keep the verification baseline immutable across adapter calls.
     const plan: CheckoutPlan = Object.freeze({
@@ -132,7 +136,8 @@ export async function workRepository(
     store.verified(op.id, fence);
     verified = true;
   } catch {
-    // Unknown outcomes, authorization denials and invalid evidence all block.
+    // Failures before mint dispatch had no external effect and fail cleanly.
+    // Later unknown outcomes and invalid evidence block the workspace.
     // Adapter errors may contain secrets; only fixed event names are persisted.
   } finally {
     // A separate bounded signal allows cleanup even after a main-call timeout.
@@ -164,6 +169,7 @@ export async function workRepository(
 
   try {
     if (verified && cleanupPassed) store.complete(op.id, fence);
+    else if (!mintDispatched) store.fail(op.id, fence);
     else store.markUncertain(op.id, fence);
   } catch (error) {
     if (!(error instanceof DomainError && error.status === 409)) throw error;

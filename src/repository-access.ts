@@ -100,6 +100,15 @@ export function tokenFrom(value: unknown): string | null {
     : null;
 }
 
+// GitHub names are case-insensitive and the API returns the canonical owner/name,
+// while workspace URLs may differ in case or carry a ".git" suffix.
+function repositoryName(url: string): string {
+  return url
+    .slice("https://github.com/".length)
+    .replace(/\.git$/i, "")
+    .toLowerCase();
+}
+
 export function tokenExpiry(
   value: unknown,
   grant: RepositoryAuthorization,
@@ -118,8 +127,8 @@ export function tokenExpiry(
     !tokenFrom(value) ||
     data.repository_selection !== "selected" ||
     repository.id !== grant.repositoryId ||
-    repository.full_name !==
-      grant.repository.slice("https://github.com/".length) ||
+    typeof repository.full_name !== "string" ||
+    repository.full_name.toLowerCase() !== repositoryName(grant.repository) ||
     permissions.contents !== "read" ||
     Object.entries(permissions).some(
       ([key, access]) =>

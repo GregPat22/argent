@@ -5,10 +5,10 @@ the latest known state across the project chats and checkouts. Read it alongside
 [START_HERE.md](START_HERE.md), [AGENTS.md](AGENTS.md) and the relevant specification.
 Private chat access is not required to continue development.
 
-**Current checkout:** `GregPat22/next-step-v3`, based on main `1424b92`.
-P1, the landing/continuity work and lifecycle simulation are on main. This branch
-adds internal simulated repository authorization, credential brokerage and
-bootstrap. No live GitHub or cloud capability follows from these changes.
+**Current checkout:** `GregPat22/code-review`, based on main `757f8eb`.
+P1, the landing/continuity work, lifecycle simulation and simulated repository
+bootstrap (PR #6) are on main. This branch hardens that bootstrap after a code
+review. No live GitHub or cloud capability follows from these changes.
 
 ## Where the work is saved
 
@@ -29,6 +29,37 @@ review notes below retain their original evidence and branch states.
 
 This feature branch continues current main; main itself is unchanged. Both M1a
 harnesses use simulation and add no real cloud execution or public release.
+
+### Repository bootstrap hardening — 6 November 2026
+
+On `GregPat22/code-review`, based on freshly fetched `origin/main` at `757f8eb`
+(PR #6). A code review of PR #6 found eight issues. The founder chose to fix the
+inexpensive correctness issues before the real GitHub adapter, and directed that
+user-facing GitHub behavior follow Conductor: a refusal is shown and can be
+retried rather than locking the workspace.
+
+- Token scope compares GitHub's canonical `owner/name` case-insensitively and
+  ignores a `.git` suffix in the workspace URL.
+- Branch refs accept dots where Git allows them (`release-1.2`), still rejecting
+  leading dots, `..`, a trailing dot and `.lock` components.
+- A minted token must outlive the operation deadline; otherwise it is revoked
+  before ref resolution. The later database re-read was removed.
+- Any failure before mint intent, including authorization denial, timeout and
+  lease expiry, ends as `failed` with a `repository.failed` event. No token or
+  channel can exist, so lifecycle requests stay available and a new
+  Idempotency-Key may retry. Everything from mint intent onward still becomes
+  `needs_attention`. The repository table drops the per-workspace UNIQUE in
+  favor of a partial index over non-failed rows; an empty first-version table is
+  rebuilt automatically and a non-empty one stops with a manual-migration error.
+
+Evidence: `npm run check` passes **129 tests, 0 failures, 0 skips**, strict
+types, formatting and compilation (log `.context/check.log`); six tests are new
+and four existing denial expectations changed from `needs_attention` to `failed`.
+Still open from the review, deliberately: lost-ownership cleanup is not recorded
+and there is no operator-resolution workflow (both belong to the planned audited
+resolution work); token-format capture, the lifecycle store's dependency on the
+repository table and duplicated `bounded`/`transaction` helpers. All adapters
+remain simulated.
 
 ### Repository access/bootstrap slice — 6 November 2026
 

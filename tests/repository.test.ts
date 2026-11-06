@@ -16,6 +16,7 @@ import type {
   SimulatedRepositoryAuthority,
   SimulatedRepositoryBootstrap,
 } from "../src/repository-access.js";
+import { tokenExpiry } from "../src/repository-access.js";
 import { workRepository } from "../src/repository-worker.js";
 import { Store } from "../src/store.js";
 
@@ -256,13 +257,51 @@ for (const [name, patch] of [
     };
     await f.work();
     assert.deepEqual(f.adapter.calls, ["authorize"]);
-    assert.equal(
-      f.store.repositories.operation(op.id).status,
-      "needs_attention",
-    );
+    assert.equal(f.store.repositories.operation(op.id).status, "failed");
     assert.equal(f.store.repositories.operation(op.id).credential, "none");
   });
 }
+
+test("simulated denial before minting fails cleanly and a new request can retry", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.grant = null;
+  await f.work();
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "failed");
+  assert.equal(result.leaseToken, null);
+  assert.equal(
+    f.store.repositories.events(op.id).at(-1)!.type,
+    "repository.failed",
+  );
+  // The same key still names the failed attempt; a retry needs a new key.
+  assert.equal(f.request().id, op.id);
+  assert.equal(await f.work(), false);
+  f.adapter.grant = {
+    operatorId: "operator",
+    repository,
+    ref,
+    repositoryId: 101,
+    installationId: 202,
+  };
+  const retry = f.request("retry");
+  assert.notEqual(retry.id, op.id);
+  assert.equal(await f.work(), true);
+  assert.equal(f.store.repositories.operation(retry.id).status, "succeeded");
+  assert.equal(f.store.repositories.operation(op.id).status, "failed");
+  assert.throws(() => f.request("third"), /already has/);
+});
+
+test("simulated denial before minting leaves lifecycle requests available", async (t) => {
+  const f = fixture(t);
+  f.request();
+  f.adapter.fail = "authorize";
+  await f.work();
+  assert.equal(
+    f.store.lifecycle.request(f.workspace.id, "delete", "after-denial").kind,
+    "delete",
+  );
+});
 
 test("simulated revoked access is rechecked for another workspace and cannot mint", async (t) => {
   const f = fixture(t);
@@ -277,7 +316,7 @@ test("simulated revoked access is rechecked for another workspace and cannot min
     2,
   );
   assert.equal(f.adapter.calls.filter((call) => call === "mint").length, 1);
-  assert.equal(f.store.repositories.operation(op.id).status, "needs_attention");
+  assert.equal(f.store.repositories.operation(op.id).status, "failed");
 });
 
 for (const [name, patch] of [
@@ -354,7 +393,6 @@ for (const [name, patch] of [
 }
 
 for (const failure of [
-  "authorize",
   "mint",
   "resolve",
   "checkout",
@@ -455,7 +493,7 @@ test("simulated heartbeat failure aborts an outstanding authorization call", asy
   assert.equal(heartbeats, 1);
   assert.deepEqual(f.adapter.calls, ["authorize"]);
   const result = f.store.repositories.operation(op.id);
-  assert.equal(result.status, "needs_attention");
+  assert.equal(result.status, "failed");
   assert.equal(result.credential, "none");
   assert.equal(
     JSON.stringify([result, f.store.repositories.events(op.id)]).includes(
@@ -793,4 +831,130 @@ test("simulated repository ownership is rechecked after database lock contention
   );
   assert.equal(f.store.repositories.operation(op.id).credential, "none");
   assert.equal(f.store.repositories.reconcileExpired(), 1);
+});
+
+test("simulated token scope accepts GitHub's canonical name for mixed-case and .git URLs", () => {
+  const now = Date.now();
+  const token = {
+    token: secret,
+    expires_at: new Date(now + 3500000).toISOString(),
+    repository_selection: "selected",
+    permissions: { contents: "read" },
+    repositories: [{ id: 101, full_name: "example/private-fixture" }],
+  };
+  const grant = {
+    operatorId: "operator",
+    repository: "https://github.com/Example/Private-Fixture.git",
+    ref,
+    repositoryId: 101,
+    installationId: 202,
+  };
+  assert.equal(tokenExpiry(token, grant, now), Date.parse(token.expires_at));
+  assert.throws(
+    () =>
+      tokenExpiry(
+        {
+          ...token,
+          repositories: [{ id: 101, full_name: "example/private-fixture2" }],
+        },
+        grant,
+        now,
+      ),
+    /scope or expiration/,
+  );
+});
+
+test("simulated requests accept dotted branch names and reject invalid Git refs", (t) => {
+  const f = fixture(t);
+  for (const branch of [
+    "refs/heads/release-1.2",
+    "refs/heads/v2.0",
+    "refs/heads/feature/x.y_z",
+  ]) {
+    const workspace = ready(f.store);
+    assert.equal(
+      f.store.repositories.request(workspace.id, "operator", branch, branch)
+        .ref,
+      branch,
+    );
+  }
+  for (const branch of [
+    "refs/heads/.hidden",
+    "refs/heads/a/.b",
+    "refs/heads/a..b",
+    "refs/heads/a.",
+    "refs/heads/a.lock",
+    "refs/heads/a.lock/b",
+    "refs/tags/v1.0",
+  ])
+    assert.throws(
+      () =>
+        f.store.repositories.request(
+          f.workspace.id,
+          "operator",
+          branch,
+          branch,
+        ),
+      /explicit branch ref/,
+    );
+});
+
+test("simulated token that expires before the deadline is revoked before resolve", async (t) => {
+  const f = fixture(t);
+  const op = f.request("request", 300000);
+  f.adapter.token.expires_at = new Date(Date.now() + 90000).toISOString();
+  await f.work();
+  assert.deepEqual(f.adapter.calls, ["authorize", "mint", "revoke"]);
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "needs_attention");
+  assert.equal(result.credential, "revoked");
+  assert.equal(result.channel, "none");
+});
+
+test("simulated expiry before mint intent fails cleanly and allows a retry", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.store.repositories.claim(100);
+  await delay(120);
+  f.reopen();
+  assert.equal(f.store.repositories.reconcileExpired(), 1);
+  assert.equal(f.store.repositories.operation(op.id).status, "failed");
+  assert.equal(f.store.repositories.operation(op.id).credential, "none");
+  assert.notEqual(f.request("retry").id, op.id);
+});
+
+test("simulated repository schema rebuilds an empty first-version table", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "argent-repository-schema-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const path = join(root, "platform.sqlite");
+  const legacy = (rows: boolean) => {
+    const db = new DatabaseSync(path);
+    db.exec(`
+      DROP TABLE IF EXISTS repository_events;
+      DROP TABLE IF EXISTS repository_operations;
+      CREATE TABLE repository_operations (
+        id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','needs_attention'))
+      ) STRICT;
+    `);
+    if (rows)
+      db.exec(
+        "INSERT INTO repository_operations VALUES ('op','ws','needs_attention')",
+      );
+    db.close();
+  };
+  legacy(false);
+  const store = new Store(path);
+  store.close();
+  const db = new DatabaseSync(path);
+  const sql = db
+    .prepare(
+      "SELECT sql FROM sqlite_master WHERE name = 'repository_operations'",
+    )
+    .get()!.sql as string;
+  db.close();
+  assert.match(sql, /'failed'/);
+  assert.doesNotMatch(sql, /workspace_id TEXT NOT NULL UNIQUE/);
+  legacy(true);
+  assert.throws(() => new Store(path), /manual migration/);
 });

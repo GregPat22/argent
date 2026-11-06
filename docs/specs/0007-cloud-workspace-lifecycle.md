@@ -300,3 +300,19 @@ diff and bounded acceptance coverage found no blocking issue. These supersede
 the initial review gap above; human review and all live A1–A10 evidence remain
 open. Package version `0.0.1` is unchanged. See the
 [PR preparation handoff](../../HANDOFF.md#repository-bootstrap-pr-preparation--6-november-2026).
+
+Hardening on `GregPat22/code-review`, based on `757f8eb`, supersedes parts of the
+criteria above:
+
+- A failure before mint intent (denial, authorization timeout or lease expiry
+  while authorizing) has no external effect. It ends as `failed`, does not
+  block lifecycle requests and permits a new request with a new Idempotency-Key.
+  Failures from mint intent onward still become `needs_attention`. At most one
+  non-failed bootstrap exists per workspace, including after success.
+- Token identity matches GitHub's canonical name case-insensitively and ignores
+  a `.git` suffix. A token must expire after the operation deadline.
+- Allowed branch refs may contain dots where Git permits them.
+
+Evidence: `npm run check` passes **129 tests, 0 failures, 0 skips**. The
+operator-resolution workflow and all live A1–A10 evidence remain open. See the
+[hardening handoff](../../HANDOFF.md#repository-bootstrap-hardening--6-november-2026).
