@@ -109,6 +109,19 @@ export async function runDesktopSmoke(
     await js(`document.querySelector('#inspector-files').hidden`),
     false,
   );
+  await js(`document.querySelector('[data-inspector="changes"]').click()`);
+  assert.equal(
+    await js(`document.querySelector('#inspector-changes').hidden`),
+    false,
+  );
+  await js(`document.querySelector('[data-terminal="Run"]').click()`);
+  assert.equal(
+    await js(
+      `document.querySelector('#terminal-description').textContent.includes('No command is running')`,
+    ),
+    true,
+  );
+
   assert.equal(
     await js(
       `document.querySelector('.brand-symbol').getBoundingClientRect().height <= 24`,
@@ -221,7 +234,7 @@ export async function runDesktopSmoke(
     1,
   );
   await js(
-    `document.querySelector('#workspace-search').focus(); document.querySelector('#navigation-dialog').dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowDown', bubbles:true})); document.activeElement.click(); document.querySelector('#composer-input').value = 'Review composer simulation'; document.querySelector('#composer-input').dispatchEvent(new Event('input')); document.querySelector('#composer-input').dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', metaKey:true, bubbles:true}));`,
+    `document.querySelector('#workspace-search').focus(); document.querySelector('#navigation-dialog').dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowUp', bubbles:true})); document.activeElement.dispatchEvent(new KeyboardEvent('keydown', {key:'ArrowDown', bubbles:true})); document.activeElement.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); document.querySelector('#composer-input').value = 'Review composer simulation'; document.querySelector('#composer-input').dispatchEvent(new Event('input')); document.querySelector('#composer-input').dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', metaKey:true, bubbles:true}));`,
   );
   assert.equal(await js(`document.querySelector('#task-dialog').open`), true);
   assert.equal(
@@ -303,6 +316,11 @@ export async function runDesktopSmoke(
     )!;
   };
   const first = await submit(task);
+  assert.equal(
+    await js(`document.querySelector('#composer-input').value`),
+    "Review composer simulation",
+    "submitting a different reviewed task must preserve the unsent draft",
+  );
   await until(
     async () =>
       (await call<RunView>("getRun", [first.id])).status === "completed",
@@ -356,8 +374,16 @@ export async function runDesktopSmoke(
     await delay(200);
     writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG());
   }
+  await js(
+    `document.querySelector('#composer-input').value = 'Continue this task after the application window closes'; document.querySelector('#composer-input').dispatchEvent(new Event('input'));`,
+  );
   const second = await submit(
     "Continue this task after the application window closes",
+  );
+  assert.equal(
+    await js(`document.querySelector('#composer-input').value`),
+    "",
+    "an accepted task clears its submitted composer draft",
   );
   await until(
     async () =>
