@@ -11,6 +11,10 @@ execution remains part of the product, even though its primary client is desktop
 
 ## Read the context for your task
 
+**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). It includes the
+completed P1 prototype on its review branch; the default main runtime below is M0
+until that work is explicitly approved and integrated.
+
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Understand the product           | [Project context](docs/PROJECT_CONTEXT.md), [vision](VISION.md)                                                                     |

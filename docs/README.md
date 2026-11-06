@@ -7,6 +7,10 @@ for later milestones.
 
 ## Product and decisions
 
+Read the [current handoff](../HANDOFF.md) first for the completed P1 review branch,
+evidence, Conductor worktree setup and next actions. The M0 descriptions here
+refer to the default branch's runtime until P1 is integrated.
+
 | Document                                                       | What it contains                                                                                               |
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [Project context](PROJECT_CONTEXT.md)                          | Product journey, current versus target capabilities, architecture invariants, business intent and next work.   |
@@ -47,3 +51,12 @@ session ID. Link every new specification or completion report from this index.
 Keep secrets, private transcripts, customer data, local databases and generated
 artifacts out of source control. The founding brief is included as intentionally
 published product context; unrelated chat history is not part of this repository.
+
+## Latest completed work outside main's runtime
+
+- [P1 completion report](milestones/0001-completion.md): completed local desktop
+  prototype and recorded native/package evidence; source is in draft PR #1.
+- [Pinned T3 source evaluation](research/t3-adoption-spike.md): source-only
+  evaluation at an exact revision; runtime conformance remains open.
+- [Development handoff](../HANDOFF.md): exact branches, sources, tests, limits,
+  Conductor worktree guidance, active website overlap and next actions.

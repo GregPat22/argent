@@ -5,6 +5,10 @@ understand the project without access to private chats. It describes accepted
 product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
+**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). P1 is complete
+on the desktop review branch; the M0 implementation table below describes main.
+The pinned T3 source spike is also complete, with runtime conformance still open.
+
 ## What we are building
 
 Argent is an open-source, desktop-first development platform where AI coding
@@ -179,7 +183,9 @@ Read the [documentation index](README.md), [founding brief](FOUNDING_BRIEF.md),
 Keep the desktop requirement and cloud execution requirement together. A desktop
 prototype may use simulation while the real-cloud MVP remains incomplete.
 
-Next work is the thin desktop prototype and the pinned upstream adoption spike.
+P1 and the pinned upstream source evaluation are complete; branch locations and
+remaining integration work are in [HANDOFF.md](../HANDOFF.md). Next is the
+foundation runtime decision and M1a.
 Before real cloud work, specify GitHub App scopes and provider lifecycle and
 cleanup contracts. Then build and test real isolated workspaces, one official
 agent, trusted exact-commit verification and a draft-PR broker. Avoid a full IDE,

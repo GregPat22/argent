@@ -25,8 +25,8 @@ for the current publication boundary.
 
 - Whether to adopt T3 Code, retain the current core or use another approved
   foundation after the practical spike.
-- The pinned desktop implementation and cross-platform release pipeline. P1 is
-  being developed separately; this publication contains its requirements only.
+- P1 uses Electron 45.2.3 for the local macOS prototype. Cross-platform releases,
+  signing/notarization and automatic updates remain open.
 - The exact cloud region, resource shape, account, quotas and approved budget.
 - Remote authentication, tenant authorization, secrets brokering and recovery UX.
 - Evidence retention, artifact access, backup/restore and deletion policies.
@@ -46,3 +46,11 @@ created. Other software already uses Argent; no exclusive brand, domain or
 trademark availability is established. The founder authorized adding project
 context and pushing it to GitHub. That authorization covers source publication,
 not a deployed service, paid infrastructure or downloadable binary release.
+
+## Completed source evaluation
+
+The [pinned T3 source spike](research/t3-adoption-spike.md) evaluated revision
+`6577c6b6185167c0e502fa01f9e8e8f2dee6ff25`. No upstream code was installed, run,
+forked or imported. Runtime conformance and founder approval still precede any
+foundation replacement. The [P1 report](milestones/0001-completion.md) records the
+local desktop implementation and its limits.
