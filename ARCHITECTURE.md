@@ -1,6 +1,7 @@
 # Architecture
 
-Status: M0 implemented; managed architecture below is the proposed target.
+Status: M0 and the P1 local desktop prototype implemented; managed architecture
+below is the proposed target.
 No upstream fork, cloud deployment or paid resource is configured.
 
 ## Shape and boundaries
@@ -26,10 +27,10 @@ flowchart LR
   Verify --> GH[Scoped GitHub PR broker]
 ```
 
-M0 implements the control API, durable SQLite database and independent worker,
-with a local workspace adapter and scripted agent. Verification checks only a
-simulation artifact. The website, desktop client and real cloud/agent/GitHub
-integrations are target components, not delivered by this M0 publication.
+M0 implements the control API, durable SQLite store and independent worker with
+local simulation adapters. P1 adds the installed desktop client and local download
+page source. Real cloud workspaces, coding agents and the GitHub PR broker remain
+M1 targets. Verification currently checks only a simulation artifact.
 
 ## Persistence and execution
 
@@ -59,8 +60,9 @@ stateDiagram-v2
 ```
 
 An unknown outcome is never retried automatically. `needs_attention` blocks
-new work and lifecycle changes for the workspace. M0 deliberately lacks an
-operator resolution endpoint. Reconnect reads run state and events after an
+new work and lifecycle changes for the workspace. P1 adds audited abandonment
+for simulated runs only; real-provider reconciliation remains future work.
+Reconnect reads run state and events after an
 ordered cursor; it does not dispatch work. No exactly-once external-effects
 guarantee is claimed. A database token cannot fence a Git push or cloud process.
 
@@ -72,6 +74,19 @@ never run inside the control-plane process; future adapters control isolated
 processes with provider-enforced resource/deadline limits.
 
 ## Desktop delivery
+
+P1 uses Electron 45.2.3 with a sandboxed, context-isolated renderer and no Node
+integration. Packaged assets load through an allowlisted custom protocol and CSP.
+The preload exposes named operations only; the main process validates the exact
+main-frame sender and translates operations to authenticated loopback requests.
+Only the service/main process can read the private operator credential.
+
+The desktop's detached service cohosts the HTTP API and bounded worker loop for
+this single-host prototype. The original separate API/worker mode remains tested.
+A separate SQLite ownership database holds an exclusive OS-backed lock while the
+service runs; process death releases it without relying on PID liveness. API and
+worker data use the main WAL database. The desktop reconnects to a service by
+private instance identity and health challenge, not just an open port.
 
 The first usable prototype must launch as a local desktop application, with
 workspace/task controls, activity history and verification details. The desktop

@@ -1,6 +1,7 @@
 # P1: downloadable desktop prototype
 
-Status: accepted product direction, 6 November 2026. Implementation follows M0.
+Status: implemented as a local macOS Apple Silicon prototype, 6 November 2026.
+Public signing/distribution and the real cloud MVP remain separate milestones.
 
 ## Founder requirement
 
@@ -34,6 +35,11 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
    raw operator credentials. A narrow bridge validates requests and destinations.
 6. Workspace and run lists are paginated and persisted, not seeded fake state.
    Errors, empty states, disconnected state and verification outcomes are usable.
+   A selected workspace beyond the first list page must refresh its authoritative
+   state after another client stops or starts it, including after reconnect.
+   This applies to restored selections and selections from loaded older pages.
+   A response arriving after selection changes must not update the new selection;
+   read failures remain visible and later polls can recover.
 7. The app makes simulation status visible. Unavailable real-cloud/agent/PR
    capabilities are described accurately and are not fabricated working controls.
 8. Automated bridge/API/lifecycle tests pass, plus hands-on desktop flow checks.
@@ -45,6 +51,19 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
     operating systems, and the real cloud MVP acceptance contract.
 
 ## Boundaries
+
+Review follow-up, 6 November 2026: [PR #1 review](../research/p1-pr-review.md)
+at `6104961` reproduced a selected-workspace refresh gap in criterion 6.
+Fix commit `f929ae3` on `GregPat22/next-step-request` refreshes the selected
+workspace independently of retained history. Eight compiled-renderer regressions
+pass with edge-case tests `b888840`, and `npm run check` passes 41 tests with
+strict types and formatting. A rebuilt local package passed packaged-executable
+smoke and archive checksum validation.
+The harness uses controlled bridge responses and a minimal DOM; native smoke
+results and remaining limits are in the [review follow-up](../research/p1-pr-review.md#fix-verification-follow-up).
+The update targets the existing draft PR #1 head `codex/desktop-handoff`; main
+remains M0 until the explicit founder merge decision. The package remains
+unsigned, unnotarized and unpublished.
 
 No upstream fork/import without founder approval. No silent purchase, cloud
 provisioning, merge, deployment or public release. Prefer a thin desktop shell

@@ -17,7 +17,7 @@
     "node": ">=22.19.0 <23"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node dist/scripts/build-assets.js",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -25,10 +25,16 @@
     "start:api": "node --env-file-if-exists=.env dist/src/api.js",
     "start:worker": "node --env-file-if-exists=.env dist/src/worker-main.js",
     "demo": "npm run build && node dist/scripts/demo.js",
-    "check": "npm run typecheck && npm run format:check && npm test"
+    "check": "npm run typecheck && npm run format:check && npm test",
+    "desktop": "npm run build && electron dist/src/desktop/main.js",
+    "desktop:smoke": "npm run build && node dist/scripts/desktop-smoke.js",
+    "desktop:package": "npm run build && node dist/scripts/package-desktop.js",
+    "site:preview": "npm run build && node dist/scripts/site-preview.js"
   },
   "devDependencies": {
+    "@electron/packager": "20.3.0",
     "@types/node": "22.19.0",
+    "electron": "45.2.3",
     "prettier": "3.9.10",
     "typescript": "5.8.3"
   }

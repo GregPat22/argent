@@ -8,6 +8,7 @@ import {
   type Run,
   type RunEvent,
   type Workspace,
+  type Page,
 } from "./domain.js";
 
 type Row = Record<string, unknown>;
@@ -131,6 +132,25 @@ export class Store {
     return readWorkspace(row);
   }
 
+  listWorkspaces(limit = 50, before?: string): Page<Workspace> {
+    requireInteger(limit, "limit", 1, 100);
+    const cursor = before ? this.getWorkspace(before) : null;
+    const rows = cursor
+      ? this.db
+          .prepare(
+            `SELECT * FROM workspaces WHERE created_at < ? OR
+          (created_at = ? AND id < ?) ORDER BY created_at DESC, id DESC LIMIT ?`,
+          )
+          .all(cursor.createdAt, cursor.createdAt, cursor.id, limit + 1)
+      : this.db
+          .prepare(
+            "SELECT * FROM workspaces ORDER BY created_at DESC, id DESC LIMIT ?",
+          )
+          .all(limit + 1);
+    const items = rows.slice(0, limit).map(readWorkspace);
+    return { items, nextCursor: rows.length > limit ? items.at(-1)!.id : null };
+  }
+
   setWorkspaceState(id: string, state: Workspace["state"]): Workspace {
     if (state !== "running" && state !== "stopped")
       throw new DomainError(400, "Invalid workspace state");
@@ -209,6 +229,78 @@ export class Store {
     const row = this.db.prepare("SELECT * FROM runs WHERE id = ?").get(id);
     if (!row) throw new DomainError(404, "Run not found");
     return readRun(row);
+  }
+
+  listRuns(workspaceId: string, limit = 50, before?: string): Page<Run> {
+    requireInteger(limit, "limit", 1, 100);
+    this.getWorkspace(workspaceId);
+    const cursor = before ? this.getRun(before) : null;
+    if (cursor && cursor.workspaceId !== workspaceId)
+      throw new DomainError(400, "Run cursor belongs to another workspace");
+    const rows = cursor
+      ? this.db
+          .prepare(
+            `SELECT * FROM runs WHERE workspace_id = ? AND
+          (created_at < ? OR (created_at = ? AND id < ?)) ORDER BY created_at DESC, id DESC LIMIT ?`,
+          )
+          .all(
+            workspaceId,
+            cursor.createdAt,
+            cursor.createdAt,
+            cursor.id,
+            limit + 1,
+          )
+      : this.db
+          .prepare(
+            "SELECT * FROM runs WHERE workspace_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
+          )
+          .all(workspaceId, limit + 1);
+    const items = rows.slice(0, limit).map(readRun);
+    return { items, nextCursor: rows.length > limit ? items.at(-1)!.id : null };
+  }
+
+  evidence(id: string): Evidence {
+    if (this.getRun(id).status !== "completed")
+      throw new DomainError(409, "Run has no completed verification");
+    const row = this.db
+      .prepare(
+        "SELECT data FROM events WHERE run_id = ? AND type = 'verification.recorded' ORDER BY cursor DESC LIMIT 1",
+      )
+      .get(id);
+    if (!row) throw new DomainError(409, "Verification evidence is missing");
+    return JSON.parse(row.data as string) as Evidence;
+  }
+
+  resolveSimulation(id: string, note: unknown): Run {
+    const explanation = requireString(note, "Resolution note", 1000);
+    return this.transaction(() => {
+      const run = this.getRun(id);
+      if (run.status !== "needs_attention")
+        throw new DomainError(
+          409,
+          "Only uncertain simulated runs can be resolved",
+        );
+      const now = Date.now();
+      this.db.prepare("UPDATE runs SET status = 'failed' WHERE id = ?").run(id);
+      this.event(
+        id,
+        "run.resolved",
+        {
+          note: explanation,
+          action: "abandon_simulation",
+          replayed: false,
+          simulation: true,
+        },
+        now,
+      );
+      this.event(
+        id,
+        "run.failed",
+        { reason: "operator_abandoned_simulation", simulation: true },
+        now,
+      );
+      return this.getRun(id);
+    });
   }
 
   events(id: string, after = 0, limit = 100): RunEvent[] {

@@ -1,6 +1,6 @@
 # Argent
 
-A headless foundation for an open-source, self-hostable development platform where
+A desktop-first, open-source, self-hostable development platform where
 coding agents work in persistent environments and developers reconnect to inspect
 verifiable results.
 
@@ -11,52 +11,53 @@ Repository: [GregPat22/argent](https://github.com/GregPat22/argent).
 use the [landing-page brief](docs/briefs/landing-page.md). Claude Code also has a
 root [CLAUDE.md](CLAUDE.md) entry point pointing to the shared context and rules.
 
-**Product direction: a downloadable desktop app.** Developers will download Argent
-from our website, install it locally and launch it like Conductor. The desktop
-client will control both local and persistent cloud execution; the headless engine
-below remains independent of the interface. The website is the download and
-documentation entry point. Desktop packaging is the next prototype milestone.
-
-**Current milestone: M0, a local orchestration simulator.** The API, durable queue,
-worker, crash reconciliation and reconnectable event history work. A scripted
-adapter writes a JSON artifact, which a separate verifier checks. There is no real
-GitHub connection, repository checkout, AI agent, cloud compute or pull request.
-
 ## Project context and documentation
 
-Start with [Project context](docs/PROJECT_CONTEXT.md) for the product, accepted
-decisions, implementation status, business direction and next work. The
-[documentation index](docs/README.md) links the original founder brief, decision
-register, architecture, research, milestone reports and acceptance specifications.
-Read [Contributing](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) before changes.
+Start with [Project context](docs/PROJECT_CONTEXT.md), the
+[documentation index](docs/README.md), [decision register](docs/DECISIONS.md) and
+[Contributing](CONTRIBUTING.md). The [P1 completion report](docs/milestones/0001-completion.md)
+and [pinned T3 source evaluation](docs/research/t3-adoption-spike.md) record the
+latest completed work and its limits.
 
-This initial publication contains the tested M0 foundation and accepted desktop
-requirements. Active prototype work is separate; there is no downloadable desktop
-release in this revision.
+**Current milestone: P1, a working local desktop prototype.** Install and launch
+Argent as an application, create a workspace, submit a task, inspect live activity
+and verified artifacts, close the window and reconnect to persisted work. The
+execution service remains independent of the desktop client. A website source
+provides the download entry point and serves the generated local build.
+
+**Execution is simulated.** A scripted adapter writes a JSON artifact, which a
+separate verifier checks. There is no real GitHub authorization, repository
+checkout, AI agent, cloud compute or pull request. The desktop architecture keeps
+those next integrations behind the existing headless engine.
 
 ## Tech Stack
 
-| Layer                | Technology                                                  | Rationale                                                              |
-| -------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Runtime              | Node.js 22.19.x, strict TypeScript                          | Runs in this environment and matches official agent SDK ecosystems.    |
-| API                  | Node HTTP, JSON and cursor polling                          | Small headless interface; browser framework can follow.                |
-| M0 persistence       | Built-in SQLite, WAL, full synchronous commits              | Real cross-process durability without provisioning a database.         |
-| Managed target       | PostgreSQL and an independent worker                        | Shared authoritative state outside suspended workspace compute.        |
-| Cloud recommendation | E2B, behind an adapter                                      | Managed path and an open-source self-host runtime; not integrated yet. |
-| First real agent     | Codex, using official interfaces and API-key authentication | Server-side integration; not integrated yet.                           |
-| Checks               | Node test runner, TypeScript, Prettier                      | Small toolchain with meaningful process-level tests.                   |
+| Layer                | Technology                                                  | Rationale                                                                  |
+| -------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Runtime              | Node.js 22.19.x, strict TypeScript                          | Runs in this environment and matches official agent SDK ecosystems.        |
+| Desktop              | Electron 45.2.3, packaged HTML/CSS/TypeScript               | Installable app with sandboxed renderer and a narrow privileged bridge.    |
+| API                  | Node HTTP, JSON and cursor polling                          | Desktop main process brokers authenticated calls; no renderer credentials. |
+| M0 persistence       | Built-in SQLite, WAL, full synchronous commits              | Real cross-process durability without provisioning a database.             |
+| Managed target       | PostgreSQL and an independent worker                        | Shared authoritative state outside suspended workspace compute.            |
+| Cloud recommendation | E2B, behind an adapter                                      | Managed path and an open-source self-host runtime; not integrated yet.     |
+| First real agent     | Codex, using official interfaces and API-key authentication | Server-side integration; not integrated yet.                               |
+| Checks               | Node test runner, TypeScript, Prettier                      | Small toolchain with meaningful process-level tests.                       |
 
 The built-in SQLite API is experimental in the tested Node release. M0 is a
 single-host development prototype, not a multi-tenant production deployment.
 
 ## Architecture Overview
 
-The API commits a run and its initial event to SQLite. An independent worker
+The API commits a run and its initial event to SQLite. A worker
 claims it transactionally, records logs and independently verifies an artifact
 before completion. API requests do not own the running operation. A new client
 can read the run and replay events after its last cursor, including after API
 process death. A lost worker lease produces `needs_attention`, never an automatic
 retry. Workspace stop/start changes lifecycle metadata while retaining files.
+The desktop starts or reconnects to a detached local service containing the API
+and worker loop. Standalone API/worker commands still support separate processes.
+Closing or quitting Argent keeps the local service running; stop it explicitly
+through the app. Local execution still requires this computer to remain awake.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [research and recommendations](docs/research/technical-due-diligence.md),
 [VISION.md](VISION.md) and [ROADMAP.md](ROADMAP.md).
@@ -69,7 +70,9 @@ requires splitting packages. `tests/` covers state transitions and real process
 death/reconnection. `scripts/` holds a runnable demo and its process harness.
 `docs/specs/` distinguishes the implemented M0 contract from the actual cloud MVP.
 `docs/research/` records dated primary sources and decisions that still need proof.
-Generated files and runtime state are ignored by Git.
+`src/desktop/` owns the privileged shell/bridge and detached service; `ui/` is the
+credential-free renderer. `website/` is the unpublished download-page source.
+`release/` contains generated installers/builds and is ignored with runtime data.
 
 ## Getting Started
 
@@ -81,7 +84,13 @@ credential is needed for M0. Reassess the supported production runtime before M1
 
 ### Environment Setup
 
-For the standalone API, copy `.env.example` to `.env`, replace the token with a
+**Desktop:** no environment setup or account is needed. Argent creates a private
+local service credential and stores application data in
+`~/Library/Application Support/Argent/`. Workspace/task selections persist in the
+app profile. No credentials are stored in renderer preferences. Development and
+smoke tests can use `ARGENT_DESKTOP_DATA_DIR` to choose an isolated data directory.
+
+**Optional standalone API:** copy `.env.example` to `.env`, replace the token with a
 unique value of at least 32 characters, and retain the same `PLATFORM_DATA_DIR`
 for API and worker. Generate a token with:
 
@@ -98,8 +107,29 @@ an operator deployment.
 ```sh
 npm ci
 npm run check
-npm run demo
+npm run desktop
 ```
+
+For a self-contained macOS Apple Silicon build:
+
+```sh
+npm run desktop:smoke
+npm run desktop:package
+open release/Argent-darwin-arm64/Argent.app
+```
+
+Packaging produces `release/Argent-0.0.1-macos-arm64.zip` and a `.zip.sha256`
+checksum. The app bundles its runtime; an installed user does not need global
+Node or a terminal. This is an unsigned, unnotarized local preview, not a public
+release. Do not bypass OS security prompts; public distribution still needs
+Developer ID signing/notarization and an update/release process. Windows, Linux
+and Intel Mac packages have not been built or tested.
+
+`npm run site:preview` serves the unpublished website at
+`http://127.0.0.1:4320` after the smoke screenshot and package exist. Its download
+links stream the actual local archive and checksum. Nothing is uploaded.
+
+`npm run demo` remains available for the headless M0 demonstration:
 
 The demo launches real API and worker processes, submits a simulated task, kills
 the API process, starts another API, reconnects and prints verified simulation
@@ -118,51 +148,63 @@ npm run start:worker
 ```
 
 The API binds only `127.0.0.1:4310`. Supply `Authorization: Bearer <your token>`
-on every request. No browser UI or remote ingress is configured.
+on every request. This optional mode uses `.data/` independently of the desktop
+application's profile. No remote ingress is configured.
 
-| Method | Route                                | Input / behavior                                                                   |
-| ------ | ------------------------------------ | ---------------------------------------------------------------------------------- |
-| GET    | `/health`                            | Authenticated milestone/status information.                                        |
-| POST   | `/workspaces`                        | `{"repository":"https://github.com/owner/repo"}`; metadata only.                   |
-| GET    | `/workspaces/:id`                    | Read persisted workspace state.                                                    |
-| POST   | `/workspaces/:id/stop` or `/start`   | Preserve identity and files; refuse active/uncertain work.                         |
-| POST   | `/runs`                              | `{"workspaceId":"…","task":"…","maxRuntimeMs":30000}`; requires `Idempotency-Key`. |
-| GET    | `/runs/:id`                          | Status and limits; worker fencing token omitted.                                   |
-| GET    | `/runs/:id/events?after=0&limit=100` | Ordered events and `nextCursor`; persist the cursor to reconnect.                  |
-| POST   | `/runs/:id/cancel`                   | Persist cancellation; active work acknowledges cooperatively.                      |
+| Method | Route                                       | Input / behavior                                                                                 |
+| ------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| GET    | `/health`                                   | Authenticated milestone/status information.                                                      |
+| POST   | `/workspaces`                               | `{"repository":"https://github.com/owner/repo"}`; metadata only.                                 |
+| GET    | `/workspaces?limit=50&before=<id>`          | Keyset-paginated persistent workspace list.                                                      |
+| GET    | `/workspaces/:id/runs?limit=50&before=<id>` | Keyset-paginated task history.                                                                   |
+| GET    | `/workspaces/:id`                           | Read persisted workspace state.                                                                  |
+| POST   | `/workspaces/:id/stop` or `/start`          | Preserve identity and files; refuse active/uncertain work.                                       |
+| POST   | `/runs`                                     | `{"workspaceId":"…","task":"…","maxRuntimeMs":30000}`; requires `Idempotency-Key`.               |
+| GET    | `/runs/:id`                                 | Status and limits; worker fencing token omitted.                                                 |
+| GET    | `/runs/:id/events?after=0&limit=100`        | Ordered events and `nextCursor`; persist the cursor to reconnect.                                |
+| POST   | `/runs/:id/cancel`                          | Persist cancellation; active work acknowledges cooperatively.                                    |
+| GET    | `/runs/:id/artifact`                        | Read the actual artifact after checking its committed SHA-256.                                   |
+| POST   | `/runs/:id/resolve`                         | `{"note":"Reviewed; abandon this simulation"}`; audited abandonment of uncertain simulated work. |
 
 Submission with the same key and identical payload returns the original run.
 Changed payload returns 409. Events page at 100 items maximum. Runtime is bounded
 to 100–300,000 ms; default 30 seconds. A run can emit at most 100 log events, each
 at most 2,048 characters; request bodies are capped at 16 KiB.
 
-`needs_attention` intentionally blocks further workspace mutations. M0 has no
-resolution or deletion endpoint: preserve and inspect the data; use a new
-workspace for another simulation. M1 must add an audited reconciliation workflow.
+`needs_attention` intentionally blocks further workspace mutations. P1 adds an
+explicit review note and abandonment action for simulated runs. It never retries
+the old task or removes evidence. Real-provider reconciliation and deletion remain
+M1 work. The desktop service also exposes authenticated `/service/stop`; this is
+not enabled in optional standalone API mode.
 
 ## Development
 
 ### Available Scripts
 
-| Script                 | Purpose                                               |
-| ---------------------- | ----------------------------------------------------- |
-| `npm run build`        | Compile source, tests and scripts into `dist/`.       |
-| `npm run typecheck`    | Strict compile checks without output.                 |
-| `npm run format`       | Apply Prettier to maintained project files.           |
-| `npm run format:check` | Check formatting without edits.                       |
-| `npm test`             | Build and run all unit and process integration tests. |
-| `npm run check`        | Typecheck, formatting and all tests.                  |
-| `npm run start:api`    | Run the built loopback API.                           |
-| `npm run start:worker` | Run the built independent worker.                     |
-| `npm run demo`         | Build and demonstrate API restart/reconnection.       |
+| Script                    | Purpose                                                        |
+| ------------------------- | -------------------------------------------------------------- |
+| `npm run build`           | Compile source, tests and scripts into `dist/`.                |
+| `npm run typecheck`       | Strict compile checks without output.                          |
+| `npm run format`          | Apply Prettier to maintained project files.                    |
+| `npm run format:check`    | Check formatting without edits.                                |
+| `npm test`                | Build and run all unit and process integration tests.          |
+| `npm run check`           | Typecheck, formatting and all tests.                           |
+| `npm run start:api`       | Run the built loopback API.                                    |
+| `npm run start:worker`    | Run the built independent worker.                              |
+| `npm run demo`            | Build and demonstrate API restart/reconnection.                |
+| `npm run desktop`         | Build and launch the native desktop prototype.                 |
+| `npm run desktop:smoke`   | Exercise the actual Electron app and capture its UI.           |
+| `npm run desktop:package` | Build a self-contained local macOS arm64 app and zip/checksum. |
+| `npm run site:preview`    | Serve the download-page source and real local artifacts.       |
 
 ### Code Style & Conventions
 
 Strict TypeScript, ESM imports, parameterized SQL and transactional state/event
 changes. Use written specifications and focused branches (`feat/…`, `fix/…`),
-conventional commit messages, and small reviewed PRs against `main`.
+conventional commit messages, and small reviewed PRs when a remote is configured.
 Read [AGENTS.md](AGENTS.md). A dependency lockfile is committed; installs disable
-dependency lifecycle scripts in CI. There are no production package dependencies.
+dependency lifecycle scripts in CI. Electron is bundled into the desktop build;
+the headless execution modules have no external runtime npm dependencies.
 
 ### Testing
 
@@ -172,12 +214,19 @@ verify durable history. They need permission to bind loopback and spawn processe
 No billable API is called. Simulation evidence checks an actual artifact's identity
 and SHA-256; it says nothing about a real repository's tests.
 
+`desktop:smoke` requires a macOS GUI session. It drives the actual renderer through
+workspace/task forms, artifact inspection, window close/reopen, cancellation and
+service stop/reconnect. It asserts no renderer Node access, and checks the detached
+service survives desktop process exit. Test profiles are cleaned up; the captured
+image remains in `.data/screenshots/argent-desktop.png`.
+
 ## Deployment
 
-M0 is for a single trusted host on loopback. Persist the entire data directory
+P1 is for a single trusted host on loopback. Persist the entire data directory
 on local storage. SQLite is not supported over network filesystems or across
 multiple hosts. Stopping the API does not stop the worker; stopping the host
-does. There is no cloud deployment artifact yet. TLS, user/tenant authorization,
+does. Website source and a local desktop archive are provided; there is no public
+website deployment or signed release. TLS, user/tenant authorization,
 PostgreSQL, credential brokering, isolated execution, quotas and backups must be
 implemented before a managed or remotely accessible release.
 

@@ -1,8 +1,8 @@
 # Contributing to Argent
 
-Argent is early-stage software. The published runtime is a trusted local
-simulation, and the product goal is a downloadable desktop app controlling
-persistent local or cloud execution. Start with [Project context](docs/PROJECT_CONTEXT.md),
+Argent is early-stage software. This branch contains P1, a local desktop
+prototype with simulated execution. Persistent real-cloud execution and signed
+public distribution remain future work. Start with [Project context](docs/PROJECT_CONTEXT.md),
 [the documentation index](docs/README.md) and [AGENTS.md](AGENTS.md).
 
 ## Set up a development checkout

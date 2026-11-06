@@ -7,6 +7,7 @@ import {
 } from "node:http";
 import { DomainError, type Run } from "./domain.js";
 import { Store } from "./store.js";
+import { inspectArtifact } from "./artifacts.js";
 
 function publicRun(run: Run): Omit<Run, "leaseToken"> {
   const { leaseToken: _token, ...result } = run;
@@ -45,7 +46,17 @@ function send(response: ServerResponse, status: number, body: unknown): void {
   response.end(JSON.stringify(body));
 }
 
-export function makeServer(store: Store, token: string): Server {
+export interface ServerOptions {
+  artifactRoot?: string;
+  instanceId?: string;
+  onStop?: () => void;
+}
+
+export function makeServer(
+  store: Store,
+  token: string,
+  options: ServerOptions = {},
+): Server {
   if (token.length < 32)
     throw new Error("API token must contain at least 32 characters");
   const expected = createHash("sha256").update(`Bearer ${token}`).digest();
@@ -68,18 +79,71 @@ export function makeServer(store: Store, token: string): Server {
       if (method === "GET" && url.pathname === "/health") {
         send(response, 200, {
           status: "ok",
-          milestone: "M0",
+          milestone: options.instanceId ? "P1" : "M0",
           simulation: true,
+          instanceId: options.instanceId ?? null,
         });
+      } else if (
+        method === "POST" &&
+        url.pathname === "/service/stop" &&
+        options.onStop
+      ) {
+        send(response, 202, { stopping: true });
+        queueMicrotask(options.onStop);
+      } else if (method === "GET" && url.pathname === "/workspaces") {
+        send(
+          response,
+          200,
+          store.listWorkspaces(
+            Number(url.searchParams.get("limit") ?? 50),
+            url.searchParams.get("before") ?? undefined,
+          ),
+        );
       } else if (method === "POST" && url.pathname === "/workspaces") {
         const body = await readBody(request);
         send(response, 201, store.createWorkspace(body.repository));
+      } else if (
+        parts[0] === "workspaces" &&
+        parts.length === 3 &&
+        parts[2] === "runs" &&
+        method === "GET"
+      ) {
+        const page = store.listRuns(
+          parts[1]!,
+          Number(url.searchParams.get("limit") ?? 50),
+          url.searchParams.get("before") ?? undefined,
+        );
+        send(response, 200, { ...page, items: page.items.map(publicRun) });
       } else if (
         parts[0] === "workspaces" &&
         parts.length === 2 &&
         method === "GET"
       ) {
         send(response, 200, store.getWorkspace(parts[1]!));
+      } else if (
+        parts[0] === "runs" &&
+        parts.length === 3 &&
+        parts[2] === "resolve" &&
+        method === "POST"
+      ) {
+        const body = await readBody(request);
+        send(
+          response,
+          200,
+          publicRun(store.resolveSimulation(parts[1]!, body.note)),
+        );
+      } else if (
+        parts[0] === "runs" &&
+        parts.length === 3 &&
+        parts[2] === "artifact" &&
+        method === "GET" &&
+        options.artifactRoot
+      ) {
+        send(
+          response,
+          200,
+          inspectArtifact(store, options.artifactRoot, parts[1]!),
+        );
       } else if (
         parts[0] === "workspaces" &&
         parts.length === 3 &&

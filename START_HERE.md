@@ -12,8 +12,8 @@ execution remains part of the product, even though its primary client is desktop
 ## Read the context for your task
 
 **Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). It includes the
-completed P1 prototype on its review branch; the default main runtime below is M0
-until that work is explicitly approved and integrated.
+completed P1 prototype on this review branch. The default main runtime remains
+M0 until that work is explicitly approved and integrated.
 
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -23,8 +23,8 @@ until that work is explicitly approved and integrated.
 | Understand why choices were made | [Decision register](docs/DECISIONS.md), [founding brief](docs/FOUNDING_BRIEF.md)                                                    |
 | Find all documentation           | [Documentation index](docs/README.md)                                                                                               |
 
-The publication currently contains a tested **M0 local simulator**. A separate
-desktop prototype is in development. Real cloud workspaces, official coding-agent
+This branch contains the tested **P1 local desktop prototype**, using M0
+simulated execution. See the [completion report](docs/milestones/0001-completion.md). Real cloud workspaces, official coding-agent
 execution and a tested-PR flow are future acceptance contracts, not live features
 in this revision. The source repository is public and MIT-licensed. No published
 production download, approved pricing or customer proof is established here.

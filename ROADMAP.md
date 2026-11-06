@@ -14,10 +14,14 @@ Sequence by demonstrated behavior rather than dates. M0 is not the cloud MVP.
 | M1 release                      | Full cloud MVP acceptance contract passes.                                                     | Security/credential review, cost ceilings, verified cleanup, backup/restore and self-host instructions.                                            |
 | M2                              | Additional agents and dependency-aware tasks.                                                  | Provider capability tests, isolated worktrees, explicit task dependencies and review policy.                                                       |
 
-Immediate next work is the pinned T3 adoption spike and the downloadable desktop
-prototype specified in `docs/specs/0004-desktop-prototype.md`. The primary product
-must be an installed app, not a browser-only interface. In parallel at the planning
-level, specify GitHub App scopes and the E2B lifecycle contract. No paid resources
+Completed: M0 durability conformance, the P1 downloadable local desktop prototype,
+and a pinned T3 source evaluation. See `docs/milestones/0001-completion.md` and
+`docs/research/t3-adoption-spike.md`. The website and macOS archive are available
+locally; a public signed release has not been published.
+
+Next is a runtime foundation decision and M1a: specify GitHub App scopes and the
+isolated workspace lifecycle contract, then validate real provider behavior. The
+source evaluation does not replace runtime conformance tests. No paid resources
 are provisioned until the founder explicitly authorizes the concrete provider,
 region, resource shape and budget. Real integration credentials are not required
 for M0 and must never be pasted into documentation or issue text.

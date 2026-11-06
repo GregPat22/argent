@@ -5,9 +5,8 @@ understand the project without access to private chats. It describes accepted
 product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
-**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). P1 is complete
-on the desktop review branch; the M0 implementation table below describes main.
-The pinned T3 source spike is also complete, with runtime conformance still open.
+**Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). This review branch
+contains P1; the default main runtime remains M0 until explicit integration.
 
 ## What we are building
 
@@ -49,27 +48,30 @@ agents or dozens of dependent specifications.
 
 ## What is actually implemented here
 
-The published runtime is **M0: a local orchestration simulator**. Its scripted
-agent writes fixed JSON; it cannot run repository commands or call a model.
+This branch contains **P1: the local desktop prototype**, built on the M0
+orchestration simulator. Its scripted agent writes fixed JSON; it cannot run
+repository commands or call a model. The desktop provides a native interface,
+reconnection, artifact inspection and a detached local service. See the
+[P1 completion report](milestones/0001-completion.md).
 
-| Area         | Implemented in this publication                                  | Remaining product work                                              |
-| ------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Interface    | Authenticated loopback JSON API and CLI demo                     | Installed desktop client, distribution website and remote access    |
-| Workspaces   | Local metadata, retained artifact directories, stop/start guards | Git checkout, isolated local execution and real cloud lifecycle     |
-| Dispatch     | Durable SQLite queue, atomic claims, fenced leases               | Real provider dispatch and external-effect reconciliation           |
-| Recovery     | Ordered events, API restart/reconnect, uncertain-run blocking    | Audited operator resolution, cloud reconciliation and backup drills |
-| Execution    | Bounded scripted simulation, cancellation and deadlines          | Official coding-agent integrations with permitted authentication    |
-| Verification | Independent JSON identity check and SHA-256 evidence             | Trusted repository tests, exact-commit evidence and review policy   |
-| GitHub       | This source repository and its CI workflow                       | Product GitHub App, scoped tokens, push and draft-PR broker         |
+| Area         | Implemented in this publication                                         | Remaining product work                                                   |
+| ------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Interface    | Electron desktop, loopback API, CLI demo and local download-page source | Signed public desktop distribution, new landing design and remote access |
+| Workspaces   | Local metadata, retained artifact directories, stop/start guards        | Git checkout, isolated local execution and real cloud lifecycle          |
+| Dispatch     | Durable SQLite queue, atomic claims, fenced leases                      | Real provider dispatch and external-effect reconciliation                |
+| Recovery     | Ordered events, API restart/reconnect, uncertain-run blocking           | Audited operator resolution, cloud reconciliation and backup drills      |
+| Execution    | Bounded scripted simulation, cancellation and deadlines                 | Official coding-agent integrations with permitted authentication         |
+| Verification | Independent JSON identity check and SHA-256 evidence                    | Trusted repository tests, exact-commit evidence and review policy        |
+| GitHub       | This source repository and its CI workflow                              | Product GitHub App, scoped tokens, push and draft-PR broker              |
 
 Publishing this source to GitHub does not implement the product's GitHub
-integration. A passing simulation is not a tested pull request. The accepted
-[desktop specification](specs/0004-desktop-prototype.md) describes the next
-prototype; it is not a desktop release announcement.
+integration. A passing simulation is not a tested pull request. The [desktop specification](specs/0004-desktop-prototype.md) is implemented
+for a local macOS Apple Silicon prototype. It is not a signed public release.
 
 The [M0 completion report](milestones/0000-completion.md) records 22 passing tests
-and independent review repairs. That evidence applies to M0, not future code or
-real providers. New changes require fresh checks.
+and independent review repairs. The P1 completion report records 33 tests and
+packaged-app checks. Evidence applies to the recorded revisions and scope, not
+future changes or real providers. New changes require fresh checks.
 
 ## Architecture that must survive implementation
 
@@ -91,7 +93,8 @@ flowchart LR
 ```
 
 This is a target diagram. M0 implements the API, store, worker and simulation
-adapters. The remaining components need implementation and release evidence.
+adapters; P1 adds the local desktop and download-page source. Real isolated
+compute, trusted repository verification and the PR broker remain future work.
 
 Persist each transition and its event in one transaction; claim work atomically.
 Idempotency keys deduplicate accepted submissions. Fencing tokens reject stale
@@ -183,9 +186,9 @@ Read the [documentation index](README.md), [founding brief](FOUNDING_BRIEF.md),
 Keep the desktop requirement and cloud execution requirement together. A desktop
 prototype may use simulation while the real-cloud MVP remains incomplete.
 
-P1 and the pinned upstream source evaluation are complete; branch locations and
-remaining integration work are in [HANDOFF.md](../HANDOFF.md). Next is the
-foundation runtime decision and M1a.
+P1 and a pinned upstream source evaluation are complete on this branch. The
+[source evaluation](research/t3-adoption-spike.md) did not run upstream code or
+prove runtime conformance. Next is the foundation runtime decision and M1a.
 Before real cloud work, specify GitHub App scopes and provider lifecycle and
 cleanup contracts. Then build and test real isolated workspaces, one official
 agent, trusted exact-commit verification and a draft-PR broker. Avoid a full IDE,
