@@ -5,30 +5,28 @@ the latest known state across the project chats and checkouts. Read it alongside
 [START_HERE.md](START_HERE.md), [AGENTS.md](AGENTS.md) and the relevant specification.
 Private chat access is not required to continue development.
 
-**Current checkout correction, 6 November:**
-`GregPat22/grok-conductor-shutdown-analysis` starts at
-`fd60a5a878fdde3f129c0f276b74b647ea373760`, the main revision observed during research.
-PR preparation subsequently integrated main `b5e763f`, including landing PR #3.
-The earlier `fd60a5a` integrates desktop PR #1, including the selected-workspace refresh
-fix and tests. Older statements below that main is M0 and PR #1 awaits merge
-are historical and superseded for this checkout. P1 remains simulation; no real
-cloud execution or public signed release follows from that merge.
+**Current checkout:** `GregPat22/next-step-v2`, integrating main `13eb14e` for
+PR preparation. P1 and the landing/continuity work are already on main; the
+internal lifecycle simulation and retained-core decision are this branch's work.
+No real cloud capability follows from these changes.
 
 ## Where the work is saved
 
-| Location                                      | Current known state                                                                       | How to use it                                                                                  |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `origin/main` at `b5e763f`                    | M0/P1 and landing PR #3 integrated.                                                       | Base for new work; execution remains simulated and the website is not deployed.                |
-| `GregPat22/grok-conductor-shutdown-analysis`  | Shutdown research, founder follow-up, updated roadmap and continuity acceptance criteria. | Integrate this branch's documentation commit to carry the findings into main/other workspaces. |
-| `codex/desktop-handoff` / `codex/p1-original` | Earlier P1 review/provenance branches.                                                    | Historical evidence; PR #1 is already integrated in `fd60a5a`.                                 |
-| `GregPat22/argent-landing-page-draft`         | Landing source integrated through PR #3 in `b5e763f`.                                     | Historical visual/package evidence; preserve any later worktree changes.                       |
+Current integration status checked against freshly fetched `origin/main` at
+`13eb14e` on 6 November 2026. It includes desktop PR #1 (`fd60a5a`), landing
+PR #3 (`b5e763f`) and shutdown/continuity research PR #4 (`13eb14e`). Historical
+review notes below retain their original evidence and branch states.
 
-The PR review/package notes below preserve historical evidence and branch states.
-Their earlier instructions to merge PR #1 are superseded by main `fd60a5a`.
-This branch integrates main into the feature branch for PR preparation; main
-itself is unchanged. No deployment or binary publication is included.
-Existing worktrees will not receive these findings automatically: integrate the
-saved documentation commit through the normal reviewed Git workflow.
+| Location                                      | Current state                                                          | How to use it                                                             |
+| --------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `origin/main` at `13eb14e`                    | M0/P1, landing draft and continuity/market-validation plans            | Base for new work; execution is simulated and the website is unpublished. |
+| `GregPat22/next-step-v2`                      | M1a contract, retained-core decision and internal lifecycle simulation | Review spec 0007; real provider/bootstrap work remains unimplemented.     |
+| `codex/desktop-handoff` / `codex/p1-original` | Earlier P1 review/provenance branches                                  | Historical evidence; PR #1 is already integrated.                         |
+| `GregPat22/argent-landing-page-draft`         | Landing source integrated via PR #3                                    | Preserve any later worktree changes.                                      |
+| `GregPat22/grok-conductor-shutdown-analysis`  | Research and roadmap integrated via PR #4                              | Current continuity/customer/authentication criteria are preserved here.   |
+
+This feature branch integrates current main for PR preparation; main itself is
+unchanged. The lifecycle slice adds no real cloud execution or public release.
 
 ## Product decisions already made
 
@@ -74,14 +72,14 @@ Expired/uncertain work blocks the workspace as `needs_attention` and is not
 automatically repeated. The [M0 contract](docs/specs/0001-durable-local-run.md) and
 [completion report](docs/milestones/0000-completion.md) record the behavior.
 
-The main/context publication passed **22 tests**, strict type checks and
+The earlier M0/context publication passed **22 tests**, strict type checks and
 formatting, with GitHub CI also passing. Earlier review repaired lease validation
 using a pre-lock timestamp and demo cleanup. Those are historical results for the
 recorded revision, not certification of all future changes.
 
 ### P1: local desktop prototype
 
-The local desktop prototype is complete on the review branch. It adds:
+The local desktop prototype is integrated on main at `fd60a5a`. It adds:
 
 - Electron 45.2.3, sandboxed renderer, context isolation, a narrow validated IPC
   bridge and service credentials kept outside the renderer.
@@ -156,9 +154,9 @@ is retained on a local backup ref. Existing worktrees do not automatically updat
 when GitHub receives new commits: fetch and inspect the base before starting work,
 and preserve local modifications when bringing an existing branch up to date.
 
-New general worktrees should start from current `origin/main`. Desktop work that
-depends on P1 should use `origin/codex/desktop-handoff` until PR #1 is integrated.
-Do not base new work on the provenance branch or the old empty commit.
+New general and desktop worktrees should start from current `origin/main`,
+which includes P1. Do not base new work on the historical review/provenance
+branches or the old empty commit.
 
 There are two website sources to coordinate: P1's static local download source
 (`website/index.html`, `website/styles.css`, `site:preview`) and the active
@@ -175,8 +173,8 @@ numbers, logos, testimonials or public download links may be fabricated.
 
 The active Conductor spec `0005-website-landing-draft.md` was written against M0
 and still calls the macOS app in development. That predates the P1 completion:
-update its status/copy to reflect the completed local prototype on the review
-branch, while keeping public distribution and real integrations unfinished.
+update its status/copy to reflect the completed local prototype now integrated
+on main, while keeping public distribution and real integrations unfinished.
 
 ## Motion tooling and machine-local state
 
@@ -213,24 +211,26 @@ needed. Desktop application data lives in its local app-support profile;
 
 Next actions, in order:
 
-1. Read the updated [roadmap](ROADMAP.md), [decision register](docs/DECISIONS.md)
-   and [continuity contract](docs/specs/0006-continuity-and-market-validation.md).
-   Serve the overlapping audiences through a shared core and staged delivery.
-2. Resolve the bounded pinned-T3 runtime/foundation gate and verify authentication
-   by provider and local/customer-operated remote/managed deployment. Supported
-   subscriptions are preferred for eventual onboarding; API keys remain the pilot
-   path and alternative. No silent billable fallback or extracted credentials.
-3. Specify GitHub App scopes and isolated cloud lifecycle/cleanup, then complete
-   M1a–M1c: one real workspace/agent, observable control, trusted exact-commit
-   checks, independent review and an authorized draft PR.
-4. Complete M1d portable export/restore, plus PostgreSQL, remote authorization,
-   credential brokering, limits, cleanup and backup/restore before managed release.
+1. Continue bounded M1a on the retained Argent core. The engineering agent owns
+   routine technical choices; T3 runtime evaluation is deferred until measured need.
+   Foundation replacement is not approved.
+2. Lifecycle records and simulated failure tests are implemented internally.
+   Next implement read-only GitHub credential brokerage/bootstrap from
+   [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md), alongside the
+   provider/deployment authentication validation in the roadmap. Supported
+   subscription onboarding remains preferred where permitted; API keys remain
+   the controlled pilot/alternative. Never silently switch to billable usage.
+3. Prove real M1a persistence, isolation and cleanup, then M1b/M1c observable
+   control, one official agent, exact-commit verification, review and an authorized
+   draft PR. Live tests require concrete provider/account/region/resource/budget approval.
+4. Complete M1d portable export/restore, PostgreSQL, remote authorization,
+   credential brokerage, enforced limits and backup/restore before managed release.
 5. Stage additional agent support, scoped team handoff and lightweight mobile
-   access before dependency orchestration. Native mobile/advanced enterprise
-   features remain later; detailed acceptance contracts precede implementation.
-6. The landing source is integrated via PR #3. Keep its Next.js package separate
-   from the desktop static preview; address signing/notarization, verified updates
-   and real public downloads before release.
+   access before dependency orchestration, with separate acceptance contracts.
+   Customer outreach and paid competitor trials require their own authorization.
+6. The landing is integrated via PR #3. Keep Next.js separate from the static
+   desktop preview; signing/notarization, verified updates and real public
+   downloads remain release requirements.
 
 No billable resources, domain purchase, cloud deployment, upstream adoption,
 production service or binary release has been authorized by this handoff.
@@ -386,6 +386,74 @@ Native/package smoke and real-provider/customer/competitor validation were not
 run for this documentation update. The local check log is
 `.context/roadmap-context-check.log`; the existing five moderate packaging audit
 findings remain outside this change. No dependency versions/lockfile changed.
+
+### Post-merge M1a preparation, 6 November 2026 (historical gate)
+
+On `GregPat22/next-step-v2`, based on `fd60a5a`, a fresh fetch confirmed PR #1
+is already integrated in `origin/main`. Corrected the entry points and current
+branch guidance; historical review/package evidence above remains historical.
+No branch was renamed and the separate landing workspace was not modified.
+
+Prepared [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md): proposed
+read-only GitHub App access, credential/bootstrap boundaries, durable lifecycle
+intent/acknowledgment, atomic operation ownership, quiescence, conservative
+reconciliation, persistence manifests and cleanup inventory. Ten acceptance
+criteria separate deterministic fixture coverage from required live evidence.
+Official GitHub/E2B documentation was checked on this date and linked in the spec;
+no SDK was installed and no provider integration was tested.
+
+Fresh `npm run check` passed strict types, formatting, compilation and **41 tests,
+0 failures, 0 skips**. The documentation diff was reviewed, relative Markdown
+file targets resolved and whitespace checks passed. Native/package smoke was
+not repeated because runtime and dependencies are unchanged. Local check output
+is `.context/next-check.log`; the tracked results here are the durable summary.
+
+Next decision: authorize the pinned isolated T3 runtime conformance spike or
+explicitly retain the current core for bounded M1a implementation. Then build
+lifecycle records/fake-provider failure tests and the read-only bootstrap broker.
+Live tests still require concrete provider/account/region/resource/budget and
+cleanup authorization. No cloud code, billable resources, remote publication,
+website deployment or binary release is part of this preparation.
+
+### Retained-core decision and lifecycle slice, 6 November 2026
+
+On `GregPat22/next-step-v2`, continuing from `74068ae` (main base `fd60a5a`),
+the founder delegated technical decisions to the engineering agent. Retain
+Argent for bounded M1a; defer T3 runtime evaluation until measured need. This
+supersedes the technical selection question in the previous entry. The rationale
+and engineering ownership are in [DECISIONS.md](docs/DECISIONS.md#foundation-decision-for-bounded-m1a-6-november-2026).
+Foundation replacement and billable provisioning remain separately controlled.
+
+Implemented the first [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md)
+slice: internal lifecycle tables/events on the existing SQLite connection,
+idempotent operation intent, atomic fenced claims, quiescence acknowledgment,
+dispatch receipts, deadlines/heartbeats and read-only outcome reconciliation.
+Lifecycle enrollment serializes with M0 submission/claims and disables local
+adapter execution for that workspace. Uncertain effects are never reclaimed or
+replayed. Delete keeps its identity and `deleting` state until absence is observed.
+
+The worker only accepts the simulation-only adapter contract and is not wired to
+the desktop bridge, HTTP API or service loop. It runs no target repository code
+and adds no SDK or runtime dependencies. Twenty-seven focused tests include
+independent-process claims, enrollment versus M0 submission, actual worker
+termination around simulated effects, lost acknowledgments for all four actions,
+late/hung calls, post-lock expiry, invalid observations, event rollback and
+preservation of old P1 data when lifecycle tables are introduced.
+
+Fresh `npm run check` passed strict types, formatting, compilation and **68 tests,
+0 failures, 0 skips**. Reviewed the actual implementation/test/documentation diff;
+relative Markdown targets and whitespace checks pass. Local logs are
+`.context/lifecycle-tests.log` and `.context/lifecycle-check.log`. Native/package
+smoke was not repeated; desktop behavior is covered by the automated suite.
+
+This is simulation evidence, not M1a completion or a tested PR. GitHub
+credential brokerage, trusted checkout/bootstrap, filesystem retention manifests,
+full resource/credential cleanup inventories, operator resolution, real isolation,
+remote authorization and live budget/provider validation remain unimplemented.
+Next: implement read-only GitHub bootstrap on the retained core, then exercise
+real-provider persistence/cleanup only with concrete authorized limits. Technical
+choices stay with the engineering agent. No remote push, merge, deployment,
+binary release, real provider call or billable provisioning occurred here.
 
 ## Keep the context complete
 
@@ -572,3 +640,30 @@ Native/package smoke, website production/browser checks and real-provider tests
 were not rerun for this documentation-only diff. Their earlier revision-specific
 evidence remains in the preserved reports. The user authorized creating a PR
 against main; merge, deployment and provisioning remain separate decisions.
+
+## Lifecycle PR preparation — 6 November 2026
+
+On the unchanged branch `GregPat22/next-step-v2`, preserved `74068ae` and
+`b1082b7` and integrated freshly fetched main `13eb14e` (landing PR #3 and
+shutdown/continuity PR #4). Resolved documentation overlaps by retaining both
+histories, provider/authentication validation and continuity requirements, plus
+the retained-core technical decision and implemented internal lifecycle slice.
+Renumbered this branch's lifecycle contract to `0007-cloud-workspace-lifecycle.md`
+because main already assigns 0006 to continuity/market validation.
+
+Fresh integrated-tree `npm run check` passed strict types, formatting, compilation
+and **68 tests, 0 failures, 0 skips**. Independent read-only pre-landing review
+found no concrete correctness/security issue. Coverage review identified two
+nonblocking unexercised timer paths: the periodic worker heartbeat callback and
+read-only inspection timeout; store-level heartbeat expiry and hung mutating
+calls are covered. No claim of measured full line/branch coverage is made.
+The final diff against current main and relative Markdown targets were reviewed.
+The log is `.context/pr-check.log`.
+
+Website source, desktop UI and package dependencies are unchanged relative to
+current main. Native/package smoke, website browser/build checks and live-provider
+checks were not rerun for this internal engine slice. Retain the established
+prelaunch package version `0.0.1`; no release metadata scheme is introduced for
+this source-only PR. Next implementation is read-only GitHub bootstrap with the
+remaining M1a limits above. The user authorized branch push and PR creation;
+merging main, deployment, binary release and spending remain outside this task.

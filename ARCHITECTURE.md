@@ -103,6 +103,27 @@ path. An unsigned local build must not be represented as a public-ready installe
 The website must describe available builds truthfully and never offer fabricated
 download links. No publication or paid signing account is implied by development.
 
+## Internal lifecycle simulation
+
+`Store.lifecycle` shares M0's SQLite connection through a separate
+`LifecycleStore` module. Dedicated lifecycle workspace/operation/event tables
+keep cloud lifecycle states distinct from metadata-only local stop/start.
+Enrollment and M0 submission/claims serialize through the same database;
+enrolled workspaces cannot execute via the local adapter, even when ready.
+
+The internal simulation-only worker claims operations, records dispatch intent,
+requires quiescence before pause and bounds calls with an absolute deadline and
+fenced heartbeat. Expiry and ambiguous outcomes block dispatch. Read-only
+provider inspection may settle the original operation if identity and target
+state match; an absent create marker remains inconclusive. Delete requires
+confirmed absence and retains its provider ID in an audit tombstone.
+
+This harness is not wired into the public API, desktop bridge or service worker
+loop. It has no GitHub credentials, checkout/bootstrap, persistence manifest,
+real provider, resource policy or full cleanup inventory. Its simulation-only
+adapter contract must not be expanded for real execution before those boundaries
+are implemented and verified. See [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md).
+
 ## Managed target
 
 Use PostgreSQL before multiple hosts or tenants. Preserve atomic state/event
@@ -110,9 +131,9 @@ writes, idempotency receipts, fenced claims and conservative reconciliation.
 Use database-backed work dispatch initially; introduce an outbox when dispatch
 crosses another service boundary, not a second uncoordinated queue.
 
-Evaluate T3 Code against our conformance tests before expanding this small core.
-Its existing command/outbox and recovery machinery may be worth adopting. Do
-not build a large custom workflow system before that spike. Temporal or DBOS is
+Retain the current core for bounded M1a. T3 runtime evaluation is deferred until
+measured complexity justifies it; source review alone does not prove superiority.
+Keep lifecycle machinery narrow and do not build a general workflow system. Temporal or DBOS is
 an option once actual branching/retry complexity justifies the operational cost.
 
 First cloud candidate: E2B; alternatives are Vercel Sandbox or a maintained

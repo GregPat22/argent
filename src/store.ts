@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import { LifecycleStore } from "./lifecycle-store.js";
 import {
   DomainError,
   requireInteger,
@@ -42,6 +43,7 @@ function readWorkspace(row: Row): Workspace {
 
 export class Store {
   private readonly db: DatabaseSync;
+  readonly lifecycle: LifecycleStore;
 
   constructor(path: string) {
     this.db = new DatabaseSync(path);
@@ -72,6 +74,7 @@ export class Store {
       ) STRICT;
       CREATE INDEX IF NOT EXISTS run_events ON events(run_id, cursor);
     `);
+    this.lifecycle = new LifecycleStore(this.db);
   }
 
   close(): void {
@@ -156,6 +159,7 @@ export class Store {
       throw new DomainError(400, "Invalid workspace state");
     return this.transaction(() => {
       this.getWorkspace(id);
+      this.requireLocalWorkspace(id);
       const busy = this.db
         .prepare(
           `SELECT id FROM runs WHERE workspace_id = ? AND
@@ -202,6 +206,7 @@ export class Store {
       }
       if (this.getWorkspace(workspaceId).state !== "running")
         throw new DomainError(409, "Workspace is stopped");
+      this.requireLocalWorkspace(workspaceId);
       if (
         this.db
           .prepare(
@@ -229,6 +234,20 @@ export class Store {
     const row = this.db.prepare("SELECT * FROM runs WHERE id = ?").get(id);
     if (!row) throw new DomainError(404, "Run not found");
     return readRun(row);
+  }
+
+  private requireLocalWorkspace(id: string): void {
+    if (
+      this.db
+        .prepare(
+          "SELECT workspace_id FROM lifecycle_workspaces WHERE workspace_id = ?",
+        )
+        .get(id)
+    )
+      throw new DomainError(
+        409,
+        "Workspace belongs to lifecycle simulation; local execution is disabled",
+      );
   }
 
   listRuns(workspaceId: string, limit = 50, before?: string): Page<Run> {
@@ -328,7 +347,9 @@ export class Store {
       const row = this.db
         .prepare(
           `SELECT r.* FROM runs r JOIN workspaces w ON w.id = r.workspace_id
-        WHERE r.status = 'queued' AND w.state = 'running' ORDER BY r.created_at, r.id LIMIT 1`,
+        WHERE r.status = 'queued' AND w.state = 'running'
+        AND NOT EXISTS (SELECT 1 FROM lifecycle_workspaces l WHERE l.workspace_id = r.workspace_id)
+        ORDER BY r.created_at, r.id LIMIT 1`,
         )
         .get();
       if (!row) return null;

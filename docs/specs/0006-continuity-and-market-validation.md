@@ -46,8 +46,9 @@ Before finalizing commercial onboarding or expanding the MVP:
 5. Record evidence that supports or challenges delegation versus an interactive
    workspace. The founder chooses scope; unknown willingness to pay stays unknown.
 
-The existing pinned T3 runtime/conformance decision remains separate. Neither
-the shutdown nor this discovery gate is approval to replace Argent's foundation.
+The [bounded M1a technical decision](../DECISIONS.md#foundation-decision-for-bounded-m1a-6-november-2026)
+retains Argent's current core and defers the T3 runtime spike until measured need.
+Neither the shutdown nor this discovery gate approves foundation replacement.
 
 ## M1 managed-release additions
 

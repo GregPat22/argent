@@ -86,7 +86,10 @@ agents or dozens of dependent specifications.
 This branch contains **P1: the local desktop prototype**, built on the M0
 orchestration simulator. Its scripted agent writes fixed JSON; it cannot run
 repository commands or call a model. The desktop provides a native interface,
-reconnection, artifact inspection and a detached local service. See the
+reconnection, artifact inspection and a detached local service. An internal
+simulation-only lifecycle store/worker additionally exercises provider operation
+claims, pause/resume/delete, uncertain outcomes and read-only reconciliation.
+It is not connected to the desktop API and proves no real cloud capability. See the
 [P1 completion report](milestones/0001-completion.md).
 
 | Area         | Implemented in this publication                                                    | Remaining product work                                                   |
@@ -221,15 +224,18 @@ Read the [documentation index](README.md), [founding brief](FOUNDING_BRIEF.md),
 Keep the desktop requirement and cloud execution requirement together. A desktop
 prototype may use simulation while the real-cloud MVP remains incomplete.
 
-P1 and a pinned upstream source evaluation are complete on this branch. The
+P1 is integrated on main, and a pinned upstream source evaluation is recorded. The
 [source evaluation](research/t3-adoption-spike.md) did not run upstream code or
-prove runtime conformance. Next are the foundation runtime decision and the
-customer/provider-authentication validation described in the roadmap, then M1a.
-Before real cloud work, specify GitHub App scopes and provider lifecycle and
-cleanup contracts. Then build and test real isolated workspaces, one official
-agent, trusted exact-commit verification and a draft-PR broker, followed by portable
-continuity before managed release. Avoid a full IDE, multi-agent swarms, billing,
-native mobile apps and autonomous merging in the MVP.
+prove runtime conformance. Retain the current core for bounded M1a; the runtime
+spike is deferred until measured need. The
+[M1a contract](specs/0007-cloud-workspace-lifecycle.md) specifies read-only GitHub
+access, lifecycle, reconciliation and cleanup. Its internal lifecycle simulation
+is implemented; GitHub bootstrap is next, alongside customer/provider-authentication
+validation in the roadmap. Approve concrete provider limits before live tests.
+Then prove real isolated workspaces, one official agent, trusted exact-commit
+verification and a draft-PR broker, followed by portable continuity before managed
+release. Avoid a full IDE, swarms, billing, native mobile apps and autonomous
+merging in the MVP.
 
 Every task needs acceptance criteria, a focused implementation, appropriate tests,
 actual-diff review and an honest completion report. Use isolated worktrees for
