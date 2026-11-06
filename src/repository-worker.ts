@@ -53,7 +53,6 @@ export async function workRepository(
   if (!op) return false;
   const fence = op.leaseToken!;
   let credential: string | null = null;
-  let mintDispatched = false;
   let channelDispatched = false;
   let verified = false;
   let cleanupPassed = true;
@@ -88,7 +87,6 @@ export async function workRepository(
       op.ref,
     );
     store.authorize(op.id, fence, grant.repositoryId, grant.installationId);
-    mintDispatched = true;
     const minted = await bounded(controller.signal, () =>
       github.mint(
         grant.installationId,
@@ -104,8 +102,9 @@ export async function workRepository(
     credential = tokenFrom(minted);
     const expiresAt = tokenExpiry(minted, grant);
     store.minted(op.id, fence, expiresAt);
-    // The deadline bounds every later call, so the token must outlive it.
-    if (expiresAt <= op.deadlineAt!)
+    // The deadline bounds every later call and revocation may run for one
+    // cleanup timeout after it, so the token must outlive both.
+    if (expiresAt <= op.deadlineAt! + cleanupTimeoutMs)
       throw new Error("Repository credential expires before the deadline");
     const sha = fullSha(
       await bounded(controller.signal, () =>
@@ -136,8 +135,7 @@ export async function workRepository(
     store.verified(op.id, fence);
     verified = true;
   } catch {
-    // Failures before mint dispatch had no external effect and fail cleanly.
-    // Later unknown outcomes and invalid evidence block the workspace.
+    // The store settles the outcome from the persisted phase below.
     // Adapter errors may contain secrets; only fixed event names are persisted.
   } finally {
     // A separate bounded signal allows cleanup even after a main-call timeout.
@@ -167,16 +165,22 @@ export async function workRepository(
     controller.abort();
   }
 
-  try {
-    if (verified && cleanupPassed) store.complete(op.id, fence);
-    else if (!mintDispatched) store.fail(op.id, fence);
-    else store.markUncertain(op.id, fence);
-  } catch (error) {
+  const conflict = (error: unknown) => {
     if (!(error instanceof DomainError && error.status === 409)) throw error;
-    // Lease/deadline expiry cannot be turned into success by a late response.
-    const current = store.operation(op.id);
-    if (current.status === "running" && current.leaseToken === fence)
-      store.markUncertain(op.id, fence);
+  };
+  if (verified && cleanupPassed)
+    try {
+      store.complete(op.id, fence);
+      return true;
+    } catch (error) {
+      // Lease/deadline expiry cannot be turned into success by a late response.
+      conflict(error);
+    }
+  try {
+    store.settle(op.id, fence);
+  } catch (error) {
+    // Another worker or reconciliation already settled the operation.
+    conflict(error);
   }
   return true;
 }

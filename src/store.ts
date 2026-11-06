@@ -49,7 +49,8 @@ export class Store {
 
   constructor(path: string) {
     this.db = new DatabaseSync(path);
-    this.db.exec(`
+    try {
+      this.db.exec(`
       PRAGMA busy_timeout = 5000;
       PRAGMA journal_mode = WAL;
       PRAGMA synchronous = FULL;
@@ -76,8 +77,13 @@ export class Store {
       ) STRICT;
       CREATE INDEX IF NOT EXISTS run_events ON events(run_id, cursor);
     `);
-    this.lifecycle = new LifecycleStore(this.db);
-    this.repositories = new RepositoryStore(this.db);
+      this.lifecycle = new LifecycleStore(this.db);
+      this.repositories = new RepositoryStore(this.db);
+    } catch (error) {
+      // An open handle would keep the WAL database locked after a failed start.
+      this.db.close();
+      throw error;
+    }
   }
 
   close(): void {

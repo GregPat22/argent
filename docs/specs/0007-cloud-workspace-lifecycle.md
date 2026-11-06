@@ -316,3 +316,18 @@ criteria above:
 Evidence: `npm run check` passes **129 tests, 0 failures, 0 skips**. The
 operator-resolution workflow and all live A1–A10 evidence remain open. See the
 [hardening handoff](../../HANDOFF.md#repository-bootstrap-hardening--6-november-2026).
+
+Review fixes on `GregPat22/code-review-v2`, based on `333d662`, supersede parts
+of the hardening criteria:
+
+- Token identity is the numeric repository ID alone; a renamed or transferred
+  repository with the pinned ID is accepted. The `owner/name` match is removed.
+- A token must expire after the operation deadline plus one cleanup timeout.
+- The repository schema carries a recorded version. Upgrading a version 1 table
+  preserves every operation and event, including uncertain obligations; a newer
+  version refuses to start; a failed start releases the database.
+- The persisted phase and credential state alone decide between `failed` and
+  `needs_attention`, for workers and lease reconciliation alike.
+
+Evidence: `npm run check` passes **131 tests, 0 failures, 0 skips**. See the
+[review-fix handoff](../../HANDOFF.md#repository-bootstrap-review-fixes--6-november-2026).
