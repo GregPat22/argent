@@ -7,12 +7,12 @@ Private chat access is not required to continue development.
 
 ## Where the work is saved
 
-| Location                                           | State at this handoff                                                           | How to use it                                                                                                                                                                                                |
-| -------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `main`                                             | M0 runtime, product/research context, agent entry points and this handoff       | Starting point for general new worktrees. P1 is not yet merged here.                                                                                                                                         |
-| `codex/desktop-handoff`                            | Completed P1 source reconciled with the shared GitHub context; commit `22ef186` | Review [draft PR #1](https://github.com/GregPat22/argent/pull/1). Use this branch for desktop continuation until an explicit merge decision.                                                                 |
-| `codex/p1-original`                                | Original completed P1 commit `a4f3d52`, preserved unchanged                     | Provenance/backup, rather than the preferred development base.                                                                                                                                               |
-| `GregPat22/argent-landing-page-draft` in Conductor | Active local landing-page work, based on the shared context                     | At audit time `website/` and `docs/specs/0005-website-landing-draft.md` are uncommitted. They are not included in PR #1 or this publication. Preserve them and let the landing agent commit/push when ready. |
+| Location                                           | State at this handoff                                                                    | How to use it                                                                                                                                                                                                |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `main`                                             | M0 runtime, product/research context, agent entry points and this handoff                | Starting point for general new worktrees. P1 is not yet merged here.                                                                                                                                         |
+| `codex/desktop-handoff`                            | Completed P1 source reconciled with the shared GitHub context; current PR head `6104961` | Review [draft PR #1](https://github.com/GregPat22/argent/pull/1). Use this branch for desktop continuation until an explicit merge decision.                                                                 |
+| `codex/p1-original`                                | Original completed P1 commit `a4f3d52`, preserved unchanged                              | Provenance/backup, rather than the preferred development base.                                                                                                                                               |
+| `GregPat22/argent-landing-page-draft` in Conductor | Active local landing-page work, based on the shared context                              | At audit time `website/` and `docs/specs/0005-website-landing-draft.md` are uncommitted. They are not included in PR #1 or this publication. Preserve them and let the landing agent commit/push when ready. |
 
 The default branch's M0-only descriptions refer to its actual runtime, not the
 latest completed work on every branch. The review branch's README, architecture,
@@ -207,8 +207,9 @@ needed. Desktop application data lives in its local app-support profile;
 
 Next actions, in order:
 
-1. Review draft PR #1, including the actual source diff and recorded evidence;
-   obtain the explicit merge decision and update branch/status documentation.
+1. Resolve the selected older-workspace refresh finding from the
+   [PR #1 review](docs/research/p1-pr-review.md), rerun desktop verification,
+   then obtain the explicit merge decision and update branch/status documentation.
 2. Continue the landing draft with the founder's unresolved design/CTA answers;
    reconcile the shared website directory and record completed work in Git.
 3. Decide whether to run an isolated, pinned T3 runtime conformance spike before
@@ -223,6 +224,22 @@ Next actions, in order:
 
 No billable resources, domain purchase, cloud deployment, upstream adoption,
 production service or binary release has been authorized by this handoff.
+
+### PR #1 review follow-up, 6 November 2026
+
+On `GregPat22/next-step`, based on main `a5a96cb`, reviewed desktop PR head
+`6104961056d1123988a1fe6e2d76fcb3ed53897b` without integrating it. Fresh checks
+passed all 33 tests, strict types and formatting. Development Electron smoke
+passed, including detached-service survival after app exit. Packaged-executable
+and archive checks were not repeated. A controlled compiled-renderer reproduction
+confirmed that selected workspaces outside the newest 50 retain stale lifecycle
+state after changes from another client. The review report records exact evidence,
+dependency audit signals and remaining limits; desktop criterion 6 now captures
+the missing refresh regression. Fix that issue before requesting integration.
+No PR review comment was posted, branch renamed, merge performed or release made.
+The main-based documentation branch passed `npm run check` with 22 tests;
+all 34 relative links in the four changed documents resolve and diff whitespace
+checks passed. The review finding is documented, not fixed in this branch.
 
 ## Keep the context complete
 
