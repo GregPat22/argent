@@ -58,6 +58,13 @@ function Comparison() {
   const left = useTransform(smooth, [0, 1], ["0%", "100%"]);
   const handleOffset = useTransform(smooth, [0, 1], [28, -28]);
   const dragging = useRef(false);
+  const interacted = useRef(false);
+  const hint = useRef<{ stop(): void } | null>(null);
+  const takeControl = () => {
+    interacted.current = true;
+    hint.current?.stop();
+    hint.current = null;
+  };
   const [percent, setPercent] = useState(86);
   useMotionValueEvent(position, "change", (value) =>
     setPercent(Math.round(value * 100)),
@@ -65,15 +72,21 @@ function Comparison() {
 
   // One hint on arrival: the divider glides to the middle.
   useEffect(() => {
-    if (!inView) return;
+    if (!inView || interacted.current) return;
     if (reduceMotion) position.set(0.5);
-    else
-      animate(position, 0.5, {
+    else {
+      const animation = animate(position, 0.5, {
         type: "spring",
         visualDuration: 1.2,
         bounce: 0.15,
         delay: 0.3,
       });
+      hint.current = animation;
+      return () => {
+        animation.stop();
+        hint.current = null;
+      };
+    }
   }, [inView, position, reduceMotion]);
 
   const setFromPointer = (event: PointerEvent<HTMLDivElement>) => {
@@ -90,6 +103,9 @@ function Comparison() {
       PageDown: -0.2,
       PageUp: 0.2,
     };
+    if (!(event.key in steps) && event.key !== "Home" && event.key !== "End")
+      return;
+    takeControl();
     if (event.key in steps)
       position.set(
         Math.min(1, Math.max(0, position.get() + steps[event.key]!)),
@@ -105,6 +121,7 @@ function Comparison() {
       ref={ref}
       className="relative h-[30rem] cursor-ew-resize touch-pan-y overflow-hidden rounded-2xl border border-hairline-strong select-none sm:h-[22rem]"
       onPointerDown={(event) => {
+        takeControl();
         dragging.current = true;
         event.currentTarget.setPointerCapture(event.pointerId);
         setFromPointer(event);

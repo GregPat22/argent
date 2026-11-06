@@ -47,9 +47,9 @@ development. A grid of simultaneous chat windows does not tell the whole story.
 ## Stage, evidence and claims
 
 The project is pre-launch software. A P1 local desktop prototype with simulated
-execution is complete on the review branch; see [the handoff](../../HANDOFF.md)
+execution is integrated into main; see [the handoff](../../HANDOFF.md)
 and [completion report](../milestones/0001-completion.md) for source and evidence.
-Main still contains M0 until the explicit integration decision. A local unsigned
+P1 was integrated into main through PR #1. A local unsigned
 package does not establish a signed public production download. Coordinate the
 existing static download page with the Conductor landing-page package; both use
 `website/`.

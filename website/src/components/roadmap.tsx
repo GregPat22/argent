@@ -16,8 +16,8 @@ const MILESTONES = [
   {
     id: "P1",
     title: "Desktop prototype",
-    body: "A local macOS app with workspaces, tasks and retained history. Complete on the desktop review branch; execution is simulated.",
-    label: "Prototype complete · review branch",
+    body: "A local macOS app with workspaces, tasks and retained history. Included in the source repository; execution is simulated.",
+    label: "Prototype complete · simulation",
     complete: true,
   },
   {

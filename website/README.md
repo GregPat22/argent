@@ -28,6 +28,11 @@ npx playwright install chromium  # once per test environment
 npm run test:e2e                 # production browser regression checks
 ```
 
+The desktop package also keeps its static download preview at `website/index.html`
+and `website/styles.css`. Root `npm run site:preview` serves those files on port
+4320 after its local screenshot/archive prerequisites exist; Next.js does not
+serve or overwrite them. Keep that preview separate from this landing package.
+
 ## Notes
 
 - Copy must match the repository. Figures quoted from M0 live in `src/lib/site.ts`.

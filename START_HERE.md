@@ -11,9 +11,9 @@ execution remains part of the product, even though its primary client is desktop
 
 ## Read the context for your task
 
-**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). It includes the
-completed P1 prototype on this review branch. The default main runtime remains
-M0 until that work is explicitly approved and integrated.
+**Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). The completed P1
+prototype is integrated into main; the landing-page refinement remains on
+`GregPat22/argent-landing-page-draft` pending its own PR.
 
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |

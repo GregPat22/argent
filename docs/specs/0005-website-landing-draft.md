@@ -17,7 +17,7 @@ engine, share its dependencies or change its checks.
 1. `website/` builds with `npm run build` and serves a single static landing route.
    The root `npm run check` still passes unchanged.
 2. Copy states what works today. M0 is described as a local orchestration simulator,
-   and the local macOS prototype as complete on its review branch, using simulated
+   and the local macOS prototype as complete in the source repository, using simulated
    execution. Public downloads and real cloud/agent capabilities remain planned.
    No invented download links, prices, customers, metrics or integrations.
 3. Interactive illustrations are labelled as illustrations. Any figures quoted
@@ -141,3 +141,23 @@ feedback supersedes W0.1's section-signature direction. Acceptance criteria:
 Visual checks cover desktop 1440px, tablet 768px and mobile 360/390px. Chromium
 with SwiftShader is not a real-device GPU or Safari benchmark. The silver form
 and orbital artwork are stylized; they are not physical fluid/quantum solvers.
+
+## PR integration verification — 6 November 2026
+
+Branch: `GregPat22/argent-landing-page-draft`, main baseline `fd60a5a`, integrated
+by merge `e3e82f9`. P1 is now part of main, so current website copy describes the
+prototype as complete in the source repository. Preserve the static desktop
+preview (`website/index.html`, `website/styles.css`, root `site:preview` on 4320)
+alongside the separate Next.js landing package on 3000. Neither entry point may
+overwrite or depend on the other's runtime; the actual diff confirms the desktop
+source and packaging are unchanged against main.
+
+Additional acceptance: immediate keyboard/pointer input must cancel the comparison
+slider's arrival hint permanently, including after reduced-motion changes. The
+independent review reproduced the race, and two normal-motion browser regressions
+now verify the fix. Fresh production browser suite: **14 passed (38.2s)**; website
+types/build passed; root `npm run check`: **41 passed**, types and formatting.
+These supersede the earlier branch-local check totals, not the historical M0
+completion evidence. The GitHub workflow still runs only root checks; website
+checks were run locally. Native packaging, static artifact streaming, Safari and
+real-device GPU checks were not rerun. No deployment or merge into main occurred.

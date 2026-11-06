@@ -32,7 +32,7 @@ test("page hydrates cleanly and every section has a readable heading", async ({
     ).toBeTruthy();
   }
   await expect(page.locator("#roadmap")).toContainText(
-    "Prototype complete · review branch",
+    "Prototype complete · simulation",
   );
   await expect(page.locator("#hallmark")).toContainText(
     "example commit and simulated check results",
@@ -118,6 +118,34 @@ test("comparison slider supports limits without clipping its handle", async ({
       .toBeTruthy();
   }
 });
+
+for (const input of ["keyboard", "pointer"] as const) {
+  test(`comparison arrival hint yields permanently to ${input} input`, async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const stage = page.locator("#hallmark .cursor-ew-resize");
+    const slider = page.getByRole("slider");
+    await stage.evaluate((el) =>
+      el.scrollIntoView({ behavior: "instant", block: "center" }),
+    );
+    if (input === "keyboard") {
+      await slider.focus();
+      await page.keyboard.press("End");
+      await expect(slider).toHaveAttribute("aria-valuenow", "100");
+    } else {
+      const box = (await stage.boundingBox())!;
+      await page.mouse.click(box.x + box.width * 0.9, box.y + box.height / 2);
+      await expect(slider).toHaveAttribute("aria-valuenow", "90");
+    }
+    const selected = await slider.getAttribute("aria-valuenow");
+    // Stay beyond the delayed spring's full lifetime, then change OS preference.
+    await page.waitForTimeout(2200);
+    await expect(slider).toHaveAttribute("aria-valuenow", selected!);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect(slider).toHaveAttribute("aria-valuenow", selected!);
+  });
+}
 
 test("illustrated reconnect preserves history and worker loss requires attention", async ({
   page,

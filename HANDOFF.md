@@ -435,3 +435,36 @@ The website/desktop branches still need explicit integration review; no main
 merge, deployment or public download was performed. Engine and desktop packaging
 are unchanged. `.context/` contains only local research/browser evidence and
 helpers; it is not the sole durable handoff.
+
+## Landing PR preparation — 6 November 2026
+
+Branch: `GregPat22/argent-landing-page-draft`. Fetched main at `fd60a5a` and
+integrated it into this feature branch in `e3e82f9`; main itself was not changed.
+Resolved the handoff/index conflicts by preserving desktop and landing evidence.
+Updated the current status references and roadmap copy because P1 is now on
+main. Root `npm run site:preview` still serves the static desktop download page
+on port 4320, with its existing local screenshot/archive prerequisites. The
+separate Next.js package serves the landing on port 3000; neither entry point
+imports or overwrites the other. No engine or packaging diff remains against main.
+
+Independent actual-diff/coverage review found an arrival-animation race in the
+comparison slider: early keyboard or pointer input could be overwritten by its
+delayed spring. The hint now stops permanently on user input and cleans up on
+preference changes/unmount. Acceptance: immediate keyboard and pointer selections
+survive the hint's full duration and subsequent reduced-motion changes. Two new
+normal-motion browser regressions cover this, and the focused fix was independently
+reviewed with no remaining findings.
+
+Fresh checks on the integrated tree: root `npm run check` passed **41 tests**,
+strict types and formatting; website strict typecheck and production build passed;
+**14 production Playwright tests passed (38.2s)**. Credential-pattern scanning and
+`git diff --check` passed. The full PR diff was reviewed against `origin/main`.
+Website checks are local evidence; the existing GitHub workflow runs root checks
+only. Native Electron smoke/package/download streaming was not rerun: generated
+screenshot/archive prerequisites are absent in this workspace. Their source is
+unchanged from main. Safari and real-device GPU validation remain open.
+
+Next: review the landing PR and founder visuals, then make an explicit integration
+decision. This task authorizes branch push and PR creation, not a main merge,
+website deployment or binary release. The package remains version `0.0.1`, matching
+the repository's existing prelaunch convention.
