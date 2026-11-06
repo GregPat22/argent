@@ -2,6 +2,11 @@ import { createHash, randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { DomainError, requireInteger, requireString } from "./domain.js";
 import { fullSha } from "./repository-access.js";
+import {
+  recoveryObservation,
+  type RepositoryResolution,
+  type ResolutionReason,
+} from "./repository-recovery.js";
 
 export interface RepositoryOperation {
   id: string;
@@ -49,47 +54,122 @@ function operation(row: Record<string, unknown>): RepositoryOperation {
   };
 }
 
+// Columns shared by every schema version, in table order.
+const COLUMNS = `id,workspace_id,operator_id,repository,ref,provider_id,repository_id,
+  installation_id,head_sha,request_key,fingerprint,status,phase,credential,channel,
+  token_expires_at,max_runtime_ms,created_at,lease_token,lease_expires_at,deadline_at`;
+
+const SCHEMA_VERSION = 3;
+
+function operationsTable(name: string): string {
+  return `CREATE TABLE IF NOT EXISTS ${name} (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL REFERENCES lifecycle_workspaces(workspace_id),
+    operator_id TEXT NOT NULL, repository TEXT NOT NULL, ref TEXT NOT NULL,
+    provider_id TEXT NOT NULL, repository_id INTEGER, installation_id INTEGER,
+    head_sha TEXT, request_key TEXT NOT NULL UNIQUE, fingerprint TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','failed','needs_attention')),
+    phase TEXT NOT NULL CHECK(phase IN ('authorizing','minting','resolving','checkout','cleaning')),
+    credential TEXT NOT NULL CHECK(credential IN ('none','unknown','issued','revoked')),
+    channel TEXT NOT NULL CHECK(channel IN ('none','unknown','cleared')),
+    token_expires_at INTEGER, max_runtime_ms INTEGER NOT NULL,
+    created_at INTEGER NOT NULL, lease_token TEXT, lease_expires_at INTEGER, deadline_at INTEGER
+  ) STRICT;`;
+}
+
+// Nothing external can exist before mint intent, so such work fails cleanly
+// and may be retried. From mint intent onward the outcome is uncertain.
+function effectFree(phase: unknown, credential: unknown): boolean {
+  return phase === "authorizing" && credential === "none";
+}
+
 export class RepositoryStore {
   constructor(private readonly db: DatabaseSync) {
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS schema_versions (component TEXT PRIMARY KEY, version INTEGER NOT NULL) STRICT",
+    );
+    const version = this.schemaVersion();
+    if (version > SCHEMA_VERSION)
+      throw new Error("Repository schema is newer than this build supports");
+    // Version 1 allowed one attempt per workspace and had no failed status.
+    // SQLite cannot alter those constraints, so rebuild the table with its rows.
+    if (version === 1) this.withoutForeignKeys(() => this.migrateFromV1());
     this.transaction(() => {
-      // The first schema allowed one attempt per workspace and had no failed
-      // status. Only simulation tests write these rows, so rebuild it when empty.
-      const existing = db
-        .prepare(
-          "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'repository_operations'",
-        )
-        .get();
-      if (existing && !(existing.sql as string).includes("'failed'")) {
-        if (db.prepare("SELECT 1 FROM repository_operations LIMIT 1").get())
-          throw new Error("Repository operations need a manual migration");
-        db.exec(
-          "DROP TABLE IF EXISTS repository_events; DROP TABLE repository_operations;",
-        );
-      }
       db.exec(`
-      CREATE TABLE IF NOT EXISTS repository_operations (
-        id TEXT PRIMARY KEY,
-        workspace_id TEXT NOT NULL REFERENCES lifecycle_workspaces(workspace_id),
-        operator_id TEXT NOT NULL, repository TEXT NOT NULL, ref TEXT NOT NULL,
-        provider_id TEXT NOT NULL, repository_id INTEGER, installation_id INTEGER,
-        head_sha TEXT, request_key TEXT NOT NULL UNIQUE, fingerprint TEXT NOT NULL,
-        status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','failed','needs_attention')),
-        phase TEXT NOT NULL CHECK(phase IN ('authorizing','minting','resolving','checkout','cleaning')),
-        credential TEXT NOT NULL CHECK(credential IN ('none','unknown','issued','revoked')),
-        channel TEXT NOT NULL CHECK(channel IN ('none','unknown','cleared')),
-        token_expires_at INTEGER, max_runtime_ms INTEGER NOT NULL,
-        created_at INTEGER NOT NULL, lease_token TEXT, lease_expires_at INTEGER, deadline_at INTEGER
-      ) STRICT;
-      CREATE UNIQUE INDEX IF NOT EXISTS one_repository_bootstrap
-        ON repository_operations(workspace_id) WHERE status != 'failed';
-      CREATE TABLE IF NOT EXISTS repository_events (
-        cursor INTEGER PRIMARY KEY AUTOINCREMENT,
-        operation_id TEXT NOT NULL REFERENCES repository_operations(id),
-        type TEXT NOT NULL, created_at INTEGER NOT NULL
-      ) STRICT;
-      CREATE INDEX IF NOT EXISTS repository_event_cursor ON repository_events(operation_id, cursor);
-    `);
+        ${operationsTable("repository_operations")}
+        CREATE UNIQUE INDEX IF NOT EXISTS one_repository_bootstrap
+          ON repository_operations(workspace_id) WHERE status != 'failed';
+        CREATE TABLE IF NOT EXISTS repository_events (
+          cursor INTEGER PRIMARY KEY AUTOINCREMENT,
+          operation_id TEXT NOT NULL REFERENCES repository_operations(id),
+          type TEXT NOT NULL, created_at INTEGER NOT NULL
+        ) STRICT;
+        CREATE INDEX IF NOT EXISTS repository_event_cursor ON repository_events(operation_id, cursor);
+        CREATE TABLE IF NOT EXISTS repository_resolutions (
+          id TEXT PRIMARY KEY,
+          operation_id TEXT NOT NULL REFERENCES repository_operations(id),
+          operator_id TEXT NOT NULL, request_key TEXT NOT NULL UNIQUE,
+          status TEXT NOT NULL CHECK(status IN ('resolved','rejected')),
+          reason TEXT CHECK(reason IN ('unconfirmed','inspection_failed','timeout')),
+          observed_at INTEGER, created_at INTEGER NOT NULL,
+          event_cursor INTEGER NOT NULL UNIQUE REFERENCES repository_events(cursor),
+          CHECK((status = 'resolved' AND reason IS NULL AND observed_at IS NOT NULL)
+            OR (status = 'rejected' AND reason IS NOT NULL AND observed_at IS NULL))
+        ) STRICT;
+        CREATE INDEX IF NOT EXISTS repository_resolution_operation
+          ON repository_resolutions(operation_id,event_cursor);
+      `);
+      db.prepare(
+        "INSERT INTO schema_versions (component,version) VALUES ('repository',?) ON CONFLICT(component) DO UPDATE SET version = excluded.version",
+      ).run(SCHEMA_VERSION);
     });
+  }
+
+  private schemaVersion(): number {
+    const recorded = this.db
+      .prepare(
+        "SELECT version FROM schema_versions WHERE component = 'repository'",
+      )
+      .get();
+    if (recorded) return recorded.version as number;
+    // Databases from before version tracking: none, version 1 (PR #6) or an
+    // unrecorded version 2 (PR #7), told apart by the status constraint.
+    const table = this.db
+      .prepare(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'repository_operations'",
+      )
+      .get();
+    if (!table) return 0;
+    return (table.sql as string).includes("'failed'") ? 2 : 1;
+  }
+
+  private migrateFromV1(): void {
+    this.transaction(() => {
+      // Another process may have migrated since the unlocked version read.
+      if (this.schemaVersion() !== 1) return;
+      this.db.exec(`
+        ${operationsTable("repository_operations_v2")}
+        INSERT INTO repository_operations_v2 (${COLUMNS})
+          SELECT ${COLUMNS} FROM repository_operations;
+        DROP TABLE repository_operations;
+        ALTER TABLE repository_operations_v2 RENAME TO repository_operations;
+      `);
+      if (this.db.prepare("PRAGMA foreign_key_check").get())
+        throw new Error("Repository migration broke a foreign key");
+    });
+  }
+
+  // Dropping a referenced table needs foreign keys off, and SQLite only
+  // changes that setting outside a transaction.
+  private withoutForeignKeys(work: () => void): void {
+    const enabled = this.db.prepare("PRAGMA foreign_keys").get()!
+      .foreign_keys as number;
+    this.db.exec("PRAGMA foreign_keys = OFF");
+    try {
+      work();
+    } finally {
+      this.db.exec(`PRAGMA foreign_keys = ${enabled ? "ON" : "OFF"}`);
+    }
   }
 
   private transaction<T>(work: (now: number) => T): T {
@@ -104,12 +184,13 @@ export class RepositoryStore {
     }
   }
 
-  private event(id: string, type: string, now: number): void {
-    this.db
+  private event(id: string, type: string, now: number): number {
+    const result = this.db
       .prepare(
         "INSERT INTO repository_events (operation_id,type,created_at) VALUES (?,?,?)",
       )
       .run(id, type, now);
+    return Number(result.lastInsertRowid);
   }
 
   operation(id: string): RepositoryOperation {
@@ -134,6 +215,104 @@ export class RepositoryStore {
         createdAt: row.created_at as number,
         simulation: true as const,
       }));
+  }
+
+  private resolutionActor(id: string, operatorId: string): RepositoryOperation {
+    requireString(operatorId, "operatorId", 128);
+    const op = this.operation(id);
+    if (op.operatorId !== operatorId)
+      throw new DomainError(403, "Repository resolution is not authorized");
+    return op;
+  }
+
+  resolution(
+    id: string,
+    operatorId: string,
+    key: unknown,
+  ): RepositoryResolution | null {
+    this.resolutionActor(id, operatorId);
+    const requestKey = requireString(key, "Idempotency-Key", 128);
+    const row = this.db
+      .prepare("SELECT * FROM repository_resolutions WHERE request_key = ?")
+      .get(requestKey);
+    if (!row) return null;
+    if (row.operation_id !== id || row.operator_id !== operatorId)
+      throw new DomainError(
+        409,
+        "Resolution key already used for another operation",
+      );
+    return {
+      id: row.id as string,
+      operationId: row.operation_id as string,
+      operatorId: row.operator_id as string,
+      status: row.status as RepositoryResolution["status"],
+      reason: row.reason as ResolutionReason | null,
+      observedAt: row.observed_at as number | null,
+      createdAt: row.created_at as number,
+      eventCursor: row.event_cursor as number,
+      simulation: true,
+    };
+  }
+
+  // Inspection is read-only and happens outside the lock. Recheck status, actor,
+  // freshness and idempotency under the same lock used by lifecycle requests.
+  recordResolution(
+    id: string,
+    operatorId: string,
+    key: unknown,
+    startedAt: number,
+    deadlineAt: number,
+    evidence: unknown,
+    failure: ResolutionReason | null,
+  ): RepositoryResolution {
+    requireInteger(startedAt, "startedAt", 1, Number.MAX_SAFE_INTEGER);
+    requireInteger(deadlineAt, "deadlineAt", startedAt + 100, startedAt + 5000);
+    if (
+      failure !== null &&
+      !["unconfirmed", "inspection_failed", "timeout"].includes(failure)
+    )
+      throw new DomainError(400, "Invalid resolution reason");
+    return this.transaction((now) => {
+      const previous = this.resolution(id, operatorId, key);
+      if (previous) return previous;
+      const op = this.resolutionActor(id, operatorId);
+      if (op.status !== "needs_attention")
+        throw new DomainError(
+          409,
+          "Repository operation does not need resolution",
+        );
+      const observedAt = recoveryObservation(evidence, op, startedAt, now);
+      const reason =
+        now >= deadlineAt
+          ? "timeout"
+          : (failure ?? (observedAt === null ? "unconfirmed" : null));
+      const status = reason === null ? "resolved" : "rejected";
+      if (status === "resolved")
+        this.db
+          .prepare(
+            "UPDATE repository_operations SET status = 'failed' WHERE id = ?",
+          )
+          .run(id);
+      const cursor = this.event(id, `repository.resolution_${status}`, now);
+      this.db
+        .prepare(
+          `INSERT INTO repository_resolutions
+        (id,operation_id,operator_id,request_key,status,reason,observed_at,created_at,event_cursor)
+        VALUES (?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          randomUUID(),
+          id,
+          operatorId,
+          key as string,
+          status,
+          reason,
+          reason === null ? observedAt : null,
+          now,
+          cursor,
+        );
+      return this.resolution(id, operatorId, key)!;
+    });
   }
 
   // operatorId comes from a trusted authenticated caller, never request JSON.
@@ -378,44 +557,30 @@ export class RepositoryStore {
     });
   }
 
-  // Only valid before mint intent: no token or channel can exist, so a new
-  // request may retry instead of blocking the workspace.
-  fail(id: string, token: string): void {
+  // Ends work that cannot succeed. The persisted phase, not the worker's view,
+  // decides between a retryable failure and a blocking uncertain outcome.
+  settle(id: string, token: string): void {
     this.transaction((now) => {
       const op = this.operation(id);
       if (op.status !== "running" || op.leaseToken !== token)
         throw new DomainError(409, "Repository worker ownership lost");
-      if (op.phase !== "authorizing" || op.credential !== "none")
-        throw new DomainError(409, "Repository work passed mint intent");
-      this.failed(id, now);
+      this.terminate(op, now);
     });
   }
 
-  private failed(id: string, now: number): void {
+  private terminate(
+    op: Pick<RepositoryOperation, "id" | "phase" | "credential">,
+    now: number,
+  ): void {
+    const status = effectFree(op.phase, op.credential)
+      ? "failed"
+      : "needs_attention";
     this.db
       .prepare(
-        "UPDATE repository_operations SET status = 'failed',lease_token = NULL,lease_expires_at = NULL WHERE id = ?",
+        "UPDATE repository_operations SET status = ?,lease_token = NULL,lease_expires_at = NULL WHERE id = ?",
       )
-      .run(id);
-    this.event(id, "repository.failed", now);
-  }
-
-  markUncertain(id: string, token: string): void {
-    this.transaction((now) => {
-      const op = this.operation(id);
-      if (op.status !== "running" || op.leaseToken !== token)
-        throw new DomainError(409, "Repository worker ownership lost");
-      this.uncertain(id, now);
-    });
-  }
-
-  private uncertain(id: string, now: number): void {
-    this.db
-      .prepare(
-        "UPDATE repository_operations SET status = 'needs_attention',lease_token = NULL,lease_expires_at = NULL WHERE id = ?",
-      )
-      .run(id);
-    this.event(id, "repository.needs_attention", now);
+      .run(status, op.id);
+    this.event(op.id, `repository.${status}`, now);
   }
 
   reconcileExpired(): number {
@@ -426,9 +591,14 @@ export class RepositoryStore {
         )
         .all(now, now);
       for (const row of rows)
-        if (row.phase === "authorizing" && row.credential === "none")
-          this.failed(row.id as string, now);
-        else this.uncertain(row.id as string, now);
+        this.terminate(
+          {
+            id: row.id as string,
+            phase: row.phase as RepositoryOperation["phase"],
+            credential: row.credential as RepositoryOperation["credential"],
+          },
+          now,
+        );
       return rows.length;
     });
   }

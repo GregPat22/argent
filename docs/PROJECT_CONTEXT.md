@@ -6,7 +6,8 @@ product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
 **Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). Current branch
-`GregPat22/conductor-layout-create` is based on main `333d662` (PR #8). It adds a
+`GregPat22/conductor-layout-create` started at main `333d662` (PR #8) and now
+integrates `7b2eeca` (PR #10), including audited simulated repository recovery. It adds a
 Conductor-familiar desktop layout over the existing simulation and updates the
 [roadmap](../ROADMAP.md). See [spec 0008](specs/0008-conductor-familiar-desktop.md)
 for direct UI observations, implementation limits and replacement-launch scope.
@@ -96,15 +97,15 @@ claims, pause/resume/delete, uncertain outcomes and read-only reconciliation.
 It is not connected to the desktop API and proves no real cloud capability. See the
 [P1 completion report](milestones/0001-completion.md).
 
-| Area         | Implemented in this publication                                                    | Remaining product work                                                   |
-| ------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Interface    | Electron desktop, loopback API, CLI demo, local download preview and landing draft | Signed public desktop distribution, website deployment and remote access |
-| Workspaces   | Local metadata, retained artifact directories, stop/start guards                   | Git checkout, isolated local execution and real cloud lifecycle          |
-| Dispatch     | Durable SQLite queue, atomic claims, fenced leases                                 | Real provider dispatch and external-effect reconciliation                |
-| Recovery     | Ordered events, API restart/reconnect, uncertain-run blocking                      | Audited operator resolution, cloud reconciliation and backup drills      |
-| Execution    | Bounded scripted simulation, cancellation and deadlines                            | Official coding-agent integrations with permitted authentication         |
-| Verification | Independent JSON identity check and SHA-256 evidence                               | Trusted repository tests, exact-commit evidence and review policy        |
-| GitHub       | This source repository and its CI workflow                                         | Product GitHub App, scoped tokens, push and draft-PR broker              |
+| Area         | Implemented in this publication                                                               | Remaining product work                                                   |
+| ------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Interface    | Electron desktop, loopback API, CLI demo, local download preview and landing draft            | Signed public desktop distribution, website deployment and remote access |
+| Workspaces   | Local metadata, retained artifact directories, stop/start guards                              | Git checkout, isolated local execution and real cloud lifecycle          |
+| Dispatch     | Durable SQLite queue, atomic claims, fenced leases                                            | Real provider dispatch and external-effect reconciliation                |
+| Recovery     | Ordered events, API restart/reconnect, uncertain-run blocking, simulated bootstrap resolution | Real audited cleanup/resolution, cloud reconciliation and backup drills  |
+| Execution    | Bounded scripted simulation, cancellation and deadlines                                       | Official coding-agent integrations with permitted authentication         |
+| Verification | Independent JSON identity check and SHA-256 evidence                                          | Trusted repository tests, exact-commit evidence and review policy        |
+| GitHub       | This source repository and its CI workflow                                                    | Product GitHub App, scoped tokens, push and draft-PR broker              |
 
 Publishing this source to GitHub does not implement the product's GitHub
 integration. A passing simulation is not a tested pull request. The [desktop specification](specs/0004-desktop-prototype.md) is implemented

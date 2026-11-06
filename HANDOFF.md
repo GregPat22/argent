@@ -5,11 +5,12 @@ the latest known state across the project chats and checkouts. Read it alongside
 [START_HERE.md](START_HERE.md), [AGENTS.md](AGENTS.md) and the relevant specification.
 Private chat access is not required to continue development.
 
-**Current checkout:** `GregPat22/conductor-layout-create`, based on `origin/main`
-`333d66201a2c56a556b239abfe9777a89a8c7cd4` (PR #8). P2 adds a familiar desktop raw
-layout, now refined by the P2.1 UX/icon pass, and revises replacement priorities. Execution stays simulated; agent
-connections, real cloud execution, migration and mobile remain planned. The
-landing refinement is integrated through PR #8; the website remains unpublished.
+**Current checkout:** `GregPat22/conductor-layout-create`, originally based on
+main `333d662` (PR #8), now integrating `origin/main` at `7b2eeca` (PR #10).
+P2/P2.1 add the familiar desktop layout, UX/icon refinement and replacement
+roadmap. Main's audited simulated repository recovery is preserved. Execution
+remains simulated; real accounts/cloud/migration/mobile and website publication
+remain unfinished.
 
 ## P2.1 desktop icon and UX refinement — 6 November 2026
 
@@ -130,19 +131,128 @@ connection, export, paid resource, commit, push/PR, merge, deployment or release
 Current P2 work is uncommitted on `GregPat22/conductor-layout-create`; the table
 retains historical branch provenance.
 
-| Location                                            | Current state                                                                                    | How to use it                                                                |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| `origin/main` at `333d662`                          | M0/P1, initial landing, continuity plans, simulated lifecycle and repository bootstrap/hardening | Base integrated into this branch; no live cloud execution or public release. |
-| `GregPat22/motion-landing-page-improve`             | W0.3–W0.6 landing refinement integrated through PR #8                                            | Historical landing evidence; preserve any remaining worktree changes.        |
-| `GregPat22/code-review`                             | Bootstrap hardening integrated through PR #7                                                     | Historical simulation review evidence.                                       |
-| `GregPat22/next-step-v3` / `GregPat22/next-step-v2` | Repository and lifecycle slices integrated through PRs #6/#5                                     | Historical simulated engine work.                                            |
-| `codex/desktop-handoff` / `codex/p1-original`       | Earlier P1 review/provenance branches                                                            | Historical evidence; PR #1 is integrated.                                    |
-| `GregPat22/argent-landing-page-draft`               | Initial landing integrated through PR #3                                                         | Historical source; preserve any later worktree changes.                      |
-| `GregPat22/grok-conductor-shutdown-analysis`        | Research and roadmap integrated through PR #4                                                    | Current continuity/customer/authentication criteria remain preserved.        |
+| Location                                            | Current state                                                                                | How to use it                                                                |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `origin/main` at `7b2eeca`                          | M0/P1, refined landing, continuity plans, simulated lifecycle/bootstrap and audited recovery | Base integrated into this branch; no live cloud execution or public release. |
+| `GregPat22/motion-landing-page-improve`             | W0.3–W0.6 landing refinement integrated through PR #8                                        | Historical landing evidence; preserve any remaining worktree changes.        |
+| `GregPat22/next-step-v4`                            | Audited simulated bootstrap resolution integrated through PR #10                             | Historical internal recovery evidence; no live adapter.                      |
+| `GregPat22/code-review-v2`                          | Second bootstrap review integrated through PR #9                                             | Historical hardening evidence.                                               |
+| `GregPat22/code-review`                             | Bootstrap hardening integrated through PR #7                                                 | Historical simulation review evidence.                                       |
+| `GregPat22/next-step-v3` / `GregPat22/next-step-v2` | Repository and lifecycle slices integrated through PRs #6/#5                                 | Historical simulated engine work.                                            |
+| `codex/desktop-handoff` / `codex/p1-original`       | Earlier P1 review/provenance branches                                                        | Historical evidence; PR #1 is integrated.                                    |
+| `GregPat22/argent-landing-page-draft`               | Initial landing integrated through PR #3                                                     | Historical source; preserve any later worktree changes.                      |
+| `GregPat22/grok-conductor-shutdown-analysis`        | Research and roadmap integrated through PR #4                                                | Current continuity/customer/authentication criteria remain preserved.        |
 
 Historical sections retain revision-specific evidence and branch states. The
 Next.js landing remains separate from desktop packaging and the static download
 preview. PR preparation does not authorize merging, deployment or binary release.
+
+### Audited simulated bootstrap resolution — 6 November 2026
+
+On unchanged branch `GregPat22/next-step-v4`, based on `origin/main` at
+`86255f8a4e9a65fda6781ab58d799785df63c13c` (PR #9). Added internal
+`resolveRepository` and schema version 3 resolution receipts. The original
+authenticated operator may request bounded, read-only inspection through a
+separately injected simulation-only recovery inspector. It has no mutating
+adapter methods. Only a fresh, exact-identity observation confirming settled
+effects, revoked/absent credentials, cleared/absent channels and no partial
+checkout resolves a `needs_attention` operation.
+
+Resolution changes the old attempt to `failed`, preserving its phase, identities
+and original credential/channel history. An attributed receipt links directly to
+its event cursor and commits with the status transition. Rejections persist only
+fixed reasons and remain blocked. Completed duplicate keys only read; concurrent
+read-only inspections settle atomically. A new bootstrap needs a new submission
+key and fresh authorization. Lifecycle requests serialize with settlement, so
+deletion and fresh bootstrap remain blocked until a successful resolution commits.
+Versions 1/2 retain their old operations/events when upgraded to version 3;
+older builds refuse the newer schema.
+
+Evidence: `npm run check` passes strict types, formatting, compilation and
+**156 tests, 0 failures, 0 skips**, including **25 new recovery simulation tests**.
+These cover actor/state/input denial, identity/freshness/cleanup rejection,
+restart and idempotency, competing connections, duplicate resolution races,
+lifecycle serialization, event/receipt rollback, version 2 upgrade, timeout/late
+observations, post-lock deadline checks and secret canaries in SQLite/WAL.
+Existing version 1 upgrade and unsupported-schema tests now target version 3.
+The full verification log is `.context/check.log`. The actual source/test/docs
+diff was reviewed by the implementing agent; no external independent review or
+measured coverage percentage is claimed.
+
+Limits: all recovery evidence is synthetic. No real cleanup, durable secret
+custody, crash-time revocation, late-worker cleanup receipt capture, authenticated
+operator service, isolated checkout or live provider has been implemented. The
+inspector contract must not be enabled for live work until it can independently
+prove old mint/checkout requests cannot finish after resolution. No API/desktop
+endpoint or service-loop integration was added. Native/package smoke, website
+build/browser checks and live A1–A10 gates were not run; M1a remains incomplete.
+
+Next: implement durable secret references and audited live cleanup/inspection
+alongside server-side GitHub authorization and isolated checkout. Record concrete
+account/provider/resource/budget limits before live tests. The work is local and
+uncommitted; no branch rename, push, PR, merge, deployment, release, purchase or
+billable provisioning was performed.
+
+### Bootstrap resolution PR preparation — 6 November 2026
+
+On unchanged branch `GregPat22/next-step-v4`, freshly fetched `origin/main`
+remains `86255f8`; no integration changes were needed. The founder requested a
+PR for the full workspace diff, authorizing commit, branch push and PR creation
+against `main`. The prelaunch package version stays `0.0.1`; this repository has
+no VERSION/CHANGELOG release scheme to bump for an internal simulation slice.
+
+Independent read-only code/security and acceptance/coverage reviews found no
+blocking issue in the bounded third slice. All six acceptance bullets are
+implemented and exercised. No measured coverage percentage is claimed; direct
+store calls with invalid inspection timestamps/rejection reasons lack focused
+tests, while the resolver supplies validated bounds and its public failure paths
+are covered. The actual source/test/documentation diff was reviewed against main.
+
+Fresh `npm run check` passes **156 tests, 0 failures, 0 skips**, strict types,
+formatting and compilation; log `.context/pr-check.log`. The first PR-preparation
+run hit an intermittent failure in the unchanged 100 ms heartbeat test; that test
+passed in isolation and the fresh full rerun passed. No production deadline or
+lease behavior was changed to accommodate the timing-sensitive test.
+
+All simulation/live-provider, secret-custody and crash-time cleanup limitations
+above remain. No native/package smoke, website build/browser or live-provider
+checks were run for this internal slice. Next is real audited cleanup/inspection
+with durable secret references and isolated GitHub bootstrap under approved
+limits. Merge, deployment, binary release and spending remain separate decisions.
+
+### Repository bootstrap review fixes — 6 November 2026
+
+On `GregPat22/code-review-v2`, based on freshly fetched `origin/main` at
+`333d662`. A code review of PR #7 found four correctness issues, which are fixed:
+
+- Token scope pins only GitHub's numeric repository ID. The `owner/name` check
+  was removed because a rename or transfer changed it and, after mint intent,
+  blocked the workspace permanently.
+- A minted token must outlive the deadline plus one cleanup timeout, so
+  revocation after a deadline abort never uses an expired token.
+- The repository schema is versioned in a `schema_versions` table. A PR #6
+  (version 1) table is rebuilt with all of its rows and events, including
+  `needs_attention` obligations, instead of stopping with a manual-migration
+  error; an unversioned PR #7 table is recorded as version 2; a newer version
+  refuses to start. The constraint text is read only to fingerprint databases
+  from before version tracking.
+- `Store` closes its database handle when any schema step fails.
+
+The retryable-versus-blocking rule now lives in one store method: the worker and
+lease reconciliation both use it, and it decides from the persisted phase and
+credential state (`settle` replaced `fail`/`markUncertain`). Event names are
+unchanged.
+
+Evidence: `npm run check` passes **131 tests, 0 failures, 0 skips**, strict
+types, formatting and compilation (log `.context/check.log`). New tests cover a
+renamed repository bootstrapping successfully, a token expiring inside the
+post-deadline cleanup window, a version 1 migration preserving a
+`needs_attention` row and its events, and unversioned/newer schema handling. The
+"wrong name" rejection and manual-migration expectations were replaced.
+Deliberately not changed: retries after `failed` are not rate-limited (rows grow
+per attempt), and branch-ref validation still uses two regexes. All earlier open
+items (operator-resolution workflow, lost-ownership cleanup, live A1–A10
+evidence) remain open; all adapters remain simulated.
 
 ### Repository bootstrap hardening — 6 November 2026
 

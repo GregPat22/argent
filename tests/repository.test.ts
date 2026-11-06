@@ -18,6 +18,11 @@ import type {
 } from "../src/repository-access.js";
 import { tokenExpiry } from "../src/repository-access.js";
 import { workRepository } from "../src/repository-worker.js";
+import {
+  resolveRepository,
+  type SimulatedRepositoryRecovery,
+} from "../src/repository-recovery.js";
+import type { RepositoryOperation } from "../src/repository-store.js";
 import { Store } from "../src/store.js";
 
 const repository = "https://github.com/example/private-fixture";
@@ -338,7 +343,6 @@ for (const [name, patch] of [
     "wrong repository id",
     { repositories: [{ id: 102, full_name: "example/private-fixture" }] },
   ],
-  ["wrong name", { repositories: [{ id: 101, full_name: "example/other" }] }],
   ["all repositories", { repository_selection: "all" }],
   ["expired token", { expires_at: new Date(0).toISOString() }],
   [
@@ -833,14 +837,14 @@ test("simulated repository ownership is rechecked after database lock contention
   assert.equal(f.store.repositories.reconcileExpired(), 1);
 });
 
-test("simulated token scope accepts GitHub's canonical name for mixed-case and .git URLs", () => {
+test("simulated token scope pins the repository ID and ignores owner/name changes", () => {
   const now = Date.now();
   const token = {
     token: secret,
     expires_at: new Date(now + 3500000).toISOString(),
     repository_selection: "selected",
     permissions: { contents: "read" },
-    repositories: [{ id: 101, full_name: "example/private-fixture" }],
+    repositories: [{ id: 101, full_name: "new-owner/renamed-fixture" }],
   };
   const grant = {
     operatorId: "operator",
@@ -855,13 +859,25 @@ test("simulated token scope accepts GitHub's canonical name for mixed-case and .
       tokenExpiry(
         {
           ...token,
-          repositories: [{ id: 101, full_name: "example/private-fixture2" }],
+          repositories: [{ id: 102, full_name: "example/private-fixture" }],
         },
         grant,
         now,
       ),
     /scope or expiration/,
   );
+});
+
+test("simulated bootstrap succeeds after the repository was renamed or transferred", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.token.repositories = [{ id: 101, full_name: "new-owner/renamed" }];
+  await f.work();
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "succeeded");
+  assert.equal(result.repositoryId, 101);
+  assert.equal(result.credential, "revoked");
+  assert.equal(result.channel, "cleared");
 });
 
 test("simulated requests accept dotted branch names and reject invalid Git refs", (t) => {
@@ -911,6 +927,18 @@ test("simulated token that expires before the deadline is revoked before resolve
   assert.equal(result.channel, "none");
 });
 
+test("simulated token that expires during the post-deadline cleanup window is revoked before resolve", async (t) => {
+  const f = fixture(t);
+  const op = f.request("request", 120000);
+  // Outlives the deadline but not one 1000 ms cleanup timeout after it.
+  f.adapter.token.expires_at = new Date(Date.now() + 120500).toISOString();
+  await f.work(1000, 1000);
+  assert.deepEqual(f.adapter.calls, ["authorize", "mint", "revoke"]);
+  const result = f.store.repositories.operation(op.id);
+  assert.equal(result.status, "needs_attention");
+  assert.equal(result.credential, "revoked");
+});
+
 test("simulated expiry before mint intent fails cleanly and allows a retry", async (t) => {
   const f = fixture(t);
   const op = f.request();
@@ -923,38 +951,557 @@ test("simulated expiry before mint intent fails cleanly and allows a retry", asy
   assert.notEqual(f.request("retry").id, op.id);
 });
 
-test("simulated repository schema rebuilds an empty first-version table", (t) => {
-  const root = mkdtempSync(join(tmpdir(), "argent-repository-schema-"));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
-  const path = join(root, "platform.sqlite");
-  const legacy = (rows: boolean) => {
-    const db = new DatabaseSync(path);
-    db.exec(`
-      DROP TABLE IF EXISTS repository_events;
-      DROP TABLE IF EXISTS repository_operations;
-      CREATE TABLE repository_operations (
-        id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL UNIQUE,
-        status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','needs_attention'))
-      ) STRICT;
-    `);
-    if (rows)
-      db.exec(
-        "INSERT INTO repository_operations VALUES ('op','ws','needs_attention')",
-      );
+function schema(path: string) {
+  const db = new DatabaseSync(path);
+  const result = {
+    sql: db
+      .prepare(
+        "SELECT sql FROM sqlite_master WHERE name = 'repository_operations'",
+      )
+      .get()!.sql as string,
+    index: db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE name = 'one_repository_bootstrap'",
+      )
+      .get(),
+    version: db
+      .prepare(
+        "SELECT version FROM schema_versions WHERE component = 'repository'",
+      )
+      .get()?.version,
+  };
+  db.close();
+  return result;
+}
+
+test("simulated repository schema migrates first-version rows without losing obligations", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.fail = "mint";
+  await f.work();
+  const before = f.store.repositories.operation(op.id);
+  const events = f.store.repositories.events(op.id);
+  assert.equal(before.status, "needs_attention");
+  f.store.close();
+  // Recreate the PR #6 table around the existing rows, without a version.
+  const db = new DatabaseSync(f.path);
+  db.exec(`
+    PRAGMA foreign_keys = OFF;
+    BEGIN;
+    CREATE TABLE legacy (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL UNIQUE REFERENCES lifecycle_workspaces(workspace_id),
+      operator_id TEXT NOT NULL, repository TEXT NOT NULL, ref TEXT NOT NULL,
+      provider_id TEXT NOT NULL, repository_id INTEGER, installation_id INTEGER,
+      head_sha TEXT, request_key TEXT NOT NULL UNIQUE, fingerprint TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','needs_attention')),
+      phase TEXT NOT NULL CHECK(phase IN ('authorizing','minting','resolving','checkout','cleaning')),
+      credential TEXT NOT NULL CHECK(credential IN ('none','unknown','issued','revoked')),
+      channel TEXT NOT NULL CHECK(channel IN ('none','unknown','cleared')),
+      token_expires_at INTEGER, max_runtime_ms INTEGER NOT NULL,
+      created_at INTEGER NOT NULL, lease_token TEXT, lease_expires_at INTEGER, deadline_at INTEGER
+    ) STRICT;
+    INSERT INTO legacy SELECT * FROM repository_operations;
+    DROP TABLE repository_operations;
+    ALTER TABLE legacy RENAME TO repository_operations;
+    DROP TABLE schema_versions;
+    COMMIT;
+  `);
+  db.close();
+
+  f.store = new Store(f.path);
+  assert.deepEqual(f.store.repositories.operation(op.id), before);
+  assert.deepEqual(f.store.repositories.events(op.id), events);
+  assert.throws(() => f.request("retry"), /already has repository/);
+  const migrated = schema(f.path);
+  assert.match(migrated.sql, /'failed'/);
+  assert.doesNotMatch(migrated.sql, /workspace_id TEXT NOT NULL UNIQUE/);
+  assert.ok(migrated.index);
+  assert.equal(migrated.version, 3);
+});
+
+test("simulated repository schema records unversioned databases and refuses newer ones", (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.store.close();
+  const edit = (sql: string) => {
+    const db = new DatabaseSync(f.path);
+    db.exec(sql);
     db.close();
   };
-  legacy(false);
-  const store = new Store(path);
-  store.close();
-  const db = new DatabaseSync(path);
-  const sql = db
-    .prepare(
-      "SELECT sql FROM sqlite_master WHERE name = 'repository_operations'",
-    )
-    .get()!.sql as string;
+  edit("UPDATE schema_versions SET version = 4");
+  assert.throws(() => new Store(f.path), /newer than this build/);
+  // A failed start must release the database for the next one.
+  edit("DELETE FROM schema_versions");
+  f.store = new Store(f.path);
+  assert.equal(f.store.repositories.operation(op.id).status, "queued");
+  assert.equal(schema(f.path).version, 3);
+});
+
+// Synthetic control-plane observations, independent of bootstrap/agent output.
+// No actual provider cleanup or credential revocation is proved by this fixture.
+class SimulationRecovery implements SimulatedRepositoryRecovery {
+  readonly simulation = true;
+  calls = 0;
+  evidence: Record<string, unknown> = {};
+  async inspectRecovery(op: Readonly<RepositoryOperation>): Promise<unknown> {
+    this.calls++;
+    assert.ok(Object.isFrozen(op));
+    return {
+      operationId: op.id,
+      workspaceId: op.workspaceId,
+      providerId: op.providerId,
+      repositoryId: op.repositoryId,
+      installationId: op.installationId,
+      effectsSettled: true,
+      credential: "revoked",
+      channel: "cleared",
+      checkout: "absent",
+      observedAt: Date.now(),
+      simulation: true,
+      ...this.evidence,
+    };
+  }
+}
+
+async function uncertain(t: TestContext) {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.fail = "mint";
+  await f.work();
+  assert.equal(f.store.repositories.operation(op.id).status, "needs_attention");
+  const inspector = new SimulationRecovery();
+  return Object.assign(f, {
+    op,
+    inspector,
+    resolve(key = "resolution", timeoutMs = 1000) {
+      return resolveRepository(
+        f.store.repositories,
+        inspector,
+        op.id,
+        "operator",
+        key,
+        timeoutMs,
+      );
+    },
+  });
+}
+
+test("simulated recovery audits clean resolution, preserves the old attempt and requires fresh authorization", async (t) => {
+  const f = await uncertain(t);
+  const before = f.store.repositories.operation(f.op.id);
+  const calls = [...f.adapter.calls];
+  const receipt = await f.resolve();
+  assert.equal(receipt.status, "resolved");
+  assert.equal(receipt.operatorId, "operator");
+  assert.equal(receipt.simulation, true);
+  assert.equal(receipt.reason, null);
+  assert.ok(receipt.observedAt! <= receipt.createdAt);
+  assert.deepEqual(f.adapter.calls, calls);
+  assert.deepEqual(f.store.repositories.operation(f.op.id), {
+    ...before,
+    status: "failed",
+  });
+  assert.equal(
+    f.store.repositories.events(f.op.id, receipt.eventCursor - 1)[0]?.type,
+    "repository.resolution_resolved",
+  );
+  assert.equal(f.request().id, f.op.id); // The old submission key never replays.
+  const retry = f.request("retry");
+  assert.notEqual(retry.id, f.op.id);
+  f.adapter.calls.length = 0;
+  f.adapter.fail = "authorize";
+  await f.work();
+  assert.deepEqual(f.adapter.calls, ["authorize"]);
+  assert.equal(f.store.repositories.operation(retry.id).status, "failed");
+  assert.equal(f.store.repositories.operation(f.op.id).status, "failed");
+});
+
+test("simulated recovery receipts survive restart and completed duplicates only read", async (t) => {
+  const f = await uncertain(t);
+  const receipt = await f.resolve();
+  const events = f.store.repositories.events(f.op.id);
+  f.reopen();
+  f.inspector.inspectRecovery = async () => {
+    throw new Error(secret);
+  };
+  assert.deepEqual(await f.resolve(), receipt);
+  assert.deepEqual(
+    f.store.repositories.resolution(f.op.id, "operator", "resolution"),
+    receipt,
+  );
+  assert.deepEqual(f.store.repositories.events(f.op.id), events);
+  assert.equal(f.inspector.calls, 1);
+});
+
+for (const [field, bad] of Object.entries({
+  operationId: "different-operation",
+  workspaceId: "different-workspace",
+  providerId: "different-provider",
+  repositoryId: 102,
+  installationId: 203,
+  effectsSettled: false,
+  credential: "issued",
+  channel: "unknown",
+  checkout: "present",
+  observedAt: 1,
+  simulation: false,
+})) {
+  test(`simulated recovery rejects unconfirmed ${field} and keeps lifecycle/bootstrap blocked`, async (t) => {
+    const f = await uncertain(t);
+    f.inspector.evidence[field] = bad;
+    const receipt = await f.resolve();
+    assert.equal(receipt.status, "rejected");
+    assert.equal(receipt.reason, "unconfirmed");
+    assert.equal(receipt.observedAt, null);
+    assert.equal(
+      f.store.repositories.operation(f.op.id).status,
+      "needs_attention",
+    );
+    assert.throws(() => f.request("retry"), /already has repository/);
+    assert.throws(
+      () => f.store.lifecycle.request(f.workspace.id, "delete", "delete"),
+      /bootstrap/,
+    );
+    f.inspector.evidence = {};
+    assert.deepEqual(await f.resolve(), receipt);
+    assert.equal(f.inspector.calls, 1);
+    assert.equal((await f.resolve("new-resolution")).status, "resolved");
+  });
+}
+
+test("simulated recovery rejects malformed, absent and future observations", async (t) => {
+  const f = await uncertain(t);
+  const original = f.inspector.inspectRecovery.bind(f.inspector);
+  const good = await original(
+    Object.freeze(f.store.repositories.operation(f.op.id)),
+  );
+  for (const [i, evidence] of [
+    null,
+    [],
+    "clean",
+    {},
+    { ...(good as object), observedAt: Number.MAX_SAFE_INTEGER },
+    { ...(good as object), credential: true },
+  ].entries()) {
+    f.inspector.inspectRecovery = async () => evidence;
+    assert.equal((await f.resolve(`bad-${i}`)).reason, "unconfirmed");
+  }
+});
+
+test("simulated recovery never treats prior cleanup acknowledgments as sufficient", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.fail = "inspect";
+  await f.work();
+  const before = f.store.repositories.operation(op.id);
+  assert.equal(before.credential, "revoked");
+  assert.equal(before.channel, "cleared");
+  const inspector = new SimulationRecovery();
+  inspector.evidence.effectsSettled = false;
+  assert.equal(
+    (
+      await resolveRepository(
+        f.store.repositories,
+        inspector,
+        op.id,
+        "operator",
+        "pending-checkout",
+      )
+    ).status,
+    "rejected",
+  );
+  inspector.evidence = { checkout: "present" };
+  assert.equal(
+    (
+      await resolveRepository(
+        f.store.repositories,
+        inspector,
+        op.id,
+        "operator",
+        "partial-checkout",
+      )
+    ).status,
+    "rejected",
+  );
+  assert.deepEqual(f.store.repositories.operation(op.id), before);
+});
+
+test("simulated recovery checks actor, state, adapter and input before inspection", async (t) => {
+  const f = await uncertain(t);
+  await assert.rejects(
+    () =>
+      resolveRepository(
+        f.store.repositories,
+        f.inspector,
+        f.op.id,
+        "other-operator",
+        "key",
+      ),
+    /not authorized/,
+  );
+  await assert.rejects(() => f.resolve(""), /Idempotency-Key/);
+  await assert.rejects(() => f.resolve("key", 99), /timeoutMs/);
+  await assert.rejects(
+    () =>
+      resolveRepository(
+        f.store.repositories,
+        {
+          simulation: false,
+          inspectRecovery: f.inspector.inspectRecovery,
+        } as unknown as SimulatedRepositoryRecovery,
+        f.op.id,
+        "operator",
+        "key",
+      ),
+    /Only simulated/,
+  );
+  assert.equal(f.inspector.calls, 0);
+  await f.resolve();
+  await assert.rejects(() => f.resolve("new-key"), /does not need resolution/);
+  const retry = f.request("retry");
+  await assert.rejects(
+    () =>
+      resolveRepository(
+        f.store.repositories,
+        f.inspector,
+        retry.id,
+        "operator",
+        "resolution",
+      ),
+    /already used/,
+  );
+  await assert.rejects(
+    () =>
+      resolveRepository(
+        f.store.repositories,
+        f.inspector,
+        retry.id,
+        "operator",
+        "queued",
+      ),
+    /does not need resolution/,
+  );
+});
+
+test("simulated recovery bounds hangs and ignores a late confirming observation", async (t) => {
+  const f = await uncertain(t);
+  const original = f.inspector.inspectRecovery.bind(f.inspector);
+  let release!: (value: unknown) => void;
+  f.inspector.inspectRecovery = async () =>
+    new Promise((resolve) => {
+      release = resolve;
+    });
+  const receipt = await f.resolve("hung", 100);
+  assert.equal(receipt.status, "rejected");
+  assert.equal(receipt.reason, "timeout");
+  const events = f.store.repositories.events(f.op.id);
+  release(
+    await original(Object.freeze(f.store.repositories.operation(f.op.id))),
+  );
+  await delay(0);
+  assert.equal(
+    f.store.repositories.operation(f.op.id).status,
+    "needs_attention",
+  );
+  assert.deepEqual(f.store.repositories.events(f.op.id), events);
+  f.inspector.inspectRecovery = original;
+  assert.equal((await f.resolve("retry")).status, "resolved");
+});
+
+test("simulated recovery never persists inspector errors or extra secret fields", async (t) => {
+  const f = await uncertain(t);
+  const original = f.inspector.inspectRecovery.bind(f.inspector);
+  f.inspector.inspectRecovery = async () => {
+    throw new Error(secret);
+  };
+  assert.equal((await f.resolve("error")).reason, "inspection_failed");
+  f.inspector.inspectRecovery = original;
+  f.inspector.evidence = { token: secret, error: secret, output: secret };
+  await f.resolve("clean");
+  for (const path of [f.path, `${f.path}-wal`])
+    assert.equal(readFileSync(path).includes(Buffer.from(secret)), false);
+  assert.equal(
+    JSON.stringify(f.store.repositories.events(f.op.id)).includes(secret),
+    false,
+  );
+});
+
+test("simulated concurrent recovery settlements serialize across database connections", async (t) => {
+  const f = await uncertain(t);
+  const other = new Store(f.path);
+  t.after(() => other.close());
+  const second = new SimulationRecovery();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const original = f.inspector.inspectRecovery.bind(f.inspector);
+  f.inspector.inspectRecovery = async (op) => {
+    await gate;
+    return original(op);
+  };
+  const first = f.resolve("first");
+  const winner = await resolveRepository(
+    other.repositories,
+    second,
+    f.op.id,
+    "operator",
+    "second",
+  );
+  release();
+  assert.equal(winner.status, "resolved");
+  await assert.rejects(first, /does not need resolution/);
+  assert.equal(
+    f.store.repositories
+      .events(f.op.id)
+      .filter((event) => event.type === "repository.resolution_resolved")
+      .length,
+    1,
+  );
+  assert.equal(
+    f.store.repositories.resolution(f.op.id, "operator", "first"),
+    null,
+  );
+});
+
+test("simulated concurrent duplicate resolutions commit one receipt and event", async (t) => {
+  const f = await uncertain(t);
+  const other = new Store(f.path);
+  t.after(() => other.close());
+  const second = new SimulationRecovery();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const original = f.inspector.inspectRecovery.bind(f.inspector);
+  f.inspector.inspectRecovery = async (op) => {
+    await gate;
+    return original(op);
+  };
+  const first = f.resolve();
+  const winner = await resolveRepository(
+    other.repositories,
+    second,
+    f.op.id,
+    "operator",
+    "resolution",
+  );
+  release();
+  assert.deepEqual(await first, winner);
+  assert.equal(
+    f.store.repositories
+      .events(f.op.id)
+      .filter((event) => event.type === "repository.resolution_resolved")
+      .length,
+    1,
+  );
+});
+
+test("simulated recovery blocks lifecycle while inspection is outstanding and permits it after resolution", async (t) => {
+  const f = await uncertain(t);
+  const original = f.inspector.inspectRecovery.bind(f.inspector);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  f.inspector.inspectRecovery = async (op) => {
+    await gate;
+    return original(op);
+  };
+  const pending = f.resolve();
+  const other = new Store(f.path);
+  t.after(() => other.close());
+  assert.throws(
+    () => other.lifecycle.request(f.workspace.id, "delete", "delete"),
+    /bootstrap/,
+  );
+  release();
+  await pending;
+  assert.equal(
+    other.lifecycle.request(f.workspace.id, "delete", "delete").kind,
+    "delete",
+  );
+  assert.throws(
+    () => f.request("retry"),
+    /ready lifecycle workspace|already has repository or lifecycle/,
+  );
+});
+
+test("simulated resolution status, receipt and event roll back together", async (t) => {
+  const f = await uncertain(t);
+  const before = f.store.repositories.operation(f.op.id);
+  const events = f.store.repositories.events(f.op.id);
+  const db = new DatabaseSync(f.path);
+  t.after(() => db.close());
+  for (const table of ["repository_events", "repository_resolutions"]) {
+    db.exec(
+      `CREATE TRIGGER fail_resolution BEFORE INSERT ON ${table} BEGIN SELECT RAISE(ABORT, 'audit unavailable'); END`,
+    );
+    await assert.rejects(() => f.resolve(), /audit unavailable/);
+    assert.deepEqual(f.store.repositories.operation(f.op.id), before);
+    assert.deepEqual(f.store.repositories.events(f.op.id), events);
+    assert.equal(
+      f.store.repositories.resolution(f.op.id, "operator", "resolution"),
+      null,
+    );
+    db.exec("DROP TRIGGER fail_resolution");
+  }
+  assert.equal((await f.resolve()).status, "resolved");
+});
+
+test("simulated version 2 upgrade preserves uncertain obligations and adds resolution storage", async (t) => {
+  const f = await uncertain(t);
+  const before = f.store.repositories.operation(f.op.id);
+  const events = f.store.repositories.events(f.op.id);
+  f.store.close();
+  const db = new DatabaseSync(f.path);
+  db.exec(
+    "DROP TABLE repository_resolutions; UPDATE schema_versions SET version = 2 WHERE component = 'repository'",
+  );
   db.close();
-  assert.match(sql, /'failed'/);
-  assert.doesNotMatch(sql, /workspace_id TEXT NOT NULL UNIQUE/);
-  legacy(true);
-  assert.throws(() => new Store(path), /manual migration/);
+  f.store = new Store(f.path);
+  assert.deepEqual(f.store.repositories.operation(f.op.id), before);
+  assert.deepEqual(f.store.repositories.events(f.op.id), events);
+  assert.equal(schema(f.path).version, 3);
+  assert.equal((await f.resolve()).status, "resolved");
+});
+
+test("simulated recovery accepts independently confirmed absence without rewriting unknown cleanup history", async (t) => {
+  const f = await uncertain(t);
+  const before = f.store.repositories.operation(f.op.id);
+  assert.equal(before.credential, "unknown");
+  f.inspector.evidence = { credential: "absent", channel: "absent" };
+  assert.equal((await f.resolve()).status, "resolved");
+  assert.deepEqual(f.store.repositories.operation(f.op.id), {
+    ...before,
+    status: "failed",
+  });
+});
+
+test("simulated recovery rechecks the inspection deadline after database lock contention", async (t) => {
+  const f = await uncertain(t);
+  const original = f.inspector.inspectRecovery.bind(f.inspector);
+  f.inspector.inspectRecovery = async (op) => {
+    const lock = spawn(
+      process.execPath,
+      [fileURLToPath(new URL("./lock-fixture.js", import.meta.url))],
+      { env: { PLATFORM_DATA_DIR: f.root }, stdio: ["ignore", "pipe", "pipe"] },
+    );
+    t.after(() => stopService(lock));
+    await Promise.race([
+      once(lock.stdout!, "data"),
+      once(lock, "exit").then(() => {
+        throw new Error("Lock fixture exited before locking");
+      }),
+    ]);
+    return original(op);
+  };
+  const receipt = await f.resolve("contention", 500);
+  assert.equal(receipt.status, "rejected");
+  assert.equal(receipt.reason, "timeout");
+  assert.equal(
+    f.store.repositories.operation(f.op.id).status,
+    "needs_attention",
+  );
 });
