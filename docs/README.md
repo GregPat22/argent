@@ -28,6 +28,7 @@ evidence, Conductor setup and next actions. This branch contains P1 source.
 | [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)   | Planned real-provider release contract; unimplemented here.    |
 | [Project identity and repository setup](specs/0003-project-identity.md) | Name, MIT rationale, metadata and namespace availability.      |
 | [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)    | Implemented local macOS prototype; see P1 completion evidence. |
+| [W0 website landing page draft](specs/0005-website-landing-draft.md)    | Next.js draft integrated through PR #3; not deployed.          |
 
 ## Conductor shutdown research and roadmap follow-up
 

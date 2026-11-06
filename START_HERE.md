@@ -12,7 +12,8 @@ execution remains part of the product, even though its primary client is desktop
 ## Read the context for your task
 
 **Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). P1 was merged
-into main at `fd60a5a`; this checkout includes that local simulation prototype.
+into main at `fd60a5a`; landing PR #3 is integrated in `b5e763f`. This checkout
+includes both, with simulated execution and an unpublished website.
 Read the [roadmap](ROADMAP.md) and [decision register](docs/DECISIONS.md) before
 choosing the next implementation task.
 

@@ -135,6 +135,11 @@ and Intel Mac packages have not been built or tested.
 `http://127.0.0.1:4320` after the smoke screenshot and package exist. Its download
 links stream the actual local archive and checksum. Nothing is uploaded.
 
+The interactive landing draft is a separate Next.js package in `website/`:
+run `cd website`, `npm ci` and `npm run dev` for `http://localhost:3000`.
+See [the website README](website/README.md) for its build and browser checks.
+This leaves the static desktop download preview and packaging independent.
+
 `npm run demo` remains available for the headless M0 demonstration:
 
 The demo launches real API and worker processes, submits a simulated task, kills

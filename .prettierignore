@@ -3,3 +3,8 @@ dist/
 .data/
 package-lock.json
 context-log.md
+.next/
+next-env.d.ts
+.context/
+website/test-results/
+website/playwright-report/
