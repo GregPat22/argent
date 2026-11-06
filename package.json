@@ -1,0 +1,26 @@
+{
+  "name": "persistent-agent-platform",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A headless, durable execution foundation for a self-hostable coding-agent platform.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0 <23"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "start:api": "node --env-file-if-exists=.env dist/src/api.js",
+    "start:worker": "node --env-file-if-exists=.env dist/src/worker-main.js",
+    "demo": "npm run build && node dist/scripts/demo.js",
+    "check": "npm run typecheck && npm run format:check && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.0",
+    "prettier": "3.9.10",
+    "typescript": "5.8.3"
+  }
+}
