@@ -1,311 +1,258 @@
 # Argent
 
-A desktop-first, open-source, self-hostable development platform where
-coding agents work in persistent environments and developers reconnect to inspect
-verifiable results.
+**An open-source desktop app for handing coding tasks to AI agents and reviewing
+results you can verify.** Agents work in persistent workspaces, the work keeps
+its record when you disconnect, and nothing counts as done until an independent
+check says so. You decide what gets merged.
 
-The name combines **argento**, Italian for silver and a conductor, with **agent**.
-Repository: [GregPat22/argent](https://github.com/GregPat22/argent).
+> **Status: early prototype.** The durable engine and the macOS desktop app work
+> today, but **agent execution is simulated**: a scripted adapter writes a JSON
+> artifact that a separate verifier checks. There are no model calls, repository
+> checkouts, cloud workspaces or pull requests yet. Everything below says which
+> parts are real and which are planned.
 
-**New worktree or agent? Read [START_HERE.md](START_HERE.md).** For website design,
-use the [landing-page brief](docs/briefs/landing-page.md). Claude Code also has a
-root [CLAUDE.md](CLAUDE.md) entry point pointing to the shared context and rules.
+Follow the build on X: [@Argent_build](https://x.com/Argent_build).
 
-## Project context and documentation
+## What works today
 
-Start with [Project context](docs/PROJECT_CONTEXT.md), the
-[documentation index](docs/README.md), [decision register](docs/DECISIONS.md) and
-[Contributing](CONTRIBUTING.md). The [P1 completion report](docs/milestones/0001-completion.md)
-and [pinned T3 source evaluation](docs/research/t3-adoption-spike.md) record the
-latest completed work and its limits.
+- **A durable local engine.** An API and an independent worker share a SQLite
+  store. Runs survive the API process crashing; a client reconnects and replays
+  the ordered event history from its last cursor.
+- **Safe failure handling.** If a worker disappears mid-run, the run becomes
+  `needs_attention`. Argent never retries something that may already have
+  happened; a person reviews it first.
+- **Independent verification.** A run completes only after a separate verifier
+  checks the artifact's identity and SHA-256. Today that artifact is simulated.
+- **A desktop app** (macOS, Apple Silicon, unsigned local build): workspaces,
+  tasks, live activity and verification details. Closing the app leaves the
+  local service running, and reopening it reconnects to the same history.
+- **Offline history export and restore**, as a CLI.
+- **An opt-in, read-only GitHub sign-in pilot** using GitHub's device flow. It
+  is not connected to the desktop app or to task execution.
 
-The [updated roadmap](ROADMAP.md) incorporates the
-[Conductor shutdown findings](docs/research/conductor-shutdown-analysis.md):
-provider-specific authentication validation, visible execution/control, portable
-export/restore, and staged agent breadth/team handoff before dependency orchestration.
-The [7 November capability review](docs/research/replacement-roadmap-review-2026-11-07.md)
-places basic worktrees and daily setup/run/review/archive before personal release.
-The first offline history slice below is implemented; real execution remains simulated.
+## Where it is going
 
-**Current milestone: P1, a working local desktop prototype.** Install and launch
-Argent as an application, create a workspace, submit a task, inspect live activity
-and verified artifacts, close the window and reconnect to persisted work. The
-execution service remains independent of the desktop client. A website source
-provides the download entry point and serves the generated local build.
+The full [roadmap](ROADMAP.md) lists each milestone and the evidence it needs.
+In order:
 
-**Execution is simulated.** A scripted adapter writes a JSON artifact, which a
-separate verifier checks. Desktop tasks do not perform repository checkout, model
-calls, cloud execution or pull requests. A separate opt-in pilot below now proves
-real GitHub device sign-in and read-only private-fixture verification; it does not
-connect the desktop task engine to GitHub execution.
+1. **Cloud MVP.** One GitHub repository, one persistent cloud workspace and one
+   real coding agent: you hand off a task, disconnect, and come back to a tested
+   draft pull request. Codex, through its official interface, is the first
+   agent candidate.
+2. **Daily workflows.** A branch or worktree per task; setup, run, test, review
+   and archive actions; diffs and a terminal.
+3. **More agents.** Claude Code and Codex, using your existing subscriptions
+   where the provider supports it and API keys otherwise. Cursor and OpenCode
+   are further targets.
+4. **A mobile companion** (native iOS) to check progress and steer from your
+   phone.
+5. **Signed public downloads** from the website.
 
-Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). The current core is retained for bounded M1a. Internal simulation-only lifecycle and repository-bootstrap queues exercise durable operations, read-only credential policy and audited bootstrap resolution. Fresh independent cleanup observations can resolve blocked simulated bootstrap attempts as failed, preserving their audit history. Internal encrypted custody now retains synthetic tokens across restart with an explicitly supplied key; acknowledged revocation or audited resolution erases the active ciphertext. Explicit internal simulated recovery cleanup now records durable intent and acknowledgments without replay; separate fresh inspection of both bootstrap and cleanup effects still gates resolution. An explicit memory-only GitHub device pilot now verifies the private fixture through the read-only preflight; it creates no durable execution grant or desktop connection. Installation-token compatibility includes the current stateless format. Production account/key custody, scoped live bootstrap, isolated checkout and approved provider validation remain next; see [live pilot gates](docs/specs/0010-live-repository-pilot-gates.md).
+After that: team handoff, then dependent tasks. A full IDE, agent swarms and
+automatic merging are explicitly out of scope for now.
 
-## Tech Stack
+## Principles
 
-| Layer                | Technology                                                  | Rationale                                                                  |
-| -------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Runtime              | Node.js 22.19.x, strict TypeScript                          | Runs in this environment and matches official agent SDK ecosystems.        |
-| Desktop              | Electron 45.2.3, packaged HTML/CSS/TypeScript               | Installable app with sandboxed renderer and a narrow privileged bridge.    |
-| API                  | Node HTTP, JSON and cursor polling                          | Desktop main process brokers authenticated calls; no renderer credentials. |
-| M0 persistence       | Built-in SQLite, WAL, full synchronous commits              | Real cross-process durability without provisioning a database.             |
-| Managed target       | PostgreSQL and an independent worker                        | Shared authoritative state outside suspended workspace compute.            |
-| Cloud recommendation | E2B, behind an adapter                                      | Managed path and an open-source self-host runtime; not integrated yet.     |
-| First real agent     | Codex, using official interfaces and API-key authentication | Server-side integration; not integrated yet.                               |
-| Checks               | Node test runner, TypeScript, Prettier                      | Small toolchain with meaningful process-level tests.                       |
+- **An agent's claim is not proof.** Trusted checks run against the exact commit
+  and are recorded separately from what the agent says.
+- **Stop when unsure.** An unknown outcome blocks the workspace until someone
+  inspects it; reconnecting only reads state.
+- **Self-hosting is first-class.** The core is MIT-licensed and runs without our
+  servers or any particular model provider. A managed cloud, if offered, would
+  run the same core.
+- **Credentials stay separate.** Model credentials, GitHub credentials and cloud
+  credentials are kept apart, and agents never inherit the host's credentials.
 
-The built-in SQLite API is experimental in the tested Node release. M0 is a
-single-host development prototype, not a multi-tenant production deployment.
+## Quick start
 
-## Architecture Overview
+You need Node.js **22.19.0** or a later 22.x release, npm 10.9.3 and Git. No
+Docker, cloud account or model key is needed.
 
-The API commits a run and its initial event to SQLite. A worker
-claims it transactionally, records logs and independently verifies an artifact
-before completion. API requests do not own the running operation. A new client
-can read the run and replay events after its last cursor, including after API
-process death. A lost worker lease produces `needs_attention`, never an automatic
-retry. Workspace stop/start changes lifecycle metadata while retaining files.
-The desktop starts or reconnects to a detached local service containing the API
-and worker loop. Standalone API/worker commands still support separate processes.
-Closing or quitting Argent keeps the local service running; stop it explicitly
-through the app. Local execution still requires this computer to remain awake.
+```sh
+git clone https://github.com/GregPat22/argent.git
+cd argent
+npm ci
+npm run check     # types, formatting and the full test suite
+npm run demo      # headless durability demo
+npm run desktop   # launch the desktop app
+```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md), [research and recommendations](docs/research/technical-due-diligence.md),
-[VISION.md](VISION.md) and [ROADMAP.md](ROADMAP.md).
+`npm run demo` starts real API and worker processes, submits a simulated task,
+kills the API in the middle of the run, starts a new API and reads the same
+verified history back. It leaves its database and artifact in a printed
+`.data/demo-<id>` directory.
 
-## Project Structure
+To build a self-contained macOS Apple Silicon app:
 
-`src/` contains the API boundary, durable store, worker and narrow simulation
-adapter contracts. They remain modules in one package until deployment or ownership
-requires splitting packages. `tests/` covers state transitions and real process
-death/reconnection. `scripts/` holds a runnable demo and its process harness.
-`docs/specs/` distinguishes the implemented M0 contract from the actual cloud MVP.
-`docs/research/` records dated primary sources and decisions that still need proof.
-`src/desktop/` owns the privileged shell/bridge and detached service; `ui/` is the
-credential-free renderer. `website/` is the unpublished download-page source.
-`release/` contains generated installers/builds and is ignored with runtime data.
+```sh
+npm run desktop:smoke     # drives the real app; needs a macOS GUI session
+npm run desktop:package
+open release/Argent-darwin-arm64/Argent.app
+```
 
-## Getting Started
+Packaging produces `release/Argent-0.0.1-macos-arm64.zip` plus a `.sha256`
+checksum. The app bundles its own runtime. It is **unsigned and not notarized**:
+a local preview, not a public release. Windows, Linux and Intel Mac builds have
+not been built or tested.
 
-### Prerequisites
+## How it works
 
-Node.js **22.19.0** (tested), npm **10.9.3**, and Git. Node 22 releases at or above
-22.19.0 are accepted; CI uses the tested version. No Docker, cloud account or model
-credential is needed for M0. Reassess the supported production runtime before M1.
+```mermaid
+flowchart LR
+  Desktop[Desktop app] --> API[Control API]
+  API --> DB[(SQLite: state and events)]
+  Worker[Independent worker] --> DB
+  Worker --> Adapter[Agent and workspace adapters]
+  Worker --> Verify[Independent verifier]
+```
 
-### Environment Setup
+The API records a run and its first event in one transaction. The worker claims
+it atomically under a fenced lease, writes logs and completes the run only after
+independent verification. API requests never own a running task. The desktop app
+starts or reconnects to a detached local service that hosts the API and worker;
+its renderer is sandboxed and never sees credentials. See
+[ARCHITECTURE.md](ARCHITECTURE.md) for the state machine, trust boundaries and
+the planned cloud design.
 
-**Desktop:** no environment setup or account is needed. Argent creates a private
-local service credential and stores application data in
-`~/Library/Application Support/Argent/`. Workspace/task selections persist in the
-app profile. No credentials are stored in renderer preferences. Development and
-smoke tests can use `ARGENT_DESKTOP_DATA_DIR` to choose an isolated data directory.
+| Layer          | Technology                                                    |
+| -------------- | ------------------------------------------------------------- |
+| Runtime        | Node.js 22.19.x, strict TypeScript, ESM                       |
+| Desktop        | Electron 45.2.3 with a sandboxed renderer and a narrow bridge |
+| Persistence    | Built-in `node:sqlite`, WAL, full synchronous commits         |
+| Tests          | Node test runner, real multi-process crash/reconnect tests    |
+| Planned cloud  | PostgreSQL plus an isolated workspace provider (E2B is first) |
+| Planned agents | Official agent interfaces; Codex first                        |
 
-**Optional standalone API:** copy `.env.example` to `.env`, replace the token with a
-unique value of at least 32 characters, and retain the same `PLATFORM_DATA_DIR`
-for API and worker. Generate a token with:
+`node:sqlite` is experimental in the tested Node release. The current engine is
+built for a single trusted host on loopback, not for multi-tenant production.
+
+## Configuration
+
+**Desktop:** nothing to configure. Argent creates a private local service
+credential and stores its data in `~/Library/Application Support/Argent/`. Set
+`ARGENT_DESKTOP_DATA_DIR` to use an isolated data directory for development.
+
+**Standalone API and worker (optional):** copy `.env.example` to `.env`, set a
+unique token of at least 32 characters, and use the same `PLATFORM_DATA_DIR` for
+both processes. Generate a token with:
 
 ```sh
 node -e 'console.log(require("node:crypto").randomBytes(32).toString("hex"))'
 ```
 
-The start scripts load `.env` if present. The demo supplies its own disposable
-operator token and a unique data directory. Do not use that known demo token for
-an operator deployment.
-
-### Installation & Running
-
-```sh
-npm ci
-npm run check
-npm run desktop
-```
-
-For a self-contained macOS Apple Silicon build:
-
-```sh
-npm run desktop:smoke
-npm run desktop:package
-open release/Argent-darwin-arm64/Argent.app
-```
-
-Packaging produces `release/Argent-0.0.1-macos-arm64.zip` and a `.zip.sha256`
-checksum. The app bundles its runtime; an installed user does not need global
-Node or a terminal. This is an unsigned, unnotarized local preview, not a public
-release. Do not bypass OS security prompts; public distribution still needs
-Developer ID signing/notarization and an update/release process. Windows, Linux
-and Intel Mac packages have not been built or tested.
-
-`npm run site:preview` serves the unpublished website at
-`http://127.0.0.1:4320` after the smoke screenshot and package exist. Its download
-links stream the actual local archive and checksum. Nothing is uploaded.
-
-The interactive landing draft is a separate Next.js package in `website/`:
-run `cd website`, `npm ci` and `npm run dev` for `http://localhost:3000`.
-See [the website README](website/README.md) for its build and browser checks.
-This leaves the static desktop download preview and packaging independent.
-
-`npm run demo` remains available for the headless M0 demonstration:
-
-The demo launches real API and worker processes, submits a simulated task, kills
-the API process, starts another API, reconnects and prints verified simulation
-history. It stops its processes and preserves the demo database and artifact in
-the printed `.data/demo-<id>` directory.
-
-To operate the API manually, build once and run these in separate terminals:
+Then build once and run each process in its own terminal:
 
 ```sh
 npm run build
-npm run start:api
+npm run start:api      # terminal 1
+npm run start:worker   # terminal 2
 ```
 
-```sh
-npm run start:worker
-```
+The demo uses its own disposable token; never reuse it for a real deployment.
 
-The API binds only `127.0.0.1:4310`. Supply `Authorization: Bearer <your token>`
-on every request. This optional mode uses `.data/` independently of the desktop
-application's profile. No remote ingress is configured.
+## Local API
 
-| Method | Route                                       | Input / behavior                                                                                 |
-| ------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| GET    | `/health`                                   | Authenticated milestone/status information.                                                      |
-| POST   | `/workspaces`                               | `{"repository":"https://github.com/owner/repo"}`; metadata only.                                 |
-| GET    | `/workspaces?limit=50&before=<id>`          | Keyset-paginated persistent workspace list.                                                      |
-| GET    | `/workspaces/:id/runs?limit=50&before=<id>` | Keyset-paginated task history.                                                                   |
-| GET    | `/workspaces/:id`                           | Read persisted workspace state.                                                                  |
-| POST   | `/workspaces/:id/stop` or `/start`          | Preserve identity and files; refuse active/uncertain work.                                       |
-| POST   | `/runs`                                     | `{"workspaceId":"…","task":"…","maxRuntimeMs":30000}`; requires `Idempotency-Key`.               |
-| GET    | `/runs/:id`                                 | Status and limits; worker fencing token omitted.                                                 |
-| GET    | `/runs/:id/events?after=0&limit=100`        | Ordered events and `nextCursor`; persist the cursor to reconnect.                                |
-| POST   | `/runs/:id/cancel`                          | Persist cancellation; active work acknowledges cooperatively.                                    |
-| GET    | `/runs/:id/artifact`                        | Read the actual artifact after checking its committed SHA-256.                                   |
-| POST   | `/runs/:id/resolve`                         | `{"note":"Reviewed; abandon this simulation"}`; audited abandonment of uncertain simulated work. |
+The API binds only to `127.0.0.1:4310`. Send `Authorization: Bearer <token>` on
+every request.
 
-Submission with the same key and identical payload returns the original run.
-Changed payload returns 409. Events page at 100 items maximum. Runtime is bounded
-to 100–300,000 ms; default 30 seconds. A run can emit at most 100 log events, each
-at most 2,048 characters; request bodies are capped at 16 KiB.
+| Method | Route                                       | Input / behavior                                                                   |
+| ------ | ------------------------------------------- | ---------------------------------------------------------------------------------- |
+| GET    | `/health`                                   | Authenticated status information.                                                  |
+| POST   | `/workspaces`                               | `{"repository":"https://github.com/owner/repo"}`; metadata only.                   |
+| GET    | `/workspaces?limit=50&before=<id>`          | Keyset-paginated workspace list.                                                   |
+| GET    | `/workspaces/:id/runs?limit=50&before=<id>` | Keyset-paginated task history.                                                     |
+| GET    | `/workspaces/:id`                           | Read persisted workspace state.                                                    |
+| POST   | `/workspaces/:id/stop` or `/start`          | Preserve identity and files; refuse active or uncertain work.                      |
+| POST   | `/runs`                                     | `{"workspaceId":"…","task":"…","maxRuntimeMs":30000}`; requires `Idempotency-Key`. |
+| GET    | `/runs/:id`                                 | Status and limits; the worker's fencing token is never returned.                   |
+| GET    | `/runs/:id/events?after=0&limit=100`        | Ordered events and `nextCursor`; persist the cursor to reconnect.                  |
+| POST   | `/runs/:id/cancel`                          | Persist cancellation; the worker acknowledges it cooperatively.                    |
+| GET    | `/runs/:id/artifact`                        | The artifact, after checking its committed SHA-256.                                |
+| POST   | `/runs/:id/resolve`                         | `{"note":"…"}`; audited abandonment of an uncertain simulated run.                 |
 
-`needs_attention` intentionally blocks further workspace mutations. P1 adds an
-explicit review note and abandonment action for simulated runs. It never retries
-the old task or removes evidence. Real-provider reconciliation and deletion remain
-M1 work. The desktop service also exposes authenticated `/service/stop`; this is
-not enabled in optional standalone API mode.
+Repeating a submission with the same key and payload returns the original run; a
+changed payload returns 409. Runtime is bounded to 100–300,000 ms (default 30 s).
+A run can emit at most 100 log events of up to 2,048 characters each, and request
+bodies are capped at 16 KiB. The desktop service also exposes an authenticated
+`/service/stop`, which standalone mode does not enable.
 
-## Explicit read-only GitHub pilot
+## Offline history export and restore
 
-The local pilot signs in an approved GitHub App/user, verifies a selected repository
-and reads the exact branch SHA. The recorded live fixture check is in spec 0011. It is separate from the desktop's simulated execution.
-Run only with a private owned config/key as described in
-[spec 0011](docs/specs/0011-github-device-pilot.md):
+`npm run continuity -- help` lists the export, inspect, restore, list and show
+commands. Export reads one workspace from a consistent read-only snapshot.
+Metadata is exported by default; task and log text and simulated artifacts need
+`--include-text`. Credentials, leases and arbitrary files are never exported.
+Text is not sanitized, so review it for secrets before sharing a bundle.
+
+Restore writes a separate, read-only history database with no execution queue.
+Imported in-progress or uncertain work is shown as `needs_attention`, and imported
+checks never become trusted evidence. See
+[spec 0012](docs/specs/0012-portable-history.md#using-the-offline-cli) for the
+exact commands, format and limits.
+
+## Read-only GitHub pilot
 
 ```sh
 npm run github:pilot -- --config /absolute/private/github-pilot.json
 ```
 
-The command uses GitHub's official device sign-in, verifies the expected numeric
-user/App/installation/repository identities and read-only policy, then writes a
-redacted receipt beside the config. The config and signing key must be regular
-owned files with `600` permissions inside private `700` directories; the key's
-recorded public fingerprint is required. No environment/CLI credential discovery.
+This opt-in command signs a GitHub App user in through GitHub's device flow,
+checks the expected user, App installation, repository and read-only permissions,
+and reads the exact branch SHA. It writes a redacted receipt next to the config.
+The config and signing key must be regular files you own with `600` permissions
+inside `700` directories. User and refresh tokens are never saved, and no host
+credentials are discovered.
 
-User/refresh tokens are never saved. The in-memory session ends with the command;
-GitHub's grant can remain until revoked in GitHub App authorization settings.
-This provides no durable desktop connection, installation-token issuance, checkout
-or execution authority. Cloud/production custody gates in
-[spec 0010](docs/specs/0010-live-repository-pilot-gates.md) remain required.
+The pilot does not mint installation tokens, clone code or connect to the desktop
+app. See [spec 0011](docs/specs/0011-github-device-pilot.md) for the config format
+and [spec 0010](docs/specs/0010-live-repository-pilot-gates.md) for the gates
+before live repository access.
 
 ## Development
 
-### Available Scripts
+| Script                    | Purpose                                                       |
+| ------------------------- | ------------------------------------------------------------- |
+| `npm run build`           | Compile source, tests and scripts into `dist/`.               |
+| `npm run typecheck`       | Strict type checks without output.                            |
+| `npm run format`          | Apply Prettier.                                               |
+| `npm run format:check`    | Check formatting without edits.                               |
+| `npm test`                | Build and run all unit and process tests.                     |
+| `npm run check`           | Typecheck, formatting and all tests.                          |
+| `npm run start:api`       | Run the built loopback API.                                   |
+| `npm run start:worker`    | Run the built independent worker.                             |
+| `npm run demo`            | Build and demonstrate API restart and reconnection.           |
+| `npm run desktop`         | Build and launch the desktop app.                             |
+| `npm run desktop:smoke`   | Drive the real Electron app and capture a screenshot.         |
+| `npm run desktop:package` | Build a self-contained macOS arm64 app with a zip and digest. |
+| `npm run site:preview`    | Serve the static download preview with local build artifacts. |
+| `npm run continuity`      | Offline history export and restore CLI.                       |
+| `npm run github:pilot`    | Opt-in device sign-in and read-only repository preflight.     |
 
-| Script                    | Purpose                                                        |
-| ------------------------- | -------------------------------------------------------------- |
-| `npm run build`           | Compile source, tests and scripts into `dist/`.                |
-| `npm run typecheck`       | Strict compile checks without output.                          |
-| `npm run format`          | Apply Prettier to maintained project files.                    |
-| `npm run format:check`    | Check formatting without edits.                                |
-| `npm test`                | Build and run all unit and process integration tests.          |
-| `npm run check`           | Typecheck, formatting and all tests.                           |
-| `npm run start:api`       | Run the built loopback API.                                    |
-| `npm run start:worker`    | Run the built independent worker.                              |
-| `npm run demo`            | Build and demonstrate API restart/reconnection.                |
-| `npm run desktop`         | Build and launch the native desktop prototype.                 |
-| `npm run desktop:smoke`   | Exercise the actual Electron app and capture its UI.           |
-| `npm run desktop:package` | Build a self-contained local macOS arm64 app and zip/checksum. |
-| `npm run site:preview`    | Serve the download-page source and real local artifacts.       |
-| `npm run github:pilot`    | Explicit device sign-in and read-only fixture preflight.       |
+Tests use temporary on-disk databases and real child processes: they kill API and
+worker processes, race claims and check the durable history. They need permission
+to listen on loopback and spawn processes, and they call no billable API. Test
+files run serially so process startup on a busy machine doesn't eat into short
+test leases. `desktop:smoke` needs a macOS GUI session and checks that the
+renderer has no Node access and that the service survives the app exiting.
 
-### Code Style & Conventions
+### Project layout
 
-Strict TypeScript, ESM imports, parameterized SQL and transactional state/event
-changes. Use written specifications and focused branches (`feat/…`, `fix/…`),
-conventional commit messages, and small reviewed PRs when a remote is configured.
-Read [AGENTS.md](AGENTS.md). A dependency lockfile is committed; installs disable
-dependency lifecycle scripts in CI. Electron is bundled into the desktop build;
-the headless execution modules have no external runtime npm dependencies.
+| Path           | Contents                                                               |
+| -------------- | ---------------------------------------------------------------------- |
+| `src/`         | API, durable store, worker, adapters, continuity and GitHub pilot code |
+| `src/desktop/` | Electron main process, preload bridge and detached local service       |
+| `ui/`          | The credential-free desktop renderer                                   |
+| `tests/`       | Unit and multi-process integration tests                               |
+| `scripts/`     | Demo, packaging, smoke, continuity and pilot entry points              |
+| `website/`     | The landing page (Next.js) and the static download preview             |
+| `docs/`        | Acceptance specs, milestone reports, research and decisions            |
 
-### Testing
+## Contributing, security and license
 
-Tests use Node's built-in runner and temporary on-disk databases. Process tests
-start independent Node processes, kill API/worker processes, race claims, and
-verify durable history. Independent test files run serially so unrelated process
-startup does not consume short fixture leases on busy hosts; intentional child
-process races inside those tests remain concurrent. Tests need permission to bind
-loopback and spawn processes.
-No billable API is called. Simulation evidence checks an actual artifact's identity
-and SHA-256; it says nothing about a real repository's tests.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request; work starts
+from a written spec with acceptance criteria. Coding agents should follow
+[AGENTS.md](AGENTS.md). Report vulnerabilities privately as described in
+[SECURITY.md](SECURITY.md), not in public issues.
 
-`desktop:smoke` requires a macOS GUI session. It drives the actual renderer through
-workspace/task forms, artifact inspection, window close/reopen, cancellation and
-service stop/reconnect. It asserts no renderer Node access, and checks the detached
-service survives desktop process exit. Test profiles are cleaned up; the captured
-image remains in `.context/argent-desktop.png`.
-
-## Deployment
-
-P1 is for a single trusted host on loopback. Persist the entire data directory
-on local storage. SQLite is not supported over network filesystems or across
-multiple hosts. Stopping the API does not stop the worker; stopping the host
-does. Website source and a local desktop archive are provided; there is no public
-website deployment or signed release. TLS, user/tenant authorization,
-PostgreSQL, credential brokering, isolated execution, quotas and backups must be
-implemented before a managed or remotely accessible release.
-
-## Offline history export and restore
-
-`npm run continuity -- help` provides export, inspect, restore, list and show.
-[Spec 0012](docs/specs/0012-portable-history.md#using-the-offline-cli) contains the
-exact commands, format, private-directory requirements and limits. Export selects
-one existing simulator workspace from a consistent read-only SQLite snapshot.
-Metadata is the default; private task/log text and fixed artifacts require
-`--include-text`. Credential stores, lease authority and arbitrary files are excluded.
-Review selected text for secrets; credential-marker rejection is not sanitization.
-
-Restore writes a separate historical database with no execution queue. It works
-offline after source files are unavailable, retains uncertainty, and never turns
-imported checks or approvals into execution authority. All archived work remains
-simulated. This is not Conductor import, desktop migration UI, cloud filesystem
-restore or live-session resumption; the full M1d acceptance contract remains open.
-
-## Contributing
-
-Start from a specification with acceptance criteria, implement a focused change,
-run `npm run check`, review the actual diff, and report gaps honestly. No upstream
-application has been forked or copied. The original code uses the [MIT license](LICENSE).
-Any upstream adoption needs a pinned-source/license review and founder approval.
-
-The [P2 desktop layout](docs/specs/0008-conductor-familiar-desktop.md) follows familiar
-Conductor workspace/session, composer, inspection and terminal placement. Run
-`npm run desktop` to inspect it. Home/Search uses loaded saved workspaces; Settings
-previews Claude Code, Codex, Cursor, OpenCode, migration and mobile. Only the scripted
-local simulator is connected. These previews do not implement sign-in, a terminal,
-repository checkout/diffs, file transfer or a mobile app. The [roadmap](ROADMAP.md)
-now prioritizes those replacement capabilities before teams/dependency graphs.
-
-The [desktop UX refinement](docs/specs/0009-desktop-ux-polish.md) adds bundled
-Lucide icons, keyboard-accessible tabs/search, workspace-specific composer drafts,
-clearer forms and reduced-motion transitions throughout the installed app.
-Cmd/Ctrl+Enter reviews a draft before starting; it does not send directly to an
-agent. Required icon notices are included in [the icon bundle](ui/icons/README.md).
+Argent is original code released under the [MIT license](LICENSE). The bundled
+Lucide icons keep their own license notices in [ui/icons](ui/icons/README.md).

@@ -1,9 +1,8 @@
 # Portable Argent history: first implementation slice
 
-Prepared 7 November 2026 on `GregPat22/conductor-replacement-roadmap-review`,
-base `origin/main` / HEAD `5c258356ac2c66d62d5adfa24200b6cffd778a3f`.
+Recorded 7 November 2026, based on main `5c258356ac2c66d62d5adfa24200b6cffd778a3f`.
 This implements a bounded part of [M1d](../../ROADMAP.md) and
-[spec 0006](0006-continuity-and-market-validation.md). It is an offline CLI slice;
+[spec 0006](0006-portable-continuity.md). It is an offline CLI slice;
 desktop migration controls, Conductor import and live process recovery remain open.
 
 ## Acceptance criteria
@@ -118,9 +117,7 @@ repository workload runs in these tests.
 
 The implementing agent reviewed the actual source/test/docs diff, including
 exact-length/newline identity checks and duplicate-key artifact rejection.
-Recorded validation: `.context/replacement-check.log` and runtime manifest
-`.context/replacement-validation.json`, SHA-256
-`d2d81c723ea252e65de9b9a2c22b5e5ebf1fb3553e62c4c29e1a6e3515815b04`.
+The validation log and runtime hash manifest are kept locally, outside Git.
 No external review, measured coverage, fresh-machine, native desktop/package,
 website, live-provider or iOS verification is claimed. All original scope limits
 remain. Next slices are desktop preview/read-only history, real transcript/Git

@@ -1,106 +1,63 @@
 # Argent documentation
 
-Start with [Project context](PROJECT_CONTEXT.md) to understand the product and
-current limits without reading private chats. This branch contains P1, a local desktop prototype using simulated execution.
-Real cloud execution and signed public distribution remain later milestones.
+Start with the [README](../README.md) for what works today, then the
+[architecture](../ARCHITECTURE.md) and [roadmap](../ROADMAP.md). Agent execution
+is currently simulated; real cloud execution and signed public distribution are
+later milestones.
 
 ## Product and decisions
 
-Read the [current handoff](../HANDOFF.md) first for branch/PR locations, recorded
-evidence, Conductor setup and next actions. This branch contains P1 source.
+| Document                                                       | What it contains                                                                                     |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [Vision](../VISION.md)                                         | Desktop-first product experience, cloud persistence and open-source goals.                           |
+| [Roadmap](../ROADMAP.md)                                       | Milestone sequencing and the evidence each milestone needs.                                          |
+| [Architecture](../ARCHITECTURE.md)                             | Process boundaries, state machine, recovery, verification and security.                              |
+| [Decision register](DECISIONS.md)                              | Accepted requirements, provisional choices, reasons and open decisions.                              |
+| [Technical due diligence](research/technical-due-diligence.md) | Dated comparisons of foundations, infrastructure and agent interfaces. Recheck before adopting them. |
+| [T3 Code source evaluation](research/t3-adoption-spike.md)     | Source-only evaluation of an alternative foundation at a pinned revision.                            |
 
-| Document                                                       | What it contains                                                                                               |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [Project context](PROJECT_CONTEXT.md)                          | Product journey, current versus target capabilities, architecture invariants, business intent and next work.   |
-| [Founding brief](FOUNDING_BRIEF.md)                            | The original founder brief, preserved with the later desktop clarification and historical-status caveat.       |
-| [Vision](../VISION.md)                                         | Desktop-first product experience, cloud persistence and open-source goals.                                     |
-| [Decision register](DECISIONS.md)                              | Accepted requirements, provisional choices, reasons and unresolved decisions.                                  |
-| [Roadmap](../ROADMAP.md)                                       | Milestone sequencing and required exit evidence.                                                               |
-| [Architecture](../ARCHITECTURE.md)                             | Process boundaries, state machine, recovery, verification and security.                                        |
-| [Technical due diligence](research/technical-due-diligence.md) | Dated primary-source comparisons of foundations, infrastructure and agent interfaces. Recheck before adoption. |
+## Acceptance contracts
 
-## Acceptance contracts and evidence
+Each behavior change starts from one of these specs. Status is as of the latest
+recorded revision.
 
-| Document                                                                                 | Status in this publication                                                                                         |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| [M0 durable local run](specs/0001-durable-local-run.md)                                  | Implemented simulation contract.                                                                                   |
-| [M0 completion report](milestones/0000-completion.md)                                    | Actual test and review evidence, with limits.                                                                      |
-| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)                    | Planned real-provider release contract; unimplemented here.                                                        |
-| [Project identity and repository setup](specs/0003-project-identity.md)                  | Name, MIT rationale, metadata and namespace availability.                                                          |
-| [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)                     | Implemented local macOS prototype; see P1 completion evidence.                                                     |
-| [W0 website landing page draft](specs/0005-website-landing-draft.md)                     | Next.js draft integrated through PR #3; not deployed.                                                              |
-| [M1a repository access and workspace lifecycle](specs/0007-cloud-workspace-lifecycle.md) | Lifecycle/bootstrap simulations and read-only GitHub pilot implemented; live execution/provider gates remain open. |
+| Spec                                                                                      | Status                                                                              |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [0001 Durable local run](specs/0001-durable-local-run.md)                                 | Implemented (M0), simulated execution.                                              |
+| [0002 Cloud MVP to a tested PR](specs/0002-cloud-mvp.md)                                  | Planned real-provider release contract.                                             |
+| [0003 Project identity](specs/0003-project-identity.md)                                   | Name, license rationale, metadata and namespace check.                              |
+| [0004 Desktop prototype](specs/0004-desktop-prototype.md)                                 | Implemented local macOS prototype (P1).                                             |
+| [0006 Portable continuity](specs/0006-portable-continuity.md)                             | Managed-release requirements; the first offline slice is implemented in 0012.       |
+| [0007 Repository access and workspace lifecycle](specs/0007-cloud-workspace-lifecycle.md) | Lifecycle, bootstrap, custody and cleanup simulations implemented; live gates open. |
+| [0008 Desktop workspace shell](specs/0008-desktop-workspace-shell.md)                     | Implemented layout (P2); real integrations planned.                                 |
+| [0009 Desktop UX and icons](specs/0009-desktop-ux-polish.md)                              | Implemented refinement (P2.1).                                                      |
+| [0010 Live repository pilot gates](specs/0010-live-repository-pilot-gates.md)             | The credential, authorization and isolation gates before live repository access.    |
+| [0011 GitHub device sign-in pilot](specs/0011-github-device-pilot.md)                     | Implemented opt-in read-only pilot, not connected to the desktop.                   |
+| [0012 Portable history](specs/0012-portable-history.md)                                   | Implemented offline export and read-only restore, with commands.                    |
 
-- [P2 familiar desktop and replacement roadmap](specs/0008-conductor-familiar-desktop.md):
-  observed Conductor UI patterns, raw-shell acceptance and revised subscription,
-  migration/mobile sequencing. Real integrations remain planned.
+Spec 0005 (the landing-page draft) is maintained privately with the website's
+design history.
 
-- [P2.1 desktop UX and icon refinement](specs/0009-desktop-ux-polish.md):
-  application-wide Laws of UX review, Lucide provenance, keyboard/motion/form
-  acceptance and active-service shutdown regression. The landing is excluded.
+## Milestone reports
 
-- [Live repository pilot gates](specs/0010-live-repository-pilot-gates.md):
-  the concrete approved fixture/App, protected authentication/key lifecycle and
-  isolated-compute limits needed before live bootstrap/execution tests. The current
-  HTTP preflight has synthetic tests and a recorded live read-only fixture check;
-  it creates no durable desktop/service connection.
-
-- [GitHub device sign-in pilot](specs/0011-github-device-pilot.md):
-  explicit local App-user authentication, private signing-key/config checks,
-  opaque memory-only session and read-only fixture preflight. Desktop/service
-  connection and isolated execution remain separate work.
-
-- [Portable Argent history](specs/0012-portable-history.md): implemented offline
-  metadata/selected-text/artifact export and read-only restore into separate
-  historical storage. All work remains simulated; no Conductor importer or
-  desktop migration controls. Includes commands, acceptance criteria and limits.
-
-## Conductor shutdown research and roadmap follow-up
-
-- [Evidence and strategy review](research/conductor-shutdown-analysis.md): checks
-  the founder's Grok report against primary sources and Argent's actual plan;
-  distinguishes X anecdotes, vendor claims, verified facts and remaining unknowns.
-- [Original Grok report](research/sources/grok-conductor-report-2026-11-06.txt):
-  preserved unchanged for provenance; an attributed secondary report, not a set
-  of independently verified assertions.
-- [7 November replacement review](research/replacement-roadmap-review-2026-11-07.md):
-  rechecked primary sources, actual capability gaps, basic worktree/workflow
-  sequencing, personal versus full team/cloud release gates and selected next phase.
-- [Continuity and market-validation contract](specs/0006-continuity-and-market-validation.md):
-  founder-authorized roadmap additions for authentication/customer validation,
-  visible control and export/restore. The bounded offline-history slice in spec
-  0012 is implemented; full continuity, provider eligibility and launch packaging
-  remain open.
+- [M0 completion](milestones/0000-completion.md): the durable engine's test and
+  review evidence, with limits.
+- [P1 completion](milestones/0001-completion.md): the local desktop prototype's
+  native and package evidence.
 
 ## Build and contribute
 
-- [README quick start and API reference](../README.md#getting-started): tested
-  runtime, environment settings, demo, routes and commands.
+- [README quick start](../README.md#quick-start) and [commands](../README.md#development).
 - [Contributing](../CONTRIBUTING.md): how to scope, implement, verify and review work.
-- [Engineering instructions](../AGENTS.md): mandatory repository constraints.
-- [MIT license](../LICENSE): terms for the original code.
+- [Engineering instructions](../AGENTS.md): mandatory repository rules, for people
+  and coding agents.
+- [Security policy](../SECURITY.md) and the [MIT license](../LICENSE).
 
-## Keeping the context reliable
+## Keeping the docs reliable
 
-Use the implementation, focused tests and fresh results to establish current
-behavior. Specs define acceptance; a roadmap records intent. A historical
-completion report does not certify later revisions. Correct the docs when those
-sources disagree. A provider recommendation is not permission to provision it.
-
-Record decisions and limitations in Git rather than relying on a chat or an agent
-session ID. Link every new specification or completion report from this index.
-Keep secrets, private transcripts, customer data, local databases and generated
-artifacts out of source control. The founding brief is included as intentionally
-published product context; unrelated chat history is not part of this repository.
-
-## P1 integration evidence
-
-- [P1 PR review](research/p1-pr-review.md): fresh checks and native development
-  smoke at `6104961`, plus the older-workspace fix, eight renderer regressions
-  and fresh packaged-app verification before the explicit merge decision.
-- [P1 completion report](milestones/0001-completion.md): completed local desktop
-  prototype and recorded native/package evidence; PR #1 integrated in `fd60a5a`.
-- [Pinned T3 source evaluation](research/t3-adoption-spike.md): source-only
-  evaluation at an exact revision; runtime conformance remains open.
-- [Development handoff](../HANDOFF.md): exact branches, sources, tests, limits,
-  Conductor worktree guidance, active website overlap and next actions.
+The implementation, focused tests and fresh results establish current behavior.
+Specs define acceptance and the roadmap records intent; a historical completion
+report does not certify later revisions. Fix the docs when those sources disagree,
+and link every new spec or completion report from this index. A provider
+recommendation is not permission to provision it. Keep secrets, private notes,
+transcripts, customer data, local databases and generated artifacts out of Git.

@@ -6,14 +6,14 @@ Billable provisioning still requires explicit authorization.
 
 M1a is narrowed in [repository access and workspace lifecycle](0007-cloud-workspace-lifecycle.md), including proposed GitHub permissions, explicit transitions and crash/cleanup evidence. That contract is not an implemented cloud adapter.
 
-Roadmap follow-up, 6 November 2026: the founder authorized incorporating the
-[shutdown-review continuity requirements](0006-continuity-and-market-validation.md).
+Roadmap follow-up, 6 November 2026: this contract incorporates the
+[portable continuity requirements](0006-portable-continuity.md).
 The first technical proof remains one repository, workspace and agent. Managed
 release also requires visible control, portable recovery and a documented
 provider/deployment authentication decision. Supported subscriptions are the
 preferred product direction; API-key auth below remains the technical-pilot path.
 
-The later [P2 replacement contract](0008-conductor-familiar-desktop.md) separates
+The later [P2 desktop shell contract](0008-desktop-workspace-shell.md) separates
 this bounded engineering proof from the broader personal release. Familiar UX,
 multiple agents/subscriptions, migration and a mobile companion now precede
 team/dependency scope; they do not change the isolation/durability criteria here.
@@ -73,7 +73,7 @@ or installed dependencies. Merging always requires a separate human decision.
     an independent self-hosted installation with Argent-hosted endpoints unavailable.
     Validate manifest integrity/completeness, secret exclusions and untrusted
     import handling. Active/uncertain records never replay external effects.
-    Apply the detailed [continuity contract](0006-continuity-and-market-validation.md).
+    Apply the detailed [continuity contract](0006-portable-continuity.md).
 17. Before commercial onboarding, record supported authentication per provider and
     local/customer-operated remote/managed deployment, including renewal, quotas,
     revocation and unresolved permissions. Managed subscription availability needs

@@ -1,19 +1,18 @@
 # P2.1: desktop icon system and UX refinement
 
-6 November 2026 · `GregPat22/conductor-layout-create`, base `origin/main` at
-`333d66201a2c56a556b239abfe9777a89a8c7cd4`. Continues the P2 shell.
+6 November 2026, based on main `333d66201a2c56a556b239abfe9777a89a8c7cd4`.
+Continues the P2 shell.
 PR preparation integrates main `9eac908` through merge `36cdf25`; the integrated
 code/test revision passes 181 root tests and expanded native desktop smoke.
-Read [the handoff](../../HANDOFF.md) for current publication state and limits.
 Scope: the entire installed application, including navigation, sessions, composer,
 inspection, settings, empty/offline/error states and every dialog. The landing
 page and website assets/source are outside this refinement.
 
 ## Audit and design intent
 
-Apply the founder-invoked Laws of UX skill as a heuristic review. Do not claim
+Apply the Laws of UX principles as a heuristic review. Do not claim
 measured usability gains or repeat its unsupported percentage improvement claims.
-Keep Conductor's familiar navigation and Argent's original code/approved brand.
+Keep the familiar navigation layout and Argent's original code and brand.
 
 | Principle                      | Finding                                                                                                    | Refinement                                                                                                                                                                 |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -57,7 +56,7 @@ Keep Conductor's familiar navigation and Argent's original code/approved brand.
    animation and transitions; keyboard focus remains immediate.
 8. Native desktop smoke covers new icon assets, all settings/inspection/terminal
    surfaces, keyboard navigation, composer review, form/empty/offline/uncertain
-   states and both window sizes. Capture/review screenshots under `.context/`.
+   states and both window sizes. Capture and review screenshots locally.
    Test meaningful draft/pending/keyboard regressions; preserve existing tests.
    Run `npm run check`, review the actual diff and record exact results/limits.
 
@@ -67,4 +66,4 @@ Real subscriptions, cloud migration, mobile, terminal execution and repository
 diff/checkout remain future integrations. No website change, upstream app import,
 account connection, paid pack, provisioning, merge, deployment or release.
 The outcome is a desktop heuristic/design pass, not proof of user satisfaction,
-accessibility certification or full Conductor parity.
+accessibility certification or feature parity with other tools.

@@ -1,10 +1,17 @@
-import { DOCS_URL, LICENSE_URL, REPO_URL, ROADMAP_URL } from "@/lib/site";
+import {
+  DOCS_URL,
+  LICENSE_URL,
+  REPO_URL,
+  ROADMAP_URL,
+  X_URL,
+} from "@/lib/site";
 
 const LINKS = [
   { href: REPO_URL, label: "GitHub" },
-  { href: DOCS_URL, label: "Project context" },
+  { href: DOCS_URL, label: "Docs" },
   { href: ROADMAP_URL, label: "Roadmap" },
   { href: LICENSE_URL, label: "MIT license" },
+  { href: X_URL, label: "X" },
 ];
 
 export function Footer() {

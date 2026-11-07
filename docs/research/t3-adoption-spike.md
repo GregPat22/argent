@@ -2,14 +2,13 @@
 
 Reviewed 6 November 2026 against Argent's desktop-first vision, architecture and
 M1 acceptance criteria. **Recommendation: finish the bounded thin desktop
-prototype now; retain T3 as the leading adoption candidate, pending founder
+prototype now; retain T3 as the leading adoption candidate, pending maintainer
 approval and runtime conformance testing before replacing or substantially
 expanding the core.**
 
-Follow-up on `GregPat22/next-step-v2`, 6 November 2026: the engineering agent
-retained Argent for bounded M1a after the founder delegated technical decisions.
+Follow-up, 6 November 2026: Argent's own core is retained for bounded M1a.
 The runtime spike is deferred until measured complexity warrants it; no upstream
-code was imported. See [the decision register](../DECISIONS.md#foundation-decision-for-bounded-m1a-6-november-2026).
+code was imported. See [the decision register](../DECISIONS.md#retain-the-current-core-for-bounded-m1a--6-november-2026).
 The next-decision recommendation below records the source review's original gate.
 
 ## Pin and method
@@ -102,7 +101,7 @@ Existing remote connectivity must not be presented as those guarantees.
 
 Keep the website download/install/launch journey and thin desktop shell separate
 from engine selection. Do not grow the simulator into a large bespoke workflow
-engine. Seek founder approval for a separate pinned-runtime adoption spike with
+engine. Seek maintainer approval for a separate pinned-runtime adoption spike with
 these acceptance criteria:
 
 1. Build the pinned source in an isolated compatible toolchain; record actual
@@ -113,4 +112,4 @@ these acceptance criteria:
 3. Demonstrate state outside suspendable compute, retained transcripts/evidence,
    exact-commit verification and explicit lifecycle/cleanup policy.
 4. Compare measured adaptation cost with continuing Argent, then obtain explicit
-   founder approval before any fork or foundation replacement.
+   maintainer approval before any fork or foundation replacement.

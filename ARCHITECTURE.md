@@ -1,7 +1,8 @@
 # Architecture
 
-Status: M0 and the P1 local desktop prototype implemented; managed architecture
-below is the proposed target.
+Status: the M0 engine, the P1 local desktop prototype and the P2 desktop shell are
+implemented, with simulated execution; the managed architecture below is the
+proposed target.
 No upstream fork, cloud deployment or paid resource is configured.
 
 ## Shape and boundaries
@@ -326,9 +327,9 @@ and [MVP acceptance criteria](docs/specs/0002-cloud-mvp.md) for release gates.
 
 ## Planned continuity and control requirements
 
-The founder-authorized [roadmap update](ROADMAP.md) adds portable history/evidence
+The [roadmap](ROADMAP.md) adds portable history/evidence
 restore and visible real-execution controls to managed release. The
-[continuity contract](docs/specs/0006-continuity-and-market-validation.md) defines
+[continuity contract](docs/specs/0006-portable-continuity.md) defines
 manifest integrity/completeness, credential exclusion and restore to an independent
 installation with our hosted endpoints unavailable. Imported active/uncertain
 work must reconcile or remain `needs_attention`; restore cannot dispatch an old
@@ -365,7 +366,7 @@ See [spec 0012](docs/specs/0012-portable-history.md) for the scope and test cont
 
 ## P2 desktop presentation
 
-[Spec 0008](docs/specs/0008-conductor-familiar-desktop.md) reorganizes the renderer
+[Spec 0008](docs/specs/0008-desktop-workspace-shell.md) organizes the renderer
 into workspace/session navigation, central activity/composer and a right inspection/
 terminal shell. `ui/shell.ts` contains presentation-only navigation; its packaged
 script is explicitly allowlisted. The existing app/bridge owns validated service

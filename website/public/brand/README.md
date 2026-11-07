@@ -1,10 +1,10 @@
 # Official Argent icon
 
-The founder selected the supplied silver A as Argent’s official icon on
-6 November 2026, superseding the periodic-table Ag mark for product branding.
+The silver A became Argent’s official icon on 6 November 2026, superseding the
+periodic-table Ag mark for product branding.
 
-`argent-icon-source.png` preserves the supplied 1254 × 1254 RGBA image byte for
-byte. Source attachment: `ChatGPT Image Nov 6, 2026, 08_14_09 PM.png`.
+`argent-icon-source.png` is the 1254 × 1254 RGBA source image, preserved byte for
+byte.
 SHA-256: `dfa3af25f5688e0053f8364a07ea4e5ee1dc10a9783d8db1951c343eb7f3ef49`.
 
 Faithful size/format derivatives were generated with Sharp 0.35.5 from the
@@ -23,11 +23,9 @@ native application icons or release artifacts.
 
 ## Footer wordmark
 
-During W0.6 the founder supplied the wide silver ARGENT artwork to replace the
-typed footer wordmark. `argent-wordmark-source.png` preserves the supplied
-2172 × 724 RGBA image byte for byte. Source attachment:
-`ChatGPT Image Nov 6, 2026, 11_10_47 PM.png` (replaced the 08_27_44 PM
-version).
+The wide silver ARGENT artwork replaced the typed footer wordmark.
+`argent-wordmark-source.png` is the 2172 × 724 RGBA source image, preserved
+byte for byte.
 SHA-256: `c34b759a729ac3751575b3b9ad9275dd09ed67ed325b4994d6e8f0ed48b3c139`.
 
 `argent-wordmark-800.webp` and `argent-wordmark-1600.webp` are faithful width

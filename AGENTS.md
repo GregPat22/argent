@@ -1,12 +1,13 @@
 # Engineering instructions
 
-Read HANDOFF.md, START_HERE.md, README.md, ARCHITECTURE.md and the relevant docs/specs file
-before edits. Product context is in docs/PROJECT_CONTEXT.md. For landing-page
-work, also read docs/briefs/landing-page.md before asking for product information.
-If these files are missing in a new worktree, inspect its branch and origin/main;
-do not conclude the product is undocumented from an empty or stale checkout.
-Before completing substantial work, update the tracked handoff and relevant
-specifications/decisions with the exact branch, evidence, limits and next steps.
+Read README.md, ARCHITECTURE.md, ROADMAP.md and the relevant `docs/specs/` file
+before making changes. Decisions and their reasons are in docs/DECISIONS.md.
+Before completing substantial work, update the relevant specification, decision
+register entry and documentation with the evidence, limits and next steps.
+
+This repository is public. Keep maintainer planning notes, founder instructions,
+private research, chat transcripts, account identifiers and local log paths out
+of it; the maintainers keep those in a separate private repository.
 
 - This is a headless cloud-oriented control plane. Clients never own execution.
 - The primary product is a downloadable desktop app, distributed from a website.
@@ -26,7 +27,7 @@ specifications/decisions with the exact branch, evidence, limits and next steps.
 - Never log secrets, inherit host credentials into agents or expose this prototype
   beyond loopback. Real adapters require scoped credentials and isolation.
 - Never silently merge, deploy, purchase or provision billable resources.
-- Do not fork or replace this foundation without founder approval.
+- Do not fork or replace this foundation without maintainer approval.
 - Run `npm run check` before reporting completion; report actual results and gaps.
 
 M0 uses SQLite on one host. PostgreSQL is required before multiple control-plane

@@ -1,69 +1,53 @@
-# P2: familiar desktop workflow and replacement roadmap
+# P2: desktop workspace shell and personal release scope
 
-6 November 2026 · `GregPat22/conductor-layout-create`, based on `origin/main`
-`333d66201a2c56a556b239abfe9777a89a8c7cd4` (PR #8).
-Status: raw desktop layout implemented; verification evidence is recorded in the
-handoff. PR preparation integrates main `9eac908` through `36cdf25`; the integrated
-code/test revision passes 181 root tests and expanded native smoke. Real agent,
-cloud, migration and mobile work below remains planned.
+Recorded 6 November 2026, based on main `333d662` (PR #8).
+Status: the desktop layout is implemented. The integrated revision passed 181 root
+tests and native smoke checks. Real agent, cloud, migration and mobile work below
+remains planned.
 
 The follow-on [P2.1 refinement](0009-desktop-ux-polish.md) replaces decorative
 Unicode icons with bundled Lucide SVGs and improves desktop styling, keyboard
-navigation, drafts, forms and motion. Its acceptance/evidence supersedes the raw
+navigation, drafts, forms and motion. Its acceptance and evidence supersede the
 layout's original typography, keyboard and animation limits; integration limits
 and execution boundaries remain.
 
 ## Product decision
 
-The founder requests a Conductor-like replacement with low learning friction,
-existing subscriptions, mobile access and cloud-file continuity. Familiarity is
-now an explicit product requirement. Preserve Argent's independently owned
-headless execution, desktop installation, MIT core and verification boundaries.
-Use original implementation and Argent identity; no Conductor source, icons,
-private account data or transcripts are imported. `ui/argent-icon.webp` is a
-byte-for-byte copy of our approved `website/public/brand/argent-icon-96.webp`,
-whose provenance is recorded in the website brand README. Desktop assets are
-packaged from `ui/` independently of the website build.
+Developers who already use multi-agent desktop tools should be able to switch to
+Argent with little relearning. Familiar placement (workspaces on the left, the
+session and composer in the centre, inspection and terminal on the right) is an
+explicit product requirement, alongside support for existing agent subscriptions,
+mobile access and portable history. Argent keeps its own headless execution,
+desktop installation, MIT core and verification boundaries. All code, icons and
+assets are original or properly licensed. `ui/argent-icon.webp` is a byte-for-byte
+copy of `website/public/brand/argent-icon-96.webp`; desktop assets are packaged
+from `ui/` independently of the website build.
 
-This supersedes the earlier recommendation against prioritizing feature parity.
-It does not require full parity before a useful release. Separate the one-agent
-engineering proof from a replacement users can actually adopt. A single Codex
-integration is a technical milestone, not a provider-neutral replacement launch.
+Feature parity with other tools is not required before a useful release. The
+one-agent engineering proof is separate from a release people can adopt for daily
+work: a single Codex integration is a technical milestone, not a launch.
 
-## Evidence and interpretation
+## Scope of the shell
 
-Direct read-only navigation of the installed Conductor on this date covered:
+| Surface                 | Pattern                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| Active workspace        | Workspace navigation, central session, bottom composer, right inspection panel |
+| Inspection and terminal | Artifacts, All files, Changes, Checks; Setup, Run and Terminal below           |
+| Home                    | Searchable saved-workspace navigation                                          |
+| Settings / Agents       | Claude Code, Codex, Cursor and OpenCode tabs; connection choices vary by agent |
 
-| Observed surface        | Pattern carried into the draft                                                                |
-| ----------------------- | --------------------------------------------------------------------------------------------- |
-| Active workspace        | Left repository/workspace navigation, center session, bottom composer, right inspection panel |
-| Inspection and terminal | Artifacts, All files, Changes, Checks; Setup, Run and Terminal below                          |
-| Home                    | Searchable saved-workspace navigation                                                         |
-| Settings / Agents       | Claude Code, Codex, Cursor and OpenCode tabs; connection choices vary by agent                |
-| Claude Code / Codex     | CLI/API choices; Codex additionally displays ChatGPT authentication                           |
-
-No account setting, credential or workspace content was changed. No cloud
-workspace was created or exported. Home in Argent is a searchable dialog over
-loaded durable workspaces, not Conductor's full global dashboard. Pane widths
+Home in Argent is a searchable dialog over loaded durable workspaces. Pane widths
 are fixed, with a hide/show inspector control; draggable splitters, repository
-hierarchies/branches, multiple live chat tabs and real terminal/diff/file views
-remain follow-up work. Sessions currently represent durable simulator tasks,
+hierarchies and branches, multiple live chat tabs and real terminal, diff and file
+views remain follow-up work. Sessions currently represent durable simulator tasks,
 not multi-turn agent conversations.
 
-The [official announcement](https://www.conductor.build/announcement), rechecked
-6 November, confirms cloud read-only on 13 November and shutdown on 20 November,
-with transfer-to-local and account export. This gives preservation urgency;
-it does not prove Argent can restore their live sessions. The
-[official introduction](https://www.conductor.build/docs) identifies Claude Code,
-Codex, Cursor and OpenCode as supported harnesses. These are the initial
-compatibility targets, not proof of identical subscription entitlements.
-[OpenCode's provider documentation](https://opencode.ai/docs/providers/) further
-illustrates that harness and model provider are separate choices.
-
-Grok's report and the [earlier review](../research/conductor-shutdown-analysis.md)
-remain qualitative evidence. Mobile/migration/subscriptions are founder-selected
-priorities, not a measured ranking of users' requests. No new demand, competitor
-reliability or willingness-to-pay evidence was gathered in this pass.
+Claude Code, Codex, Cursor and OpenCode are the initial compatibility targets.
+They are not proof of identical subscription entitlements:
+[OpenCode's provider documentation](https://opencode.ai/docs/providers/), for
+example, shows that the agent harness and the model provider are separate choices.
+Mobile, migration and subscription support are product priorities, not a measured
+ranking of user requests.
 
 ## Raw layout acceptance criteria
 
@@ -156,8 +140,8 @@ The existing loopback service cannot be exposed to supply this capability.
    plus managed-release/distribution gates. Broader provider parity follows in
    explicit releases, then team handoff, then dependencies.
 
-Compare on the same tasks and observe an unassisted Conductor user's ability to
-create a workspace, choose an account, send a task, find a diff/check, respond on
-mobile and export. Record observed friction and preservation gaps; do not claim
-learnability or demand from visual similarity alone. Outreach, real exports,
+Validate on real tasks: observe whether a developer new to Argent can create a
+workspace, choose an account, send a task, find a diff or check, respond on mobile
+and export history without help. Record the friction and preservation gaps; do not
+claim learnability or demand from visual similarity alone. Outreach, real exports,
 provider spending and publishing remain separately authorized actions.

@@ -1,13 +1,13 @@
 # Live repository pilot: enablement gates
 
-Prepared 7 November 2026 on `GregPat22/next-step-v6`, base main `1cb55c3`.
-Status: live execution remains **disabled**. Pilot registration/installation and
-explicit read-only App-user device verification are complete; see the progress
-entry below and [spec 0011](0011-github-device-pilot.md). The
-founder requested continued implementation until a safety boundary; this records
-the concrete remaining boundary after simulated cleanup, the read-only GitHub
-preflight and token-format compatibility work. See [M1a](0007-cloud-workspace-lifecycle.md)
-for the actual live A1–A10 release gates.
+Recorded 7 November 2026, based on main `1cb55c3`.
+Status: live execution remains **disabled**. A pilot GitHub App is registered and
+installed on one private test repository, and explicit read-only App-user device
+verification is complete; see the setup summary below and
+[spec 0011](0011-github-device-pilot.md). This records the concrete boundary that
+remains after simulated cleanup, the read-only GitHub preflight and token-format
+compatibility work. See [M1a](0007-cloud-workspace-lifecycle.md) for the live
+A1–A10 release gates.
 
 ## Current boundary
 
@@ -115,66 +115,45 @@ Checked 7 November 2026; these describe GitHub behavior, not Argent integration:
   [API versioning](https://docs.github.com/en/rest/about-the-rest-api/api-versions)
   for the preflight routes and pinned `2026-03-10` version.
 
-## Pilot account setup progress — 7 November 2026
+## Pilot account setup — 7 November 2026
 
-The founder subsequently authorized the agent to perform repository/App setup.
-Administrative `gh` and the signed-in GitHub browser are used only for setup;
-existing host credentials are not copied into Argent, fixtures or workers.
+The maintainer created a dedicated private test repository containing only
+GitHub's generated initial README, and registered a private, account-only GitHub
+App for it. Its permissions are limited to Contents read and the mandatory
+Metadata read; webhooks, installation-time OAuth and wildcard redirects are off
+and no callback is configured. The App is installed on that single test
+repository only, with no write, account, organization or product-repository
+permission. Device flow was enabled later, only for the explicit read-only pilot
+in spec 0011. Live account identifiers are kept out of this public document.
 
-Created and independently reread private repository
-`GregPat22/argent-m1a-fixture` (numeric ID `1449217243`), owned by GitHub user
-`GregPat22` (ID `132290928`). The initial `refs/heads/main` commit is
-`d630d7a792d7a7f2cf4783d6e62c9f849f7f57c0`. It contains only GitHub's generated
-initial README. No target-repository command was run on the control-plane host.
+GitHub generated one signing key, saved directly into an owner-only folder outside
+Git (directory mode `700`, file mode `600`). Its public fingerprint was computed
+locally and matched the one GitHub displayed. No private key or token bytes were
+printed, added to source or supplied to a worker. Setup used the administrative
+GitHub CLI and the signed-in browser only; existing host credentials were not
+copied into Argent, fixtures or workers.
 
-After the founder completed GitHub's sudo confirmation, registered private App
-`Argent M1a Pilot GregPat22`, slug `argent-m1a-pilot-gregpat22`, App ID `5654610`,
-client ID `Iv23lilJjeCgLi7Zd4xW`. The observed registration sets Contents read and
-mandatory Metadata read; all other permissions remain unselected. Installation
-is restricted to the owning account. Webhooks, device flow, installation-time
-OAuth and wildcard redirects are off; no callback is configured yet.
+Administrative API verification used a locally signed, short-lived App JWT, never
+written to disk, for these fixed-origin GETs:
 
-The founder explicitly approved signing-key generation and fixture-only
-installation. GitHub generated one key, saved directly into an owner-only
-application-support pilot folder outside Git (directory mode `700`, file mode
-`600`). The key's public SHA-256 fingerprint was computed locally and matched
-GitHub's displayed fingerprint:
-`SHA256:yLwsXeOY+mJnieD6WENwAvjEL6wKFKWcdQyWR/6bM+k=`.
-No private key or token bytes were printed, added to source or supplied to a worker.
-
-Installation `179529579` was completed through GitHub's review screen and visibly
-confirmed with **Only select repositories**, **Selected 1 repository**,
-`GregPat22/argent-m1a-fixture` and read access to code/metadata. No write, account,
-organization or product-repository permission was granted. At installation time the App was account-only, with no client secret generated
-and no OAuth/device-flow enablement. Device flow and user consent were subsequently
-approved for the explicit read-only pilot below; repository permissions are unchanged.
-
-Administrative API verification at `2026-11-07T09:56:17.795Z` used a locally signed,
-short-lived App JWT, never written to disk, for these fixed-origin GETs:
-
-| Route                                              | Observed result                                                                        |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `/app`                                             | 200; App ID `5654610`, slug/owner match.                                               |
-| `/app/installations/179529579`                     | 200; expected owner/App, selected repositories, Contents/Metadata read, no suspension. |
-| `/repos/GregPat22/argent-m1a-fixture/installation` | 200; same installation and read-only policy.                                           |
-| `/repos/GregPat22/argent/installation`             | 404; product repository has no installation for this App.                              |
+| Route                                     | Observed result                                                        |
+| ----------------------------------------- | ---------------------------------------------------------------------- |
+| `/app`                                    | 200; expected App ID, slug and owner.                                  |
+| `/app/installations/{installation}`       | 200; expected owner and App, one selected repository, read-only scope. |
+| `/repos/{owner}/{test-repo}/installation` | 200; same installation and read-only policy.                           |
+| `/repos/GregPat22/argent/installation`    | 404; the product repository has no installation for this App.          |
 
 This is real administrative configuration evidence, **not live bootstrap, user
 OAuth, isolated checkout or M1a completion**. No installation access token was
-minted. The host CLI's existing OAuth login could not list App installations
-(403); its scopes were not expanded, and it was not imported into Argent. The
-new explicitly approved App key was used only for fingerprint and App GET checks.
-Redacted local receipts are `.context/github-pilot-setup.json` and
-`.context/pilot-app-verification.json`; their non-secret facts are retained here.
+minted. The CLI's existing OAuth login could not list App installations (403); its
+scopes were not expanded, and it was not imported into Argent.
 
-Subsequent [device-pilot work](0011-github-device-pilot.md) implemented protected
-local App-user sign-in, explicit key/config loading and live read-only preflight.
-The receipt at `2026-11-07T10:19:52.061Z` verifies the expected account/installation/
-fixture and original main SHA, with no installation-token issuance or checkout.
-The process exited after recording only redacted metadata and closing its session. Production secret-service rotation,
-backup and isolation/resource gates above remain open. A local file with restricted
-permissions is a pilot artifact, not production key-management certification.
-Runtime API/desktop/service-loop connections remain disabled. No cloud resource,
-paid operation, target-repository command, merge, deployment or binary release was
-performed. Fresh `npm run check` validation for this setup update is recorded in
-[HANDOFF.md](../../HANDOFF.md).
+The [device pilot](0011-github-device-pilot.md) then implemented protected local
+App-user sign-in, explicit key/config loading and a live read-only preflight. Its
+receipt verified the expected account, installation, test repository and original
+main SHA, with no installation-token issuance or checkout. Production secret
+rotation, backup and the isolation/resource gates above remain open. A local file
+with restricted permissions is a pilot artifact, not production key management.
+API, desktop and service-loop connections remain disabled. No cloud resource, paid
+operation, target-repository command, merge, deployment or binary release was
+performed.

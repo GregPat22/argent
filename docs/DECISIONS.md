@@ -1,362 +1,134 @@
 # Decision register
 
-## Replacement sequencing and offline continuity — 7 November 2026
+**Accepted** means a product or engineering requirement; **provisional** means a
+recommendation that still needs a practical check. Neither label proves that a
+capability is implemented: see the [README](../README.md#what-works-today) for
+what works today and the [roadmap](../ROADMAP.md) for sequencing.
 
-On `GregPat22/conductor-replacement-roadmap-review`, base main `5c25835`, the
-founder requested careful review and autonomous next-phase development.
-[The review](research/replacement-roadmap-review-2026-11-07.md) retains the existing
-foundation and puts basic branch/worktree and setup/run/test/review/archive
-workflows on the personal replacement path. Dependency scheduling stays later;
-full team/cloud replacement additionally requires attributed shared handoff.
-No generic feature-parity or market-demand claim follows from Grok's report.
-
-Implement [spec 0012](specs/0012-portable-history.md) as an independent continuity
-slice while the live M1a account/custody/isolation/resource gates remain open.
-Use an explicit read-only source snapshot and a separate immutable history store,
-not restored execution rows. Imported active/uncertain states remain
-`needs_attention`; imported verification is historical/untrusted. Text selection
-is opt-in and not guaranteed secret sanitization. No API/desktop privilege or
-remote exposure is added. The format is original Argent history; Conductor import
-requires a consented sample. Fresh process/data-directory recovery is tested;
-fresh-machine and live-cloud recovery remain separate acceptance gates.
-
-Recorded 6 November 2026. **Accepted** means a product or engineering requirement;
-**provisional** means a recommendation still needing a practical check. Neither
-label proves a capability is implemented. Read [Project context](PROJECT_CONTEXT.md)
-for the current publication boundary.
-
-| Decision                                                             | Status                                             | Rationale and consequence                                                                                                            | Revisit or completion evidence                                                                           |
-| -------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Argent is desktop-first, downloaded from a website                   | Accepted founder requirement                       | Preserve installation and launch as a native app experience. Browser access may complement it.                                       | Local package and hands-on desktop checks; signing/notarization and public distribution remain separate. |
-| Cloud execution is foundational                                      | Accepted founder requirement                       | A developer must be able to close a client and reconnect elsewhere. Desktop delivery does not move remote execution into the client. | Real remotely hosted worker, isolated persistent workspace and disconnect/reconnect evidence.            |
-| Open-source, independently usable core                               | Accepted founder requirement                       | Self-hosting and model/provider independence remain part of the product.                                                             | Self-hosted control-plane instructions and separately verified isolation runtime.                        |
-| MIT for the original foundation                                      | Selected project license                           | Permit broad adoption and commercial use; accept competing commercial forks.                                                         | Review licensing and attribution before importing upstream code or adding modules.                       |
-| One TypeScript package with separate boundaries                      | Implemented M0; accepted initial structure         | Keep API, persistence, worker and adapters distinct without empty packages.                                                          | Split only when real deployment or ownership boundaries justify it.                                      |
-| SQLite for one trusted local host                                    | Implemented M0                                     | Prove durability without provisioning a database. Never use a network filesystem for it.                                             | Move to PostgreSQL before multiple control-plane hosts or managed tenancy.                               |
-| Atomic claims and transactional state/event writes                   | Implemented M0; required invariant                 | Prevent duplicate dispatch and unrecorded transitions across processes.                                                              | Retain concurrent-claim, lock-contention and crash regression tests through future adapters.             |
-| Unknown outcomes require reconciliation                              | Implemented M0 blocking behavior; accepted policy  | Avoid silently repeating external effects. Fencing a database writer does not fence provider actions.                                | Audited operator resolution and failure injection around every real external effect.                     |
-| Independent evidence before success                                  | Implemented only for simulation; accepted policy   | Agent statements are not proof. Real checks must identify trusted policy and exact commit.                                           | Trusted test artifacts, actual diff review and exact-SHA draft-PR evidence.                              |
-| Evaluate T3 Code before substantially expanding custom orchestration | Deferred for bounded M1a; revisit on measured need | Existing durable machinery may save effort, but adoption creates coupling. No fork has been approved.                                | Pinned source reviewed; runtime spike deferred. Approval still required for a fork/replacement.          |
-| E2B as first cloud candidate                                         | Provisional engineering recommendation             | Managed offering and open runtime may fit persistence and self-hosting goals.                                                        | Real persistence, crash, isolation, retention, cost and cleanup contract tests.                          |
-| Codex via an official interface as first real agent                  | Provisional engineering recommendation             | Narrow the MVP and avoid unsupported credential reuse.                                                                               | Pin interface/version, prove authentication, sessions, interruption and usage capture in isolation.      |
-| Clean pre-token failures are retryable, matching Conductor           | Accepted founder direction; simulated              | A refusal before any GitHub token request changes nothing externally, so it is shown and retried instead of locking the workspace.   | Real GitHub App denial, installation-missing and org-approval cases surface clearly and retry.           |
-| Repository identity is GitHub's numeric ID                           | Implemented in simulation; engineering decision    | Owner/name changes on rename or transfer, so token scope pins only the ID the authority returned.                                    | Real GitHub App tokens for a renamed and a transferred private fixture.                                  |
-| Finite repair attempts and human merge authority                     | Accepted MVP policy                                | Bound autonomous loops and preserve human control of integration.                                                                    | M1 initially permits at most one repair attempt; merges require a separate human decision.               |
+| Decision                                                           | Status                                           | Rationale and consequence                                                                                                       | Revisit or completion evidence                                                                         |
+| ------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Argent is desktop-first, downloaded from a website                 | Accepted product requirement                     | The installed app is the primary interface. Browser access may complement it later.                                             | Local package and hands-on desktop checks; signing, notarization and public distribution are separate. |
+| Cloud execution is foundational                                    | Accepted product requirement                     | A developer can close the client and reconnect elsewhere. Desktop delivery does not move remote execution into the client.      | A real remotely hosted worker, an isolated persistent workspace and disconnect/reconnect evidence.     |
+| Open-source, independently usable core                             | Accepted product requirement                     | Self-hosting and model/provider independence are part of the product, not a lesser mode.                                        | Self-hosted control-plane instructions and a separately verified isolation runtime.                    |
+| MIT license                                                        | Accepted                                         | Broad adoption and commercial use; competing commercial forks are accepted as a consequence.                                    | Review licensing and attribution before importing upstream code or adding modules.                     |
+| One TypeScript package with separate boundaries                    | Implemented                                      | API, persistence, worker and adapters stay distinct without empty packages.                                                     | Split only when real deployment or ownership boundaries justify it.                                    |
+| SQLite for one trusted local host                                  | Implemented                                      | Proves durability without provisioning a database. Never on a network filesystem.                                               | Move to PostgreSQL before multiple control-plane hosts or managed tenancy.                             |
+| Atomic claims and transactional state/event writes                 | Implemented; required invariant                  | Prevents duplicate dispatch and unrecorded transitions across processes.                                                        | Keep concurrent-claim, lock-contention and crash regression tests through future adapters.             |
+| Unknown outcomes require reconciliation                            | Implemented blocking behavior; accepted policy   | Avoids silently repeating external effects. Fencing a database writer does not fence provider actions.                          | Audited operator resolution and failure injection around every real external effect.                   |
+| Independent evidence before success                                | Implemented for simulation only; accepted policy | Agent statements are not proof. Real checks must identify a trusted policy and the exact commit.                                | Trusted test artifacts, actual diff review and exact-SHA draft-PR evidence.                            |
+| Familiar desktop layout                                            | Accepted product requirement                     | Developers used to multi-agent desktop tools should be able to switch with little relearning. Original code and assets only.    | Observed first-use walkthroughs on real tasks; see [spec 0008](specs/0008-desktop-workspace-shell.md). |
+| Retain Argent's own core rather than adopt T3 Code for bounded M1a | Decided; revisit on measured need                | Existing durable machinery may save effort, but adoption creates coupling and no runtime advantage was shown.                   | A pinned runtime spike only if measured complexity justifies it.                                       |
+| E2B as first cloud candidate                                       | Provisional                                      | Its managed offering and open runtime may fit persistence and self-hosting goals.                                               | Real persistence, crash, isolation, retention, cost and cleanup contract tests.                        |
+| Codex via an official interface as first real agent                | Provisional                                      | Narrows the MVP and avoids unsupported credential reuse.                                                                        | Pinned interface/version; proven authentication, sessions, interruption and usage capture.             |
+| Subscription sign-in preferred, API keys as the pilot baseline     | Accepted direction; eligibility unverified       | Developers want to use the subscriptions they already pay for, where providers allow it. Never a silent fallback to paid usage. | A dated provider/deployment authentication matrix; see [spec 0006](specs/0006-portable-continuity.md). |
+| Clean pre-token failures are retryable                             | Accepted; simulated                              | A refusal before any GitHub token request changes nothing externally, so it is shown and retried instead of locking the work.   | Real GitHub App denial, missing-installation and org-approval cases surface clearly and retry.         |
+| Repository identity is GitHub's numeric ID                         | Implemented in simulation                        | Owner/name changes on rename or transfer, so token scope pins only the ID the authority returned.                               | Real GitHub App tokens for a renamed and a transferred test repository.                                |
+| Finite repair attempts and human merge authority                   | Accepted MVP policy                              | Bounds autonomous loops and keeps humans in control of integration.                                                             | M1 permits at most one repair attempt; merges always need a separate human decision.                   |
 
 ## Choices deliberately left open
 
-- Whether a later milestone warrants T3 or another foundation after a measured
-  runtime spike. Bounded M1a retains the current Argent core.
-- P1 uses Electron 45.2.3 for the local macOS prototype. Cross-platform releases,
-  signing/notarization and automatic updates remain open.
-- The exact cloud region, resource shape, account, quotas and approved budget.
+- Whether a later milestone warrants T3 Code or another foundation, after a
+  measured runtime spike.
+- Cross-platform desktop releases, signing/notarization and automatic updates
+  (the prototype uses Electron 45.2.3 on macOS).
+- The cloud region, resource shape, account, quotas and budget.
 - Remote authentication, tenant authorization, secrets brokering and recovery UX.
 - Evidence retention, artifact access, backup/restore and deletion policies.
-- Commercial pricing, proprietary feature boundaries and contributor governance
+- Commercial packaging, proprietary feature boundaries and contributor governance
   as the community grows.
 
 Do not turn an open choice into an implied commitment in product copy or code.
-Update this register with the reason and supporting evidence when a choice is
-resolved. Provider and market observations live in the
-[dated research](research/technical-due-diligence.md), not as permanent guarantees.
+Record the reason and evidence here when a choice is resolved.
 
-## Conductor shutdown review: adopted roadmap direction
+## Engineering decisions
 
-On `GregPat22/grok-conductor-shutdown-analysis`, based on main `fd60a5a`,
-the [Grok report review](research/conductor-shutdown-analysis.md) found alignment
-with our headless/cloud design, but unresolved customer, authentication and
-portability questions. The founder then authorized saving the findings and
-updating the roadmap. The following planning directions are adopted; capabilities
-remain unimplemented and provider eligibility remains unverified:
-
-- Serve all three overlapping audiences through
-  a shared core with staged personal-cloud, team-handoff and organization features;
-  do not infer a feature ranking from unsampled X posts.
-- Evaluate permitted subscription routes by provider and deployment. Current
-  official-binary and open-source sign-in options need a more specific assessment
-  than the earlier API-key-only recommendation. No credential extraction or
-  managed-cloud eligibility is authorized or established by this research.
-  Prefer supported subscription sign-in for eventual onboarding and API keys as
-  an alternative/technical-pilot route. The feasibility matrix must establish the
-  applicable provider/deployment permissions before product promises change.
-  No silent billable fallback after subscription quota exhaustion.
-- Add independently demonstrated export/restore and visible execution/recovery
-  controls to the managed release contract.
-- Keep one real agent/workspace for the first proof. Stage additional agents,
-  scoped team handoff and lightweight mobile access before dependency orchestration.
-  Native mobile and advanced organization capabilities remain later. Retain
-  Electron pending actual user/performance evidence; no foundation replacement.
-
-The [continuity spec](specs/0006-continuity-and-market-validation.md) records
-acceptance criteria and decision gates; M1 now references these release additions.
-The first technical proof remains one repository/workspace/agent, with API-key auth.
-Exact launch packaging, prices, provider permissions and the implementation details
-of team/mobile features remain open. Detailed specs precede those implementations.
-The founder confirms they verified Grok's underlying X material; independent
-retrieval and representative-sampling limits remain documented in the review.
-
-## Name and publication
-
-The founder selected **Argent**, combining _argento_ and _agent_. The
-`GregPat22/argent` repository namespace was available and a public repository was
-created. Other software already uses Argent; no exclusive brand, domain or
-trademark availability is established. The founder authorized adding project
-context and pushing it to GitHub. That authorization covers source publication,
-not a deployed service, paid infrastructure or downloadable binary release.
-
-## Completed source evaluation
-
-The [pinned T3 source spike](research/t3-adoption-spike.md) evaluated revision
-`6577c6b6185167c0e502fa01f9e8e8f2dee6ff25`. No upstream code was installed, run,
-forked or imported. Runtime conformance and founder approval still precede any
-foundation replacement. The [P1 report](milestones/0001-completion.md) records the
-local desktop implementation and its limits.
-
-## Landing visual refinement — 6 November 2026
-
-The founder approved the existing Ag logo and general silver website concept,
-then requested improved artwork, new typography, a full Laws of UX review and
-premium motion throughout. On `GregPat22/argent-landing-page-draft`, the revision
-preserves the original logo/wordmark, uses Space Grotesk with Manrope, and shares
-a silver conductivity motif between a connected-loop hero, drawn section accents
-and the roadmap. “Argent is a good conductor” is the second section heading, with
-concrete explanatory copy and planned-capability qualifiers. The typography and
-artwork are implemented proposals awaiting visual feedback, not a public launch.
-
-See [the UX review](research/landing-ux-review.md) and
-[W0 acceptance criteria](specs/0005-website-landing-draft.md). Motion+ tooling was
-unavailable; public Motion supports the implementation without private packages.
-No engine, desktop packaging, merge or deployment decision changes here.
-
-## W0.2 visual simplification — 6 November 2026
-
-Founder feedback supersedes the W0.1 section-signature proposal: remove its
-labels, numbers, icons and rules, the navbar progress trace and the workflow
-rail. Preserve approved branding. On `GregPat22/argent-landing-page-draft`,
-concentrate motion in the fluid silver hero, the “conductor” word and a stylized
-47-electron silver atom. The seven-step scroll presentation becomes three
-keyboard-selectable stages while retaining its product/verification boundaries.
-See [the research and tradeoffs](research/fluid-motion-refinement.md) and
-[W0.2 acceptance criteria](specs/0005-website-landing-draft.md). Neither visual
-illustration is a physical simulation or evidence of real agent execution.
-
-## Foundation decision for bounded M1a, 6 November 2026
-
-On `GregPat22/next-step-v2`, the founder delegated technical choices to the
-engineering agent. Retain the current Argent core for the bounded M1a lifecycle
-and credential/bootstrap work. This resolves the earlier technical selection
-gate; it is not permission to fork, replace the foundation or provision resources.
+### Retain the current core for bounded M1a — 6 November 2026
 
 The current core already proves transactional state/events, atomic claims,
 conservative uncertain-outcome handling and desktop/service separation. The
-pinned T3 source review identified different retry, retention and durability
-policies and substantial adoption coupling; it established no runtime advantage.
-Replacing the core now would add migration risk before the provider contracts
-are exercised. A runtime spike is deferred until measured complexity or missing
-capabilities justify it. Keep new lifecycle machinery narrow and test it against
-fake-provider failure windows before real integrations.
+[pinned T3 source review](research/t3-adoption-spike.md) found different retry,
+retention and durability policies and substantial adoption coupling, and no
+runtime advantage. Replacing the core now would add migration risk before the
+provider contracts are exercised. Keep new lifecycle machinery narrow and test it
+against fake-provider failure windows before real integrations.
 
-Technical implementation choices are owned by the engineering agent. Escalate
-product changes, foundation replacement and concrete external spending/actions
-where authorization is actually required, rather than asking the founder to
-choose routine architecture details.
+### Familiar workspace shell and personal release scope — 6 November 2026
 
-## Official Argent icon and W0.4 direction — 6 November 2026
+The desktop follows familiar multi-agent tool placement: workspaces on the left,
+the session and composer in the centre, inspection and terminal on the right.
+Breadth targets are Claude Code and Codex, then Cursor and OpenCode, all shown as
+explicitly unavailable previews today. Two working official integrations and
+verified subscription routes for each advertised environment are the proposed
+personal-release gate. Migration means selected files and readable context first;
+live-session resume needs separate provider/version proof. Mobile means a narrow
+authenticated companion and a native iOS track on the independent service, never
+public exposure of the local prototype. See the [roadmap](../ROADMAP.md) and
+[spec 0008](specs/0008-desktop-workspace-shell.md).
 
-The founder supplied and selected the silver A image as Argent’s **official
-icon**, superseding the Ag periodic-table tile for product branding. The original
-RGBA image is preserved in `website/public/brand/argent-icon-source.png`; its
-provenance, hash and faithful derivatives are documented in
-[the brand asset record](../website/public/brand/README.md). Website navigation,
-footer, illustrated app marks and browser/touch icons use it. Native desktop
-packaging remains a separate follow-up, not a rebuilt release in this pass.
+### Lucide icon system — 6 November 2026
 
-The founder also requested a complete replacement of the silver loop with a
-more harmonious bubble composition, shorter conversion-oriented copy, fluid
-silver buttons and a properly restyled navigation bar, following Laws of UX.
-The implemented proposal uses “Delegate work. Keep control.”, five slowly
-drifting silver volumes, fixed action hit areas, a floating persistent navbar
-and four navigation choices. This is a visual/UX proposal, not evidence of a
-conversion-rate improvement. See [W0.4](specs/0005-website-landing-draft.md).
+Lucide Static 1.70.0 was downloaded from the official npm registry and its
+SHA-512 integrity verified. A curated 45-SVG subset is vendored unmodified with
+its full ISC and Feather-derived MIT notices in `ui/icons/`, and packaging
+includes the notices. Icons use CSS masks with shared sizing and current colour,
+without a font, CDN or runtime package. See [spec 0009](specs/0009-desktop-ux-polish.md).
 
-## W0.5 hero removal and larger atom — 6 November 2026
+The same pass exposed a shutdown race: stopping an active simulated worker could
+leave the stop HTTP socket answering keep-alive polls while `server.close` waited.
+The stop response now closes that connection explicitly; a regression covers it,
+and interrupted work remains `needs_attention` with no replay.
 
-Founder feedback supersedes W0.4's hero artwork: delete the bubble animation,
-shader, fallback and pause control from code; keep the accepted icon, headline,
-buttons and navbar. Remove the atom's manual pause control as well, and enlarge
-it to a responsive 480px desktop maximum. Automatic offscreen/hidden suspension
-and reduced motion remain.
+### Encrypted simulation custody — 6 November 2026
 
-Checked neutral silver against [NIST](https://physics.nist.gov/PhysRefData/Handbook/Tables/silvertable1.htm):
-Ag has Z=47 and ground-state configuration [Kr] 4d¹⁰ 5s¹. Grouping that
-configuration by principal shell gives 2/8/18/18/1. The depth-projected moving
-rings depict those populations artistically; they are not quantum orbitals or
-physical electron trajectories. The [DOE explanation](https://www.energy.gov/science/doe-explainselectrons)
-describes electrons through probability clouds rather than planetary paths.
-The illustration is labeled accordingly and its fallback includes 47 markers.
+Keep opaque credential references and encrypted synthetic tokens inside the
+existing single-host SQLite boundary. An explicitly injected, dedicated 256-bit
+key stays outside SQLite; AES-256-GCM binds each ciphertext to its operation and
+authorization identities. Capture precedes token acceptance or use, and an
+acknowledged revocation or independently confirmed resolution removes the active
+encrypted payload transactionally. This is for restart testing, not a choice of
+production secret management. See
+[spec 0007](specs/0007-cloud-workspace-lifecycle.md#fourth-implementation-slice-encrypted-simulated-credential-custody).
 
-## W0.6 direct copy and compact navigation — 6 November 2026
+### Audited simulation cleanup — 6 November 2026
 
-The founder requested plainer headings, more explicit product paragraphs,
-removal of atom captions and name-origin copy, use of a supplied wide ARGENT
-image in the footer, and a borderless navbar that compacts to its logo on scroll.
+Allow one explicit cleanup reservation per uncertain repository bootstrap.
+Persist intent before revoke, channel-clear or partial-checkout discard, stop on
+uncertainty, and never reclaim or replay an attempt after a deadline or restart:
+manual recovery is preferred over guessing whether a cleanup happened. A separate
+fresh inspection must bind the cleanup ID and current event cursor and confirm
+that every cleanup effect has settled before the workspace unlocks. See
+[spec 0007](specs/0007-cloud-workspace-lifecycle.md#fifth-slice-acceptance-audited-simulated-recovery-cleanup).
 
-Inter replaces Space Grotesk for every heading; unused Bodoni/typed-wordmark
-fonts are removed. Hero, task/review and verification copy now state the intended
-workflow directly, with current simulation/integration limits nearby. Visible
-atom captions are removed; its accurate accessible description is retained.
+### Read-only GitHub preflight before live bootstrap — 7 November 2026
 
-The supplied wide artwork is preserved byte for byte with faithful derivatives
-and [provenance](../website/public/brand/README.md). It is a large footer link to
-the page top, alongside real resource links. The footer does not intercept clicks
-on blank space or contain nested anchors.
+Implement the GitHub protocol checks as a separate, unwired read-only component
+rather than a live-capable adapter disguised as the simulation contract. A trusted
+auth service supplies the operator/GitHub binding and credentials; the preflight
+returns labelled metadata, never a durable grant. Origin and API version are
+pinned, requests are bounded, and raw responses and errors are stripped. Opaque
+stateless installation tokens up to 4,096 bytes are accepted without interpreting
+their claims. Continue only through the
+[live pilot gates](specs/0010-live-repository-pilot-gates.md).
 
-The navbar has no border or typed name. Scrolling beyond 120px compacts it to one
-48px logo control at the viewport top-left. That logo opens a navigation
-disclosure; ordinary links remain available at the page top. It expands again
-below 48px to avoid threshold chatter. Motion layout springs animate the change
-from a fixed layout root; reduced motion uses zero-duration transitions.
-Keyboard navigation skips collapsed controls, Escape restores trigger focus,
-and deep links initialize the correct state. This follows the founder's visual
-request while preserving target size, choice reduction and accessible navigation.
+### Memory-only device sign-in pilot — 7 November 2026
 
-## Familiar Conductor replacement — 6 November 2026
-
-Branch `GregPat22/conductor-layout-create`, base main `333d662` (PR #8).
-The founder explicitly wants an experience as familiar as possible to Conductor,
-with mobile, cloud-file migration and the ability to use existing subscriptions
-across providers. This revises the prior advice against prioritizing parity and
-promotes these tracks ahead of team handoff/dependency orchestration. Familiarity
-uses original code/Argent identity, not an upstream fork or imported implementation.
-
-The [roadmap](../ROADMAP.md) and [P2 specification](specs/0008-conductor-familiar-desktop.md)
-separate the existing one-agent engineering proof from a personal replacement
-release. Initial breadth targets are Claude Code and Codex, then Cursor/OpenCode;
-all four have explicit preview tabs now. Two working official integrations and
-verified subscription routes for advertised environments are the proposed personal
-release gate. “Every subscription” is product intent, not proven universal support.
-No subscription credential transfer or silent API billing is allowed.
-
-Cloud migration means selected files and readable context first; live-session
-resume needs separate provider/version proof. Consent/sample/schema work precedes
-a Conductor importer. Mobile means a narrow authenticated companion and a native
-iOS delivery track using the independent service; no public M0 exposure or phone
-execution. Delivery dates, commercial packaging, Android, new customer evidence
-and exact provider eligibility remain unresolved.
-
-Direct read-only Conductor workspace/Home/agent-settings inspection informed the
-raw layout. Real simulation navigation, task review and artifact verification are
-preserved; connection/migration/mobile/file/diff/terminal integrations remain
-clearly labeled planned. No external account, export, paid resource, merge or
-publication was performed. See the handoff for fresh verification evidence.
-
-## Desktop UX and Lucide icon system — 6 November 2026
-
-On `GregPat22/conductor-layout-create` (base main `333d662`), the founder requested
-premium/intuitive refinement of the entire application and a free icon pack,
-explicitly excluding the landing. [Spec 0009](specs/0009-desktop-ux-polish.md)
-records the Laws of UX heuristic review and acceptance criteria. Larger desktop
-controls/readable text, charcoal/silver surfaces, grouped forms/settings and
-familiar pane placement are selected; no measured usability gain is claimed.
-
-Lucide Static 1.70.0 was downloaded from the official npm registry and its SHA-512
-integrity verified. A curated 45-SVG subset is vendored unmodified with its full
-ISC/Feather-derived MIT notices in `ui/icons/`; desktop packaging includes notices.
-Icons use CSS masks and shared sizing/current color, without a font/CDN/runtime
-package. Argent's approved brand image remains separate. Website files are untouched.
-
-Inspector/provider/terminal tabs use roving keyboard focus, search supports
-arrows/Enter, and Cmd/Ctrl+Enter opens task/runtime review. Drafts remain scoped
-to their workspace in renderer memory; pending uncertain submissions retain their
-identity. Native dialog Escape/focus restoration remains immediate. Short
-opacity/transform entry and hover/press feedback respects reduced motion. No
-constant decorative animation or fake execution progress is introduced.
-
-Expanded native recovery testing exposed an existing shutdown race: stopping
-an active simulated worker could leave the stop HTTP socket answering keep-alive
-polls while `server.close` waited, so UI availability returned online. Independent
-reproduction traced abort → worker completion → blocked server close. The stop
-response now explicitly closes that connection. A regression fails without the
-header and passes with it; interrupted work remains `needs_attention` with no
-replay. No new API operation or execution authority is introduced.
-
-## Encrypted simulation custody — 6 November 2026
-
-On `GregPat22/next-step-v5`, based on main `7b2eeca`, retain opaque credential
-references and encrypted synthetic tokens within the existing single-host SQLite
-boundary. An explicitly injected dedicated 256-bit key stays outside SQLite;
-AES-256-GCM binds ciphertext to its operation and authorization identities.
-Capture precedes token acceptance/use; acknowledged revocation or independently
-confirmed audited resolution removes the active encrypted payload transactionally.
-This is an internal engineering choice for restart testing, not selection of a
-production secret-management system. Key custody/rotation/backup, unknown mint
-outcomes, audited recovery cleanup and live adapters remain open. See
-[the bounded acceptance contract](specs/0007-cloud-workspace-lifecycle.md#fourth-implementation-slice-encrypted-simulated-credential-custody).
-
-## Audited simulation cleanup — 6 November 2026
-
-On unchanged `GregPat22/next-step-v6`, base main `1cb55c3`, add one explicit
-simulation cleanup reservation per uncertain repository bootstrap. Persist intent
-before revoke/channel-clear/partial-checkout-discard dispatch, stop on uncertainty
-and never reclaim/replay an attempt after a deadline or restart. This favors
-manual recovery over guessing whether a prior cleanup happened. Use existing
-encrypted synthetic custody; no production key-management provider is selected.
-
-Independent preflight inspection must confirm old effects have settled. Cleanup
-acknowledgments never imply resolution; a separate fresh inspection must bind the
-cleanup ID/current event cursor and confirm all cleanup effects have settled.
-This closes a race where an older resolution observation could otherwise unlock a
-workspace while a delayed cleanup can still act. A killed coordinator retains its
-receipt/intent and original bootstrap history. Schema 5 preserves older records;
-no API, desktop or normal worker-loop dispatch is enabled. See
-[the acceptance contract](specs/0007-cloud-workspace-lifecycle.md#fifth-slice-acceptance-audited-simulated-recovery-cleanup)
-and [handoff](../HANDOFF.md) for evidence, gaps and next steps.
-
-## Read-only preflight before live bootstrap — 7 November 2026
-
-On `GregPat22/next-step-v6`, base `1cb55c3`, implement GitHub protocol checks as a
-separate unwired read-only component. Do not make a live-capable adapter pretend
-to satisfy the existing simulation contracts. A trusted auth service must supply
-the operator/GitHub binding and credentials; the preflight returns selected labeled
-metadata, never a durable grant. Pin origin/version, bound requests and strip raw
-responses/errors. Synthetic HTTP tests do not certify live authorization.
-
-Current official documentation also requires opaque stateless installation-token
-support beyond 512 bytes. Accept the documented header-safe `ghs_` alphabet within
-an explicit 4,096-byte bound, matching encrypted capture; preserve synthetic/legacy
-support and independently validate scope/expiry. Three before-fix regressions
-prove the compatibility gap. Do not force GitHub's temporary legacy-format header
-or interpret embedded JWT claims.
-
-Continue only through the [live pilot gates](specs/0010-live-repository-pilot-gates.md):
-protected OAuth binding/credential lifecycle, an explicitly selected fixture/App,
-then isolated compute and approved resource/budget limits. No production secret
-provider or billable account is selected by this pass. Retain blocked unknown mint/
-cleanup outcomes when provider evidence cannot establish settlement.
-
-## Memory-only device sign-in pilot — 7 November 2026
-
-On `GregPat22/next-step-v6` from main `1cb55c3`, prove the user-authentication and
-read-only repository path through an explicit local command before exposing it to
-the desktop/service API. Use GitHub's official App device flow, the installed
-single-fixture read-only App and its already approved pilot signing key. New user
-consent and device-flow enablement require explicit browser approval; the founder
-provided that approval and the live fixture preflight has now passed.
-
-Keep access/device/refresh credentials out of persisted artifacts, logs, renderer
-state and SQLite. The session's private token is forgotten after preflight; this
-is not remote revocation or a durable connected account. A private config records
-only approved identities and the explicit key path/public fingerprint. No host
-credential lookup, signing-key regeneration or permission expansion. Protected
-operator binding is limited to the local OS user and verified expected GitHub ID;
-managed/remote authorization is a separate contract. See
+Prove user authentication and the read-only repository path through an explicit
+local command before exposing it to the desktop or service API, using GitHub's
+official App device flow and a single read-only test installation. Tokens live
+only in memory and refresh credentials are discarded. See
 [spec 0011](specs/0011-github-device-pilot.md).
 
-Repeated full-suite runs on the busy host exposed unrelated fixtures starting a
-child process after claiming a 500 ms lease; startup alone exceeded the lease,
-and the noisy-worker fixture also missed its short interval. The focused lease
-case passed without code changes. Serialize independent test files through
-`--test-concurrency=1` to remove cross-file scheduling contention. Existing
-production leases, assertions and intentional multi-process races are unchanged.
-The resulting default `npm run check` passes all 316 tests. This changes test
-scheduling, not concurrency semantics of the engine or its deliberate race tests.
+### Offline history before importers — 7 November 2026
+
+Implement [spec 0012](specs/0012-portable-history.md) as an independent
+continuity slice while the live cloud gates remain open. Use an explicit read-only
+source snapshot and a separate immutable history store, not restored execution
+rows. Imported active or uncertain states stay `needs_attention`, and imported
+verification stays historical and untrusted. Importing from other tools requires
+consented sample data first.
+
+### Name
+
+The project is named **Argent**. Other software also uses the name; no exclusive
+brand, domain or trademark is claimed. See
+[spec 0003](specs/0003-project-identity.md).
