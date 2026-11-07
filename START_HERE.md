@@ -35,7 +35,7 @@ execution and a tested-PR flow are future acceptance contracts, not live feature
 in this revision. The source repository is public and MIT-licensed. No published
 production download, approved pricing or customer proof is established here.
 
-Next engineering contract: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). Retain the current core for bounded implementation. Internal lifecycle, repository-bootstrap, custody and audited resolution/cleanup harnesses remain simulated; production key custody, live GitHub access, isolated checkout, trustworthy live cleanup inspection and approved provider validation remain next.
+Next engineering contract: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). Retain the current core for bounded implementation. Internal lifecycle, repository-bootstrap, custody and audited resolution/cleanup harnesses remain simulated; production key custody, scoped live bootstrap, isolated checkout, trustworthy live cleanup inspection and approved provider validation remain next.
 The [live pilot gates](docs/specs/0010-live-repository-pilot-gates.md) record the
 concrete next inputs and credential/isolation requirements.
 

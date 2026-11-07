@@ -242,7 +242,7 @@ spike is deferred until measured need. The
 [M1a contract](specs/0007-cloud-workspace-lifecycle.md) specifies read-only GitHub
 access, lifecycle, reconciliation and cleanup. Internal lifecycle, repository
 bootstrap, custody and audited recovery cleanup simulations are implemented.
-Production key custody, live GitHub access, isolated checkout and trustworthy live
+Production key custody, scoped live bootstrap, isolated checkout and trustworthy live
 cleanup inspection are next, alongside customer/provider-authentication validation
 in the roadmap.
 Approve concrete provider limits before live tests.

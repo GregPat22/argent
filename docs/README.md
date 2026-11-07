@@ -21,15 +21,15 @@ evidence, Conductor setup and next actions. This branch contains P1 source.
 
 ## Acceptance contracts and evidence
 
-| Document                                                                                 | Status in this publication                                                                                       |
-| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| [M0 durable local run](specs/0001-durable-local-run.md)                                  | Implemented simulation contract.                                                                                 |
-| [M0 completion report](milestones/0000-completion.md)                                    | Actual test and review evidence, with limits.                                                                    |
-| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)                    | Planned real-provider release contract; unimplemented here.                                                      |
-| [Project identity and repository setup](specs/0003-project-identity.md)                  | Name, MIT rationale, metadata and namespace availability.                                                        |
-| [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)                     | Implemented local macOS prototype; see P1 completion evidence.                                                   |
-| [W0 website landing page draft](specs/0005-website-landing-draft.md)                     | Next.js draft integrated through PR #3; not deployed.                                                            |
-| [M1a repository access and workspace lifecycle](specs/0007-cloud-workspace-lifecycle.md) | Internal lifecycle and repository-bootstrap simulations implemented; live GitHub/provider evidence remains open. |
+| Document                                                                                 | Status in this publication                                                                                         |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| [M0 durable local run](specs/0001-durable-local-run.md)                                  | Implemented simulation contract.                                                                                   |
+| [M0 completion report](milestones/0000-completion.md)                                    | Actual test and review evidence, with limits.                                                                      |
+| [M1 persistent cloud workspace to tested PR](specs/0002-cloud-mvp.md)                    | Planned real-provider release contract; unimplemented here.                                                        |
+| [Project identity and repository setup](specs/0003-project-identity.md)                  | Name, MIT rationale, metadata and namespace availability.                                                          |
+| [P1 downloadable desktop prototype](specs/0004-desktop-prototype.md)                     | Implemented local macOS prototype; see P1 completion evidence.                                                     |
+| [W0 website landing page draft](specs/0005-website-landing-draft.md)                     | Next.js draft integrated through PR #3; not deployed.                                                              |
+| [M1a repository access and workspace lifecycle](specs/0007-cloud-workspace-lifecycle.md) | Lifecycle/bootstrap simulations and read-only GitHub pilot implemented; live execution/provider gates remain open. |
 
 - [P2 familiar desktop and replacement roadmap](specs/0008-conductor-familiar-desktop.md):
   observed Conductor UI patterns, raw-shell acceptance and revised subscription,
@@ -41,8 +41,9 @@ evidence, Conductor setup and next actions. This branch contains P1 source.
 
 - [Live repository pilot gates](specs/0010-live-repository-pilot-gates.md):
   the concrete approved fixture/App, protected authentication/key lifecycle and
-  isolated-compute limits needed before live GitHub/bootstrap tests. The current
-  HTTP preflight is tested with synthetic responses and is not a connection.
+  isolated-compute limits needed before live bootstrap/execution tests. The current
+  HTTP preflight has synthetic tests and a recorded live read-only fixture check;
+  it creates no durable desktop/service connection.
 
 - [GitHub device sign-in pilot](specs/0011-github-device-pilot.md):
   explicit local App-user authentication, private signing-key/config checks,
