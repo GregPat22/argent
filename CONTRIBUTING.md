@@ -90,6 +90,14 @@ Use conventional commit subjects such as `docs: preserve project context` or
 `fix: reject expired worker ownership`. Open a focused pull request against
 `main` describing the problem, resulting behavior, acceptance criteria covered,
 tests actually run and remaining gaps. Publishing a PR is not merge approval.
+Pull requests are squash-merged with the title format and the rules in
+[AGENTS.md section 6](AGENTS.md#6-git-and-github-workflow); nothing is pushed
+directly to `main`.
+
+This repository and its history are public. Before pushing, check your diff
+against [AGENTS.md section 1](AGENTS.md#1-this-repository-is-public-what-may-be-committed).
+`npm test` includes an automated public-content check, but it cannot catch
+everything.
 
 ## Documentation and completion reports
 
