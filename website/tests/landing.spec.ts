@@ -266,6 +266,29 @@ test("hero shows interactive liquid silver beside the headline", async ({
 test("liquid silver pauses offscreen and holds a still frame under reduced motion", async ({
   page,
 }) => {
+  // Software WebGL renders this raymarched shader on the CPU.
+  test.slow();
+  // Count draws instead of comparing screenshots: software compositing adds
+  // ±1 colour-level noise between captures of an unchanged canvas.
+  await page.addInitScript(() => {
+    const counted = window as typeof window & { __liquidDraws?: number };
+    counted.__liquidDraws = 0;
+    for (const proto of [
+      WebGLRenderingContext.prototype,
+      WebGL2RenderingContext.prototype,
+    ]) {
+      const draw = proto.drawArrays;
+      proto.drawArrays = function (...args: Parameters<typeof draw>) {
+        counted.__liquidDraws! += 1;
+        return draw.apply(this, args);
+      };
+    }
+  });
+  const draws = () =>
+    page.evaluate(
+      () =>
+        (window as typeof window & { __liquidDraws?: number }).__liquidDraws,
+    );
   await visit(page, "/");
   const canvas = page.locator("#intro [data-liquid-silver] canvas");
   await expect(canvas).toHaveAttribute("data-state", "animating", {
@@ -280,10 +303,13 @@ test("liquid silver pauses offscreen and holds a still frame under reduced motio
     timeout: 15_000,
   });
   const box = (await canvas.boundingBox())!;
+  const settled = await draws();
+  expect(settled).toBeGreaterThan(0);
   await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.2);
-  const first = await canvas.screenshot();
+  await page.mouse.down();
+  await page.mouse.up();
   await page.waitForTimeout(700);
-  expect(first.equals(await canvas.screenshot())).toBe(true);
+  expect(await draws()).toBe(settled);
 });
 
 test("hero keeps a static liquid fallback without WebGL", async ({ page }) => {

@@ -247,6 +247,23 @@ deployment or binary release was performed.
 
 Historical entries below retain their original branch states and evidence.
 
+## W0.8 landing entrance animation — 7 November 2026
+
+Same worktree and branch as W0.7, on main `8acab52`. The founder asked for a
+first-load animation for the whole landing page using Motion+ and Motion AI, and
+approved committing and pushing it to `main`. Adds
+`website/src/components/entrance.tsx` (one orchestrator for the header, hero and
+every section's scroll-in reveal), `website/src/lib/split-words.ts` (temporary
+masked word split), a pre-paint inline script in `layout.tsx` and CSS in
+`globals.css`. It removes the per-component `whileInView` lifts from statement,
+commitments and roadmap, and fixes a lost-update race in the shared
+`useReducedMotion` hook. Criteria, evidence and the Motion+ audit (rank A) are in
+[spec 0005 W0.8](docs/specs/0005-website-landing-draft.md#w08-first-load-and-scroll-in-entrance).
+30/33 browser tests pass in the full run: the 2 stale navbar tests, plus one
+cold-start timeout that passes on rerun. Root check: 181 tests pass. Open
+follow-ups: update the 2 navbar tests for PR #13, and optionally move the navbar
+dock compaction from `top/left/width` to transforms.
+
 ## W0.7 liquid silver hero — 7 November 2026
 
 Worktree `~/conductor/workspaces/argent/liquid-silver`, branch

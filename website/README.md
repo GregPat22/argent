@@ -42,6 +42,21 @@ serve or overwrite them. Keep that preview separate from this landing package.
   (`src/components/liquid-silver.tsx`, no 3D library). See the
   [liquid silver study](../docs/research/liquid-silver-hero.md). The W0.5 bubble
   renderer, its pause controls and fallback remain deleted. Its headline, official icon, liquid buttons and navbar remain.
+- W0.8 adds the page entrance (`src/components/entrance.tsx`,
+  `src/lib/split-words.ts`): the header drops in, the hero headline rises word by
+  word, the copy and actions follow, and the liquid forms last; each later section
+  reveals its heading word by word on scroll. An inline script in `layout.tsx`
+  sets `html[data-entrance="pending"]` before first paint, only when JavaScript
+  runs and motion is allowed, with a 4s failsafe. The orchestrator moves it to
+  `running` and `done`. Split text and inline styles are removed after each
+  reveal. New sections are picked up automatically (`main > section`). Mark a
+  nested list with `data-reveal-children` to stagger its items. Do not add
+  `whileInView` lifts to section content; the orchestrator owns it. Motion+ was
+  used through MCP only (sources, generated spring, audit). There is no
+  `motion-plus` package.
+- `src/lib/use-reduced-motion.ts` reads and listens on separate
+  MediaQueryLists. Chromium drops a list's queued `change` event when `.matches`
+  was read on that list first, so keep them separate.
 - The larger silver atom uses a responsive 480px maximum with a matching DPR-aware
   buffer. It animates automatically, stops offscreen/when hidden and renders a
   still frame under reduced motion. There is no manual pause control. Its
@@ -63,7 +78,10 @@ serve or overwrite them. Keep that preview separate from this landing package.
   navigation, responsive fit, reconnect, comparison, clipboard, reduced motion,
   atom rendering/fallback, workflow stages, FAQ behavior and no-JavaScript answers.
   They also verify the liquid silver renders, follows the pointer, pauses offscreen,
-  holds a still frame under reduced motion and falls back without WebGL; the hero has no rendering
+  holds a still frame under reduced motion and falls back without WebGL. The
+  entrance tests cover the first-load states, section word reveals, reduced
+  motion and the scripts-blocked failsafe. Use the `visit()` helper, which waits
+  for the entrance to settle; the hero has no rendering
   controls, the larger atom has no pause button, and icon/favicon delivery,
   logo-only scroll compaction, keyboard disclosure access, 48px targets,
   plain Inter headings, footer navigation and liquid hover feedback still work.

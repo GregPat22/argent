@@ -2,6 +2,70 @@
 
 Status: draft requested by the founder, 6 November 2026.
 
+## W0.8: first-load and scroll-in entrance
+
+Branch: `GregPat22/liquid-silver-3d-animation`, on main `8acab52` (W0.7). PR #8
+removed the header and hero load animations; the founder asked for "an
+incredible first load animation to everything in the landing", built with
+Motion+ and Motion AI.
+
+Acceptance criteria:
+
+1. First load plays one sequence: the header items drop in with a focus pull;
+   the hero headline rises word by word out of masked lines (the gradient line
+   keeps one continuous gradient); the description, actions and status follow
+   with a staggered lift; the primary action gets one light sweep; the liquid
+   silver forms last. The whole hero settles in about 2 seconds.
+2. Every later section and the footer reveal their heading word by word, then
+   their content, when they scroll in (once each).
+3. No flash of hidden or unstyled content: an inline head script hides only the
+   entrance targets before first paint, and only when JavaScript runs and motion
+   is allowed. A 4 second failsafe reveals everything if the app scripts never
+   load; without JavaScript nothing is hidden.
+4. Reduced motion (at load or switched on mid-reveal) shows everything at once.
+5. When a reveal settles, its split text and inline styles are removed, so React
+   keeps ownership of the DOM and assistive technology reads the original text.
+6. Animations are compositor-only (transform, opacity, blur ≤ 8px) and run on
+   WAAPI. No `motion-plus` runtime dependency: Motion+ was used through its MCP
+   server for reference sources, the button-sweep CSS spring and the audit.
+7. Browser tests cover the entrance states, section reveals, reduced motion and
+   the scripts-blocked failsafe.
+
+### W0.8 verification evidence
+
+- Website strict typecheck and production build passed. Full production
+  browser suite: **30 of 33 passed (3.2m)**. The 2 navbar-compaction failures
+  are the stale-after-PR #13 tests recorded in W0.7. The third,
+  "page hydrates cleanly…", timed out at 33s as the suite's cold first test
+  and passed 3 of 3 on rerun (12–21s); it scrolls all 9 sections under software
+  WebGL. "Scrolling transfers keyboard focus…" failed once in an earlier full
+  run and passed 3 of 3 on rerun. CI does not run the browser suite.
+- 4 new tests: first-load states (pending → running → done, 4 split lines, no
+  leftover labels or inline styles), section word reveal, reduced motion skip and
+  the scripts-blocked failsafe. Existing tests wait for the entrance to settle.
+- Motion+ performance audit (MotionScore methodology, report
+  `dr_0150d7881551`): rank **A**. Fixed: liquid fade blur 14px → 8px (large layer
+  over a live canvas) and the gradient headline now measures before it writes.
+  Open, not part of this work: the navbar dock compaction transitions
+  `top/left/width` (D tier, layout); converting it to transforms is a separate
+  change. The `npx motionscore` runtime scanner was not run (blocked by the
+  session's permission policy); runtime numbers below come from Playwright.
+- Runtime (production build, headless Chromium, Metal, 1440×900): hero entrance
+  p95 frame 16.8ms with no long tasks and no persistent `will-change`; scroll
+  reveals 600 frames, max 16.8ms. Every entrance property ran as WAAPI.
+- Found while auditing: the shared `useReducedMotion` hook read `.matches` on
+  the same MediaQueryList it listened to. Chromium queues the `change` event for
+  the next frame and drops it if that list was read in between, so a render in
+  that window left components (seen with the liquid silver) animating after
+  reduced motion was turned on. Reads and listeners now use separate lists; the
+  race script went from failing about 2 in 3 runs to 4 of 4 passing. The liquid
+  reduced-motion test now counts WebGL draws instead of comparing screenshots
+  (software compositing adds ±1 colour-level noise) and passed 5 of 5.
+- Root `npm run check` passed **181 tests**, strict types and formatting.
+
+Limits: Chromium only; Safari/Firefox timing and real-device GPU cost of the blur
+pulls are not measured. Not deployed.
+
 ## W0.7: interactive liquid silver beside the hero
 
 Branch: `GregPat22/liquid-silver-3d-animation`, based on main `1cb55c3` (PR #13).
