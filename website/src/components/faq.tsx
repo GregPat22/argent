@@ -35,8 +35,9 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     answer: (
       <>
         None yet: the prototype uses a scripted adapter, with no AI model or
-        repository connected. Codex through its official interface is the first
-        real-agent target. Claude Code follows, then Cursor and OpenCode.
+        repository connected. Claude Code through its official CLI is the first
+        real agent, in development for the local MVP. Codex follows, then Cursor
+        and OpenCode.
       </>
     ),
   },

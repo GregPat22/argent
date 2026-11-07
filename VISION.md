@@ -32,9 +32,11 @@ History and evidence can be exported and restored elsewhere. A managed service m
 charge for easier operations, workspace compute and collaboration, but it runs the
 same core rather than making self-hosting a second-class or limited mode.
 
-The first engineering proof is one repository, one persistent cloud workspace, one
-real agent, disconnect and reconnect, verifiable changes and a tested pull request.
-The personal release adds a familiar daily workflow, support for several agents
+The first usable release runs real agents locally: one repository, a branch and
+worktree per workspace, Claude Code through its official CLI, a reviewable diff,
+checks Argent runs itself and a human-controlled draft pull request. Cloud
+workspaces then add disconnect and reconnect on the same engine. The personal
+release adds a familiar daily workflow, support for several agents
 and existing subscriptions, portable files and history, and a mobile companion,
 with native iOS as its own delivery track. Team handoff and dependent tasks follow.
 A full IDE, agent swarms and advanced enterprise controls remain later. See the

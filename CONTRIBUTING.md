@@ -30,9 +30,10 @@ Create your own local operator token and keep `.env` out of Git. Do not use the
 known conformance-test token for an operator deployment.
 
 These commands test Argent's control-plane implementation in a development
-checkout. The prohibition on executing repository code on the control-plane host
-means untrusted target-repository/agent workloads must not run there. The current
-local adapter writes fixed JSON and is not an execution isolation boundary.
+checkout. A remote or managed control-plane host must never run target-repository
+or agent workloads. The local MVP ([spec 0013](docs/specs/0013-local-mvp.md))
+runs agents on the developer's own computer by design and is not an isolation
+boundary; changes to it follow that spec's security model.
 
 ## Scope the change before implementation
 

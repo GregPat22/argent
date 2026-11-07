@@ -1,8 +1,9 @@
 # Architecture
 
 Status: the M0 engine, the P1 local desktop prototype and the P2 desktop shell are
-implemented, with simulated execution; the managed architecture below is the
-proposed target.
+implemented, with simulated execution. Local execution with real agents
+([spec 0013](docs/specs/0013-local-mvp.md)) is in development; the managed
+architecture below is the proposed later target.
 No upstream fork, cloud deployment or paid resource is configured.
 
 ## Shape and boundaries
@@ -385,3 +386,22 @@ The existing `/service/stop` response explicitly closes its keep-alive socket so
 an interrupted desktop service can finish draining and release ownership. It
 preserves the existing worker-shutdown `needs_attention` state and does not replay
 work. The API/worker/store boundaries and loopback restriction remain unchanged.
+
+## Local execution mode (in development)
+
+[Spec 0013](docs/specs/0013-local-mvp.md) adds a second workspace provider beside
+the simulation. A `local-worktree` workspace records a local repository, its base
+commit, a branch `argent/<id>` and a worktree under the service's private data
+directory. The same worker claims its runs with the same leases, deadlines,
+cancellation and reconciliation; only the adapters differ. The Claude Code
+adapter launches the official CLI in the worktree as a child process group,
+writes the task to standard input and maps its JSON event stream to bounded log
+events. Completion evidence is the worker's own inspection of the worktree
+(commit, changed files, diff hash), never the agent's statement.
+
+The detached desktop service is both the control plane and the execution host in
+this mode, on the developer's own computer and as the developer. That is a
+deliberate, labelled exception for local use: it is not isolation, and a remote
+or managed control-plane host still never executes repository code. Argent's own
+Git commands disable hooks and fsmonitor, every process is started without a
+shell, and agents receive an allowlisted environment without provider API keys.

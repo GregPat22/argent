@@ -4,6 +4,12 @@ Status: real-cloud MVP proposed and unimplemented. Retain the current core for
 bounded M1a work; an internal simulation-only lifecycle harness is implemented.
 Billable provisioning still requires explicit authorization.
 
+Roadmap change, 7 November 2026: this milestone now follows the
+[local MVP](0013-local-mvp.md), which delivers the real agent, transcript, diff,
+check and draft pull request contracts on the developer's computer first. Claude
+Code is now the first agent; references to Codex below describe the original
+cloud pilot candidate and will be revisited when M1 resumes.
+
 M1a is narrowed in [repository access and workspace lifecycle](0007-cloud-workspace-lifecycle.md), including proposed GitHub permissions, explicit transitions and crash/cleanup evidence. That contract is not an implemented cloud adapter.
 
 Roadmap follow-up, 6 November 2026: this contract incorporates the

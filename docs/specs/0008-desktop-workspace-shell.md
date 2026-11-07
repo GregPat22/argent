@@ -25,7 +25,9 @@ from `ui/` independently of the website build.
 
 Feature parity with other tools is not required before a useful release. The
 one-agent engineering proof is separate from a release people can adopt for daily
-work: a single Codex integration is a technical milestone, not a launch.
+work: a single agent integration is a technical milestone, not a launch. (Since
+7 November 2026 the first agent is Claude Code, in the
+[local MVP](0013-local-mvp.md).)
 
 ## Scope of the shell
 
