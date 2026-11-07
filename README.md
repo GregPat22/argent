@@ -27,6 +27,11 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   tasks, live activity and verification details. Closing the app leaves the
   local service running, and reopening it reconnects to the same history.
 - **Offline history export and restore**, as a CLI.
+- **Engine support for real Claude Code runs in local worktrees** (L1.1): the
+  desktop service can create a branch and worktree from a local repository and
+  run the official `claude` CLI in it, with typed logs, follow-ups, cancellation
+  and a worktree record as evidence. The desktop app does not expose it yet. See
+  [spec 0013](docs/specs/0013-local-mvp.md).
 - **An opt-in, read-only GitHub sign-in pilot** using GitHub's device flow. It
   is not connected to the desktop app or to task execution.
 
@@ -156,24 +161,26 @@ The demo uses its own disposable token; never reuse it for a real deployment.
 The API binds only to `127.0.0.1:4310`. Send `Authorization: Bearer <token>` on
 every request.
 
-| Method | Route                                       | Input / behavior                                                                   |
-| ------ | ------------------------------------------- | ---------------------------------------------------------------------------------- |
-| GET    | `/health`                                   | Authenticated status information.                                                  |
-| POST   | `/workspaces`                               | `{"repository":"https://github.com/owner/repo"}`; metadata only.                   |
-| GET    | `/workspaces?limit=50&before=<id>`          | Keyset-paginated workspace list.                                                   |
-| GET    | `/workspaces/:id/runs?limit=50&before=<id>` | Keyset-paginated task history.                                                     |
-| GET    | `/workspaces/:id`                           | Read persisted workspace state.                                                    |
-| POST   | `/workspaces/:id/stop` or `/start`          | Preserve identity and files; refuse active or uncertain work.                      |
-| POST   | `/runs`                                     | `{"workspaceId":"…","task":"…","maxRuntimeMs":30000}`; requires `Idempotency-Key`. |
-| GET    | `/runs/:id`                                 | Status and limits; the worker's fencing token is never returned.                   |
-| GET    | `/runs/:id/events?after=0&limit=100`        | Ordered events and `nextCursor`; persist the cursor to reconnect.                  |
-| POST   | `/runs/:id/cancel`                          | Persist cancellation; the worker acknowledges it cooperatively.                    |
-| GET    | `/runs/:id/artifact`                        | The artifact, after checking its committed SHA-256.                                |
-| POST   | `/runs/:id/resolve`                         | `{"note":"…"}`; audited abandonment of an uncertain simulated run.                 |
+| Method | Route                                       | Input / behavior                                                                                                                                |
+| ------ | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/health`                                   | Authenticated status information.                                                                                                               |
+| POST   | `/workspaces`                               | `{"repository":"https://github.com/owner/repo"}`; metadata only.                                                                                |
+| POST   | `/workspaces` (desktop service only)        | `{"source":"local","path":"/absolute/repo"}`; creates a branch and worktree.                                                                    |
+| GET    | `/workspaces?limit=50&before=<id>`          | Keyset-paginated workspace list.                                                                                                                |
+| GET    | `/workspaces/:id/runs?limit=50&before=<id>` | Keyset-paginated task history.                                                                                                                  |
+| GET    | `/workspaces/:id`                           | Read persisted workspace state.                                                                                                                 |
+| POST   | `/workspaces/:id/stop` or `/start`          | Preserve identity and files; refuse active or uncertain work.                                                                                   |
+| POST   | `/runs`                                     | `{"workspaceId":"…","task":"…","maxRuntimeMs":30000}`; requires `Idempotency-Key`. Local runs also take `"permissionMode":"edits"` or `"full"`. |
+| GET    | `/runs/:id`                                 | Status and limits; the worker's fencing token is never returned.                                                                                |
+| GET    | `/runs/:id/events?after=0&limit=100`        | Ordered events and `nextCursor`; persist the cursor to reconnect.                                                                               |
+| POST   | `/runs/:id/cancel`                          | Persist cancellation; the worker acknowledges it cooperatively.                                                                                 |
+| GET    | `/runs/:id/artifact`                        | The artifact, after checking its committed SHA-256.                                                                                             |
+| POST   | `/runs/:id/resolve`                         | `{"note":"…"}`; audited abandonment of an uncertain simulated run.                                                                              |
 
 Repeating a submission with the same key and payload returns the original run; a
-changed payload returns 409. Runtime is bounded to 100–300,000 ms (default 30 s).
-A run can emit at most 100 log events of up to 2,048 characters each, and request
+changed payload returns 409. Simulated runtime is bounded to 100–300,000 ms (default 30 s);
+local runs to 1 s–2 h (default 30 min) and 2,000 log events.
+A simulated run can emit at most 100 log events of up to 2,048 characters each, and request
 bodies are capped at 16 KiB. The desktop service also exposes an authenticated
 `/service/stop`, which standalone mode does not enable.
 

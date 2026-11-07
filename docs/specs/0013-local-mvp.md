@@ -1,8 +1,9 @@
 # L1: local MVP with real agents in isolated worktrees
 
 Recorded 7 November 2026, based on main `ffbeef2`.
-Status: planned; slice L1.1 is in development. Until a slice lands on `main`,
-agent execution remains simulated and every surface says so.
+Status: L1.1 (engine) implemented; L1.2 onward planned. The desktop app does not
+expose real execution yet, so in the app agent execution remains simulated and
+every surface says so.
 
 ## Product decision
 
@@ -93,6 +94,28 @@ What Argent guarantees in local mode:
    shutdown or lost lease becomes `needs_attention` and is never replayed.
 6. Tests use a fake `claude` executable and real temporary Git repositories; they
    call no model and need no sign-in.
+
+#### L1.1 implementation and evidence
+
+- `src/local-worktree.ts` validates repositories, creates and rolls back the
+  branch/worktree with hook-free Git, and records Argent's worktree evidence.
+- `src/claude-code.ts` launches the CLI as its own process group with an
+  allowlisted environment, maps its event stream to typed log lines
+  (`text`, `tool`, `tool_error`, `status`) and resumes the workspace conversation.
+- The store adds `local_worktrees`, per-run `simulation` and `permission_mode`
+  columns (additive migration for existing databases) and allows real runs up to
+  two hours and 2,000 log events. The worker uses the real adapters only for
+  `local-worktree` workspaces and fails such runs safely when they are not
+  configured. Only the desktop service enables them; the standalone API and
+  worker do not.
+- `tests/local-worktree.test.ts` covers path validation, hook suppression,
+  rollback, the CLI contract (argv, standard-input task, environment allowlist,
+  resume, permission modes), failure without evidence, process-group
+  cancellation, the disabled path, API gating and the migration, using a fake CLI
+  and real temporary repositories.
+- Not yet verified: a recorded run against the real CLI, and desktop controls
+  (L1.2). Limits: no diff view, no test command, no archive; a conversation whose
+  CLI process died before announcing its session is not recovered automatically.
 
 ### L1.2 desktop on real execution
 

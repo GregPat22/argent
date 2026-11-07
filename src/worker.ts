@@ -1,4 +1,9 @@
-import type { AgentAdapter, WorkspaceAdapter } from "./adapters.js";
+import type {
+  AgentAdapter,
+  AgentMessage,
+  ExecutionAdapters,
+  WorkspaceAdapter,
+} from "./adapters.js";
 import { DomainError } from "./domain.js";
 import { Store } from "./store.js";
 
@@ -8,6 +13,8 @@ export class Worker {
     private readonly workspaces: WorkspaceAdapter,
     private readonly agent: AgentAdapter,
     private readonly leaseMs = 5000,
+    // Real local execution is opt-in: without it, local-worktree runs fail safely.
+    private readonly local?: ExecutionAdapters,
   ) {}
 
   async tick(shutdown?: AbortSignal): Promise<boolean> {
@@ -37,16 +44,22 @@ export class Worker {
     );
 
     try {
-      const directory = this.workspaces.prepare(
-        this.store.getWorkspace(run.workspaceId),
-      );
-      for await (const message of this.agent.execute(
+      const workspace = this.store.getWorkspace(run.workspaceId);
+      const real = workspace.provider === "local-worktree";
+      if (real && !this.local)
+        throw new DomainError(409, "local_execution_not_configured");
+      const adapters = real
+        ? this.local!
+        : { workspace: this.workspaces, agent: this.agent };
+      const directory = adapters.workspace.prepare(workspace);
+      for await (const message of adapters.agent.execute(
         run,
         directory,
         controller.signal,
       )) {
         controller.signal.throwIfAborted();
-        this.store.appendLog(run.id, token, message);
+        const line = normalize(message);
+        this.store.appendLog(run.id, token, line.text, undefined, line.kind);
       }
       controller.signal.throwIfAborted();
       const current = this.store.getRun(run.id);
@@ -55,12 +68,12 @@ export class Worker {
           reason: "user_cancelled",
         });
       } else {
-        const evidence = this.workspaces.verify(directory, run);
+        const evidence = adapters.workspace.verify(directory, run);
         this.store.finish(
           run.id,
           token,
           "completed",
-          { outcome: "simulation_passed" },
+          { outcome: real ? "worktree_recorded" : "simulation_passed" },
           evidence,
         );
       }
@@ -95,4 +108,21 @@ export class Worker {
     }
     return true;
   }
+}
+
+const MAX_LINE = 2048;
+
+function normalize(message: AgentMessage): {
+  kind: "text" | "tool" | "tool_error" | "status";
+  text: string;
+} {
+  const line =
+    typeof message === "string"
+      ? { kind: "text" as const, text: message }
+      : message;
+  // Keep the run moving: an over-long agent line is truncated, not fatal.
+  const clean = line.text.replaceAll("\0", "");
+  const text =
+    clean.length > MAX_LINE ? `${clean.slice(0, MAX_LINE - 1)}…` : clean;
+  return { kind: line.kind, text: text.trim() ? text : "(empty)" };
 }

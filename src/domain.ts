@@ -7,20 +7,35 @@ export type RunStatus =
   | "cancelled"
   | "needs_attention";
 
+export type WorkspaceProvider = "local-simulation" | "local-worktree";
+
+/** Real local execution details; present only for `local-worktree` workspaces. */
+export interface LocalWorktree {
+  repositoryPath: string;
+  branch: string;
+  baseSha: string;
+  worktreePath: string;
+}
+
 export interface Workspace {
   id: string;
   repository: string;
-  provider: "local-simulation";
+  provider: WorkspaceProvider;
   state: "running" | "stopped";
   createdAt: number;
+  local?: LocalWorktree;
 }
+
+/** `edits`: file edits only, prompts denied. `full`: commands without approval. */
+export type PermissionMode = "edits" | "full";
 
 export interface Run {
   id: string;
   workspaceId: string;
   task: string;
   status: RunStatus;
-  simulation: true;
+  simulation: boolean;
+  permissionMode: PermissionMode;
   maxRuntimeMs: number;
   createdAt: number;
   deadlineAt: number | null;
@@ -43,13 +58,31 @@ export interface Page<T> {
   nextCursor: string | null;
 }
 
-export interface Evidence {
+export interface SimulationEvidence {
   kind: "simulation-artifact-check";
   passed: true;
   artifact: string;
   sha256: string;
   simulation: true;
 }
+
+/**
+ * Argent's own inspection of a worktree after a real agent run. It records what
+ * changed; it is not a test result and says so with `tested: false`.
+ */
+export interface WorktreeEvidence {
+  kind: "worktree-record";
+  passed: true;
+  simulation: false;
+  tested: false;
+  branch: string;
+  baseSha: string;
+  headSha: string;
+  changedFiles: number;
+  diffSha256: string;
+}
+
+export type Evidence = SimulationEvidence | WorktreeEvidence;
 
 export class DomainError extends Error {
   constructor(

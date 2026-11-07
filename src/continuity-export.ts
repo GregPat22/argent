@@ -84,7 +84,12 @@ export function exportHistory(
       .get(workspaceId);
     if (!workspace) throw new DomainError(404, "History workspace not found");
     // Never present a partial cloud/cleanup export as portable execution state.
-    for (const table of ["lifecycle_workspaces", "repository_operations"]) {
+    // Real local runs are not simulated history either.
+    for (const table of [
+      "lifecycle_workspaces",
+      "repository_operations",
+      "local_worktrees",
+    ]) {
       const exists = db
         .prepare(
           "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",

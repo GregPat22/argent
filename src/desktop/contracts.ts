@@ -15,7 +15,7 @@ export interface ServiceStatus {
 export interface ArtifactView {
   evidence: Evidence;
   content: unknown;
-  simulation: true;
+  simulation: boolean;
 }
 
 export interface DesktopBridge {

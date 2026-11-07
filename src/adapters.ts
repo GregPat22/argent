@@ -14,12 +14,22 @@ export interface WorkspaceAdapter {
   verify(directory: string, run: Run): Evidence;
 }
 
+/** One line of agent output. Plain strings are agent text. */
+export type AgentMessage =
+  string | { kind: "text" | "tool" | "tool_error" | "status"; text: string };
+
 export interface AgentAdapter {
   execute(
     run: Run,
     directory: string,
     signal: AbortSignal,
-  ): AsyncIterable<string>;
+  ): AsyncIterable<AgentMessage>;
+}
+
+/** Real local execution: used for `local-worktree` workspaces only. */
+export interface ExecutionAdapters {
+  workspace: WorkspaceAdapter;
+  agent: AgentAdapter;
 }
 
 export class LocalWorkspace implements WorkspaceAdapter {
