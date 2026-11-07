@@ -1,5 +1,16 @@
 # Argent landing-page brief
 
+**Current W0.9 direction (7 November 2026):** center the hero headline,
+subheader and buttons. The liquid silver becomes a full-bleed field around the
+copy: two masses with the original pull/neck/pinch-off behaviour, their
+satellites and free drops that merge and separate on their own. The metal
+frames the copy and never drifts behind it. Headline: **"Argent is a good
+conductor."** The subheader states the product scope (open-source ADE, parallel
+agents, cloud, check-in from a phone) without naming any other product. The
+founder chose to remove the hero's prototype status line; the roadmap, FAQ
+and status sections further down remain the place that separates what works
+today from what is planned. Buttons are unchanged.
+
 **Current W0.6 direction:** use explicit task/review/verification copy with fewer
 silver metaphors, remove visible atom captions, use plain Inter headings and the
 new supplied wide footer wordmark as a home link. Remove navbar border/typed

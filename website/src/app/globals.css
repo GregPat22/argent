@@ -335,47 +335,61 @@
   align-items: center;
   min-height: 100svh;
   overflow: hidden;
-  padding: 10rem 0 6rem;
+  padding: 8.5rem 0 6rem;
 }
 
 .hero-title {
-  font-size: clamp(3.5rem, 6.8vw, 6.5rem);
+  font-size: clamp(3.25rem, 7vw, 6.75rem);
 }
 
-.hero-actions {
-  max-width: 32rem;
-}
-
-/* W0.7: interactive liquid silver beside the hero copy. */
+/* W0.9: centered copy framed by a full-bleed field of liquid silver. */
 .hero-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
-  gap: 2.5rem;
-}
-.hero-copy {
   position: relative;
   z-index: 1;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+}
+.hero-description {
+  max-width: 37rem;
+  margin-inline: auto;
+  text-wrap: pretty;
+}
+.hero-actions {
+  width: fit-content;
+  max-width: 32rem;
+  margin-inline: auto;
 }
 .liquid-silver {
-  position: relative;
-  width: min(100%, 26rem);
-  aspect-ratio: 1;
-  margin: -1.5rem auto -3rem;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   pointer-events: none;
   user-select: none;
 }
-/* Soft ambient glow so the metal reads as lit, not cut out. */
+/* Soft ambient light where the masses sit, so the metal reads as lit. */
 .liquid-silver::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    closest-side at 50% 48%,
-    rgb(196 210 232 / 0.1),
-    rgb(196 210 232 / 0.03) 55%,
-    transparent
-  );
+  background:
+    radial-gradient(
+      32rem 26rem at 8% 72%,
+      rgb(196 210 232 / 0.07),
+      transparent 70%
+    ),
+    radial-gradient(
+      28rem 22rem at 92% 24%,
+      rgb(196 210 232 / 0.06),
+      transparent 70%
+    );
 }
 .liquid-canvas {
   position: absolute;
@@ -383,7 +397,7 @@
   width: 100%;
   height: 100%;
   opacity: 0;
-  transform: scale(0.96);
+  transform: scale(0.98);
   transition:
     opacity 900ms var(--ease-out-quint),
     transform 1200ms var(--ease-out-quint);
@@ -392,10 +406,14 @@
   opacity: 1;
   transform: none;
 }
-/* Static polished drop shown only when WebGL is unavailable. */
+/* Static polished drops shown only when WebGL is unavailable. */
 .liquid-fallback {
   position: absolute;
-  inset: 24%;
+  inset: 0;
+}
+.liquid-fallback-drop {
+  position: absolute;
+  aspect-ratio: 1;
   border-radius: 48% 52% 45% 55% / 54% 46% 54% 46%;
   background:
     radial-gradient(
@@ -421,19 +439,35 @@
     inset 8px 10px 22px rgb(255 255 255 / 0.12),
     0 30px 60px -30px #000;
 }
-@media (min-width: 1024px) {
-  .hero-layout {
-    grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
-    gap: 1rem;
-  }
-  .hero-section .hero-title {
-    font-size: clamp(3.5rem, 5.6vw, 6rem);
-  }
-  .liquid-silver {
-    width: 100%;
-    max-width: 38rem;
-    margin-block: -3rem;
-  }
+.liquid-fallback-drop:nth-child(1) {
+  left: -7%;
+  bottom: 6%;
+  width: min(34vw, 22rem);
+}
+.liquid-fallback-drop:nth-child(2) {
+  right: -6%;
+  top: 9%;
+  width: min(28vw, 18rem);
+}
+.liquid-fallback-drop:nth-child(3) {
+  left: 13%;
+  top: 18%;
+  width: min(5vw, 2.6rem);
+}
+.liquid-fallback-drop:nth-child(4) {
+  right: 13%;
+  bottom: 20%;
+  width: min(4.5vw, 2.3rem);
+}
+.liquid-fallback-drop:nth-child(5) {
+  left: 30%;
+  bottom: 7%;
+  width: min(3vw, 1.6rem);
+}
+.liquid-fallback-drop:nth-child(6) {
+  right: 30%;
+  top: 11%;
+  width: min(2.6vw, 1.4rem);
 }
 @media (prefers-reduced-motion: reduce) {
   .liquid-canvas {
@@ -667,12 +701,11 @@
     display: inline-flex;
   }
   .hero-section {
-    min-height: 0;
-    padding-top: 10rem;
-    padding-bottom: 3.5rem;
+    padding-top: 7rem;
+    padding-bottom: 4rem;
   }
   .hero-title {
-    font-size: clamp(2.8rem, 11.5vw, 4.5rem);
+    font-size: clamp(2.5rem, 10.5vw, 4.5rem);
   }
 }
 @media (max-width: 639px) {
@@ -689,6 +722,9 @@
   .nav-full {
     top: 20px;
     right: 16px;
+  }
+  .hero-actions {
+    width: 100%;
   }
   .hero-actions > a {
     min-height: 54px;
@@ -752,6 +788,7 @@
 html[data-entrance="pending"] .site-header .nav-logo-dock,
 html[data-entrance="pending"] .site-header .nav-full > *,
 html[data-entrance="pending"] #intro .hero-layout > *,
+html[data-entrance="pending"] #intro [data-liquid-silver],
 html[data-entrance="pending"] main > section:not(#intro),
 html[data-entrance="pending"] .site-footer {
   opacity: 0;
