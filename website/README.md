@@ -62,6 +62,17 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
   2/8/18/18/1 electrons match neutral silver
   ([NIST data](https://physics.nist.gov/PhysRefData/Handbook/Tables/silvertable1.htm)).
   It stops offscreen and renders a still frame under reduced motion.
+- **Sections.** Below the hero: the conductor statement (with the atom), the
+  journey (desktop → cloud → phone), how it works, proof (hallmarks), the
+  open-source manifesto, the roadmap (the one place that lists what works today
+  and what doesn't), the FAQ and the final call to action. The journey is taller
+  than the viewport, pins its stage on wide screens and opts out of the entrance
+  with `data-entrance-skip`; it owns its scroll-linked reveal. Looping
+  decorations pause while their section is off screen
+  (`src/components/section-activity.tsx`).
+- **Conversion.** The page asks for one thing: star and watch the repository
+  (Watch → Custom → Releases), with following on X as the secondary action. No
+  email capture or backend.
 - **Navigation.** The borderless navbar compacts after 120 px of scrolling to a
   single logo at the top left, which reopens the links; it expands again near the
   top (48 px). Focus follows the logo when scrolling hides a focused control.
@@ -72,8 +83,8 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
 ## Tests
 
 Playwright launches the built site on loopback port 3100. The suite covers
-keyboard navigation, responsive fit, the reconnect demo, the comparison slider,
+keyboard navigation, responsive fit, the scroll-linked journey, the comparison slider,
 the clipboard, reduced motion, the atom and liquid rendering and fallbacks, the
-workflow stages, the FAQ (including without JavaScript), the entrance states and
+how-it-works objects, the FAQ (including without JavaScript), the entrance states and
 the scripts-blocked failsafe, and icon delivery. Use the `visit()` helper, which
 waits for the entrance to settle, and build before running the suite.

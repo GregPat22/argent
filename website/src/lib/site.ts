@@ -13,3 +13,5 @@ export const STATUS_LABEL: Record<Status, string> = {
   planned: "Planned",
   policy: "Project rule",
 };
+export const CONTRIBUTING_URL = `${REPO_URL}/blob/main/CONTRIBUTING.md`;
+export const LOCAL_MVP_URL = `${REPO_URL}/blob/main/docs/specs/0013-local-mvp.md`;

@@ -185,7 +185,7 @@ export function Entrance() {
       // Later sections and the footer wait for the viewport.
       const sections = [
         ...root.querySelectorAll<HTMLElement>(
-          "main > section:not(#intro), .site-footer",
+          "main > section:not(#intro):not([data-entrance-skip]), .site-footer",
         ),
       ];
       const prepared = sections.map((section) => {

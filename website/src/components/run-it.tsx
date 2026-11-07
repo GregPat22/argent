@@ -5,7 +5,7 @@ import { useReducedMotion } from "@/lib/use-reduced-motion";
 import { AnimatePresence, motion, useInView } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { GitHubIcon, LiquidLink } from "@/components/ui";
-import { DOCS_URL, REPO_URL } from "@/lib/site";
+import { CONTRIBUTING_URL, DOCS_URL, REPO_URL, X_URL } from "@/lib/site";
 
 type Line = {
   kind: "command" | "comment" | "output";
@@ -105,25 +105,67 @@ export function RunIt() {
       aria-labelledby="run-title"
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 py-24 md:px-10 md:py-32"
     >
-      <div className="grid gap-12 lg:grid-cols-12 lg:items-center">
-        <div className="lg:col-span-5">
+      <div className="cta-band silver-surface relative overflow-hidden rounded-[2rem] border border-hairline-strong px-6 py-20 text-center md:px-12 md:py-28">
+        <div aria-hidden className="cta-drops">
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className="relative">
           <h2
             id="run-title"
-            className="display text-[clamp(2.4rem,5vw,4.6rem)]"
+            className="display mx-auto max-w-[14ch] text-[clamp(2.6rem,6vw,5.4rem)]"
           >
-            Built in the open. Run the engine today.
+            Join the build.
           </h2>
+          <p className="mx-auto mt-6 max-w-[36rem] text-lg leading-relaxed text-sterling">
+            Argent is built in the open, one verified step at a time. Star and
+            watch the repository to hear when the local MVP is ready, and follow
+            the build on X.
+          </p>
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <LiquidLink href={REPO_URL} target="_blank" rel="noreferrer">
+              <GitHubIcon />
+              Star and watch on GitHub
+            </LiquidLink>
+            <LiquidLink
+              href={X_URL}
+              target="_blank"
+              rel="noreferrer"
+              variant="ghost"
+            >
+              Follow @Argent_build
+            </LiquidLink>
+          </div>
+          <p className="mx-auto mt-6 max-w-[34rem] text-sm text-sterling-dim">
+            On GitHub, choose Watch, then Custom, then Releases. Want to help
+            build it?{" "}
+            <a
+              href={CONTRIBUTING_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-polished underline decoration-hairline-strong underline-offset-4"
+            >
+              Read the contributing guide
+            </a>
+            .
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-20 grid gap-12 lg:grid-cols-12 lg:items-center">
+        <div className="lg:col-span-5">
+          <h3 className="display text-[clamp(2rem,3.6vw,3.2rem)]">
+            Or run the engine today.
+          </h3>
           <p className="mt-6 max-w-[32rem] text-sterling">
-            The M0 demo starts a real API and worker, kills the API in the
-            middle of a run, starts a new one and reads the same history back.
-            You need Git and Node 22.19 or later within Node 22. No account,
+            The demo starts a real API and worker, kills the API in the middle
+            of a simulated run, starts a new one and reads the same history
+            back. You need Git and Node 22.19 or a later Node 22. No account,
             model key or cloud.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <LiquidLink href={REPO_URL} target="_blank" rel="noreferrer">
-              <GitHubIcon />
-              View on GitHub
-            </LiquidLink>
             <LiquidLink
               href={DOCS_URL}
               target="_blank"
@@ -133,10 +175,6 @@ export function RunIt() {
               Read the README
             </LiquidLink>
           </div>
-          <p className="mt-8 max-w-[32rem] border-t border-hairline pt-5 text-[0.9375rem] text-sterling-dim">
-            The desktop prototype runs Claude Code in local Git worktrees, with
-            your own sign-in. Signed public downloads are still ahead.
-          </p>
         </div>
 
         <div ref={ref} className="lg:col-span-7">

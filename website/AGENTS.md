@@ -13,6 +13,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 Also follow the repository root [AGENTS.md](../AGENTS.md), especially section 2
 ("Every claim must match the code"). Website copy may describe planned features
 only with an explicit planned or in-development label. When the roadmap or a
-capability changes, update the hero, roadmap, FAQ and commitments sections
+capability changes, update the hero, journey, roadmap, FAQ and open-source sections
 together with README.md and ROADMAP.md, and keep the facts in
 [website/README.md](README.md#copy-rules) aligned.

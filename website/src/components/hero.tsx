@@ -29,32 +29,31 @@ export function Hero() {
               className="hero-description mt-6 text-base leading-relaxed text-sterling md:mt-7 md:text-lg"
               data-liquid-avoid
             >
-              We’re building the open-source ADE for coding agents that work in
-              parallel, in the cloud: hand off a task, close your laptop, check
-              in from your phone. Today it’s an early prototype that runs Claude
-              Code on your own computer, one Git worktree per task. The cloud
-              comes next, built in the open.
+              We’re building the open-source home for your coding agents: Claude
+              Code and Codex side by side, each task in its own branch, and
+              nothing merged until you’ve seen the proof. On your Mac first,
+              then the cloud and your phone. Early, and built in the open.
             </p>
             <div
               className="hero-actions mt-8 flex flex-wrap items-center justify-center gap-3"
               data-liquid-avoid
             >
               <LiquidLink href="#reconnect">
-                See it in action{" "}
+                See where it’s going{" "}
                 <span aria-hidden className="button-arrow">
                   ↗
                 </span>
               </LiquidLink>
               <LiquidLink
                 href={REPO_URL}
-                aria-label="View on GitHub"
+                aria-label="Star Argent on GitHub"
                 target="_blank"
                 rel="noreferrer"
                 variant="ghost"
               >
                 <GitHubIcon />
                 <span>
-                  <span className="hidden sm:inline">View on </span>GitHub
+                  Star<span className="hidden sm:inline"> on GitHub</span>
                 </span>
               </LiquidLink>
             </div>
