@@ -478,6 +478,89 @@ export async function runDesktopSmoke(
     (await call<Page<Workspace>>("listWorkspaces", [])).items[0]?.id,
     workspace.id,
   );
+  // Local repository workspace with a fake Claude Code CLI (set by the harness).
+  const before = (await call<Page<Workspace>>("listWorkspaces", [])).items
+    .length;
+  await js(
+    `document.querySelector('#new-workspace').click(); document.querySelector('#local-workspace-choose').click();`,
+  );
+  await until(
+    () =>
+      js(
+        `document.querySelector('#workspace-title').textContent === 'repository' && document.querySelector('#execution-notice-title').textContent.includes('not a sandbox') && !document.querySelector('#workspace-dialog').open`,
+      ),
+    "local workspace created from the chosen folder",
+  );
+  const local = (await call<Page<Workspace>>("listWorkspaces", [])).items[0]!;
+  assert.equal(local.provider, "local-worktree");
+  assert.equal(
+    await js(`document.querySelector('#workspace-repository').textContent`),
+    `${local.local!.branch} · ${local.local!.worktreePath}`,
+  );
+  await capture("local-workspace");
+  await until(
+    () => js(`!document.querySelector('#new-task').disabled`),
+    "local task enabled",
+  );
+  await js(`document.querySelector('#new-task').click()`);
+  assert.deepEqual(
+    await js(
+      `[document.querySelector('#permission-field').hidden, document.querySelector('#runtime-unit').textContent, document.querySelector('#runtime-input').value, document.querySelector('#task-submit').textContent.trim(), document.querySelector('input[name="permission"]:checked').value]`,
+    ),
+    [false, "minutes", "30", "Start Claude Code", "edits"],
+  );
+  const localTask = "Write a short note about this repository";
+  await js(
+    `document.querySelector('input[name="permission"][value="full"]').click(); document.querySelector('#task-input').value = ${JSON.stringify(localTask)};`,
+  );
+  await capture("local-task-dialog");
+  await js(`document.querySelector('#task-form').requestSubmit()`);
+  await until(
+    () =>
+      js(
+        `document.querySelector('#run-title').textContent === ${JSON.stringify(localTask)} && document.querySelector('#run-state').textContent === 'Completed' && document.querySelector('#activity-list').textContent.includes('Added notes.txt')`,
+      ),
+    "local Claude Code session completed",
+  );
+  const localRun = (await call<Page<RunView>>("listRuns", [local.id]))
+    .items[0]!;
+  assert.equal(localRun.simulation, false);
+  assert.equal(localRun.permissionMode, "full");
+  assert.equal(localRun.maxRuntimeMs, 1800000);
+  assert.equal(
+    await js(
+      `document.querySelector('#run-meta').textContent.includes('Claude Code · full access') && document.querySelector('#activity-list').textContent.includes('Write: notes.txt')`,
+    ),
+    true,
+  );
+  await capture("local-session");
+  await js(`document.querySelector('#inspect-artifact').click()`);
+  await until(
+    () =>
+      js(
+        `!document.querySelector('#verification-result').hidden && document.querySelector('#verified-title').textContent === 'Worktree recorded' && document.querySelector('#verified-badge').textContent === 'NOT TESTED'`,
+      ),
+    "worktree record rendered",
+  );
+  await capture("local-verification");
+  await js(`document.querySelector('#activity-tab').click()`);
+  await js(`document.querySelector('#new-task').click()`);
+  assert.equal(
+    await js(`document.querySelector('#task-dialog-title').textContent`),
+    "Continue the conversation",
+  );
+  await js(`document.querySelector('#task-dialog').close()`);
+  await js(`document.querySelector('#workspace-parallel').click()`);
+  await until(
+    async () =>
+      (await call<Page<Workspace>>("listWorkspaces", [])).items.length ===
+      before + 2,
+    "parallel local workspace",
+  );
+  const parallel = (await call<Page<Workspace>>("listWorkspaces", []))
+    .items[0]!;
+  assert.equal(parallel.local?.repositoryPath, local.local!.repositoryPath);
+  assert.notEqual(parallel.local?.branch, local.local!.branch);
   console.log(
     `[ARGENT_SMOKE]${JSON.stringify({
       passed: true,
@@ -494,6 +577,8 @@ export async function runDesktopSmoke(
       localIconAssets: true,
       formValidation: true,
       uncertaintyRecovery: true,
+      localWorkspace: true,
+      parallelWorkspace: true,
       workspaceId: workspace.id,
       verifiedRun: first.id,
       backgroundRun: second.id,

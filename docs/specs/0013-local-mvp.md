@@ -1,9 +1,9 @@
 # L1: local MVP with real agents in isolated worktrees
 
 Recorded 7 November 2026, based on main `ffbeef2`.
-Status: L1.1 (engine) implemented; L1.2 onward planned. The desktop app does not
-expose real execution yet, so in the app agent execution remains simulated and
-every surface says so.
+Status: L1.1 (engine) and L1.2 (desktop) implemented; L1.3 onward planned. A
+recorded run against the real CLI is still pending; automated tests use a fake
+CLI.
 
 ## Product decision
 
@@ -113,15 +113,43 @@ What Argent guarantees in local mode:
   resume, permission modes), failure without evidence, process-group
   cancellation, the disabled path, API gating and the migration, using a fake CLI
   and real temporary repositories.
-- Not yet verified: a recorded run against the real CLI, and desktop controls
-  (L1.2). Limits: no diff view, no test command, no archive; a conversation whose
-  CLI process died before announcing its session is not recovered automatically.
+- Not yet verified: a recorded run against the real CLI. Limits: no diff view, no
+  test command, no archive; a conversation whose CLI process died before
+  announcing its session is not recovered automatically.
 
 ### L1.2 desktop on real execution
 
 Add-repository and create-workspace controls; the session view renders real
 transcripts and follow-ups; a visible permission-mode choice; the local-execution
 notice; real-agent labels replace simulation labels only for real workspaces.
+
+#### L1.2 implementation and evidence
+
+- **The renderer never supplies a path.** The bridge method
+  `createLocalWorkspace(fromWorkspaceId?)` opens a native folder dialog in the
+  main process, or reuses the repository recorded for an existing local workspace
+  to start a parallel one. The service then applies the L1.1 path validation.
+- The workspace dialog offers "Choose a local repository" first; GitHub-URL
+  workspaces stay as labelled simulations. Local workspaces show the repository
+  name, branch and worktree path, a "Claude Code · not a sandbox" notice and a
+  "Parallel workspace" action.
+- The task dialog for a local workspace has the permission choice (edits only by
+  default, or full access with a warning), a limit in minutes up to two hours,
+  and becomes "Continue the conversation" once the workspace has a run. A pending
+  submission keeps its permission mode when retried.
+- The activity view labels agent text, tool calls, tool errors and status lines;
+  the verification view shows the worktree record as "NOT TESTED".
+- Resolving an interrupted real run records `abandon_run` with
+  `simulation: false` instead of the simulation labels.
+- The desktop service now receives `USER`, `LOGNAME`, `SHELL`, `LANG`, `LC_ALL`,
+  `LC_CTYPE`, `TERM`, `CLAUDE_CONFIG_DIR` and `ARGENT_CLAUDE_PATH` from the app, so
+  the CLI can find its sign-in when Argent is opened from Finder. The agent still
+  receives only the allowlist above.
+- Evidence: `tests/desktop.test.ts` drives the bridge against a real detached
+  service with a fake CLI (cancelled dialog, parallel workspace, refusal of
+  renderer paths and simulation sources, a full-access run completing with a
+  worktree record in the right worktree only). `npm run desktop:smoke` drives the
+  same flow through the Electron interface.
 
 ### L1.3 changes panel
 

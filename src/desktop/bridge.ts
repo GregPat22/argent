@@ -1,4 +1,9 @@
-import { DomainError, requireInteger, requireString } from "../domain.js";
+import {
+  DomainError,
+  requireInteger,
+  requireString,
+  type Workspace,
+} from "../domain.js";
 import type { BridgeReply, ServiceStatus } from "./contracts.js";
 import {
   ensureService,
@@ -13,8 +18,14 @@ export function trustedSender(url: string, mainFrame: boolean): boolean {
   return mainFrame && url === APP_URL;
 }
 
+/** Asks the person to choose a repository folder; null when they cancel. */
+export type ChooseDirectory = () => Promise<string | null>;
+
 export class DesktopClient {
-  constructor(private readonly directory: string) {}
+  constructor(
+    private readonly directory: string,
+    private readonly chooseDirectory: ChooseDirectory = async () => null,
+  ) {}
 
   async call(method: unknown, args: unknown): Promise<BridgeReply> {
     try {
@@ -34,7 +45,7 @@ export class DesktopClient {
     if (
       typeof method !== "string" ||
       !Array.isArray(args) ||
-      args.length > 4 ||
+      args.length > 5 ||
       JSON.stringify(args).length > 20000
     ) {
       throw new DomainError(400, "Invalid desktop request");
@@ -48,11 +59,7 @@ export class DesktopClient {
           : readConnection(this.directory);
       const connected =
         connection !== null && (await isServiceAlive(connection));
-      return {
-        connected,
-        simulation: true,
-        engine: "local",
-      } satisfies ServiceStatus;
+      return { connected, engine: "local" } satisfies ServiceStatus;
     }
     const connection = readConnection(this.directory);
     if (!connection)
@@ -79,6 +86,30 @@ export class DesktopClient {
         return serviceRequest(connection, "/workspaces", "POST", {
           repository: str(0, "repository", 250),
         });
+      case "createLocalWorkspace": {
+        if (args.length > 1)
+          throw new DomainError(400, "Unexpected workspace arguments");
+        let path: string | null;
+        if (args[0] === undefined) {
+          path = await this.chooseDirectory();
+          if (path === null) return null;
+        } else {
+          const source = (await serviceRequest(
+            connection,
+            `/workspaces/${id()}`,
+          )) as Workspace;
+          if (!source.local)
+            throw new DomainError(
+              409,
+              "Only a local repository workspace can start another one",
+            );
+          path = source.local.repositoryPath;
+        }
+        return serviceRequest(connection, "/workspaces", "POST", {
+          source: "local",
+          path,
+        });
+      }
       case "getWorkspace":
         return serviceRequest(connection, `/workspaces/${id()}`);
       case "listRuns":
@@ -94,7 +125,8 @@ export class DesktopClient {
           {
             workspaceId: str(0, "workspaceId", 128),
             task: str(1, "task"),
-            maxRuntimeMs: requireInteger(args[2], "maxRuntimeMs", 100, 300000),
+            maxRuntimeMs: requireInteger(args[2], "maxRuntimeMs", 100, 7200000),
+            permissionMode: args[4] === undefined ? "edits" : args[4],
           },
           str(3, "idempotency key", 128),
         );

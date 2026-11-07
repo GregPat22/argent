@@ -79,17 +79,24 @@ tabs(
   () => "provider-detail",
   (provider) => {
     find("provider-name").textContent = provider;
+    find("provider-status").textContent =
+      provider === "Claude Code"
+        ? "Available · local repositories · official CLI"
+        : provider === "Codex"
+          ? "Not connected · planned next"
+          : "Not connected · planned integration";
     find("provider-note").textContent =
-      provider === "OpenCode"
-        ? "OpenCode connects to its own provider catalog. Available subscription methods depend on the provider and execution environment."
-        : `${provider} connections will use supported sign-in methods. Availability will be verified separately for local, self-hosted and managed execution.`;
+      provider === "Claude Code"
+        ? "Runs the claude CLI with your own sign-in. Argent never reads or stores it and never passes API-key variables, so a missing sign-in fails instead of billing an API account."
+        : provider === "OpenCode"
+          ? "OpenCode connects to its own provider catalog. Available subscription methods depend on the provider and execution environment."
+          : `${provider} connections will use supported sign-in methods. Availability will be verified separately for local, self-hosted and managed execution.`;
   },
 );
 const terminalDescriptions: Record<string, string> = {
-  Setup:
-    "Setup output will appear here when isolated workspaces are connected.",
+  Setup: "Setup output will appear here when repository actions are connected.",
   Run: "Repository run actions are coming later. No command is running here.",
-  Terminal: "Your isolated workspace terminal will live here.",
+  Terminal: "A terminal for this workspace's worktree will live here.",
 };
 tabs(
   "terminal",

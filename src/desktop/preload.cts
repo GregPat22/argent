@@ -18,9 +18,10 @@ const bridge: DesktopBridge = {
   listWorkspaces: (before) => invoke("listWorkspaces", [before]),
   getWorkspace: (id) => invoke("getWorkspace", [id]),
   createWorkspace: (repository) => invoke("createWorkspace", [repository]),
+  createLocalWorkspace: (from) => invoke("createLocalWorkspace", [from]),
   listRuns: (workspace, before) => invoke("listRuns", [workspace, before]),
-  createRun: (workspace, task, maxRuntimeMs, key) =>
-    invoke("createRun", [workspace, task, maxRuntimeMs, key]),
+  createRun: (workspace, task, maxRuntimeMs, key, permissionMode) =>
+    invoke("createRun", [workspace, task, maxRuntimeMs, key, permissionMode]),
   getRun: (id) => invoke("getRun", [id]),
   events: (id, after) => invoke("events", [id, after]),
   artifact: (id) => invoke("artifact", [id]),

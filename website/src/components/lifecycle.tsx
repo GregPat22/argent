@@ -186,8 +186,9 @@ export function Lifecycle() {
         </h2>
         <p className="max-w-[34rem] text-sterling md:col-span-5">
           A shorter path from a clear task to a change you can trust. This is
-          the planned workflow. Today’s local prototype uses simulated work;
-          real agents, cloud workspaces and repository checks are still ahead.
+          the planned workflow. Today’s local prototype runs Claude Code on your
+          computer; diff review, repository checks and cloud workspaces are
+          still ahead.
         </p>
       </div>
       <div
