@@ -1,5 +1,12 @@
-import { spawn } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { execFileSync, spawn } from "node:child_process";
+import {
+  chmodSync,
+  mkdtempSync,
+  mkdirSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createRequire } from "node:module";
@@ -10,7 +17,46 @@ import {
   serviceRequest,
 } from "../src/desktop/service-client.js";
 
-const directory = mkdtempSync(join(tmpdir(), "argent-native-"));
+const directory = realpathSync(mkdtempSync(join(tmpdir(), "argent-native-")));
+// A throwaway repository and a fake Claude Code CLI for the local-workspace flow.
+const repository = join(directory, "repository");
+mkdirSync(repository);
+const git = (...args: string[]) =>
+  execFileSync(
+    "git",
+    [
+      "-c",
+      "user.name=Argent Smoke",
+      "-c",
+      "user.email=smoke@example.invalid",
+      ...args,
+    ],
+    { cwd: repository, stdio: "ignore" },
+  );
+git("init", "--quiet", "--initial-branch=main");
+writeFileSync(join(repository, "README.md"), "# smoke\n");
+git("add", "README.md");
+git("commit", "--quiet", "-m", "initial");
+const claude = join(directory, "claude");
+writeFileSync(
+  claude,
+  `#!${process.execPath}
+const fs = require("node:fs");
+let input = "";
+process.stdin.on("data", (c) => (input += c));
+process.stdin.on("end", () => {
+  const args = process.argv.slice(2);
+  const session = args[args.indexOf("--session-id") + 1 || args.indexOf("--resume") + 1];
+  const out = (event) => process.stdout.write(JSON.stringify(event) + "\\n");
+  out({ type: "system", subtype: "init", session_id: session, model: "smoke" });
+  out({ type: "assistant", message: { content: [{ type: "tool_use", name: "Write", input: { file_path: process.cwd() + "/notes.txt" } }] } });
+  fs.writeFileSync("notes.txt", input + "\\n");
+  out({ type: "assistant", message: { content: [{ type: "text", text: "Added notes.txt with the requested text." }] } });
+  out({ type: "result", subtype: "success", is_error: false, num_turns: 2, duration_ms: 40, result: "done" });
+});
+`,
+);
+chmodSync(claude, 0o755);
 const screenshot = resolve(".context/argent-desktop.png");
 mkdirSync(resolve(".context"), { recursive: true });
 const executable =
@@ -24,6 +70,8 @@ const environment: NodeJS.ProcessEnv = {
   ARGENT_DESKTOP_DATA_DIR: directory,
   ARGENT_DESKTOP_SMOKE: "1",
   ARGENT_SCREENSHOT_PATH: screenshot,
+  ARGENT_DESKTOP_SMOKE_REPOSITORY: repository,
+  ARGENT_CLAUDE_PATH: claude,
 };
 delete environment.ELECTRON_RUN_AS_NODE;
 try {

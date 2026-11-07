@@ -42,9 +42,11 @@ address, never a personal one.
 ## 2. Every claim must match the code
 
 - Write in the present tense only what works on `main` today. Everything else is
-  labelled planned, in development or illustrative. Agent execution is currently
-  **simulated** on `main`: never describe real agents, cloud workspaces, parallel
-  runs, mobile access or pull requests as working until they land there.
+  labelled planned, in development or illustrative. On `main`, the desktop app
+  runs **Claude Code in local worktrees** (not a sandbox); GitHub-URL workspaces
+  and all cloud work are **simulated**. Never describe other agents, cloud
+  workspaces, diffs, tests, mobile access or pull requests as working until they
+  land there.
 - Describe `main`, not a branch. Never write "this branch contains…", "current
   branch…" or link to a branch in a public document.
 - Do not hard-code numbers that go stale (test counts, versions, dates of "latest

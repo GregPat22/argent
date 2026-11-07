@@ -1,6 +1,7 @@
 import type {
   Evidence,
   Page,
+  PermissionMode,
   RunEvent,
   RunView,
   Workspace,
@@ -8,7 +9,6 @@ import type {
 
 export interface ServiceStatus {
   connected: boolean;
-  simulation: true;
   engine: "local";
 }
 
@@ -25,12 +25,19 @@ export interface DesktopBridge {
   listWorkspaces(before?: string): Promise<Page<Workspace>>;
   getWorkspace(id: string): Promise<Workspace>;
   createWorkspace(repository: string): Promise<Workspace>;
+  /**
+   * Creates a worktree workspace. The repository folder is chosen by the person
+   * in a native dialog, or reused from `fromWorkspaceId`; the renderer never
+   * supplies a path. Resolves to null when the dialog is cancelled.
+   */
+  createLocalWorkspace(fromWorkspaceId?: string): Promise<Workspace | null>;
   listRuns(workspaceId: string, before?: string): Promise<Page<RunView>>;
   createRun(
     workspaceId: string,
     task: string,
     maxRuntimeMs: number,
     key: string,
+    permissionMode?: PermissionMode,
   ): Promise<RunView>;
   getRun(id: string): Promise<RunView>;
   events(

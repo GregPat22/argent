@@ -2,7 +2,7 @@
   "name": "argent",
   "version": "0.0.1",
   "private": true,
-  "description": "Open-source desktop app for AI coding agents in persistent workspaces, with durable runs, independent verification and human control. Early prototype: agent execution is simulated.",
+  "description": "Open-source desktop app for AI coding agents in persistent workspaces, with durable runs, independent verification and human control. Early prototype: runs Claude Code in local Git worktrees; cloud workspaces are planned.",
   "license": "MIT",
   "repository": {
     "type": "git",

@@ -1,9 +1,10 @@
 # Architecture
 
 Status: the M0 engine, the P1 local desktop prototype and the P2 desktop shell are
-implemented, with simulated execution. Local execution with real agents
-([spec 0013](docs/specs/0013-local-mvp.md)) is in development; the managed
-architecture below is the proposed later target.
+implemented. The desktop app runs Claude Code in local worktrees
+([spec 0013](docs/specs/0013-local-mvp.md), slices L1.1 and L1.2); GitHub-URL
+workspaces and the cloud work remain simulated. The managed architecture below is
+the proposed later target.
 No upstream fork, cloud deployment or paid resource is configured.
 
 ## Shape and boundaries
@@ -387,7 +388,7 @@ an interrupted desktop service can finish draining and release ownership. It
 preserves the existing worker-shutdown `needs_attention` state and does not replay
 work. The API/worker/store boundaries and loopback restriction remain unchanged.
 
-## Local execution mode (engine implemented, desktop controls planned)
+## Local execution mode (engine and desktop controls implemented)
 
 [Spec 0013](docs/specs/0013-local-mvp.md) adds a second workspace provider beside
 the simulation. A `local-worktree` workspace records a local repository, its base
@@ -405,3 +406,6 @@ deliberate, labelled exception for local use: it is not isolation, and a remote
 or managed control-plane host still never executes repository code. Argent's own
 Git commands disable hooks and fsmonitor, every process is started without a
 shell, and agents receive an allowlisted environment without provider API keys.
+The repository folder reaches the service only from a native dialog in the
+desktop main process, or from a workspace the service already recorded; the
+sandboxed renderer cannot pass a path.

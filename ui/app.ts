@@ -1,5 +1,11 @@
 import type { ArtifactView, DesktopBridge } from "../src/desktop/contracts.js";
-import type { RunEvent, RunStatus, RunView, Workspace } from "../src/domain.js";
+import type {
+  PermissionMode,
+  RunEvent,
+  RunStatus,
+  RunView,
+  Workspace,
+} from "../src/domain.js";
 import { mergeHistory as merge } from "./history.js";
 
 function element<T extends HTMLElement = HTMLElement>(id: string): T {
@@ -64,6 +70,7 @@ let pending: {
   task: string;
   maxRuntimeMs: number;
   key: string;
+  permissionMode?: PermissionMode;
 } | null = null;
 let savedSelection: { workspaceId?: string; runId?: string } = {};
 
@@ -94,6 +101,9 @@ try {
         task: row.task,
         maxRuntimeMs: row.maxRuntimeMs,
         key: row.key,
+        ...(row.permissionMode === "edits" || row.permissionMode === "full"
+          ? { permissionMode: row.permissionMode }
+          : {}),
       };
     }
   }
@@ -177,6 +187,25 @@ function currentWorkspace(): Workspace | undefined {
 function currentRun(): RunView | undefined {
   return runs.find((run) => run.id === selectedRun);
 }
+function isLocal(workspace: Workspace | undefined): boolean {
+  return workspace?.provider === "local-worktree" && !!workspace.local;
+}
+function baseName(path: string): string {
+  return path.split("/").filter(Boolean).at(-1) ?? path;
+}
+function agentLabel(run: RunView): string {
+  return run.simulation
+    ? "Scripted adapter"
+    : `Claude Code · ${run.permissionMode === "full" ? "full access" : "edits only"}`;
+}
+function limitLabel(run: RunView): string {
+  return run.maxRuntimeMs >= 60000 && run.maxRuntimeMs % 60000 === 0
+    ? `${run.maxRuntimeMs / 60000} min execution limit`
+    : `${run.maxRuntimeMs / 1000}s execution limit`;
+}
+function files(count: number): string {
+  return `${count} changed file${count === 1 ? "" : "s"}`;
+}
 function busyWorkspace(): boolean {
   return runs.some((run) => activeStates.includes(run.status));
 }
@@ -203,6 +232,8 @@ function updateConnection(): void {
     !connected || mutationBusy;
   element<HTMLButtonElement>("welcome-create").disabled =
     !connected || mutationBusy;
+  element<HTMLButtonElement>("local-workspace-choose").disabled =
+    !connected || mutationBusy;
 }
 
 function renderWorkspaces(): void {
@@ -213,7 +244,9 @@ function renderWorkspaces(): void {
     const focused = document.activeElement?.getAttribute("data-workspace-id");
     list.replaceChildren();
     for (const workspace of workspaces) {
-      const pieces = workspace.repository.split("/");
+      const pieces = workspace.local
+        ? [workspace.local.branch, baseName(workspace.local.repositoryPath)]
+        : workspace.repository.split("/");
       const button = node(
         "button",
         "",
@@ -224,7 +257,7 @@ function renderWorkspaces(): void {
         "aria-pressed",
         String(workspace.id === selectedWorkspace),
       );
-      button.title = workspace.repository;
+      button.title = workspace.local?.worktreePath ?? workspace.repository;
       const copy = node("span", "", "workspace-copy");
       copy.append(
         node("span", pieces.at(-1) ?? "Workspace", "workspace-name"),
@@ -298,7 +331,17 @@ function renderRuns(): void {
   element<HTMLButtonElement>("more-runs").disabled = !connected || mutationBusy;
 }
 
-function eventDescription(event: RunEvent): {
+const logTitles: Record<string, string> = {
+  text: "Claude Code",
+  tool: "Tool call",
+  tool_error: "Tool error",
+  status: "Status",
+};
+
+function eventDescription(
+  event: RunEvent,
+  real: boolean,
+): {
   title: string;
   detail: string;
   data?: string;
@@ -315,6 +358,12 @@ function eventDescription(event: RunEvent): {
     "run.needs_attention": "Human review required",
     "run.resolved": "Review recorded",
   };
+  if (real) {
+    known["agent.log"] =
+      logTitles[String(event.data.kind ?? "text")] ?? "Claude Code";
+    known["verification.recorded"] = "Worktree recorded";
+    known["run.completed"] = "Run completed";
+  }
   let detail = "";
   if (typeof event.data.message === "string") detail = event.data.message;
   else if (event.type === "run.queued")
@@ -323,10 +372,13 @@ function eventDescription(event: RunEvent): {
     detail =
       "The worker claimed the run. Closing this window will not cancel it.";
   else if (event.type === "verification.recorded")
-    detail =
-      "Artifact identity and contents were checked independently of adapter messages.";
+    detail = real
+      ? "Argent inspected the worktree itself: branch, commit, changed files and diff fingerprint. Nothing was tested."
+      : "Artifact identity and contents were checked independently of adapter messages.";
   else if (event.type === "run.completed")
-    detail = "The scripted run completed with independent simulation evidence.";
+    detail = real
+      ? "Claude Code finished and Argent recorded the worktree. Review the changes before using them."
+      : "The scripted run completed with independent simulation evidence.";
   else if (event.type === "run.needs_attention")
     detail = "The outcome is uncertain. No work was automatically replayed.";
   else if (typeof event.data.note === "string") detail = event.data.note;
@@ -349,23 +401,29 @@ function renderEvents(): void {
       (item) => (item as HTMLElement).dataset.cursor,
     ),
   );
+  const real = currentRun()?.simulation === false;
   for (const event of events) {
     if (rendered.has(String(event.cursor))) continue;
     const row = node("article", "", "activity-event");
     row.dataset.cursor = String(event.cursor);
+    const kind = String(event.data.kind ?? "");
     const symbol =
       event.type === "run.completed" || event.type === "verification.recorded"
         ? "circle-check"
-        : event.type === "run.needs_attention"
+        : event.type === "run.needs_attention" || kind === "tool_error"
           ? "triangle-alert"
           : event.type === "agent.log"
-            ? "terminal"
+            ? kind === "text"
+              ? "message-square"
+              : kind === "status"
+                ? "info"
+                : "terminal"
             : event.type === "run.started"
               ? "play"
               : "clock-3";
     const copy = node("div", "", "event-copy");
     const heading = node("div", "", "event-heading");
-    const description = eventDescription(event);
+    const description = eventDescription(event, real);
     const timestamp = node("time", time(event.createdAt));
     timestamp.dateTime = new Date(event.createdAt).toISOString();
     heading.append(node("h4", description.title), timestamp);
@@ -397,19 +455,42 @@ function renderVerification(): void {
     artifactError ||
     (run?.status === "failed" || run?.status === "cancelled"
       ? "This run did not complete with verified evidence. Inspect its activity for the recorded outcome."
-      : "A completed simulation will include an independently checked artifact and its SHA-256 fingerprint.");
+      : run && !run.simulation
+        ? "A finished Claude Code run records its branch, commit, changed files and a diff fingerprint. Nothing is tested yet."
+        : "A completed simulation will include an independently checked artifact and its SHA-256 fingerprint.");
   if (!artifact) return;
   const evidence = artifact.evidence;
+  const worktree = evidence.kind === "worktree-record";
+  element("verified-title").textContent = worktree
+    ? "Worktree recorded"
+    : "Artifact verified";
+  element("verified-subtitle").textContent = worktree
+    ? "Argent inspected the branch itself. Nothing was tested."
+    : "Independent simulation check passed";
+  element("verified-badge").textContent = worktree
+    ? "NOT TESTED"
+    : "SIMULATION";
+  element("evidence-check").textContent = worktree
+    ? "Branch, commit, changed files and diff"
+    : "Artifact identity and content";
+  element("artifact-label").textContent = worktree ? "Worktree" : "Artifact";
+  element("sha-label").textContent = worktree ? "Diff SHA-256" : "SHA-256";
+  element("artifact-heading-title").textContent = worktree
+    ? "Recorded evidence"
+    : "Artifact contents";
+  element("evidence-note").textContent = worktree
+    ? "This records what changed against the base commit. It is not a test result or a pull request."
+    : "This verifies a simulation artifact. It is not evidence of repository tests or a pull request.";
   element("artifact-name").textContent =
     evidence.kind === "simulation-artifact-check"
       ? evidence.artifact
-      : `${evidence.branch} at ${evidence.headSha.slice(0, 12)}, ${evidence.changedFiles} changed files (not tested)`;
+      : `${evidence.branch} at ${evidence.headSha.slice(0, 12)}, ${files(evidence.changedFiles)} (not tested)`;
   element("artifact-sha").textContent =
     evidence.kind === "simulation-artifact-check"
       ? evidence.sha256
       : evidence.diffSha256;
   element("artifact-content").textContent = JSON.stringify(
-    artifact.content,
+    worktree ? evidence : artifact.content,
     null,
     2,
   );
@@ -429,11 +510,34 @@ function render(): void {
   element("task-navigation").hidden = !workspace;
   element("welcome").hidden = !!workspace;
   element("workspace-content").hidden = !workspace;
-  element("workspace-title").textContent =
-    workspace?.repository.split("/").at(-1) ?? "Welcome to Argent";
-  element("workspace-repository").textContent =
-    workspace?.repository.replace("https://", "") ??
-    "A durable place for your development tasks.";
+  const local = isLocal(workspace) ? workspace!.local! : undefined;
+  element("workspace-title").textContent = local
+    ? baseName(local.repositoryPath)
+    : (workspace?.repository.split("/").at(-1) ?? "Welcome to Argent");
+  element("workspace-repository").textContent = local
+    ? `${local.branch} · ${local.worktreePath}`
+    : (workspace?.repository.replace("https://", "") ??
+      "A durable place for your development tasks.");
+  element("workspace-repository").title = local?.worktreePath ?? "";
+  const notice = element("execution-notice");
+  notice.className = `simulation-notice${local ? " local-agent" : ""}`;
+  element("execution-notice-icon").className =
+    `icon icon-${local ? "triangle-alert" : "info"}`;
+  element("execution-notice-title").textContent = local
+    ? "Claude Code · not a sandbox"
+    : "Local simulation";
+  element("execution-notice-detail").textContent = local
+    ? " · The agent runs as you, with your files, network and credentials. Its changes stay on this branch in its own worktree."
+    : " · Scripted execution and verified artifacts. No model, cloud resource or pull request.";
+  element("agent-label").textContent = local
+    ? "Claude Code"
+    : "Scripted adapter";
+  element("composer-agent-note").textContent = local
+    ? "Claude Code · your sign-in · follow-ups continue the conversation"
+    : "Scripted simulation · No model connected";
+  const parallel = element<HTMLButtonElement>("workspace-parallel");
+  parallel.hidden = !local;
+  parallel.disabled = !connected || mutationBusy;
   const state = element("workspace-state");
   state.hidden = !workspace;
   state.textContent = workspace?.state === "running" ? "Ready" : "Stopped";
@@ -469,17 +573,19 @@ function render(): void {
   element("detail-empty").hidden = !!run;
   element("run-detail").hidden = !run;
   element("inspector-artifact-summary").textContent = !run
-    ? "Select a session to inspect its retained simulation artifact."
+    ? "Select a session to inspect its recorded evidence."
     : artifact
       ? artifact.evidence.kind === "simulation-artifact-check"
         ? `Retained artifact: ${artifact.evidence.artifact}`
-        : `Worktree record: ${artifact.evidence.changedFiles} changed files`
+        : `Worktree record: ${files(artifact.evidence.changedFiles)}`
       : "No verified artifact available for this session.";
   element("inspector-check-summary").textContent = !run
     ? "Select a session to inspect its verification status."
     : artifact
-      ? "Artifact identity and SHA-256 verified. Simulation only."
-      : `Session ${labels[run.status].toLowerCase()}. No passing simulation evidence available.`;
+      ? artifact.evidence.kind === "simulation-artifact-check"
+        ? "Artifact identity and SHA-256 verified. Simulation only."
+        : `Worktree recorded at ${artifact.evidence.headSha.slice(0, 12)}. Not tested.`
+      : `Session ${labels[run.status].toLowerCase()}. No recorded evidence available.`;
   element<HTMLButtonElement>("inspect-artifact").disabled = !run;
   element<HTMLButtonElement>("inspect-checks").disabled = !run;
   if (!run) return;
@@ -488,7 +594,7 @@ function render(): void {
   element("run-id").textContent = `RUN ${shortId(run.id)}`;
   element("run-title").textContent = run.task;
   element("run-meta").textContent =
-    `${date(run.createdAt)}  ·  Scripted adapter  ·  ${run.maxRuntimeMs / 1000}s execution limit`;
+    `${date(run.createdAt)}  ·  ${agentLabel(run)}  ·  ${limitLabel(run)}`;
   const cancel = element<HTMLButtonElement>("cancel-run");
   cancel.hidden = !["queued", "running", "cancelling"].includes(run.status);
   cancel.disabled = !connected || mutationBusy || run.status === "cancelling";
@@ -670,22 +776,68 @@ function showDialog(id: string, focusId?: string): void {
   if (focusId) element(focusId).focus();
 }
 
+// Local runs are entered in minutes (up to two hours); simulations in seconds.
+let runtimeUnitMs = 1000;
+
+function submitLabel(): string {
+  return isLocal(currentWorkspace()) ? "Start Claude Code" : "Start simulation";
+}
+
+function permissionInputs(): HTMLInputElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLInputElement>('input[name="permission"]'),
+  );
+}
+
+function setTaskLocked(locked: boolean): void {
+  element<HTMLTextAreaElement>("task-input").readOnly = locked;
+  element<HTMLInputElement>("runtime-input").readOnly = locked;
+  for (const input of permissionInputs()) input.disabled = locked;
+  element("pending-notice").hidden = !locked;
+  element("task-submit").textContent = locked
+    ? "Retry submission"
+    : submitLabel();
+}
+
 function openTask(): void {
   if (!selectedWorkspace || !connected) return;
   const remembered =
     pending?.workspaceId === selectedWorkspace ? pending : null;
+  const local = isLocal(currentWorkspace());
+  const followUp = local && runs.length > 0;
+  runtimeUnitMs = local ? 60000 : 1000;
   const task = element<HTMLTextAreaElement>("task-input");
   const runtime = element<HTMLInputElement>("runtime-input");
+  runtime.max = local ? "120" : "300";
+  element("runtime-unit").textContent = local ? "minutes" : "seconds";
+  element("task-eyebrow").textContent = local
+    ? "CLAUDE CODE · NOT A SANDBOX"
+    : "LOCAL SIMULATION";
+  element("task-dialog-title").textContent = followUp
+    ? "Continue the conversation"
+    : "Start a task";
+  element("task-description").textContent = local
+    ? `Claude Code works in this workspace's worktree with your own sign-in${followUp ? " and resumes the previous conversation" : ""}. It runs as you, with access to your files, network and credentials.`
+    : "The scripted adapter will record activity and create a verifiable artifact.";
+  element("permission-field").hidden = !local;
+  const mode = remembered?.permissionMode ?? "edits";
+  for (const input of permissionInputs()) input.checked = input.value === mode;
   task.value = remembered?.task ?? "";
-  runtime.value = String((remembered?.maxRuntimeMs ?? 30000) / 1000);
-  task.readOnly = !!remembered;
-  runtime.readOnly = !!remembered;
-  element("pending-notice").hidden = !remembered;
-  element("task-submit").textContent = remembered
-    ? "Retry submission"
-    : "Start simulation";
+  runtime.value = String(
+    Math.round(
+      (remembered?.maxRuntimeMs ?? (local ? 1800000 : 30000)) / runtimeUnitMs,
+    ),
+  );
+  setTaskLocked(!!remembered);
   formError("task-form-error");
   showDialog("task-dialog", "task-input");
+}
+
+function selectedPermission(): PermissionMode | undefined {
+  if (!isLocal(currentWorkspace())) return undefined;
+  return permissionInputs().find((input) => input.checked)?.value === "full"
+    ? "full"
+    : "edits";
 }
 
 async function mutate(action: () => Promise<void>): Promise<void> {
@@ -706,7 +858,38 @@ async function mutate(action: () => Promise<void>): Promise<void> {
 
 element("new-workspace").addEventListener("click", () => {
   formError("workspace-form-error");
-  showDialog("workspace-dialog", "repository-input");
+  showDialog("workspace-dialog", "local-workspace-choose");
+});
+element("local-workspace-choose").addEventListener("click", () => {
+  const button = element<HTMLButtonElement>("local-workspace-choose");
+  if (button.disabled) return;
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  formError("workspace-form-error");
+  void (async () => {
+    try {
+      const workspace = await api().createLocalWorkspace();
+      if (!workspace) return;
+      workspaces = merge(workspaces, [workspace]);
+      element<HTMLDialogElement>("workspace-dialog").close();
+      selectWorkspace(workspace.id);
+    } catch (error) {
+      formError("workspace-form-error", error);
+    } finally {
+      button.disabled = !connected;
+      button.setAttribute("aria-busy", "false");
+    }
+  })();
+});
+element("workspace-parallel").addEventListener("click", () => {
+  const source = currentWorkspace();
+  if (!isLocal(source)) return;
+  void mutate(async () => {
+    const workspace = await api().createLocalWorkspace(source!.id);
+    if (!workspace) return;
+    workspaces = merge(workspaces, [workspace]);
+    selectWorkspace(workspace.id);
+  });
 });
 element("welcome-create").addEventListener("click", () =>
   element("new-workspace").click(),
@@ -764,8 +947,9 @@ element<HTMLFormElement>("task-form").addEventListener("submit", (event) => {
     workspaceId: selectedWorkspace,
     task: element<HTMLTextAreaElement>("task-input").value.trim(),
     maxRuntimeMs:
-      Number(element<HTMLInputElement>("runtime-input").value) * 1000,
+      Number(element<HTMLInputElement>("runtime-input").value) * runtimeUnitMs,
     key: crypto.randomUUID(),
+    ...(selectedPermission() ? { permissionMode: selectedPermission()! } : {}),
   };
   if (!pending.task) {
     pending = null;
@@ -784,6 +968,7 @@ element<HTMLFormElement>("task-form").addEventListener("submit", (event) => {
         submission.task,
         submission.maxRuntimeMs,
         submission.key,
+        submission.permissionMode,
       );
       pending = null;
       persist();
@@ -808,15 +993,9 @@ element<HTMLFormElement>("task-form").addEventListener("submit", (event) => {
       ) {
         pending = null;
         persist();
-        element<HTMLTextAreaElement>("task-input").readOnly = false;
-        element<HTMLInputElement>("runtime-input").readOnly = false;
-        element("pending-notice").hidden = true;
-        element("task-submit").textContent = "Start simulation";
+        setTaskLocked(false);
       } else {
-        element<HTMLTextAreaElement>("task-input").readOnly = true;
-        element<HTMLInputElement>("runtime-input").readOnly = true;
-        element("pending-notice").hidden = false;
-        element("task-submit").textContent = "Retry submission";
+        setTaskLocked(true);
       }
       formError("task-form-error", error);
     } finally {

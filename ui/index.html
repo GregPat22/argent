@@ -24,7 +24,7 @@
         <img class="brand-symbol" src="./argent-icon.webp" alt="" /> Argent
       </button>
       <div class="titlebar-label">Your workspace, in focus</div>
-      <span class="prototype-label">LOCAL SIMULATION</span>
+      <span class="prototype-label">EARLY PREVIEW</span>
     </header>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Workspaces">
@@ -141,17 +141,24 @@
             <span id="workspace-state" class="badge" hidden></span
             ><button id="workspace-lifecycle" class="button secondary" hidden>
               Stop workspace</button
+            ><button id="workspace-parallel" class="button secondary" hidden>
+              <span class="icon icon-folder-git-2" aria-hidden="true"></span>
+              Parallel workspace</button
             ><button id="new-task" class="button primary" disabled>
               <span class="icon icon-plus" aria-hidden="true"></span> New
               session
             </button>
           </div>
         </header>
-        <div class="simulation-notice">
-          <span class="icon icon-info" aria-hidden="true"></span
+        <div id="execution-notice" class="simulation-notice" role="note">
+          <span
+            id="execution-notice-icon"
+            class="icon icon-info"
+            aria-hidden="true"
+          ></span
           ><span
-            ><strong>Local simulation</strong
-            ><span class="notice-detail">
+            ><strong id="execution-notice-title">Local simulation</strong
+            ><span id="execution-notice-detail" class="notice-detail">
               · Scripted execution and verified artifacts. No model, cloud
               resource or pull request.</span
             ></span
@@ -181,8 +188,8 @@
           <span class="eyebrow">WELCOME TO ARGENT</span>
           <h2>Start with a repository.</h2>
           <p>
-            Give your tasks a workspace. Activity, decisions and verified
-            artifacts stay together when you come back.
+            Choose a local Git repository. Each workspace gets its own branch
+            and worktree, and Claude Code works there with your own sign-in.
           </p>
           <button id="welcome-create" class="button primary">
             Add your first workspace
@@ -253,7 +260,7 @@
                 <p>
                   This session was interrupted before its outcome was confirmed.
                   Argent did not replay the task. Review the activity, then
-                  abandon this simulation to continue.
+                  abandon this run to continue.
                 </p>
                 <button id="resolve-run" class="button secondary">
                   Review and resolve
@@ -337,31 +344,35 @@
                       aria-hidden="true"
                     ></span>
                     <div>
-                      <h3>Artifact verified</h3>
-                      <p>Independent simulation check passed</p>
+                      <h3 id="verified-title">Artifact verified</h3>
+                      <p id="verified-subtitle">
+                        Independent simulation check passed
+                      </p>
                     </div>
-                    <span class="badge neutral">SIMULATION</span>
+                    <span id="verified-badge" class="badge neutral"
+                      >SIMULATION</span
+                    >
                   </div>
                   <dl class="evidence-fields">
                     <div>
                       <dt>Check</dt>
-                      <dd>Artifact identity and content</dd>
+                      <dd id="evidence-check">Artifact identity and content</dd>
                     </div>
                     <div>
-                      <dt>Artifact</dt>
+                      <dt id="artifact-label">Artifact</dt>
                       <dd id="artifact-name" class="mono"></dd>
                     </div>
                     <div>
-                      <dt>SHA-256</dt>
+                      <dt id="sha-label">SHA-256</dt>
                       <dd id="artifact-sha" class="mono fingerprint"></dd>
                     </div>
                   </dl>
                   <div class="artifact-heading">
-                    <h4>Artifact contents</h4>
+                    <h4 id="artifact-heading-title">Artifact contents</h4>
                     <span>Persisted JSON</span>
                   </div>
                   <pre id="artifact-content" class="artifact-content"></pre>
-                  <p class="evidence-note">
+                  <p id="evidence-note" class="evidence-note">
                     This verifies a simulation artifact. It is not evidence of
                     repository tests or a pull request.
                   </p>
@@ -370,7 +381,7 @@
             </div>
             <form id="composer-form" class="composer">
               <label class="sr-only" for="composer-input"
-                >Describe a simulation task</label
+                >Describe a task</label
               >
               <textarea
                 id="composer-input"
@@ -381,7 +392,7 @@
               <div class="composer-toolbar">
                 <button id="agent-picker" type="button" class="agent-picker">
                   <span class="icon icon-bot" aria-hidden="true"></span>
-                  Scripted adapter
+                  <span id="agent-label">Scripted adapter</span>
                   <span
                     class="icon icon-chevron-down"
                     aria-hidden="true"
@@ -393,13 +404,14 @@
                   type="submit"
                   class="send-button"
                   title="Review task (⌘/Ctrl+Enter)"
-                  aria-label="Review simulation task"
+                  aria-label="Review task"
                 >
                   <span class="icon icon-arrow-up" aria-hidden="true"></span>
                 </button>
               </div>
               <div class="composer-footnote">
-                <span>Scripted simulation · No model connected</span
+                <span id="composer-agent-note"
+                  >Scripted simulation · No model connected</span
                 ><span><kbd>⌘ / Ctrl ↵</kbd> to review</span>
               </div>
             </form>
@@ -438,7 +450,7 @@
           <div class="inspector-mark">
             <span class="icon icon-package" aria-hidden="true"></span>
           </div>
-          <div class="inspector-section-label">RETAINED ARTIFACTS</div>
+          <div class="inspector-section-label">RECORDED EVIDENCE</div>
           <p id="inspector-artifact-summary">
             Select a session to inspect its retained simulation artifact.
           </p>
@@ -447,7 +459,7 @@
             Inspect artifact
           </button>
           <p class="field-note">
-            Artifact identity and SHA-256 are checked independently.
+            Argent records evidence itself, independently of agent messages.
           </p>
         </section>
         <section id="inspector-files" class="inspector-pane" hidden>
@@ -455,10 +467,10 @@
             <span class="icon icon-files" aria-hidden="true"></span>
           </div>
           <div class="inspector-section-label">REPOSITORY FILES</div>
-          <h3>No checkout yet</h3>
+          <h3>No file tree yet</h3>
           <p>
-            Workspaces currently store repository metadata. A file tree will
-            appear when isolated checkout is connected.
+            Local workspaces have their own worktree, shown under the workspace
+            title. Open it in your editor; a file tree is planned.
           </p>
           <span class="planned-label">Planned integration</span>
         </section>
@@ -470,10 +482,11 @@
             ></span>
           </div>
           <div class="inspector-section-label">WORKING CHANGES</div>
-          <h3>No repository diff available</h3>
+          <h3>No diff view yet</h3>
           <p>
-            The scripted adapter writes a fixed JSON artifact. It does not edit
-            repository files or create pull requests.
+            A changes view for local workspaces comes next. Until then, each
+            finished run records its changed-file count and a diff fingerprint.
+            Simulation workspaces write a fixed JSON artifact only.
           </p>
           <span class="planned-label">Planned integration</span>
         </section>
@@ -490,7 +503,8 @@
             verification
           </button>
           <p class="field-note">
-            Simulation evidence is separate from repository tests.
+            Recorded evidence is separate from repository tests, which are
+            planned.
           </p>
         </section>
         <section class="terminal-preview" aria-label="Terminal preview">
@@ -508,7 +522,7 @@
           <div id="terminal-output" class="terminal-body">
             <span class="planned-label">Preview · not connected</span>
             <p id="terminal-description">
-              An isolated workspace terminal will live here.
+              A terminal for this workspace's worktree will live here.
             </p>
             <span class="terminal-prompt"
               >argent
@@ -581,8 +595,8 @@
           <div class="settings-notice">
             <span class="icon icon-info" aria-hidden="true"></span
             ><span
-              >Account connections are coming next. The scripted adapter is
-              available now.</span
+              >Claude Code is available for local repositories through its
+              official CLI. Other agents are planned.</span
             >
           </div>
           <div class="provider-tabs" aria-label="Agent providers">
@@ -596,8 +610,8 @@
           </div>
           <div id="provider-detail">
             <h3 id="provider-name">Claude Code</h3>
-            <span class="planned-label"
-              >Not connected · planned integration</span
+            <span id="provider-status" class="planned-label"
+              >Available · local repositories · official CLI</span
             >
             <div class="auth-options">
               <div>
@@ -616,19 +630,20 @@
               </div>
             </div>
             <p id="provider-note">
-              Claude Code authentication must be verified for local, self-hosted
-              and managed execution separately.
+              Runs the claude CLI with your own sign-in. Argent never reads or
+              stores it and never passes API-key variables, so a missing sign-in
+              fails instead of billing an API account.
             </p>
             <p class="field-note">
-              This screen previews connection choices. No sign-in or credential
-              storage is implemented. Supported methods differ by provider.
+              Sign in once with the claude CLI in a terminal. Argent stores no
+              credentials. Other connection choices shown here are previews.
               Subscription limits never trigger automatic API billing.
             </p>
             <div class="settings-current">
               <strong>Currently available</strong
               ><span
-                >Scripted adapter · Local simulation · No model account
-                required</span
+                >Claude Code for local repositories (your sign-in, not a
+                sandbox) · Scripted adapter for simulation workspaces</span
               >
             </div>
           </div>
@@ -693,7 +708,23 @@
           <h2 id="workspace-dialog-title">Add a workspace</h2>
           <p>A persistent place for tasks and their history.</p>
         </div>
-        <label for="repository-input">GitHub repository</label
+        <button
+          id="local-workspace-choose"
+          type="button"
+          class="button primary local-choose"
+          aria-describedby="local-workspace-note"
+        >
+          <span class="icon icon-folder-git-2" aria-hidden="true"></span>
+          Choose a local repository…
+        </button>
+        <p id="local-workspace-note" class="field-note">
+          Argent creates a new <span class="mono">argent/</span> branch in a
+          private worktree and runs Claude Code there with your own sign-in.
+          Your checkout is not changed. This is not a sandbox: the agent runs as
+          you.
+        </p>
+        <div class="dialog-divider"><span>or try a simulation</span></div>
+        <label for="repository-input">GitHub repository (simulation)</label
         ><input
           id="repository-input"
           aria-describedby="repository-note workspace-form-error"
@@ -718,8 +749,8 @@
         <div class="dialog-actions">
           <button type="button" class="button secondary" data-close-dialog>
             Cancel</button
-          ><button id="workspace-submit" type="submit" class="button primary">
-            Create workspace
+          ><button id="workspace-submit" type="submit" class="button secondary">
+            Create simulation
           </button>
         </div>
       </form>
@@ -730,9 +761,9 @@
           <div class="dialog-icon">
             <span class="icon icon-bot" aria-hidden="true"></span>
           </div>
-          <span class="eyebrow">LOCAL SIMULATION</span>
+          <span id="task-eyebrow" class="eyebrow">LOCAL SIMULATION</span>
           <h2 id="task-dialog-title">Start a task</h2>
-          <p>
+          <p id="task-description">
             The scripted adapter will record activity and create a verifiable
             artifact.
           </p>
@@ -746,6 +777,26 @@
           rows="5"
           placeholder="Describe a small, verifiable task…"
         ></textarea>
+        <fieldset id="permission-field" class="permission-field" hidden>
+          <legend>Permissions</legend>
+          <label class="permission-option"
+            ><input type="radio" name="permission" value="edits" checked /><span
+              ><strong>Edit files only</strong
+              ><span
+                >Claude Code may read and edit files in this worktree. Anything
+                that needs approval, such as commands, is denied.</span
+              ></span
+            ></label
+          ><label class="permission-option"
+            ><input type="radio" name="permission" value="full" /><span
+              ><strong>Full access</strong
+              ><span
+                >Claude Code may also run any command as you without asking,
+                with your network and credentials.</span
+              ></span
+            ></label
+          >
+        </fieldset>
         <div class="runtime-field">
           <div>
             <label for="runtime-input">Execution limit</label>
@@ -760,7 +811,7 @@
               max="300"
               value="30"
               required
-            /><span>seconds</span>
+            /><span id="runtime-unit">seconds</span>
           </div>
         </div>
         <p
@@ -791,7 +842,7 @@
             <span class="icon icon-triangle-alert" aria-hidden="true"></span>
           </div>
           <span class="eyebrow">HUMAN REVIEW</span>
-          <h2 id="resolve-dialog-title">Resolve this simulation</h2>
+          <h2 id="resolve-dialog-title">Resolve this run</h2>
           <p>
             This marks the uncertain run as abandoned. It preserves its history
             and does not replay any work.
@@ -830,8 +881,8 @@
         <span class="eyebrow">LOCAL SERVICE</span>
         <h2 id="stop-dialog-title">Stop execution on this computer?</h2>
         <p>
-          Active simulations may be interrupted and require review. Workspaces,
-          files and activity history remain saved.
+          Active runs, including Claude Code sessions, are stopped and will need
+          review. Workspaces, worktrees and activity history remain saved.
         </p>
       </div>
       <div class="dialog-actions">

@@ -134,8 +134,8 @@ export function RunIt() {
             </LiquidLink>
           </div>
           <p className="mt-8 max-w-[32rem] border-t border-hairline pt-5 text-[0.9375rem] text-sterling-dim">
-            The local desktop prototype is complete with simulated execution.
-            Signed public downloads are still ahead.
+            The desktop prototype runs Claude Code in local Git worktrees, with
+            your own sign-in. Signed public downloads are still ahead.
           </p>
         </div>
 

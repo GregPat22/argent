@@ -35,7 +35,28 @@ else {
     if (process.env.ARGENT_DESKTOP_SMOKE === "1")
       console.log("[ARGENT_STAGE] electron ready");
     const directory = join(app.getPath("userData"), "execution");
-    const client = new DesktopClient(directory);
+    // The development smoke test cannot drive a native dialog.
+    const smokeRepository =
+      process.env.ARGENT_DESKTOP_SMOKE === "1"
+        ? process.env.ARGENT_DESKTOP_SMOKE_REPOSITORY
+        : undefined;
+    const client = new DesktopClient(directory, async () => {
+      if (smokeRepository) return smokeRepository;
+      // The folder comes only from this native dialog, never from the renderer.
+      const options = {
+        title: "Choose a Git repository",
+        buttonLabel: "Create workspace",
+        message:
+          "Argent creates a new branch in a private worktree. Your checkout is not changed.",
+        properties: ["openDirectory" as const],
+      };
+      const result = window
+        ? await dialog.showOpenDialog(window, options)
+        : await dialog.showOpenDialog(options);
+      return result.canceled || !result.filePaths[0]
+        ? null
+        : result.filePaths[0];
+    });
     const assets = fileURLToPath(new URL("../../ui/", import.meta.url));
     const allowed = new Map([
       ["/index.html", "text/html"],
@@ -157,7 +178,7 @@ else {
                   cancelId: 0,
                   message: "Stop the local execution service?",
                   detail:
-                    "An active simulated task will be interrupted and require review. Workspace files and history are preserved.",
+                    "Active runs, including Claude Code sessions, are stopped and will need review. Workspaces, worktrees and history are preserved.",
                 });
                 if (answer.response === 1) await client.call("stopService", []);
               },
