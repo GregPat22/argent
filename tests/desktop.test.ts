@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -11,6 +16,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { inspectArtifact } from "../src/artifacts.js";
 import { LocalWorkspace, ScriptedAgent } from "../src/adapters.js";
+import type { RunView, Workspace, WorktreeEvidence } from "../src/domain.js";
 import { Store } from "../src/store.js";
 import { Worker } from "../src/worker.js";
 import {
@@ -94,6 +100,34 @@ test("reviewing an uncertain simulation records abandonment and allows new work 
   }
 });
 
+test("reviewing an uncertain real run records it as a real run, not a simulation", () => {
+  const store = new Store(":memory:");
+  try {
+    const workspace = store.createLocalWorkspace(
+      "00000000-0000-4000-8000-000000000001",
+      {
+        repositoryPath: "/repo",
+        branch: "argent/00000000",
+        baseSha: "0".repeat(40),
+        worktreePath: "/data/worktrees/00000000-0000-4000-8000-000000000001",
+      },
+      "00000000-0000-4000-8000-000000000002",
+      1000,
+    );
+    const run = store.createRun(workspace.id, "Task", "key", 1000, 1000);
+    store.claim(100, 1000);
+    store.reconcile(1100);
+    store.resolveSimulation(run.id, "Checked the worktree; abandon this run.");
+    const [resolved, failed] = store.events(run.id).slice(-2);
+    assert.equal(resolved?.data.action, "abandon_run");
+    assert.equal(resolved?.data.simulation, false);
+    assert.equal(failed?.data.reason, "operator_abandoned_run");
+    assert.equal(failed?.data.simulation, false);
+  } finally {
+    store.close();
+  }
+});
+
 test("artifact inspection checks retained bytes against committed evidence", async () => {
   const root = mkdtempSync(join(tmpdir(), "argent-artifact-"));
   const store = new Store(":memory:");
@@ -152,7 +186,7 @@ test("detached service persists across clients, deduplicates startup, and expose
     const status = await client.call("status", []);
     assert.deepEqual(status, {
       ok: true,
-      value: { connected: true, simulation: true, engine: "local" },
+      value: { connected: true, engine: "local" },
     });
     assert.equal(JSON.stringify(status).includes(connection.token), false);
     assert.equal(
@@ -269,6 +303,164 @@ test("stopping an active desktop service closes polling connections and preserve
         if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
       }
       await pause();
+    }
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("desktop bridge creates local workspaces only from a chosen folder and runs Claude Code in them", async () => {
+  const root = realpathSync(
+    mkdtempSync(join(tmpdir(), "argent-desktop-local-")),
+  );
+  const repository = join(root, "repo");
+  const git = (...args: string[]) =>
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Argent Test",
+        "-c",
+        "user.email=test@example.invalid",
+        ...args,
+      ],
+      { cwd: repository, stdio: "ignore" },
+    );
+  mkdirSync(repository);
+  git("init", "--quiet", "--initial-branch=main");
+  writeFileSync(join(repository, "README.md"), "# test\n");
+  git("add", "README.md");
+  git("commit", "--quiet", "-m", "initial");
+  // A fake CLI: announces the session, edits one file and reports success.
+  const claude = join(root, "claude");
+  writeFileSync(
+    claude,
+    `#!${process.execPath}
+const fs = require("node:fs");
+let input = "";
+process.stdin.on("data", (c) => (input += c));
+process.stdin.on("end", () => {
+  const args = process.argv.slice(2);
+  const session = args[args.indexOf("--session-id") + 1 || args.indexOf("--resume") + 1];
+  const out = (event) => process.stdout.write(JSON.stringify(event) + "\\n");
+  out({ type: "system", subtype: "init", session_id: session, model: "fake" });
+  fs.writeFileSync("hello.txt", input);
+  out({ type: "assistant", message: { content: [{ type: "text", text: "Wrote hello.txt (" + args[args.indexOf("--permission-mode") + 1] + ")" }] } });
+  out({ type: "result", subtype: "success", is_error: false, num_turns: 1, duration_ms: 5, result: "done" });
+});
+`,
+  );
+  chmodSync(claude, 0o755);
+  const service = join(root, "service");
+  const previous = process.env.ARGENT_CLAUDE_PATH;
+  process.env.ARGENT_CLAUDE_PATH = claude;
+  let connection;
+  try {
+    connection = await ensureService(service);
+    const value = <T>(reply: Awaited<ReturnType<DesktopClient["call"]>>): T => {
+      assert.equal(reply.ok, true, reply.ok ? "" : reply.error);
+      return (reply as { value: T }).value;
+    };
+    let asked = 0;
+    const client = new DesktopClient(service, async () => {
+      asked++;
+      return repository;
+    });
+    assert.equal(
+      value(await new DesktopClient(service).call("createLocalWorkspace", [])),
+      null,
+      "a cancelled folder dialog creates nothing",
+    );
+    const first = value<Workspace>(
+      await client.call("createLocalWorkspace", []),
+    );
+    assert.equal(asked, 1);
+    assert.equal(first.provider, "local-worktree");
+    assert.match(first.local!.branch, /^argent\/[0-9a-f]{8}$/);
+    assert.equal(first.local!.repositoryPath, repository);
+    const parallel = value<Workspace>(
+      await client.call("createLocalWorkspace", [first.id]),
+    );
+    assert.equal(
+      asked,
+      1,
+      "a parallel workspace reuses the recorded repository",
+    );
+    assert.equal(parallel.local!.repositoryPath, repository);
+    assert.notEqual(parallel.local!.branch, first.local!.branch);
+    assert.notEqual(parallel.local!.worktreePath, first.local!.worktreePath);
+    const simulated = value<Workspace>(
+      await client.call("createWorkspace", ["https://github.com/test/repo"]),
+    );
+    const refused = await client.call("createLocalWorkspace", [simulated.id]);
+    assert.equal(refused.ok, false);
+    assert.match(refused.ok ? "" : refused.error, /local repository workspace/);
+    assert.equal(
+      (await client.call("createLocalWorkspace", [first.id, "/elsewhere"])).ok,
+      false,
+      "the renderer cannot supply a repository path",
+    );
+    const invalid = await client.call("createRun", [
+      first.id,
+      "Task",
+      60000,
+      "bad",
+      "root",
+    ]);
+    assert.equal(invalid.ok, false);
+    const run = value<RunView>(
+      await client.call("createRun", [
+        first.id,
+        "hello",
+        3600000,
+        "local-1",
+        "full",
+      ]),
+    );
+    assert.equal(run.simulation, false);
+    assert.equal(run.permissionMode, "full");
+    const deadline = Date.now() + 15000;
+    let status = run.status;
+    while (status !== "completed") {
+      assert.ok(
+        !["failed", "cancelled", "needs_attention"].includes(status),
+        status,
+      );
+      assert.ok(Date.now() < deadline, "the local run must finish");
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      status = value<RunView>(await client.call("getRun", [run.id])).status;
+    }
+    const artifact = value<{ evidence: WorktreeEvidence; simulation: boolean }>(
+      await client.call("artifact", [run.id]),
+    );
+    assert.equal(artifact.simulation, false);
+    assert.equal(artifact.evidence.kind, "worktree-record");
+    assert.equal(artifact.evidence.branch, first.local!.branch);
+    assert.equal(artifact.evidence.changedFiles, 1);
+    assert.equal(
+      readFileSync(join(first.local!.worktreePath, "hello.txt"), "utf8"),
+      "hello",
+    );
+    assert.equal(
+      existsSync(join(parallel.local!.worktreePath, "hello.txt")),
+      false,
+    );
+    assert.equal(existsSync(join(repository, "hello.txt")), false);
+    const events = value<{
+      events: { type: string; data: Record<string, unknown> }[];
+    }>(await client.call("events", [run.id, 0])).events;
+    assert.ok(
+      events.some(
+        (event) => event.data.message === "Wrote hello.txt (bypassPermissions)",
+      ),
+    );
+  } finally {
+    if (previous === undefined) delete process.env.ARGENT_CLAUDE_PATH;
+    else process.env.ARGENT_CLAUDE_PATH = previous;
+    if (connection) {
+      await serviceRequest(connection, "/service/stop", "POST", {});
+      const until = Date.now() + 5000;
+      while (Date.now() < until && (await isServiceAlive(connection)))
+        await new Promise((resolve) => setTimeout(resolve, 50));
     }
     rmSync(root, { recursive: true, force: true });
   }

@@ -815,7 +815,7 @@ test("headings use Inter and product paragraphs describe the actual workflow", a
     "code changes, test results and independent review",
   );
   await expect(statement).toContainText(
-    "Today’s local desktop prototype runs simulated tasks",
+    "Today’s local desktop prototype runs Claude Code",
   );
   await expect(
     page.getByText("Silver connects. Argent coordinates.", { exact: false }),

@@ -6,10 +6,12 @@ its record when you disconnect, and nothing counts as done until an independent
 check says so. You decide what gets merged.
 
 > **Status: early prototype.** The durable engine and the macOS desktop app work
-> today, but **agent execution is simulated**: a scripted adapter writes a JSON
-> artifact that a separate verifier checks. There are no model calls, repository
-> checkouts, cloud workspaces or pull requests yet. Everything below says which
-> parts are real and which are planned.
+> today. The desktop app can run **Claude Code on a local repository**, each
+> workspace on its own branch and Git worktree, using your own `claude` sign-in.
+> Local execution is **not a sandbox**: the agent runs as you. There is no diff
+> view, test runner, pull-request flow or cloud workspace yet, and the GitHub-URL
+> workspaces remain a scripted simulation. Everything below says which parts are
+> real and which are planned.
 
 Follow the build on X: [@Argent_build](https://x.com/Argent_build).
 
@@ -21,16 +23,21 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
 - **Safe failure handling.** If a worker disappears mid-run, the run becomes
   `needs_attention`. Argent never retries something that may already have
   happened; a person reviews it first.
-- **Independent verification.** A run completes only after a separate verifier
-  checks the artifact's identity and SHA-256. Today that artifact is simulated.
+- **Independent evidence.** A run completes only after Argent checks the result
+  itself instead of trusting the agent: for a local Claude Code run, the branch,
+  commit, changed files and a SHA-256 of the diff (recorded, not tested); for a
+  simulation, the artifact's identity and SHA-256.
 - **A desktop app** (macOS, Apple Silicon, unsigned local build): workspaces,
   tasks, live activity and verification details. Closing the app leaves the
   local service running, and reopening it reconnects to the same history.
 - **Offline history export and restore**, as a CLI.
-- **Engine support for real Claude Code runs in local worktrees** (L1.1): the
-  desktop service can create a branch and worktree from a local repository and
-  run the official `claude` CLI in it, with typed logs, follow-ups, cancellation
-  and a worktree record as evidence. The desktop app does not expose it yet. See
+- **Claude Code in local worktrees** (L1.1 and L1.2): choose a repository folder
+  and Argent creates branch `argent/<id>` in a private worktree, leaving your
+  checkout untouched. Claude Code runs there through its official CLI with a live
+  transcript, follow-ups that continue the same conversation, cancellation and a
+  per-run choice between edits only (the default) and full access. Start a
+  parallel workspace on the same repository with one click. Requires the `claude`
+  CLI installed and signed in; Argent never passes API keys. See
   [spec 0013](docs/specs/0013-local-mvp.md).
 - **An opt-in, read-only GitHub sign-in pilot** using GitHub's device flow. It
   is not connected to the desktop app or to task execution.

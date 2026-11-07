@@ -95,6 +95,15 @@ export async function isServiceAlive(
   }
 }
 
+function pick(names: string[]): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const name of names) {
+    const value = process.env[name];
+    if (value) result[name] = value;
+  }
+  return result;
+}
+
 export async function ensureService(
   directory: string,
 ): Promise<ServiceConnection> {
@@ -108,8 +117,21 @@ export async function ensureService(
     stdio: "ignore",
     env: {
       PATH: process.env.PATH ?? "",
-      ...(process.env.HOME ? { HOME: process.env.HOME } : {}),
-      ...(process.env.TMPDIR ? { TMPDIR: process.env.TMPDIR } : {}),
+      // The service passes these on to local agents through its own allowlist
+      // (src/claude-code.ts); provider credentials are never forwarded.
+      ...pick([
+        "HOME",
+        "TMPDIR",
+        "USER",
+        "LOGNAME",
+        "SHELL",
+        "LANG",
+        "LC_ALL",
+        "LC_CTYPE",
+        "TERM",
+        "CLAUDE_CONFIG_DIR",
+        "ARGENT_CLAUDE_PATH",
+      ]),
       ELECTRON_RUN_AS_NODE: "1",
       PLATFORM_DATA_DIR: directory,
     },

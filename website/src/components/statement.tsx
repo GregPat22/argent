@@ -25,9 +25,9 @@ export function Statement() {
           </p>
           <p className="mt-6 max-w-[34rem] text-base leading-[1.75] text-sterling-dim">
             That’s the planned workflow. Today’s local desktop prototype runs
-            simulated tasks and verifies their saved artifacts. Real coding
-            agents, repository checks and cloud workspaces are still in
-            development.
+            Claude Code in its own Git worktree for each task and records what
+            changed. Diff review, repository checks, pull requests and cloud
+            workspaces are still in development.
           </p>
         </div>
         <div className="min-w-0 md:col-span-5">

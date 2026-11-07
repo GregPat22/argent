@@ -467,10 +467,7 @@ export class Store {
     return this.transaction(() => {
       const run = this.getRun(id);
       if (run.status !== "needs_attention")
-        throw new DomainError(
-          409,
-          "Only uncertain simulated runs can be resolved",
-        );
+        throw new DomainError(409, "Only uncertain runs can be resolved");
       const now = Date.now();
       this.db.prepare("UPDATE runs SET status = 'failed' WHERE id = ?").run(id);
       this.event(
@@ -478,16 +475,21 @@ export class Store {
         "run.resolved",
         {
           note: explanation,
-          action: "abandon_simulation",
+          action: run.simulation ? "abandon_simulation" : "abandon_run",
           replayed: false,
-          simulation: true,
+          simulation: run.simulation,
         },
         now,
       );
       this.event(
         id,
         "run.failed",
-        { reason: "operator_abandoned_simulation", simulation: true },
+        {
+          reason: run.simulation
+            ? "operator_abandoned_simulation"
+            : "operator_abandoned_run",
+          simulation: run.simulation,
+        },
         now,
       );
       return this.getRun(id);

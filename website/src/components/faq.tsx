@@ -10,8 +10,9 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     question: "Can I download Argent?",
     answer: (
       <>
-        The local macOS prototype is complete in the source repository. It uses
-        simulated execution; signed public downloads are still planned. You can{" "}
+        The local macOS prototype is in the source repository. It runs Claude
+        Code on your local repositories with your own sign-in, and it is not a
+        sandbox; signed public downloads are still planned. You can{" "}
         <a href={REPO_URL} target="_blank" rel="noreferrer">
           build the desktop prototype from source
         </a>{" "}
@@ -34,10 +35,10 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     question: "Which coding agents can I use today?",
     answer: (
       <>
-        None yet: the prototype uses a scripted adapter, with no AI model or
-        repository connected. Claude Code through its official CLI is the first
-        real agent, in development for the local MVP. Codex follows, then Cursor
-        and OpenCode.
+        Claude Code, through its official CLI and your own sign-in, on a local
+        repository: each workspace gets its own branch and Git worktree. The
+        GitHub-URL workspaces are still a scripted simulation with no AI model
+        or repository connected. Codex follows, then Cursor and OpenCode.
       </>
     ),
   },
@@ -45,10 +46,11 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     question: "What does “proof” mean in the prototype?",
     answer: (
       <>
-        A separate verifier checks a generated JSON artifact and records its
-        SHA-256. That proves the simulation’s artifact identity, not a
-        repository’s correctness. Trusted tests of the exact commit and
-        independent code review belong to the real-agent roadmap.
+        For a Claude Code run, Argent itself records the branch, commit, changed
+        files and a SHA-256 of the diff, instead of trusting the agent. For a
+        simulation, a separate verifier checks a generated JSON artifact.
+        Neither proves a repository’s correctness: trusted tests of the exact
+        commit and independent code review are still on the roadmap.
       </>
     ),
   },

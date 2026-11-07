@@ -1,8 +1,8 @@
 # Contributing to Argent
 
 Argent is early-stage software: a durable local engine and a macOS desktop
-prototype, with simulated agent execution. Persistent cloud execution, real
-agents and signed public distribution are future work. Start with the
+prototype that runs Claude Code in local Git worktrees. Other agents, persistent
+cloud execution and signed public distribution are future work. Start with the
 [README](README.md), [architecture](ARCHITECTURE.md), [roadmap](ROADMAP.md) and
 [AGENTS.md](AGENTS.md).
 

@@ -21,7 +21,7 @@ const MILESTONES = [
     id: "L1",
     title: "Local MVP",
     body: "Real agents on your own computer, Claude Code first: a branch and worktree per task, side by side, a live session, diffs, tests and a draft pull request you merge yourself.",
-    label: "In development",
+    label: "In development · Claude Code runs locally",
     complete: false,
   },
   {
