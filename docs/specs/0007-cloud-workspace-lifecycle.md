@@ -426,3 +426,125 @@ reviewed the actual source/test/docs diff; no external cryptographic/security
 review or measured coverage percentage is claimed. Production key custody,
 audited recovery cleanup and every live A1–A10 gate remain open. See the
 [custody handoff](../../HANDOFF.md#encrypted-simulated-credential-custody--6-november-2026).
+
+## Fifth slice acceptance: audited simulated recovery cleanup
+
+On `GregPat22/next-step-v6`, based on main `1cb55c3`:
+
+- Add an internal, explicitly requested simulation cleanup coordinator for an
+  uncertain bootstrap, authorized only for its original trusted operator. Keep
+  API, desktop and service-loop integration unchanged.
+- Atomically reserve one cleanup attempt per operation, with an idempotency key,
+  absolute deadline, attributed receipt and ordered events. Duplicate requests
+  only read; another key cannot replay an attempt, including after process death.
+- Before any mutation, require fresh, exact-identity independent inspection that
+  original bootstrap effects have settled. Unknown/stale evidence fails closed.
+  Recover an active synthetic token only from the matching encrypted vault.
+- Record intent before each bounded revoke, channel clear or partial-checkout
+  discard. Never mint, clone, resume or repeat uncertain actions. Stop on failure;
+  preserve uncertainty, fixed failure reasons and all original bootstrap history.
+  Revocation acknowledgment erases active ciphertext atomically with its event.
+- Cleanup acknowledgments never unlock the workspace. Separate audited resolution
+  must additionally confirm the exact cleanup attempt's effects have settled;
+  bind its current cleanup event cursor and reject resolution racing an active
+  coordinator or an older inspection. Late cleanup responses cannot write after
+  deadline or resolution.
+- Test authorization, inspection/credential failures, duplicates, concurrent
+  connections/processes, crash/restart, deadlines/late responses, rollback,
+  schema upgrades and secret exclusion. Run `npm run check` and review the diff.
+
+This is synthetic cleanup, not production credential custody or proof of provider
+request fencing. One uncertain cleanup attempt deliberately requires independent
+inspection/manual recovery; there is no automatic retry. Live A1–A10 remain open.
+
+Fifth-slice implementation on `GregPat22/next-step-v6`, base `1cb55c3`: repository
+schema 5 adds one cleanup receipt per operation without modifying old bootstrap
+history. The receipt records inspection time, phase, deadline and latest event
+cursor. A killed coordinator may retain historical `running` status past its
+deadline, but cannot be reclaimed. Fresh independent resolution can settle only
+with exact cleanup ID/current cursor and settled-effects evidence. Thirty-nine
+focused simulation tests pass, including actual process death and competing
+process reservations. Fresh `npm run check` passes strict types, formatting,
+compilation and **220 tests, 0 failures, 0 skips**. See [HANDOFF.md](../../HANDOFF.md).
+No live credential/provider, production key lifecycle, external security review,
+measured coverage percentage, desktop/package or website verification is claimed.
+
+## Sixth slice acceptance: read-only GitHub preflight
+
+On `GregPat22/next-step-v6`, base main `1cb55c3`, continuing audited simulated
+cleanup. This is an unwired read-only HTTP component, not authorization to mint
+credentials or execute a repository:
+
+- A trusted caller supplies an authenticated operator, its previously linked
+  numeric GitHub user ID, expected App/installation/repository IDs, selected
+  repository URL/ref and explicit in-memory user token/App JWT. Reject actor,
+  ID, URL/ref, credential-format and deadline errors before HTTP. Discover no
+  host credentials, environment tokens or signing keys.
+- Use only four fixed-origin GitHub GET routes: authenticated user, repository
+  metadata, repository installation for the App and the exact branch reference.
+  Check linked-user identity, pinned numeric repository identity/read access,
+  expected App/installation, selected-repository/read-only installation policy,
+  suspension, exact ref and full commit SHA. A URL or installation ID alone is
+  never an authorization decision. Return only selected validated metadata.
+- Pin the REST API version; prohibit redirects, retries, arbitrary origins and
+  response-provided URLs. Bound total runtime and streamed response size. Reject
+  denied/rate-limited/malformed/oversized/late responses using fixed errors,
+  without including credentials, response bodies or transport exceptions.
+- Return an explicit preflight observation with source and simulation labels;
+  injected-transport tests cannot be called live-provider evidence. No token
+  issuance/revocation, Git commands, private key discovery, durable live grant,
+  API/desktop/service-loop integration or existing simulation-worker change.
+- Test all identity/policy failures, fixed GET-only origin/credential separation,
+  redirects, cancellation/timeouts, response-stream limits, input snapshots and
+  credential/error exclusion. Review the actual diff and run `npm run check`.
+
+Production authentication must establish and protect the linked-user/binding
+record and issue the correct App user token. This component cannot attest token
+issuer or replace that service. A successful preflight is a point-in-time read,
+not durable authorization or assurance against later revocation/ref movement.
+Revalidate before real token issuance, then independently verify isolated checkout.
+Live checks still require an approved fixture/App/account and secure credentials;
+cloud creation additionally requires the concrete limits in the entry gates.
+
+## Seventh slice acceptance: current installation-token compatibility
+
+On `GregPat22/next-step-v6`, 7 November 2026, official GitHub guidance confirms
+`ghs_`-prefixed JWT-format installation tokens containing dots, hyphens and
+underscores, approximately 520 characters. The earlier 512-byte alphanumeric-only
+simulation parser/ciphertext bound cannot retain these. Before live adapters:
+
+- Preserve existing synthetic/legacy token support while treating installation
+  tokens as opaque header-safe strings; accept the documented `ghs_` alphabet
+  up to an explicit 4,096-byte resource bound. Do not decode/trust JWT claims as
+  authorization, expiry or scope evidence. Unsupported/control-bearing values
+  fail closed; no unbounded credential storage is introduced.
+- Match the encrypted-envelope capture bound to that credential bound. Demonstrate
+  long-format capture/restart/decrypt, bootstrap use, revocation and erasure using
+  synthetic credentials. Reject returned overbroad scopes before checkout while
+  retaining/revoking a supported-format token. Existing scope/expiry checks stay.
+- Add regressions that fail before the fix; run all checks and review the diff.
+  No real token is minted, revoked, stored or used by these tests.
+
+Sources checked 7 November 2026:
+[GitHub installation-token guide](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app)
+and [format guidance](https://github.blog/changelog/2026-05-15-github-app-installation-tokens-per-request-override-header/).
+These document compatibility requirements, not live integration evidence.
+
+Sixth/seventh-slice evidence on `GregPat22/next-step-v6`, base `1cb55c3`:
+**53 synthetic HTTP tests** and **four synthetic stateless-token tests** pass;
+three token regressions were observed failing before the compatibility fix.
+Fresh `npm run check` passes **277 tests, 0 failures, 0 skips**, strict types,
+formatting and compilation. Actual diff review was performed by the implementing
+agent. No live credential/provider request, native/package smoke or website check
+was run. The transport is deliberately unwired and preflight observations grant
+no execution authority. [Spec 0010](0010-live-repository-pilot-gates.md) records
+the concrete protected-credential, approved-fixture and isolation gates at which
+this continuation stops. No real authorization, production key service or M1a
+completion is claimed.
+
+Primary preflight references, checked 7 November 2026:
+[authenticated user](https://docs.github.com/en/rest/users/users#get-the-authenticated-user),
+[repository metadata](https://docs.github.com/en/rest/repos/repos#get-a-repository),
+[App repository installation](https://docs.github.com/en/rest/apps/apps#get-a-repository-installation-for-the-authenticated-app),
+[reference](https://docs.github.com/en/rest/git/refs#get-a-reference) and
+[API version](https://docs.github.com/en/rest/about-the-rest-api/api-versions).

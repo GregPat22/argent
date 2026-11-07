@@ -32,11 +32,12 @@ execution service remains independent of the desktop client. A website source
 provides the download entry point and serves the generated local build.
 
 **Execution is simulated.** A scripted adapter writes a JSON artifact, which a
-separate verifier checks. There is no real GitHub authorization, repository
-checkout, AI agent, cloud compute or pull request. The desktop architecture keeps
-those next integrations behind the existing headless engine.
+separate verifier checks. Desktop tasks do not perform repository checkout, model
+calls, cloud execution or pull requests. A separate opt-in pilot below now proves
+real GitHub device sign-in and read-only private-fixture verification; it does not
+connect the desktop task engine to GitHub execution.
 
-Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). The current core is retained for bounded M1a. Internal simulation-only lifecycle and repository-bootstrap queues exercise durable operations, read-only credential policy and audited bootstrap resolution. Fresh independent cleanup observations can resolve blocked simulated bootstrap attempts as failed, preserving their audit history. Internal encrypted custody now retains synthetic tokens across restart with an explicitly supplied key; acknowledged revocation or audited resolution erases the active ciphertext. Production key custody, audited recovery cleanup, live GitHub access, isolated checkout and approved provider validation remain next.
+Next engineering milestone: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). The current core is retained for bounded M1a. Internal simulation-only lifecycle and repository-bootstrap queues exercise durable operations, read-only credential policy and audited bootstrap resolution. Fresh independent cleanup observations can resolve blocked simulated bootstrap attempts as failed, preserving their audit history. Internal encrypted custody now retains synthetic tokens across restart with an explicitly supplied key; acknowledged revocation or audited resolution erases the active ciphertext. Explicit internal simulated recovery cleanup now records durable intent and acknowledgments without replay; separate fresh inspection of both bootstrap and cleanup effects still gates resolution. An explicit memory-only GitHub device pilot now verifies the private fixture through the read-only preflight; it creates no durable execution grant or desktop connection. Installation-token compatibility includes the current stateless format. Production account/key custody, scoped live bootstrap, isolated checkout and approved provider validation remain next; see [live pilot gates](docs/specs/0010-live-repository-pilot-gates.md).
 
 ## Tech Stack
 
@@ -190,6 +191,29 @@ the old task or removes evidence. Real-provider reconciliation and deletion rema
 M1 work. The desktop service also exposes authenticated `/service/stop`; this is
 not enabled in optional standalone API mode.
 
+## Explicit read-only GitHub pilot
+
+The local pilot signs in an approved GitHub App/user, verifies a selected repository
+and reads the exact branch SHA. The recorded live fixture check is in spec 0011. It is separate from the desktop's simulated execution.
+Run only with a private owned config/key as described in
+[spec 0011](docs/specs/0011-github-device-pilot.md):
+
+```sh
+npm run github:pilot -- --config /absolute/private/github-pilot.json
+```
+
+The command uses GitHub's official device sign-in, verifies the expected numeric
+user/App/installation/repository identities and read-only policy, then writes a
+redacted receipt beside the config. The config and signing key must be regular
+owned files with `600` permissions inside private `700` directories; the key's
+recorded public fingerprint is required. No environment/CLI credential discovery.
+
+User/refresh tokens are never saved. The in-memory session ends with the command;
+GitHub's grant can remain until revoked in GitHub App authorization settings.
+This provides no durable desktop connection, installation-token issuance, checkout
+or execution authority. Cloud/production custody gates in
+[spec 0010](docs/specs/0010-live-repository-pilot-gates.md) remain required.
+
 ## Development
 
 ### Available Scripts
@@ -209,6 +233,7 @@ not enabled in optional standalone API mode.
 | `npm run desktop:smoke`   | Exercise the actual Electron app and capture its UI.           |
 | `npm run desktop:package` | Build a self-contained local macOS arm64 app and zip/checksum. |
 | `npm run site:preview`    | Serve the download-page source and real local artifacts.       |
+| `npm run github:pilot`    | Explicit device sign-in and read-only fixture preflight.       |
 
 ### Code Style & Conventions
 
@@ -223,7 +248,10 @@ the headless execution modules have no external runtime npm dependencies.
 
 Tests use Node's built-in runner and temporary on-disk databases. Process tests
 start independent Node processes, kill API/worker processes, race claims, and
-verify durable history. They need permission to bind loopback and spawn processes.
+verify durable history. Independent test files run serially so unrelated process
+startup does not consume short fixture leases on busy hosts; intentional child
+process races inside those tests remain concurrent. Tests need permission to bind
+loopback and spawn processes.
 No billable API is called. Simulation evidence checks an actual artifact's identity
 and SHA-256; it says nothing about a real repository's tests.
 

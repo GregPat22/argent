@@ -12,14 +12,14 @@ execution remains part of the product, even though its primary client is desktop
 ## Read the context for your task
 
 **Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). Current branch
-`GregPat22/conductor-layout-create` started at `333d662` (PR #8) and now integrates
-main `9eac908` (PR #11), including audited recovery and encrypted simulated
-repository credential custody.
-It adds a familiar Conductor-style raw desktop shell and reprioritizes subscriptions,
-cloud migration and mobile before team/dependency orchestration. See
-[spec 0008](docs/specs/0008-conductor-familiar-desktop.md) and the
-[roadmap](ROADMAP.md). Execution remains simulated; real connections, migration and
-mobile are planned. The website remains unpublished.
+`GregPat22/next-step-v6` now includes main `8acab52`, which already includes
+the familiar desktop shell/UX, landing refinements and encrypted simulated custody.
+It adds audited **simulated** repository recovery cleanup, an unwired read-only
+GitHub preflight, current token compatibility and a memory-only device sign-in
+pilot with live private-fixture evidence. Desktop execution remains simulated;
+durable account connections, checkout, migration and mobile remain planned. See
+[spec 0011](docs/specs/0011-github-device-pilot.md). The website is unpublished. See
+[spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md) and the [roadmap](ROADMAP.md).
 
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -35,7 +35,9 @@ execution and a tested-PR flow are future acceptance contracts, not live feature
 in this revision. The source repository is public and MIT-licensed. No published
 production download, approved pricing or customer proof is established here.
 
-Next engineering contract: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). Retain the current core for bounded implementation. The internal lifecycle, repository-bootstrap and audited recovery harnesses are simulated; production key custody, audited recovery cleanup, live GitHub access, isolated checkout and approved provider validation remain next.
+Next engineering contract: [M1a repository access and workspace lifecycle](docs/specs/0007-cloud-workspace-lifecycle.md). Retain the current core for bounded implementation. Internal lifecycle, repository-bootstrap, custody and audited resolution/cleanup harnesses remain simulated; production key custody, scoped live bootstrap, isolated checkout, trustworthy live cleanup inspection and approved provider validation remain next.
+The [live pilot gates](docs/specs/0010-live-repository-pilot-gates.md) record the
+concrete next inputs and credential/isolation requirements.
 
 ## If this folder appears empty
 

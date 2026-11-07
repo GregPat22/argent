@@ -272,3 +272,71 @@ This is an internal engineering choice for restart testing, not selection of a
 production secret-management system. Key custody/rotation/backup, unknown mint
 outcomes, audited recovery cleanup and live adapters remain open. See
 [the bounded acceptance contract](specs/0007-cloud-workspace-lifecycle.md#fourth-implementation-slice-encrypted-simulated-credential-custody).
+
+## Audited simulation cleanup — 6 November 2026
+
+On unchanged `GregPat22/next-step-v6`, base main `1cb55c3`, add one explicit
+simulation cleanup reservation per uncertain repository bootstrap. Persist intent
+before revoke/channel-clear/partial-checkout-discard dispatch, stop on uncertainty
+and never reclaim/replay an attempt after a deadline or restart. This favors
+manual recovery over guessing whether a prior cleanup happened. Use existing
+encrypted synthetic custody; no production key-management provider is selected.
+
+Independent preflight inspection must confirm old effects have settled. Cleanup
+acknowledgments never imply resolution; a separate fresh inspection must bind the
+cleanup ID/current event cursor and confirm all cleanup effects have settled.
+This closes a race where an older resolution observation could otherwise unlock a
+workspace while a delayed cleanup can still act. A killed coordinator retains its
+receipt/intent and original bootstrap history. Schema 5 preserves older records;
+no API, desktop or normal worker-loop dispatch is enabled. See
+[the acceptance contract](specs/0007-cloud-workspace-lifecycle.md#fifth-slice-acceptance-audited-simulated-recovery-cleanup)
+and [handoff](../HANDOFF.md) for evidence, gaps and next steps.
+
+## Read-only preflight before live bootstrap — 7 November 2026
+
+On `GregPat22/next-step-v6`, base `1cb55c3`, implement GitHub protocol checks as a
+separate unwired read-only component. Do not make a live-capable adapter pretend
+to satisfy the existing simulation contracts. A trusted auth service must supply
+the operator/GitHub binding and credentials; the preflight returns selected labeled
+metadata, never a durable grant. Pin origin/version, bound requests and strip raw
+responses/errors. Synthetic HTTP tests do not certify live authorization.
+
+Current official documentation also requires opaque stateless installation-token
+support beyond 512 bytes. Accept the documented header-safe `ghs_` alphabet within
+an explicit 4,096-byte bound, matching encrypted capture; preserve synthetic/legacy
+support and independently validate scope/expiry. Three before-fix regressions
+prove the compatibility gap. Do not force GitHub's temporary legacy-format header
+or interpret embedded JWT claims.
+
+Continue only through the [live pilot gates](specs/0010-live-repository-pilot-gates.md):
+protected OAuth binding/credential lifecycle, an explicitly selected fixture/App,
+then isolated compute and approved resource/budget limits. No production secret
+provider or billable account is selected by this pass. Retain blocked unknown mint/
+cleanup outcomes when provider evidence cannot establish settlement.
+
+## Memory-only device sign-in pilot — 7 November 2026
+
+On `GregPat22/next-step-v6` from main `1cb55c3`, prove the user-authentication and
+read-only repository path through an explicit local command before exposing it to
+the desktop/service API. Use GitHub's official App device flow, the installed
+single-fixture read-only App and its already approved pilot signing key. New user
+consent and device-flow enablement require explicit browser approval; the founder
+provided that approval and the live fixture preflight has now passed.
+
+Keep access/device/refresh credentials out of persisted artifacts, logs, renderer
+state and SQLite. The session's private token is forgotten after preflight; this
+is not remote revocation or a durable connected account. A private config records
+only approved identities and the explicit key path/public fingerprint. No host
+credential lookup, signing-key regeneration or permission expansion. Protected
+operator binding is limited to the local OS user and verified expected GitHub ID;
+managed/remote authorization is a separate contract. See
+[spec 0011](specs/0011-github-device-pilot.md).
+
+Repeated full-suite runs on the busy host exposed unrelated fixtures starting a
+child process after claiming a 500 ms lease; startup alone exceeded the lease,
+and the noisy-worker fixture also missed its short interval. The focused lease
+case passed without code changes. Serialize independent test files through
+`--test-concurrency=1` to remove cross-file scheduling contention. Existing
+production leases, assertions and intentional multi-process races are unchanged.
+The resulting default `npm run check` passes all 316 tests. This changes test
+scheduling, not concurrency semantics of the engine or its deliberate race tests.

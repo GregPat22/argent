@@ -6,13 +6,18 @@ product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
 **Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). Current branch
-`GregPat22/conductor-layout-create` started at main `333d662` (PR #8) and now
-integrates `9eac908` (PR #11), including audited recovery and encrypted simulated
-repository credential custody. It adds a
-Conductor-familiar desktop layout over the existing simulation and updates the
-[roadmap](../ROADMAP.md). See [spec 0008](specs/0008-conductor-familiar-desktop.md)
-for direct UI observations, implementation limits and replacement-launch scope.
-Real account connections, cloud migration and mobile remain planned.
+`GregPat22/next-step-v6` now includes main `8acab52`, including the familiar
+desktop shell/UX, landing refinements and encrypted simulated credential custody.
+It adds audited simulated cleanup of uncertain repository bootstraps, an unwired
+read-only GitHub preflight, current token-format compatibility and an explicit
+memory-only device pilot with live private-fixture evidence. Independent
+resolution still gates workspace reuse. See
+[spec 0007](specs/0007-cloud-workspace-lifecycle.md) for acceptance and limits.
+Durable desktop account connections, cloud execution, migration and mobile remain
+planned. [Spec 0011](specs/0011-github-device-pilot.md) records the local sign-in
+pilot and its limits.
+[Live pilot gates](specs/0010-live-repository-pilot-gates.md) record the current
+credential/authorization/isolation stopping point.
 
 ## What we are building
 
@@ -98,15 +103,15 @@ claims, pause/resume/delete, uncertain outcomes and read-only reconciliation.
 It is not connected to the desktop API and proves no real cloud capability. See the
 [P1 completion report](milestones/0001-completion.md).
 
-| Area         | Implemented in this publication                                                                                 | Remaining product work                                                               |
-| ------------ | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Interface    | Electron desktop, loopback API, CLI demo, local download preview and landing draft                              | Signed public desktop distribution, website deployment and remote access             |
-| Workspaces   | Local metadata, retained artifact directories, stop/start guards                                                | Git checkout, isolated local execution and real cloud lifecycle                      |
-| Dispatch     | Durable SQLite queue, atomic claims, fenced leases                                                              | Real provider dispatch and external-effect reconciliation                            |
-| Recovery     | Ordered events, API restart/reconnect, uncertain-run blocking, simulated resolution and encrypted token custody | Real audited cleanup, production key custody, cloud reconciliation and backup drills |
-| Execution    | Bounded scripted simulation, cancellation and deadlines                                                         | Official coding-agent integrations with permitted authentication                     |
-| Verification | Independent JSON identity check and SHA-256 evidence                                                            | Trusted repository tests, exact-commit evidence and review policy                    |
-| GitHub       | This source repository and its CI workflow                                                                      | Product GitHub App, scoped tokens, push and draft-PR broker                          |
+| Area         | Implemented in this publication                                                                                         | Remaining product work                                                               |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Interface    | Electron desktop, loopback API, CLI demo, local download preview and landing draft                                      | Signed public desktop distribution, website deployment and remote access             |
+| Workspaces   | Local metadata, retained artifact directories, stop/start guards                                                        | Git checkout, isolated local execution and real cloud lifecycle                      |
+| Dispatch     | Durable SQLite queue, atomic claims, fenced leases                                                                      | Real provider dispatch and external-effect reconciliation                            |
+| Recovery     | Ordered events, API restart/reconnect, uncertain-run blocking, simulated resolution/cleanup and encrypted token custody | Real audited cleanup, production key custody, cloud reconciliation and backup drills |
+| Execution    | Bounded scripted simulation, cancellation and deadlines                                                                 | Official coding-agent integrations with permitted authentication                     |
+| Verification | Independent JSON identity check and SHA-256 evidence                                                                    | Trusted repository tests, exact-commit evidence and review policy                    |
+| GitHub       | Source/CI and an explicit read-only App device pilot                                                                    | Durable desktop accounts, scoped bootstrap, push and draft-PR broker                 |
 
 Publishing this source to GitHub does not implement the product's GitHub
 integration. A passing simulation is not a tested pull request. The [desktop specification](specs/0004-desktop-prototype.md) is implemented
@@ -235,9 +240,11 @@ P1 is integrated on main, and a pinned upstream source evaluation is recorded. T
 prove runtime conformance. Retain the current core for bounded M1a; the runtime
 spike is deferred until measured need. The
 [M1a contract](specs/0007-cloud-workspace-lifecycle.md) specifies read-only GitHub
-access, lifecycle, reconciliation and cleanup. Internal lifecycle and repository
-bootstrap simulations are implemented; live GitHub access and isolated checkout
-are next, alongside customer/provider-authentication validation in the roadmap.
+access, lifecycle, reconciliation and cleanup. Internal lifecycle, repository
+bootstrap, custody and audited recovery cleanup simulations are implemented.
+Production key custody, scoped live bootstrap, isolated checkout and trustworthy live
+cleanup inspection are next, alongside customer/provider-authentication validation
+in the roadmap.
 Approve concrete provider limits before live tests.
 Then prove real isolated workspaces, one official agent, trusted exact-commit
 verification and a draft-PR broker, followed by portable continuity before managed

@@ -1,5 +1,6 @@
 import { DomainError, requireInteger } from "./domain.js";
 import { record } from "./repository-access.js";
+import type { RepositoryCleanup } from "./repository-cleanup.js";
 import type {
   RepositoryOperation,
   RepositoryStore,
@@ -27,6 +28,7 @@ export interface SimulatedRepositoryRecovery {
   inspectRecovery(
     operation: Readonly<RepositoryOperation>,
     signal: AbortSignal,
+    cleanup?: Readonly<RepositoryCleanup> | null,
   ): Promise<unknown>;
 }
 
@@ -81,6 +83,7 @@ export async function resolveRepository(
   const op = Object.freeze(store.operation(operationId));
   if (op.status !== "needs_attention")
     throw new DomainError(409, "Repository operation does not need resolution");
+  const cleanup = store.recoveryCleanup(operationId, operatorId);
   const startedAt = Date.now();
   const deadlineAt = startedAt + timeoutMs;
   const controller = new AbortController();
@@ -94,7 +97,11 @@ export async function resolveRepository(
       controller.signal.addEventListener("abort", abort, { once: true });
     });
     evidence = await Promise.race([
-      inspector.inspectRecovery(op, controller.signal),
+      inspector.inspectRecovery(
+        op,
+        controller.signal,
+        cleanup && Object.freeze(cleanup),
+      ),
       cancelled,
     ]);
   } catch {

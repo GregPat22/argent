@@ -1,5 +1,7 @@
 import { DomainError } from "./domain.js";
 
+export const MAX_REPOSITORY_CREDENTIAL_BYTES = 4096;
+
 export interface RepositoryAuthorization {
   operatorId: string;
   repository: string;
@@ -94,10 +96,20 @@ export function authorization(
 
 export function tokenFrom(value: unknown): string | null {
   const candidate = record(value).token;
-  return typeof candidate === "string" &&
-    /^[A-Za-z0-9_]{8,512}$/.test(candidate)
-    ? candidate
-    : null;
+  if (
+    typeof candidate !== "string" ||
+    candidate.length < 8 ||
+    candidate.length > MAX_REPOSITORY_CREDENTIAL_BYTES
+  )
+    return null;
+  // Keep synthetic/legacy fixtures and GitHub's documented ghs_-prefixed
+  // stateless format. Tokens remain opaque: encoded JWT claims grant nothing.
+  const legacy = candidate.length <= 512 && !/[^A-Za-z0-9_]/.test(candidate);
+  const installation =
+    candidate.startsWith("ghs_") &&
+    candidate.length >= 40 &&
+    !/[^A-Za-z0-9_.-]/.test(candidate);
+  return legacy || installation ? candidate : null;
 }
 
 export function tokenExpiry(
