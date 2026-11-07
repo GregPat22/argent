@@ -172,15 +172,83 @@ Revocation acknowledgment erases active ciphertext transactionally with its even
 confirmed audited resolution also erases it, preserving historical states and the
 reference. This is logical erasure, not physical WAL/backup deletion.
 
-The fixtures prove contract handling only. There is no HTTP GitHub adapter, real
-authorization/sign-in service, production key custody, isolated Git runner or
-dependency execution. A crash before mint-response capture still leaves an
-unknown token, and losing the injected key prevents recovery. Key rotation,
-backup and an audited cleanup dispatcher remain unimplemented. Production secret
-custody and live isolation/credential-leak tests are mandatory before enabling
+The fixtures prove contract handling only. The bootstrap/recovery harness has no
+live GitHub adapter, real authorization/sign-in service, production key custody,
+isolated Git runner or dependency execution. A crash before mint-response capture still leaves an
+unknown token, and losing the injected key prevents recovery. Key rotation and
+backup remain unimplemented. Production secret custody and live
+isolation/credential-leak tests are mandatory before enabling
 real adapters. In particular, an inspector must independently
 prove old requests cannot complete after resolution; simulation does not prove it.
 The installed client, public API and normal service worker remain on M0/P1.
+
+`cleanupRepository` adds explicitly requested internal simulated recovery cleanup
+(schema version 5). One transaction reserves one attributed attempt per uncertain
+bootstrap, with a unique request key and absolute deadline. Duplicates only read;
+no restart/reclaim or new key can repeat that cleanup. Independent fresh inspection
+must confirm original effects have settled and bind operation identities plus the
+cleanup ID/event cursor. Its timestamp and event commit before dispatch. Only a
+recoverable active token is passed to revocation; channel/partial-checkout cleanup
+receives the immutable original operation. Every action records intent and a
+bounded acknowledgment; revocation erases custody transactionally. Failure stops
+further dispatch. No original bootstrap history is rewritten and acknowledgment
+alone leaves the workspace blocked.
+
+Resolution additionally requires independently confirmed settled cleanup effects
+for the exact cleanup ID/current event cursor. An active coordinator or stale
+inspection cannot unlock the operation; deadlines/state fence late writes.
+After process death, a historical `running` cleanup with an expired deadline is
+not reclaimable; only independent inspection/manual recovery can settle it.
+This contract supplies no production request fencing, cleanup or key management.
+
+## Read-only GitHub preflight
+
+`github-preflight.ts` contains a real fixed-origin GET transport, verified through
+synthetic HTTP responses and the recorded live device pilot. A trusted caller supplies the operator,
+previously linked GitHub user, selected numeric identities/ref and explicit
+in-memory user token/App JWT. It checks user, repository, App installation policy
+and branch identity through four read-only routes. It returns a labeled immutable
+observation, not authorization to mint or execute; the API/renderer/service loop
+has no entry point. No raw response body, credentials or exception text is returned.
+
+The transport pins `api.github.com`/REST `2026-03-10`, separates App/user credentials,
+prohibits redirects/retries and bounds total runtime and streamed bytes. Injected
+transport always marks its result simulated. It neither implements OAuth consent/
+binding establishment nor attests user-token issuer. These point-in-time reads
+cannot fence later authorization/ref changes. Before live use, complete
+[spec 0010](docs/specs/0010-live-repository-pilot-gates.md).
+
+The simulation token parser and encrypted-envelope guard now share a 4,096-byte
+bound for GitHub's opaque stateless installation-token format. Encoded claims are
+never used to authorize access. Scope/expiry checks remain separate; compatibility
+does not enable live adapters or supply production secret custody.
+
+## Explicit GitHub device pilot
+
+`github-device.ts` implements bounded App device sign-in with fixed GitHub POST
+endpoints and protocol-compliant pending/slow-down polling. A lost exchange
+response stops; there is no automatic retry/restart. Only the public user code and
+verification URL leave the auth component. The opaque session keeps its token in
+a private field, discards refresh credentials and exposes only read-only preflight.
+Close/expiry blocks further reads. Closing is local forgetting, not remote revocation.
+
+`github-pilot-key.ts` loads only an explicit private owned file/directory, rejecting
+symlinks/hardlinks, unsafe modes, oversize data, weak/non-RSA keys and a mismatched
+public fingerprint. It signs a short-lived RS256 JWT; no private-key export API is
+exposed. `github-pilot.ts` ties this signer to device authentication and the existing
+preflight under the local OS operator. An explicit private config supplies the
+previously approved non-secret identities; `/user` must match the expected numeric
+GitHub user before a successful receipt is returned.
+
+`scripts/github-pilot.ts` is opt-in through `npm run github:pilot`. It saves only a
+redacted immutable observation using an atomic rename beside the config, then
+forgets the session token. This receipt is not a durable grant/state transition in
+the execution store. No API, desktop bridge or worker command is added. This
+single-host pilot needs no browser callback/public ingress and never inherits
+host GitHub credentials. A live pilot has verified the expected user, private fixture and full SHA through
+this path. Persistent refresh/revocation, production key custody, remote operator
+authentication and isolated execution remain unimplemented.
+See [spec 0011](docs/specs/0011-github-device-pilot.md).
 
 ## Managed target
 

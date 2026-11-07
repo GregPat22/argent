@@ -39,6 +39,16 @@ evidence, Conductor setup and next actions. This branch contains P1 source.
   application-wide Laws of UX review, Lucide provenance, keyboard/motion/form
   acceptance and active-service shutdown regression. The landing is excluded.
 
+- [Live repository pilot gates](specs/0010-live-repository-pilot-gates.md):
+  the concrete approved fixture/App, protected authentication/key lifecycle and
+  isolated-compute limits needed before live GitHub/bootstrap tests. The current
+  HTTP preflight is tested with synthetic responses and is not a connection.
+
+- [GitHub device sign-in pilot](specs/0011-github-device-pilot.md):
+  explicit local App-user authentication, private signing-key/config checks,
+  opaque memory-only session and read-only fixture preflight. Desktop/service
+  connection and isolated execution remain separate work.
+
 ## Conductor shutdown research and roadmap follow-up
 
 - [Evidence and strategy review](research/conductor-shutdown-analysis.md): checks

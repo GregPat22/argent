@@ -5,12 +5,247 @@ the latest known state across the project chats and checkouts. Read it alongside
 [START_HERE.md](START_HERE.md), [AGENTS.md](AGENTS.md) and the relevant specification.
 Private chat access is not required to continue development.
 
-**Current checkout:** `GregPat22/conductor-layout-create`, originally based on
-main `333d662` (PR #8), now integrating `origin/main` at `9eac908` (PR #11).
-P2/P2.1 add the familiar desktop layout, UX/icon refinement and replacement
-roadmap. Main's audited recovery and encrypted simulated credential custody are preserved. Execution
-remains simulated; real accounts/cloud/migration/mobile and website publication
-remain unfinished.
+**Current checkout:** `GregPat22/next-step-v6`, based on `origin/main` at
+`8acab52` after integrating the landing hero update. Main already includes
+P2/P2.1 desktop, landing refinements and encrypted simulation custody.
+This branch adds audited simulated recovery cleanup, an unwired read-only GitHub
+preflight, current installation-token compatibility and a memory-only GitHub
+device pilot with live private-fixture verification. Durable desktop/account
+integration, cloud execution, migration/mobile and publication remain unfinished.
+
+## PR preparation — 7 November 2026
+
+The founder requested a PR from unchanged `GregPat22/next-step-v6`. Integrated
+main `8acab52` without changing the website work. Independent ship reviews cover
+cleanup transactions/races, authentication/key custody and bounded acceptance
+coverage. Review reproduced a FIFO open hang in both pilot file loaders; both now
+use nonblocking opens before rejecting non-regular descriptors. Two regressions
+were observed failing before the fix. Another regression covers cancelled/hung and
+late token exchanges. Review also fixed mutable options switching an injected
+session to live transport; its regression failed before the immutable snapshot.
+The original live receipt remains historical: the device module and two loader
+sources changed afterward and no repeat live authentication is claimed.
+
+Final `npm run check` passes strict types, formatting, build and **320 tests,
+0 failures, 0 skips** after all review fixes. Focused auth/key/pilot tests pass
+43/43. Evidence: `.context/pr-final-check.log`, `.context/pr-device-review-tests.log`
+and the observed fail-before `.context/pr-device-transport-before.log`. No measured
+coverage percentage or external security certification is claimed.
+
+The repository retains its existing prototype package version `0.0.1`; it has no
+VERSION/CHANGELOG release scheme. This is a source PR, not a release. Private keys,
+config and ignored local receipts are excluded. Live M1a checkout/isolation/cleanup,
+production secret custody, provider/budget approval and desktop account connection
+remain future gates. Merge and deployment remain separate actions.
+
+## GitHub device sign-in implementation — 7 November 2026 (live pilot verified)
+
+Continues unchanged `GregPat22/next-step-v6`, base main `1cb55c3`. Added the explicit
+`npm run github:pilot -- --config /absolute/private/github-pilot.json` command,
+official bounded App device-flow protocol, an opaque memory-only user session,
+protected pilot signer/config loading and composition with the read-only GitHub
+preflight. [Spec 0011](docs/specs/0011-github-device-pilot.md) defines acceptance,
+local operator binding and exact limits. No desktop/API/worker integration or
+installation-token issuance/checkout is enabled by this command.
+
+The existing key and new non-secret config are in the same owner-only app-support
+pilot directory outside Git; both load successfully with their required modes and
+recorded public fingerprint. No host OAuth/browser credential is discovered or
+reused. Access/device/refresh credentials stay out of serialized output and files.
+The receipt binds the expected GitHub user to the local OS operator and selected
+fixture; it is a point-in-time observation, not durable execution authority.
+Closing drops the local token reference but does not revoke GitHub's grant.
+
+All **39 new synthetic auth/key/pilot tests pass**. The default full
+`npm run check` passes types, formatting, build and **316 tests, 0 failures,
+0 skips**. Two prior concurrent runs hit unchanged short-lease fixture startup/
+noisy-worker timing under host load. The focused lease case passed. Independent
+files now run serially; original assertions, production leases and intentional
+multi-process races remain unchanged. Logs: `.context/device-tests.log`,
+`.context/device-check.log`, `.context/device-lease-recheck.log`.
+Actual source/test diff review covers no-secret output, polling/cancellation,
+response limits, key-file guards and the unchanged execution authority boundary.
+No external security review or measured coverage percentage is claimed.
+
+The founder explicitly approved device-flow enablement and App-user consent.
+GitHub visibly confirmed the App setting update. The actual compiled pilot then
+completed device sign-in and all four real GitHub preflight reads at
+`2026-11-07T10:19:52.061Z`. The redacted receipt confirms OS operator `local-uid:501`,
+GitHub user `132290928`, App `5654610`, installation `179529579`, repository
+`1449217243`, `refs/heads/main` and commit
+`d630d7a792d7a7f2cf4783d6e62c9f849f7f57c0`, with `source: github_api` and
+`simulation: false`. The CLI exited successfully, closed its session and saved
+only a `600` receipt beside the private config. No access/refresh/device token
+was retained in files. Local forgetting does not revoke GitHub's remote grant.
+
+Local redacted copies are `.context/live-github-device-receipt.json` and
+`.context/live-github-device-runtime.json`. The latter hashes seven runtime source
+files and their seven actual compiled files, based on HEAD `1cb55c3` plus local
+changes; combined manifest SHA-256 is
+`75b9f80d025cb1a8c2e407687399b2d91a46688e4e65de8873634eb355ba58f0`.
+This is real App-user authentication/private-repository read evidence, not a
+checkout, durable connected account, isolated execution or tested pull request.
+
+No installation token, target repository command, cloud resource, billing, merge,
+deployment, branch rename, commit, push/PR, release or standing desktop connection.
+Production custody/rotation, remote authentication and all real-execution M1a gates
+remain open. Next: a separately bounded persistent-account/service integration
+and isolated-checkout slice under the existing resource/isolation gates.
+
+## GitHub pilot account setup — 7 November 2026 (complete)
+
+The founder authorized autonomous repository/App setup, completed GitHub's browser
+sudo confirmation, then explicitly approved signing-key generation and a fixture-only
+read-only installation. On unchanged `GregPat22/next-step-v6`, main base `1cb55c3`,
+created private `GregPat22/argent-m1a-fixture` (ID `1449217243`, owner user ID
+`132290928`, initial main SHA `d630d7a792d7a7f2cf4783d6e62c9f849f7f57c0`).
+Registered account-only App `Argent M1a Pilot GregPat22`, ID `5654610`, slug
+`argent-m1a-pilot-gregpat22`, client ID `Iv23lilJjeCgLi7Zd4xW`.
+
+One App signing key is saved directly in the owner's private app-support pilot
+folder outside Git. The folder is `700`, key file `600`; its computed public
+fingerprint matches GitHub. No key/token material was printed or copied into a
+worker/renderer/source file. Installation `179529579` visibly confirms only
+`argent-m1a-fixture`, with Contents/Metadata read; no other permission or repository
+is selected. Webhooks, device flow and installation-time OAuth remain off; no
+callback or client secret was configured. See
+[spec 0010](docs/specs/0010-live-repository-pilot-gates.md#pilot-account-setup-progress--7-november-2026)
+for non-secret configuration and the public fingerprint.
+
+Independent administrative GET verification at `2026-11-07T09:56:17.795Z` used an
+in-memory two-minute App JWT signed by the new approved key. `/app`, the exact
+installation and fixture installation lookup returned 200 with matching identities,
+selected/read-only policy and no suspension. The product repository installation
+lookup returned 404. No installation access token was minted and no checkout ran.
+The pre-existing CLI OAuth session lacked App-installation listing scopes (403);
+its scopes were not expanded and no host credential was transferred to Argent.
+This is live administrative configuration evidence, not the implemented preflight's
+full user-authorization test, isolated execution or M1a completion.
+
+Redacted receipts: `.context/github-pilot-setup.json` and
+`.context/pilot-app-verification.json`. Current `npm run check` passes strict types,
+formatting, compilation and **277 tests, 0 failures, 0 skips**; log
+`.context/pilot-setup-check.log`. Actual documentation changes, stored file modes,
+fingerprint and GitHub confirmation/API receipts were reviewed. No new runtime
+source was changed for this account setup; native/package and website checks were
+not rerun. The prior source/test changes remain local and uncommitted.
+
+Next: implement protected GitHub App-user sign-in/binding and explicit pilot
+credential loading, then run the read-only preflight against this fixture.
+Production key lifecycle/backup, isolated compute and concrete provider/resource/
+budget/cleanup limits remain open. No cloud provisioning, billing, repo workload,
+product API exposure, merge, deployment, branch rename, commit, push/PR or binary
+release. This completed setup supersedes earlier missing-fixture/App statements;
+all real execution/recovery and user-authentication release gates remain open.
+
+## Read-only GitHub preparation and safe stopping point — 7 November 2026
+
+On unchanged `GregPat22/next-step-v6`, continuing the local cleanup slice from
+main `1cb55c3`. The founder authorized further steps until the engineering agent
+judged external work unsafe without more concrete inputs. Added
+`inspectGitHubRepository` with an actual fixed-origin GET transport and **53
+synthetic HTTP contract tests**, not a live connection. It validates a trusted
+operator/GitHub-user binding, pinned numeric repository identity/read access,
+App/installation identity and selected/read-only policy, suspension and an exact
+branch/full commit SHA. Inputs are snapshotted; user token/App JWT are separate,
+explicit in-memory arguments, never discovered from host state. Redirects/retries,
+arbitrary origins, unbounded streams and raw provider errors are rejected. API
+version is pinned to `2026-03-10`; total runtime is 100–5,000 ms and each streamed
+response is bounded to 128 KiB. Responses return selected immutable metadata only,
+with `read_only_preflight`, source and simulation labels. Injected transport always
+labels its observation simulated. No durable live grant or execution interface is
+returned; no API, desktop or normal worker integration was enabled.
+
+Checking official GitHub documentation exposed a pre-live compatibility defect:
+new `ghs_` installation tokens are approximately 520 characters and include JWT
+punctuation, beyond the previous parser/encrypted-ciphertext bound. Three focused
+regressions fail before the fix and pass afterward. The parser now preserves the
+legacy synthetic format and accepts the documented opaque `ghs_` alphabet up to
+4,096 bytes; encrypted custody uses the same bound. It does not trust JWT claims.
+Four new synthetic-token tests cover restart/decryption and plaintext exclusion,
+bootstrap/revocation/erasure, overbroad scope rejection before checkout and resource/
+control-character bounds. Existing scope/expiry/state semantics remain intact.
+
+Fresh `npm run check` passes strict types, formatting, compilation and **277 tests,
+0 failures, 0 skips**: 57 new tests in this continuation plus the prior 39 cleanup
+tests. Logs: `.context/continuation-check.log`, `.context/preflight-tests.log`,
+`.context/stateless-before.log` and `.context/stateless-after.log`. The implementing
+agent reviewed the actual source/test/docs diff, including credential/error output,
+stream cancellation, caller-input mutation and simulation boundaries. No external
+security review or measured coverage percentage is claimed. Native/package smoke
+and website checks were not run; their source/dependencies are unchanged.
+
+The [live pilot gates](docs/specs/0010-live-repository-pilot-gates.md) record the
+next concrete requirements: approved private fixture/App/operator binding, protected
+OAuth/credential provisioning and production key lifecycle, then isolated compute
+with explicit account/provider/resource/budget/cleanup limits. None is supplied by
+this session. A preflight cannot establish its own trusted OAuth binding, attest
+user-token issuer or authorize later minting. Repository reads/ref identity are
+point-in-time observations; later authorization/isolated checkout must revalidate.
+Unknown mint/cleanup request settlement remains a blocking live-adapter obligation.
+
+Stopped at that boundary without issuing live requests, borrowing host credentials,
+registering an App, authorizing an account, provisioning resources or executing
+repository workloads. No API exposure, merge, deployment, purchase, binary release,
+branch rename, commit, push or PR. Work remains local. Next is satisfying spec 0010
+and implementing the authenticated live broker/isolated checkout under those gates;
+M1a and real provider/credential safety remain unproven.
+
+## Audited simulated recovery cleanup — 6 November 2026
+
+Continues the unchanged branch `GregPat22/next-step-v6` from main `1cb55c3`.
+The [fifth slice contract](docs/specs/0007-cloud-workspace-lifecycle.md#fifth-slice-acceptance-audited-simulated-recovery-cleanup)
+adds internal `cleanupRepository`, a simulation-only cleanup adapter and repository
+schema version 5. It preserves existing operations, events, resolutions and
+ciphertext. The trusted original operator may explicitly reserve one bounded
+cleanup attempt per uncertain bootstrap. Identical requests only read; changed
+keys/deadlines conflict. Restart cannot reclaim or dispatch the attempt again.
+
+Fresh independent inspection must bind the original operation/provider/repository/
+installation plus cleanup ID/event cursor, confirm original effects have settled
+and identify credential/channel/partial-checkout state. Inspection and its event
+commit before mutations. An active synthetic token must be recoverable from the
+matching encrypted vault. Revoke, clear channel and discard partial checkout each
+record intent before dispatch and acknowledgment afterward. The first failure
+stops further dispatch. Revocation acknowledgment erases active ciphertext in the
+same transaction as its event. Original bootstrap phase/credential/channel history
+is retained, and cleanup acknowledgments never unlock the workspace.
+
+Separate `resolveRepository` inspection must additionally confirm the exact cleanup
+ID/current event cursor and settled cleanup effects. Active coordinators and stale
+observations are rejected under the same lock as lifecycle requests. Deadlines
+fence acknowledgment after lock contention; late responses cannot settle or erase
+custody. After process death, the historical cleanup receipt may still say
+`running` with an expired deadline: it is not reclaimable. Independent resolution
+can settle only after that deadline and conclusive cleanup evidence.
+
+Evidence: **39 focused cleanup simulation tests pass**, covering original-actor/
+adapter/vault denial, identity/freshness rejection, unknown mint/wrong key,
+resource absence, failure at every action, no replay, hanging/late revocation,
+resolution races/stale cursors, competing connections/processes, SIGKILL after
+dispatch, intent/receipt/acknowledgment rollback, SQLite lock deadlines, schema 4
+upgrade and token/key canaries. Fresh `npm run check` passes strict types,
+formatting, compilation and **220 tests, 0 failures, 0 skips**. Logs: `.context/cleanup-tests.log` and `.context/check.log`.
+The implementing agent reviewed the actual source/test/documentation diff;
+no external security review or measured coverage percentage is claimed.
+
+Limits: synthetic resources/credentials only. One cleanup attempt per operation
+is deliberately conservative; an interrupted or rejected attempt requires
+independent inspection/manual recovery rather than another dispatch. No production
+key custody/rotation/backup, real GitHub App/operator authentication, isolated Git
+runner, provider request-fencing proof or live A1–A10 evidence. Native/package
+smoke and website checks were not run. Dependency installation still reports five
+moderate advisories; dependencies are unchanged. M1a remains incomplete.
+
+Next: select production key custody and implement server-side GitHub authorization/
+read-only access plus isolated checkout and trustworthy cleanup inspection. Record
+concrete provider/account/region/resource/budget/cleanup limits before live tests.
+Provider/auth compatibility, continuity and mobile remain parallel roadmap tracks.
+All changes are local and uncommitted; branch name is unchanged. No API/desktop/
+service-loop integration, account connection, provisioning, push/PR, merge,
+deployment or binary release was performed.
+
+Historical entries below retain their original branch states and evidence.
 
 ## W0.7 liquid silver hero — 7 November 2026
 
@@ -184,12 +419,13 @@ connection, export, paid resource, commit, push/PR, merge, deployment or release
 
 ## Where the work is saved
 
-Current P2 work is uncommitted on `GregPat22/conductor-layout-create`; the table
-retains historical branch provenance.
+Current cleanup and GitHub pilot work is on `GregPat22/next-step-v6`; P2/P2.1 and
+landing changes are already integrated in main `8acab52`. The table retains
+historical branch provenance.
 
 | Location                                            | Current state                                                                                | How to use it                                                                |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `origin/main` at `9eac908`                          | M0/P1, refined landing, continuity plans, simulated lifecycle/bootstrap and audited recovery | Base integrated into this branch; no live cloud execution or public release. |
+| `origin/main` at `8acab52`                          | M0/P1, refined landing, continuity plans, simulated lifecycle/bootstrap and audited recovery | Base integrated into this branch; no live cloud execution or public release. |
 | `GregPat22/motion-landing-page-improve`             | W0.3–W0.6 landing refinement integrated through PR #8                                        | Historical landing evidence; preserve any remaining worktree changes.        |
 | `GregPat22/next-step-v5`                            | Encrypted simulated credential custody integrated through PR #11                             | Historical internal custody evidence; no production key service.             |
 | `GregPat22/next-step-v4`                            | Audited simulated bootstrap resolution integrated through PR #10                             | Historical internal recovery evidence; no live adapter.                      |
