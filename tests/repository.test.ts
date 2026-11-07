@@ -16,7 +16,7 @@ import type {
   SimulatedRepositoryAuthority,
   SimulatedRepositoryBootstrap,
 } from "../src/repository-access.js";
-import { tokenExpiry } from "../src/repository-access.js";
+import { tokenExpiry, tokenFrom } from "../src/repository-access.js";
 import { RepositoryCredentialVault } from "../src/repository-credentials.js";
 import { workRepository } from "../src/repository-worker.js";
 import {
@@ -1045,7 +1045,7 @@ test("simulated repository schema migrates first-version rows without losing obl
   assert.match(migrated.sql, /'failed'/);
   assert.doesNotMatch(migrated.sql, /workspace_id TEXT NOT NULL UNIQUE/);
   assert.ok(migrated.index);
-  assert.equal(migrated.version, 4);
+  assert.equal(migrated.version, 5);
 });
 
 test("simulated repository schema records unversioned databases and refuses newer ones", (t) => {
@@ -1057,13 +1057,13 @@ test("simulated repository schema records unversioned databases and refuses newe
     db.exec(sql);
     db.close();
   };
-  edit("UPDATE schema_versions SET version = 5");
+  edit("UPDATE schema_versions SET version = 6");
   assert.throws(() => new Store(f.path), /newer than this build/);
   // A failed start must release the database for the next one.
   edit("DELETE FROM schema_versions");
   f.store = new Store(f.path);
   assert.equal(f.store.repositories.operation(op.id).status, "queued");
-  assert.equal(schema(f.path).version, 4);
+  assert.equal(schema(f.path).version, 5);
 });
 
 // Synthetic control-plane observations, independent of bootstrap/agent output.
@@ -1491,7 +1491,7 @@ test("simulated version 2 upgrade preserves uncertain obligations and adds resol
   f.store = new Store(f.path);
   assert.deepEqual(f.store.repositories.operation(f.op.id), before);
   assert.deepEqual(f.store.repositories.events(f.op.id), events);
-  assert.equal(schema(f.path).version, 4);
+  assert.equal(schema(f.path).version, 5);
   assert.equal((await f.resolve()).status, "resolved");
 });
 
@@ -1902,10 +1902,101 @@ test("simulated version 3 upgrade preserves operations and events without invent
   f.store = new Store(f.path);
   assert.deepEqual(f.store.repositories.operation(f.op.id), before);
   assert.deepEqual(f.store.repositories.events(f.op.id), events);
-  assert.equal(schema(f.path).version, 4);
+  assert.equal(schema(f.path).version, 5);
   assert.throws(
     () => vault(f.store).recover(f.op.id, "operator"),
     /unavailable/,
   );
   assert.equal(await f.work(), false);
+});
+
+// Structurally representative, entirely synthetic installation tokens. The JWT
+// segments contain no signed claims and are never sent to a real provider.
+const statelessToken = `ghs_123_${"A".repeat(180)}.${"b-_".repeat(60)}.${"C".repeat(180)}`;
+
+test("simulated stateless installation token survives encrypted custody restart without plaintext", (t) => {
+  const f = fixture(t);
+  const { op, fence } = custodyClaim(f);
+  assert.ok(statelessToken.length > 512);
+  vault(f.store).capture(op.id, fence, statelessToken);
+  f.store.repositories.settle(op.id, fence);
+  f.reopen();
+  assert.equal(vault(f.store).recover(op.id, "operator"), statelessToken);
+  for (const path of [f.path, `${f.path}-wal`])
+    assert.equal(
+      readFileSync(path).includes(Buffer.from(statelessToken)),
+      false,
+    );
+});
+
+test("simulated bootstrap uses and revokes an opaque stateless token before success", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.token.token = statelessToken;
+  f.adapter.resolve = async (credential) => {
+    assert.equal(credential, statelessToken);
+    f.adapter.calls.push("resolve");
+    return sha;
+  };
+  f.adapter.checkout = async (plan, credential) => {
+    assert.equal(credential, statelessToken);
+    f.adapter.calls.push("checkout");
+    f.adapter.channel = credential;
+    f.adapter.checkoutPlan = structuredClone(plan);
+  };
+  f.adapter.revoke = async (credential) => {
+    assert.equal(credential, statelessToken);
+    assert.equal(vault(f.store).recover(op.id, "operator"), statelessToken);
+    f.adapter.calls.push("revoke");
+  };
+  await f.work();
+  assert.equal(f.store.repositories.operation(op.id).status, "succeeded");
+  assert.deepEqual(f.adapter.calls, [
+    "authorize",
+    "mint",
+    "resolve",
+    "checkout",
+    "inspect",
+    "revoke",
+    "clear",
+  ]);
+  assert.throws(() => vault(f.store).recover(op.id, "operator"), /unavailable/);
+});
+
+test("simulated overbroad stateless token is captured then revoked without checkout", async (t) => {
+  const f = fixture(t);
+  const op = f.request();
+  f.adapter.token.token = statelessToken;
+  f.adapter.token.permissions = { contents: "write" };
+  f.adapter.revoke = async (credential) => {
+    assert.equal(credential, statelessToken);
+    assert.equal(vault(f.store).recover(op.id, "operator"), statelessToken);
+    f.adapter.calls.push("revoke");
+  };
+  await f.work();
+  assert.deepEqual(f.adapter.calls, ["authorize", "mint", "revoke"]);
+  assert.equal(f.store.repositories.operation(op.id).status, "needs_attention");
+  assert.equal(f.store.repositories.operation(op.id).credential, "revoked");
+  assert.throws(() => vault(f.store).recover(op.id, "operator"), /unavailable/);
+});
+
+test("simulated installation token boundaries reject control bytes and unbounded storage", (t) => {
+  const f = fixture(t);
+  const { op, fence } = custodyClaim(f);
+  const maximum = `ghs_${"A".repeat(4092)}`;
+  assert.equal(tokenFrom({ token: maximum }), maximum);
+  vault(f.store).capture(op.id, fence, maximum);
+  assert.equal(vault(f.store).recover(op.id, "operator"), maximum);
+  for (const value of [
+    `${maximum}A`,
+    `${statelessToken}\n`,
+    `${statelessToken}\r`,
+    `${statelessToken} `,
+    `${statelessToken}/`,
+    `${statelessToken}\0`,
+    `ghs_${"a".repeat(32)}?secret`,
+    "unprefixed.invalid.token",
+    "short",
+  ])
+    assert.equal(tokenFrom({ token: value }), null);
 });

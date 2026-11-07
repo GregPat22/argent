@@ -1,8 +1,18 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { DomainError, requireInteger, requireString } from "./domain.js";
-import { fullSha } from "./repository-access.js";
+import {
+  fullSha,
+  record,
+  MAX_REPOSITORY_CREDENTIAL_BYTES,
+} from "./repository-access.js";
 import type { SealedRepositoryCredential } from "./repository-credentials.js";
+import type {
+  CleanupAction,
+  CleanupFailure,
+  RepositoryCleanup,
+} from "./repository-cleanup.js";
+import { cleanupObservation } from "./repository-cleanup.js";
 import {
   recoveryObservation,
   type RepositoryResolution,
@@ -63,7 +73,7 @@ const COLUMNS = `id,workspace_id,operator_id,repository,ref,provider_id,reposito
   installation_id,head_sha,request_key,fingerprint,status,phase,credential,channel,
   token_expires_at,max_runtime_ms,created_at,lease_token,lease_expires_at,deadline_at`;
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 function operationsTable(name: string): string {
   return `CREATE TABLE IF NOT EXISTS ${name} (
@@ -131,6 +141,19 @@ export class RepositoryStore {
             AND tag IS NOT NULL AND ciphertext IS NOT NULL)
             OR (state IN ('pending','erased') AND key_id IS NULL AND nonce IS NULL
               AND tag IS NULL AND ciphertext IS NULL))
+        ) STRICT;
+        CREATE TABLE IF NOT EXISTS repository_cleanups (
+          id TEXT PRIMARY KEY,
+          operation_id TEXT NOT NULL UNIQUE REFERENCES repository_operations(id),
+          operator_id TEXT NOT NULL, request_key TEXT NOT NULL UNIQUE,
+          status TEXT NOT NULL CHECK(status IN ('running','acknowledged','needs_attention')),
+          phase TEXT NOT NULL CHECK(phase IN ('inspecting','revoke_intent','revoke_acknowledged',
+            'clear_intent','clear_acknowledged','discard_intent','discard_acknowledged')),
+          reason TEXT CHECK(reason IN ('unconfirmed','credential_unavailable','inspection_failed','cleanup_failed','timeout')),
+          observed_at INTEGER, created_at INTEGER NOT NULL, deadline_at INTEGER NOT NULL,
+          event_cursor INTEGER NOT NULL REFERENCES repository_events(cursor),
+          CHECK((status = 'needs_attention' AND reason IS NOT NULL)
+            OR (status != 'needs_attention' AND reason IS NULL))
         ) STRICT;
       `);
       db.prepare(
@@ -272,6 +295,214 @@ export class RepositoryStore {
     };
   }
 
+  recoveryCleanup(id: string, operatorId: string): RepositoryCleanup | null {
+    this.resolutionActor(id, operatorId);
+    const row = this.db
+      .prepare("SELECT * FROM repository_cleanups WHERE operation_id = ?")
+      .get(id);
+    if (!row) return null;
+    return {
+      id: row.id as string,
+      operationId: row.operation_id as string,
+      operatorId: row.operator_id as string,
+      status: row.status as RepositoryCleanup["status"],
+      phase: row.phase as RepositoryCleanup["phase"],
+      reason: row.reason as CleanupFailure | null,
+      observedAt: row.observed_at as number | null,
+      createdAt: row.created_at as number,
+      deadlineAt: row.deadline_at as number,
+      eventCursor: row.event_cursor as number,
+      simulation: true,
+    };
+  }
+
+  beginRecoveryCleanup(
+    id: string,
+    operatorId: string,
+    key: unknown,
+    timeoutMs: number,
+  ): { attempt: RepositoryCleanup; created: boolean } {
+    const requestKey = requireString(key, "Idempotency-Key", 128);
+    requireInteger(timeoutMs, "timeoutMs", 100, 5000);
+    return this.transaction((now) => {
+      const op = this.resolutionActor(id, operatorId);
+      const priorKey = this.db
+        .prepare(
+          "SELECT operation_id FROM repository_cleanups WHERE request_key = ?",
+        )
+        .get(requestKey);
+      if (priorKey && priorKey.operation_id !== id)
+        throw new DomainError(
+          409,
+          "Cleanup key already used for another operation",
+        );
+      const previous = this.recoveryCleanup(id, operatorId);
+      if (previous) {
+        if (!priorKey || previous.deadlineAt - previous.createdAt !== timeoutMs)
+          throw new DomainError(
+            409,
+            "Repository cleanup already requested with different inputs",
+          );
+        return { attempt: previous, created: false };
+      }
+      if (op.status !== "needs_attention")
+        throw new DomainError(
+          409,
+          "Repository operation does not need cleanup",
+        );
+      const cursor = this.event(id, "repository.cleanup_requested", now);
+      this.db
+        .prepare(
+          `INSERT INTO repository_cleanups
+        (id,operation_id,operator_id,request_key,status,phase,created_at,deadline_at,event_cursor)
+        VALUES (?,?,?,?,'running','inspecting',?,?,?)`,
+        )
+        .run(
+          randomUUID(),
+          id,
+          operatorId,
+          requestKey,
+          now,
+          now + timeoutMs,
+          cursor,
+        );
+      return { attempt: this.recoveryCleanup(id, operatorId)!, created: true };
+    });
+  }
+
+  private ownedCleanup(
+    id: string,
+    attemptId: string,
+    now: number,
+  ): RepositoryCleanup {
+    const op = this.operation(id);
+    const attempt = this.recoveryCleanup(id, op.operatorId);
+    if (
+      op.status !== "needs_attention" ||
+      !attempt ||
+      attempt.id !== attemptId ||
+      attempt.status !== "running" ||
+      now >= attempt.deadlineAt
+    )
+      throw new DomainError(409, "Repository cleanup ownership lost");
+    return attempt;
+  }
+
+  confirmRecoveryCleanup(id: string, attemptId: string, evidence: unknown) {
+    return this.transaction((now) => {
+      const attempt = this.ownedCleanup(id, attemptId, now);
+      if (attempt.phase !== "inspecting" || attempt.observedAt !== null)
+        throw new DomainError(409, "Cleanup inspection already recorded");
+      const observed = cleanupObservation(
+        evidence,
+        this.operation(id),
+        attempt,
+        now,
+      );
+      if (!observed)
+        throw new DomainError(409, "Cleanup inspection is unconfirmed");
+      const cursor = this.event(id, "repository.cleanup_inspected", now);
+      this.db
+        .prepare(
+          "UPDATE repository_cleanups SET observed_at = ?,event_cursor = ? WHERE id = ?",
+        )
+        .run(observed.observedAt, cursor, attemptId);
+      return observed;
+    });
+  }
+
+  recoveryCleanupIntent(
+    id: string,
+    attemptId: string,
+    action: CleanupAction,
+  ): void {
+    const allowed: Record<CleanupAction, RepositoryCleanup["phase"][]> = {
+      revoke: ["inspecting"],
+      clear: ["inspecting", "revoke_acknowledged"],
+      discard: ["inspecting", "revoke_acknowledged", "clear_acknowledged"],
+    };
+    if (!Object.hasOwn(allowed, action))
+      throw new DomainError(400, "Invalid cleanup action");
+    this.transaction((now) => {
+      const attempt = this.ownedCleanup(id, attemptId, now);
+      if (
+        attempt.observedAt === null ||
+        !allowed[action].includes(attempt.phase)
+      )
+        throw new DomainError(409, "Invalid cleanup transition");
+      const cursor = this.event(id, `repository.cleanup_${action}_intent`, now);
+      this.db
+        .prepare(
+          "UPDATE repository_cleanups SET phase = ?,event_cursor = ? WHERE id = ?",
+        )
+        .run(`${action}_intent`, cursor, attemptId);
+    });
+  }
+
+  acknowledgeRecoveryCleanup(
+    id: string,
+    attemptId: string,
+    action: CleanupAction,
+  ): void {
+    if (!["revoke", "clear", "discard"].includes(action))
+      throw new DomainError(400, "Invalid cleanup action");
+    this.transaction((now) => {
+      const attempt = this.ownedCleanup(id, attemptId, now);
+      if (attempt.phase !== `${action}_intent`)
+        throw new DomainError(409, "Invalid cleanup acknowledgment");
+      if (action === "revoke") this.eraseCredential(id);
+      const cursor = this.event(
+        id,
+        `repository.cleanup_${action}_acknowledged`,
+        now,
+      );
+      this.db
+        .prepare(
+          "UPDATE repository_cleanups SET phase = ?,event_cursor = ? WHERE id = ?",
+        )
+        .run(`${action}_acknowledged`, cursor, attemptId);
+    });
+  }
+
+  finishRecoveryCleanup(
+    id: string,
+    attemptId: string,
+    failure: CleanupFailure | null,
+  ): void {
+    if (
+      failure !== null &&
+      ![
+        "unconfirmed",
+        "credential_unavailable",
+        "inspection_failed",
+        "cleanup_failed",
+        "timeout",
+      ].includes(failure)
+    )
+      throw new DomainError(400, "Invalid cleanup failure");
+    this.transaction((now) => {
+      const op = this.operation(id);
+      const attempt = this.recoveryCleanup(id, op.operatorId);
+      if (!attempt || attempt.id !== attemptId)
+        throw new DomainError(409, "Repository cleanup ownership lost");
+      if (attempt.status !== "running" || op.status !== "needs_attention")
+        return;
+      const reason = now >= attempt.deadlineAt ? "timeout" : failure;
+      if (
+        reason === null &&
+        (attempt.observedAt === null || attempt.phase.endsWith("_intent"))
+      )
+        throw new DomainError(409, "Repository cleanup acknowledgment missing");
+      const status = reason === null ? "acknowledged" : "needs_attention";
+      const cursor = this.event(id, `repository.cleanup_${status}`, now);
+      this.db
+        .prepare(
+          "UPDATE repository_cleanups SET status = ?,reason = ?,event_cursor = ? WHERE id = ?",
+        )
+        .run(status, reason, cursor, attemptId);
+    });
+  }
+
   // Inspection is read-only and happens outside the lock. Recheck status, actor,
   // freshness and idempotency under the same lock used by lifecycle requests.
   recordResolution(
@@ -300,10 +531,25 @@ export class RepositoryStore {
           "Repository operation does not need resolution",
         );
       const observedAt = recoveryObservation(evidence, op, startedAt, now);
+      const cleanup = this.recoveryCleanup(id, operatorId);
+      let cleanupSettled = cleanup === null;
+      if (cleanup) {
+        try {
+          const data = record(evidence);
+          cleanupSettled =
+            data.cleanupId === cleanup.id &&
+            data.cleanupEffectsSettled === true &&
+            data.cleanupEventCursor === cleanup.eventCursor &&
+            !(cleanup.status === "running" && now < cleanup.deadlineAt);
+        } catch {
+          /* Malformed observations cannot settle cleanup. */
+        }
+      }
       const reason =
         now >= deadlineAt
           ? "timeout"
-          : (failure ?? (observedAt === null ? "unconfirmed" : null));
+          : (failure ??
+            (observedAt === null || !cleanupSettled ? "unconfirmed" : null));
       const status = reason === null ? "resolved" : "rejected";
       if (status === "resolved") {
         this.db
@@ -523,7 +769,7 @@ export class RepositoryStore {
       sealed.tag.byteLength !== 16 ||
       !(sealed.ciphertext instanceof Uint8Array) ||
       sealed.ciphertext.byteLength < 8 ||
-      sealed.ciphertext.byteLength > 512
+      sealed.ciphertext.byteLength > MAX_REPOSITORY_CREDENTIAL_BYTES
     )
       throw new DomainError(400, "Invalid sealed repository credential");
     this.step(id, token, "minting", "repository.credential_stored", () => {
