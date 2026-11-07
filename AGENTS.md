@@ -43,8 +43,8 @@ address, never a personal one.
 
 - Write in the present tense only what works on `main` today. Everything else is
   labelled planned, in development or illustrative. Agent execution is currently
-  **simulated**: never describe real agents, cloud workspaces, parallel runs,
-  mobile access or pull requests as working until they are.
+  **simulated** on `main`: never describe real agents, cloud workspaces, parallel
+  runs, mobile access or pull requests as working until they land there.
 - Describe `main`, not a branch. Never write "this branch contains…", "current
   branch…" or link to a branch in a public document.
 - Do not hard-code numbers that go stale (test counts, versions, dates of "latest
@@ -53,11 +53,12 @@ address, never a personal one.
   same change: README, ROADMAP.md, VISION.md, docs/DECISIONS.md, docs/README.md,
   the relevant spec, the website hero, roadmap, FAQ and commitments sections, the
   GitHub repository description and the `package.json` description.
-- Keep shared facts identical everywhere. Today: first real agent is Codex through
-  its official interface (provisional), then Claude Code, then Cursor and
-  OpenCode; subscription sign-in is preferred where providers allow it, API keys
-  are the pilot baseline; a spend budget is not a hard spending cap; the first
-  proof is one repository, one workspace and one agent before parallel workspaces.
+- Keep shared facts identical everywhere. Today: the first release is the local
+  MVP (L1), real agents in isolated Git worktrees on the developer's computer,
+  before cloud workspaces; the first real agent is Claude Code through its
+  official CLI, then Codex, then Cursor and OpenCode; in local mode the agent uses
+  its own official sign-in and never receives provider API-key variables; local
+  execution is not a sandbox; a spend budget is not a hard spending cap.
 - Never invent customer evidence, metrics, pricing, download links, availability
   or live capabilities, in code, docs or website copy.
 
@@ -96,10 +97,13 @@ address, never a personal one.
 - A provider session ID is not durable process or filesystem state.
 - Treat agent statements and output as untrusted. Verification evidence is independent.
 - Label simulation everywhere; never call simulated work a tested pull request.
-- Do not execute repository code on the control-plane host. The local adapter only
-  writes fixed JSON artifacts and is not an isolation boundary for coding agents.
-- Never log secrets, inherit host credentials into agents or expose this prototype
-  beyond loopback. Real adapters require scoped credentials and isolation.
+- A remote or managed control-plane host never executes repository code. Local
+  mode (spec 0013) runs the agent on the developer's own computer, as the
+  developer: label it as not a sandbox, and follow its security model (no shell,
+  validated paths, hook-free Argent Git commands, allowlisted agent environment).
+- Never log secrets, pass provider API keys or host tokens into agents or expose
+  the local service beyond loopback. Hosted adapters require scoped credentials
+  and isolation.
 - Never silently merge, deploy, purchase or provision billable resources.
 - Do not fork or replace this foundation without maintainer approval.
 

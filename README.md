@@ -35,18 +35,19 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
 The full [roadmap](ROADMAP.md) lists each milestone and the evidence it needs.
 In order:
 
-1. **Cloud MVP.** One GitHub repository, one persistent cloud workspace and one
-   real coding agent: you hand off a task, disconnect, and come back to a tested
-   draft pull request. Codex, through its official interface, is the first
-   agent candidate.
-2. **Daily workflows.** A branch or worktree per task; setup, run, test, review
-   and archive actions; diffs and a terminal.
-3. **More agents.** Claude Code and Codex, using your existing subscriptions
-   where the provider supports it and API keys otherwise. Cursor and OpenCode
-   are further targets.
-4. **A mobile companion** (native iOS) to check progress and steer from your
+1. **Local MVP (in development).** Real coding agents on your own computer:
+   each workspace is a new branch in its own Git worktree of a local repository,
+   so tasks run side by side without overwriting each other. Claude Code, through
+   its official CLI and your own sign-in, is the first agent. You follow the
+   session live, review the diff and test results, and open a draft pull request.
+   Local execution is not a sandbox: the agent has the same access as running it
+   in your terminal. See [spec 0013](docs/specs/0013-local-mvp.md).
+2. **Codex**, then Cursor and OpenCode, through their official interfaces.
+3. **Signed public downloads** from the website.
+4. **Cloud workspaces.** Hand off a task, close your laptop, and come back to a
+   tested draft pull request.
+5. **A mobile companion** (native iOS) to check progress and steer from your
    phone.
-5. **Signed public downloads** from the website.
 
 After that: team handoff, then dependent tasks. A full IDE, agent swarms and
 automatic merging are explicitly out of scope for now.
@@ -121,7 +122,7 @@ the planned cloud design.
 | Persistence    | Built-in `node:sqlite`, WAL, full synchronous commits         |
 | Tests          | Node test runner, real multi-process crash/reconnect tests    |
 | Planned cloud  | PostgreSQL plus an isolated workspace provider (E2B is first) |
-| Planned agents | Official agent interfaces; Codex first                        |
+| Planned agents | Official agent CLIs; Claude Code first, then Codex            |
 
 `node:sqlite` is experimental in the tested Node release. The current engine is
 built for a single trusted host on loopback, not for multi-tenant production.

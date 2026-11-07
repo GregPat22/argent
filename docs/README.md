@@ -2,8 +2,9 @@
 
 Start with the [README](../README.md) for what works today, then the
 [architecture](../ARCHITECTURE.md) and [roadmap](../ROADMAP.md). Agent execution
-is currently simulated; real cloud execution and signed public distribution are
-later milestones.
+is currently simulated; the local MVP with real agents
+([spec 0013](specs/0013-local-mvp.md)) is in development, and cloud execution and
+signed public distribution follow.
 
 ## Product and decisions
 
@@ -34,6 +35,7 @@ recorded revision.
 | [0010 Live repository pilot gates](specs/0010-live-repository-pilot-gates.md)             | The credential, authorization and isolation gates before live repository access.    |
 | [0011 GitHub device sign-in pilot](specs/0011-github-device-pilot.md)                     | Implemented opt-in read-only pilot, not connected to the desktop.                   |
 | [0012 Portable history](specs/0012-portable-history.md)                                   | Implemented offline export and read-only restore, with commands.                    |
+| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | Planned critical path: real agents in local worktrees; L1.1 in development.         |
 
 Spec 0005 (the landing-page draft) is maintained privately with the website's
 design history.

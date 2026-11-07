@@ -29,7 +29,7 @@ const ITEMS: {
   },
   {
     title: "Bring your agent",
-    body: "Codex comes first, through its official interface, then Claude Code, Cursor and OpenCode, with your existing subscriptions where providers allow it. Model credentials stay separate from GitHub and cloud credentials.",
+    body: "Claude Code comes first, through its official CLI and your own sign-in, then Codex, Cursor and OpenCode. Argent never reads or copies your agent sign-in, and keeps model credentials separate from GitHub and cloud credentials.",
     status: "planned",
     subject: "Real agents",
   },

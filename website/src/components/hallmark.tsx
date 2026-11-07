@@ -342,7 +342,7 @@ export function Hallmark() {
         <p className="max-w-[40rem] text-[0.9375rem] text-sterling-dim">
           In M0, a separate verifier checks a simulated artifact’s identity and
           SHA-256 before a run can complete. Repository tests and exact-commit
-          evidence arrive with M1.
+          evidence arrive with the local MVP.
         </p>
         <div className="flex flex-wrap gap-2">
           <StatusTag status="live" subject="Independent check" />

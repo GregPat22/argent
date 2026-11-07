@@ -31,8 +31,9 @@ export function Hero() {
             >
               We’re building the open-source ADE for coding agents that work in
               parallel, in the cloud: hand off a task, close your laptop, check
-              in from your phone. Today it’s an early local prototype with
-              simulated runs, built in the open.
+              in from your phone. Today it’s an early prototype with simulated
+              runs; real agents on your own computer come first, built in the
+              open.
             </p>
             <div
               className="hero-actions mt-8 flex flex-wrap items-center justify-center gap-3"
