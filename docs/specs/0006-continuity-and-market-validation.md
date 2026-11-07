@@ -1,10 +1,21 @@
 # Continuity and market validation after Conductor's shutdown
 
 Status: incorporated into the roadmap at the founder's request, 6 November 2026;
-unimplemented. Branch: `GregPat22/grok-conductor-shutdown-analysis`, based on
+partially implemented by the offline history slice below. Original branch:
+`GregPat22/grok-conductor-shutdown-analysis`, based on
 `fd60a5a878fdde3f129c0f276b74b647ea373760`.
 
 ## Latest sequencing revision
+
+On `GregPat22/conductor-replacement-roadmap-review`, base main `5c25835`,
+[spec 0012](0012-portable-history.md) implements offline export/read-only restore
+of actual simulator history: bounded versioned metadata, optional selected text
+and fixed artifacts, hashes/omissions and separate historical storage. Imported
+active/uncertain work stays `needs_attention`; no execution queue is populated.
+This is not full M1d, Conductor import, real-agent recovery, desktop migration UI
+or the required independent fresh-machine drill. The
+[7 November review](../research/replacement-roadmap-review-2026-11-07.md) places
+basic worktrees/setup/run/review/archive before personal replacement launch.
 
 [Spec 0008](0008-conductor-familiar-desktop.md), on
 `GregPat22/conductor-layout-create` at base `333d662`, records the founder's later

@@ -339,8 +339,29 @@ and verification separately. Specify approval/input transitions and timeouts wit
 the real agent adapter. Supported subscription sign-in is a product preference,
 subject to provider/deployment validation; API keys remain the technical-pilot
 path. Neither preference permits extracting host credentials or silently switching
-to paid API usage. These requirements are unimplemented; process boundaries and
-the target diagram above remain unchanged.
+to paid API usage. The offline historical slice below is implemented; real-execution
+controls and full managed continuity remain open. Process boundaries and the
+target diagram above remain unchanged.
+
+## Offline historical continuity
+
+`continuity-export.ts` opens an explicit source database read-only and reads one
+consistent M0/P1 workspace snapshot. It rejects cloud lifecycle/bootstrap records
+instead of omitting their cleanup obligations. The versioned JSON format in
+`continuity.ts` contains projected metadata/events, optional selected text and
+canonical fixed simulator artifacts, hashes, bounds and an omission inventory.
+No lease, request key, credential envelope, raw event payload or discovered file
+is exported. Text is private opt-in data, not automatically sanitized prose.
+
+`ContinuityStore` restores validated bundles into a separate, application-identified
+private SQLite database. Each immutable import and its event commit together;
+identical digests deduplicate. This database has no workspace/run dispatch tables.
+Historical views normalize imported active/uncertain statuses to `needs_attention`
+while retaining original status; all imported verification remains untrusted and
+simulated. Checksums establish integrity, not authenticity or fresh verification.
+The offline CLI does not import workers, call providers or extract scripts/files.
+No API/desktop bridge capability or remote ingress is added.
+See [spec 0012](docs/specs/0012-portable-history.md) for the scope and test contract.
 
 ## P2 desktop presentation
 

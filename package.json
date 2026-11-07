@@ -30,7 +30,8 @@
     "desktop:smoke": "npm run build && node dist/scripts/desktop-smoke.js",
     "desktop:package": "npm run build && node dist/scripts/package-desktop.js",
     "site:preview": "npm run build && node dist/scripts/site-preview.js",
-    "github:pilot": "npm run build && node dist/scripts/github-pilot.js"
+    "github:pilot": "npm run build && node dist/scripts/github-pilot.js",
+    "continuity": "npm run build && node dist/scripts/continuity.js"
   },
   "devDependencies": {
     "@electron/packager": "20.3.0",

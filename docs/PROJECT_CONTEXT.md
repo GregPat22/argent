@@ -6,15 +6,16 @@ product intent and the tested foundation in this publication. Read
 [AGENTS.md](../AGENTS.md) before making changes.
 
 **Latest cross-branch progress:** [HANDOFF.md](../HANDOFF.md). Current branch
-`GregPat22/next-step-v6` now includes main `8acab52`, including the familiar
-desktop shell/UX, landing refinements and encrypted simulated credential custody.
-It adds audited simulated cleanup of uncertain repository bootstraps, an unwired
-read-only GitHub preflight, current token-format compatibility and an explicit
-memory-only device pilot with live private-fixture evidence. Independent
-resolution still gates workspace reuse. See
+`GregPat22/conductor-replacement-roadmap-review`, base main `5c25835`, adds the
+[replacement capability review](research/replacement-roadmap-review-2026-11-07.md)
+and [offline history export/read-only restore](specs/0012-portable-history.md).
+Main already includes desktop shell/UX, encrypted simulated custody, audited
+simulated cleanup and a memory-only GitHub device pilot with historical live
+private-fixture read evidence. Independent resolution still gates workspace reuse. See
 [spec 0007](specs/0007-cloud-workspace-lifecycle.md) for acceptance and limits.
-Durable desktop account connections, cloud execution, migration and mobile remain
-planned. [Spec 0011](specs/0011-github-device-pilot.md) records the local sign-in
+Durable desktop account connections, cloud execution, Conductor import, desktop
+migration controls and native mobile remain planned.
+[Spec 0011](specs/0011-github-device-pilot.md) records the local sign-in
 pilot and its limits.
 [Live pilot gates](specs/0010-live-repository-pilot-gates.md) record the current
 credential/authorization/isolation stopping point.

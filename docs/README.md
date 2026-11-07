@@ -50,6 +50,11 @@ evidence, Conductor setup and next actions. This branch contains P1 source.
   opaque memory-only session and read-only fixture preflight. Desktop/service
   connection and isolated execution remain separate work.
 
+- [Portable Argent history](specs/0012-portable-history.md): implemented offline
+  metadata/selected-text/artifact export and read-only restore into separate
+  historical storage. All work remains simulated; no Conductor importer or
+  desktop migration controls. Includes commands, acceptance criteria and limits.
+
 ## Conductor shutdown research and roadmap follow-up
 
 - [Evidence and strategy review](research/conductor-shutdown-analysis.md): checks
@@ -58,10 +63,14 @@ evidence, Conductor setup and next actions. This branch contains P1 source.
 - [Original Grok report](research/sources/grok-conductor-report-2026-11-06.txt):
   preserved unchanged for provenance; an attributed secondary report, not a set
   of independently verified assertions.
+- [7 November replacement review](research/replacement-roadmap-review-2026-11-07.md):
+  rechecked primary sources, actual capability gaps, basic worktree/workflow
+  sequencing, personal versus full team/cloud release gates and selected next phase.
 - [Continuity and market-validation contract](specs/0006-continuity-and-market-validation.md):
   founder-authorized roadmap additions for authentication/customer validation,
-  visible control and export/restore. Planned and unimplemented; provider
-  eligibility and exact launch packaging remain open.
+  visible control and export/restore. The bounded offline-history slice in spec
+  0012 is implemented; full continuity, provider eligibility and launch packaging
+  remain open.
 
 ## Build and contribute
 

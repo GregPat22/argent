@@ -12,14 +12,15 @@ execution remains part of the product, even though its primary client is desktop
 ## Read the context for your task
 
 **Latest progress and branch locations:** [HANDOFF.md](HANDOFF.md). Current branch
-`GregPat22/next-step-v6` now includes main `8acab52`, which already includes
-the familiar desktop shell/UX, landing refinements and encrypted simulated custody.
-It adds audited **simulated** repository recovery cleanup, an unwired read-only
-GitHub preflight, current token compatibility and a memory-only device sign-in
-pilot with live private-fixture evidence. Desktop execution remains simulated;
-durable account connections, checkout, migration and mobile remain planned. See
-[spec 0011](docs/specs/0011-github-device-pilot.md). The website is unpublished. See
-[spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md) and the [roadmap](ROADMAP.md).
+`GregPat22/conductor-replacement-roadmap-review`, based on main `5c25835`, adds
+a [replacement capability review](docs/research/replacement-roadmap-review-2026-11-07.md)
+and [offline history export/read-only restore](docs/specs/0012-portable-history.md).
+Main already includes desktop shell/UX, simulated recovery/custody and the explicit
+read-only GitHub device pilot. All task execution and archived work remain
+simulated. Durable accounts, real checkout, Conductor import, desktop migration UI
+and native mobile remain planned. See [spec 0011](docs/specs/0011-github-device-pilot.md)
+for historical live read-only fixture evidence. The website is unpublished.
+See [spec 0007](docs/specs/0007-cloud-workspace-lifecycle.md) and the [roadmap](ROADMAP.md).
 
 | Task                             | Read first                                                                                                                          |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -70,9 +71,10 @@ not repeated claims that Argent has no description. Ask for help if unsure.
 The shutdown review is saved in tracked documents. Serve the three overlapping
 audiences through a shared core and staged delivery. Supported subscription
 sign-in is the preferred product direction; API keys remain the technical-pilot
-baseline and alternative. Managed eligibility is unverified. Add portable
-export/restore and visible control before managed release; subscription breadth,
-migration and mobile now precede team handoff and dependency orchestration. These are planned, unimplemented work.
+baseline and alternative. Managed eligibility is unverified. Complete portable
+continuity beyond the implemented offline history slice, and visible control
+before managed release. Subscription breadth, Conductor migration and mobile
+precede team handoff/dependency scheduling and remain unimplemented.
 Read the [research](docs/research/conductor-shutdown-analysis.md) and
 [continuity contract](docs/specs/0006-continuity-and-market-validation.md).
 Do not ask the founder to choose only one of these audiences again.

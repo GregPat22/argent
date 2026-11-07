@@ -1,17 +1,73 @@
 # Argent development handoff
 
-Audited 6 November 2026 for the founder's move to Conductor. This file records
+Reviewed 7 November 2026 for the founder's Conductor replacement roadmap. This file records
 the latest known state across the project chats and checkouts. Read it alongside
 [START_HERE.md](START_HERE.md), [AGENTS.md](AGENTS.md) and the relevant specification.
 Private chat access is not required to continue development.
 
-**Current checkout:** `GregPat22/next-step-v6`, based on `origin/main` at
-`8acab52` after integrating the landing hero update. Main already includes
-P2/P2.1 desktop, landing refinements and encrypted simulation custody.
-This branch adds audited simulated recovery cleanup, an unwired read-only GitHub
-preflight, current installation-token compatibility and a memory-only GitHub
-device pilot with live private-fixture verification. Durable desktop/account
-integration, cloud execution, migration/mobile and publication remain unfinished.
+**Current checkout:** unchanged `GregPat22/conductor-replacement-roadmap-review`,
+based on `origin/main` / HEAD `5c258356ac2c66d62d5adfa24200b6cffd778a3f`.
+Main includes P2/P2.1 desktop, landing refinements, simulated custody/cleanup and
+the explicit read-only GitHub device pilot. This branch adds a source-backed
+replacement roadmap review and offline Argent history export/read-only restore.
+All task execution and exported work remain simulated. Durable desktop accounts,
+cloud execution, Conductor import, desktop migration controls, native mobile and
+public distribution remain unfinished. Historical entries below retain their
+original revisions and limits; their branch-specific status is not current.
+
+## Replacement review and offline history — 7 November 2026
+
+The founder requested a careful roadmap/project review against Grok's X report,
+cloud/mobile/workflows/worktrees and autonomous next-phase implementation. Worked
+alone on the unchanged branch. The
+[new review](docs/research/replacement-roadmap-review-2026-11-07.md) rechecks official
+shutdown, workspace/worktree/workflow and competitor documentation against actual
+source capabilities. Direct X retrieval remains 403; founder-confirmed anecdotes
+do not establish prevalence, demand or an empty competitor category.
+
+Revised the roadmap: basic branches/worktrees and setup/run/test/review/archive
+belong before personal replacement launch. The one-agent proof stays bounded.
+Personal replacement additionally requires provider breadth, continuity and mobile;
+full team/cloud replacement includes managed security and attributed shared handoff.
+Cloud M1a remains the critical path; isolation/custody/resource gates are not waived.
+
+[Spec 0012](docs/specs/0012-portable-history.md) records the selected independent
+next phase. Implemented a real offline CLI over existing simulator history:
+`npm run continuity -- help`. Export reads a consistent explicit source SQLite
+snapshot, projects bounded metadata/events and optionally selected text/canonical
+fixed artifacts, with SHA-256 integrity and omissions. Default metadata excludes
+free text, raw events, lease/request authority and credential tables. Text opt-in
+rejects common credential markers but is not guaranteed secret sanitization.
+Unsafe, changed and missing artifacts are inventoried; no arbitrary file discovery.
+
+Restore validates before import and writes a separate private application-identified
+history database. Bundle and import event commit atomically; identical file imports
+deduplicate. Historical views preserve original statuses and show active/uncertain
+work as `needs_attention`, never enqueue work or promote imported evidence to trust.
+CLI restore/list/show works in fresh processes/data directories after the original
+source and bundle become unavailable. This is not a fresh-machine drill.
+
+Final `npm run check` passes strict types, formatting, build and **364 tests,
+0 failures, 0 skips**, including **44 new continuity tests**. The actual runtime,
+test and documentation diffs were reviewed by the implementing agent; no external
+review or measured coverage percentage is claimed. Review tightened exact-length
+identifiers/digests, trailing-newline URL handling and canonical artifact checks
+to reject duplicate-key content. Final runtime sources are covered by the fresh
+full check. Evidence: `.context/replacement-check.log` and
+`.context/replacement-validation.json` (source/test/package hashes, base and result),
+manifest SHA-256 `d2d81c723ea252e65de9b9a2c22b5e5ebf1fb3553e62c4c29e1a6e3515815b04`.
+The earlier focused `.context/continuity-tests.log` covers 42 tests before the
+two final newline regressions. Installation reports the existing five moderate
+dependency advisories; dependencies/lockfile are unchanged.
+Limits: all archived execution is simulated; CLI only, no desktop bridge/API change,
+Conductor importer, Git changes, real transcripts, cloud backup or process resume.
+No native/package, website, live-provider or real-device test is claimed.
+
+Next: desktop export preview/history controls and real transcript/Git manifests on
+the continuity track; production custody and live isolated checkout/cleanup under
+spec 0010 on the cloud critical path; remote-client command/auth contract before
+native iOS. Work remains local/uncommitted. No branch rename, cloud provisioning,
+account change, billable operation, push/PR, merge, deploy or binary release.
 
 ## PR preparation — 7 November 2026
 
