@@ -166,6 +166,19 @@ it; it never calls, routes or proxies models, and never falls back to another
 agent or to paid API usage. See
 [spec 0013](specs/0013-local-mvp.md#agent-and-model-choice).
 
+### The desktop shows only what works — 7 November 2026
+
+The desktop app no longer reserves space for planned tools. The inspector, the
+terminal preview, the mobile and migration pages and the provider tabs are
+removed until they are real; the right panel returns with the changes view
+(L1.3). This supersedes the right-hand inspection placement in
+[spec 0008](specs/0008-desktop-workspace-shell.md). A workspace is shown as one
+conversation, because follow-ups already resume the same Claude Code session.
+The composer sends directly: edits only by default, full access confirmed once
+per workspace and reset after every send. Green is reserved for verified
+results, so a Claude Code run, which is recorded but not tested, ends in silver.
+See [spec 0015](specs/0015-desktop-restyle.md).
+
 ### Name
 
 The project is named **Argent**. Other software also uses the name; no exclusive

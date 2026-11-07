@@ -1,42 +1,9 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { runInNewContext } from "node:vm";
-import ts from "typescript";
 import type { Workspace } from "../src/domain.js";
-import { mergeHistory } from "../ui/history.js";
+import { fakeDocument, loadRenderer, settle } from "./renderer-loader.js";
 
 // Run the compiled renderer with a controlled bridge, DOM and polling clock.
-const renderer = ts.transpileModule(
-  readFileSync(new URL("../ui/app.js", import.meta.url), "utf8"),
-  { compilerOptions: { module: ts.ModuleKind.CommonJS } },
-).outputText;
-
-class Element {
-  textContent = "";
-  hidden = false;
-  disabled = false;
-  className = "";
-  dataset: Record<string, string> = {};
-  children: Element[] = [];
-  listeners = new Map<string, () => void>();
-  append(...children: Element[]): void {
-    this.children.push(...children);
-  }
-  replaceChildren(): void {
-    this.children = [];
-  }
-  setAttribute(): void {}
-  addEventListener(name: string, callback: () => void): void {
-    this.listeners.set(name, callback);
-  }
-  click(): void {
-    this.listeners.get("click")?.();
-  }
-}
-
-const settle = async (): Promise<void> =>
-  new Promise((resolve) => setImmediate(resolve));
 
 async function launch(
   saved = true,
@@ -55,11 +22,7 @@ async function launch(
     repository: "https://github.com/example/older",
     createdAt: 1,
   };
-  const elements = new Map<string, Element>();
-  function element(id: string): Element {
-    if (!elements.has(id)) elements.set(id, new Element());
-    return elements.get(id)!;
-  }
+  const { element, document } = fakeDocument();
   let timer: (() => void) | undefined;
   let connected = true;
   let readError = initialReadError;
@@ -71,14 +34,8 @@ async function launch(
       ? [["argent.selection", JSON.stringify({ workspaceId: older.id })]]
       : [],
   );
-  element("error-banner").hidden = true;
-  runInNewContext(renderer, {
+  loadRenderer({
     Error,
-    exports: {},
-    require: (path: string) => {
-      assert.equal(path, "./history.js");
-      return { mergeHistory };
-    },
     window: {
       argent: {
         status: async () => ({ connected }),
@@ -103,12 +60,7 @@ async function launch(
       },
       addEventListener: () => {},
     },
-    document: {
-      getElementById: element,
-      createElement: () => new Element(),
-      querySelectorAll: () => [],
-      addEventListener: () => {},
-    },
+    document,
     localStorage: {
       getItem: (key: string) => preferences.get(key) ?? null,
       setItem: (key: string, value: string) => preferences.set(key, value),
@@ -155,7 +107,7 @@ async function launch(
       await settle();
     },
     select(id: string) {
-      const button = element("workspace-list").children.find(
+      const button = element("workspace-list").find(
         (child) => child.dataset.workspaceId === id,
       );
       assert.ok(button, `workspace ${id} must be rendered`);
@@ -170,8 +122,7 @@ async function launch(
         element("workspace-lifecycle").textContent,
         state === "running" ? "Stop workspace" : "Start workspace",
       );
-      for (const id of ["new-task", "empty-new-task"])
-        assert.equal(element(id).disabled, state !== "running");
+      assert.equal(element("composer-input").disabled, state !== "running");
     },
   };
 }
@@ -187,7 +138,7 @@ test("saved workspace beyond page one follows external stop/start and reconnect"
   app.assertState("running");
   app.setConnected(false);
   await app.poll();
-  assert.equal(app.element("new-task").disabled, true);
+  assert.equal(app.element("composer-input").disabled, true);
   app.setState("stopped");
   app.setConnected(true);
   await app.poll();

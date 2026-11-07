@@ -58,17 +58,25 @@ else {
         : result.filePaths[0];
     });
     const assets = fileURLToPath(new URL("../../ui/", import.meta.url));
+    // Only the packaged renderer files, matched by strict names when the app
+    // starts: its own modules, stylesheet, brand images, icons and fonts.
     const allowed = new Map([
       ["/index.html", "text/html"],
-      ["/app.js", "text/javascript"],
-      ["/history.js", "text/javascript"],
-      ["/shell.js", "text/javascript"],
       ["/styles.css", "text/css"],
       ["/argent-icon.webp", "image/webp"],
+      ["/argent-wordmark.webp", "image/webp"],
     ]);
+    for (const name of readdirSync(assets)) {
+      if (/^[a-z0-9-]+\.js$/.test(name))
+        allowed.set(`/${name}`, "text/javascript");
+    }
     for (const name of readdirSync(join(assets, "icons"))) {
       if (/^[a-z0-9-]+\.svg$/.test(name))
         allowed.set(`/icons/${name}`, "image/svg+xml");
+    }
+    for (const name of readdirSync(join(assets, "fonts"))) {
+      if (/^[a-z0-9-]+\.woff2$/.test(name))
+        allowed.set(`/fonts/${name}`, "font/woff2");
     }
     const csp =
       "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
@@ -117,7 +125,7 @@ else {
         minWidth: 900,
         minHeight: 620,
         title: "Argent",
-        backgroundColor: "#141719",
+        backgroundColor: "#08090c",
         titleBarStyle: "hiddenInset",
         trafficLightPosition: { x: 19, y: 20 },
         webPreferences: {

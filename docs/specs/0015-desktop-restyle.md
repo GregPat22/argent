@@ -1,6 +1,6 @@
 # P3: desktop restyle, one conversation per workspace
 
-Status: in development. Based on main `e57c4b7`. Supersedes the layout of
+Status: implemented. Based on main `32748a5`. Supersedes the layout of
 [spec 0008](0008-desktop-workspace-shell.md) and the visual system of
 [spec 0009](0009-desktop-ux-polish.md); their execution, durability and
 accessibility rules still apply.
@@ -111,3 +111,23 @@ proximity, similarity, peak-end, aesthetic-usability) of main `e57c4b7`: the
 welcome offered 17 controls for one decision, five controls opened the same task
 dialog, a run took five clicks to start, and run status appeared in five places.
 No measured usability gain is claimed.
+
+Implementation evidence (9 November 2026, on top of main `32748a5`):
+
+- Root suite: `npm run check` passes, including the renderer refresh tests on
+  the new modules, composer tests (direct send, edits-only default, one
+  confirmation per workspace, reset after send, unconfirmed key kept on retry,
+  definite rejection clears it, stopped/blank/working cannot send, demos in
+  seconds) and pure model tests (grouping, event mapping, send gating, limits).
+- Native smoke (`npm run desktop:smoke`) passes on macOS with Electron 45: bundled
+  fonts, icons and brand images load through the allowlist; welcome, settings
+  with Escape focus return, demo form validation, search with arrows and Enter,
+  900×620 and 1380×900 without horizontal scroll, reduced motion, direct sends,
+  background completion after the window closes, Stop from the composer, service
+  stop with needs-review resolution, a local Claude Code run with a fake CLI
+  confirmed for full access and reset to edits only, a record with two struck
+  and two unstruck marks labelled "Not tested", and a parallel workspace grouped
+  under the same repository. Screenshots were reviewed locally.
+- Limits: the record shows what Argent read from the worktree; there is still no
+  changes view, test run or pull request. The sidebar shows live activity only
+  for the open workspace.

@@ -158,7 +158,10 @@ notice; real-agent labels replace simulation labels only for real workspaces.
 - The task dialog for a local workspace has the permission choice (edits only by
   default, or full access with a warning), a limit in minutes up to two hours,
   and becomes "Continue the conversation" once the workspace has a run. A pending
-  submission keeps its permission mode when retried.
+  submission keeps its permission mode when retried. (Since
+  [spec 0015](0015-desktop-restyle.md) these choices are composer chips: edits
+  only by default, full access confirmed once per workspace and reset after each
+  send.)
 - The activity view labels agent text, tool calls, tool errors and status lines;
   the verification view shows the worktree record as "NOT TESTED".
 - Resolving an interrupted real run records `abandon_run` with
