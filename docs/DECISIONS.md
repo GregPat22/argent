@@ -146,6 +146,16 @@ rows. Imported active or uncertain states stay `needs_attention`, and imported
 verification stays historical and untrusted. Importing from other tools requires
 consented sample data first.
 
+### Agent and model choice in the local MVP — 7 November 2026
+
+The local MVP includes both Claude Code and Codex, and the desktop lets each
+workspace choose its agent and each run choose a model that agent offers under the
+developer's own sign-in (Claude models through Claude Code, GPT models through
+Codex). Argent passes the choice to the agent's official model option and records
+it; it never calls, routes or proxies models, and never falls back to another
+agent or to paid API usage. See
+[spec 0013](specs/0013-local-mvp.md#agent-and-model-choice).
+
 ### Name
 
 The project is named **Argent**. Other software also uses the name; no exclusive
