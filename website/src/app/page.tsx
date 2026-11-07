@@ -1,4 +1,5 @@
 import { Commitments } from "@/components/commitments";
+import { Entrance } from "@/components/entrance";
 import { Footer } from "@/components/footer";
 import { FAQ } from "@/components/faq";
 import { Hallmark } from "@/components/hallmark";
@@ -32,6 +33,7 @@ export default function Home() {
         <RunIt />
       </main>
       <Footer />
+      <Entrance />
     </>
   );
 }

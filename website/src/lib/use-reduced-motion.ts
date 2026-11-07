@@ -3,12 +3,18 @@
 import { useSyncExternalStore } from "react";
 
 const QUERY = "(prefers-reduced-motion: reduce)";
-let preference: MediaQueryList | undefined;
-const media = () => (preference ??= window.matchMedia(QUERY));
-const snapshot = () => media().matches;
+
+/*
+ * Chromium queues a MediaQueryList's `change` event for the next frame and
+ * drops it if `.matches` was read on that same list in between. React reads
+ * the snapshot on every render, so reads and listeners must use separate
+ * lists or a render in that window silently swallows the update.
+ */
+let reader: MediaQueryList | undefined;
+const snapshot = () => (reader ??= window.matchMedia(QUERY)).matches;
 const serverSnapshot = () => false;
 const subscribe = (notify: () => void) => {
-  const query = media();
+  const query = window.matchMedia(QUERY);
   query.addEventListener("change", notify);
   return () => query.removeEventListener("change", notify);
 };

@@ -221,7 +221,7 @@ const spring = (b: Body, target: V3, k: number, c: number, dt: number) => {
 /** Pointer input in canvas-relative normalized coordinates (y up). */
 type Input = { x: number; y: number; present: boolean; active: boolean };
 
-function createSimulation() {
+function createSimulation(introDelay = 0) {
   const core = body();
   const head = body([0.2, 0.1, 0.25]);
   const neck = [body(), body(), body()];
@@ -242,8 +242,10 @@ function createSimulation() {
   const step = (dt: number, input: Input) => {
     time += dt;
     ripple[3] += dt;
-    intro.velocity += (55 * (1 - intro.value) - 8 * intro.velocity) * dt;
-    intro.value += intro.velocity * dt;
+    if (time > introDelay) {
+      intro.velocity += (55 * (1 - intro.value) - 8 * intro.velocity) * dt;
+      intro.value += intro.velocity * dt;
+    }
 
     let target: V3;
     if (input.active) {
@@ -428,7 +430,11 @@ export function LiquidSilver() {
       return;
     }
 
-    const sim = createSimulation();
+    // During the page entrance the mass forms after the headline has landed.
+    const entering = ["pending", "running"].includes(
+      document.documentElement.dataset.entrance ?? "",
+    );
+    const sim = createSimulation(entering ? 0.75 : 0);
     const input: Input = { x: 0, y: 0, present: false, active: false };
     let client = { x: 0, y: 0, down: false, touch: false };
     let rect = canvas.getBoundingClientRect();

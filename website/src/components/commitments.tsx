@@ -1,8 +1,5 @@
 "use client";
 
-import { useReducedMotion } from "@/lib/use-reduced-motion";
-
-import { motion } from "motion/react";
 import { StatusTag } from "@/components/ui";
 import type { Status } from "@/lib/site";
 
@@ -39,7 +36,6 @@ const ITEMS: {
 ];
 
 export function Commitments() {
-  const reduce = useReducedMotion();
   return (
     <section
       aria-labelledby="commitments-title"
@@ -53,18 +49,9 @@ export function Commitments() {
           Yours to run, wherever you want.
         </h2>
         <div className="grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:col-span-7">
-          {ITEMS.map((item, index) => (
-            <motion.article
+          {ITEMS.map((item) => (
+            <article
               key={item.title}
-              initial={{ opacity: 1, y: reduce ? 0 : 24 }}
-              whileInView={{ y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{
-                type: "spring",
-                visualDuration: 0.6,
-                bounce: 0,
-                delay: reduce ? 0 : index * 0.06,
-              }}
               className="silver-surface rounded-2xl border border-hairline p-6"
             >
               <h3 className="display text-[1.85rem] leading-[1.05]">
@@ -76,7 +63,7 @@ export function Commitments() {
                 subject={item.subject}
                 className="mt-5"
               />
-            </motion.article>
+            </article>
           ))}
         </div>
       </div>

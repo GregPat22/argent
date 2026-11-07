@@ -1,5 +1,19 @@
 import { expect, test, type Page } from "@playwright/test";
 
+type EntranceWindow = Window & {
+  entrance: { states: string[]; split: number; animations: number };
+  headingSplit: number;
+};
+
+/** Open a page and wait until the first-load entrance has settled. */
+async function visit(page: Page, path = "/") {
+  await page.goto(path);
+  await page.waitForFunction(() => {
+    const state = document.documentElement.dataset.entrance;
+    return state === undefined || state === "done";
+  });
+}
+
 test("page hydrates cleanly and every section has a readable heading", async ({
   page,
 }) => {
@@ -8,7 +22,7 @@ test("page hydrates cleanly and every section has a readable heading", async ({
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
-  await page.goto("/");
+  await visit(page, "/");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: /Assign a task.*Review the changes/ }),
@@ -35,7 +49,7 @@ test("mobile navigation supports keyboard, Escape and anchor selection", async (
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.goto("/");
+  await visit(page, "/");
   const menu = page.locator("button[aria-controls=mobile-navigation]");
   await menu.focus();
   await page.keyboard.press("Enter");
@@ -60,7 +74,7 @@ test("mobile navigation supports keyboard, Escape and anchor selection", async (
 test("all sections fit at mobile and tablet widths", async ({ page }) => {
   for (const width of [360, 768]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto("/");
+    await visit(page, "/");
     for (const section of await page.locator("main > section").all()) {
       await section.scrollIntoViewIfNeeded();
       expect(
@@ -82,7 +96,7 @@ test("comparison slider supports limits without clipping its handle", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  await visit(page, "/");
   const slider = page.getByRole("slider");
   await slider.scrollIntoViewIfNeeded();
   await slider.focus();
@@ -114,7 +128,7 @@ for (const input of ["keyboard", "pointer"] as const) {
   test(`comparison arrival hint yields permanently to ${input} input`, async ({
     page,
   }) => {
-    await page.goto("/");
+    await visit(page, "/");
     const stage = page.locator("#hallmark .cursor-ew-resize");
     const slider = page.getByRole("slider");
     await stage.evaluate((el) =>
@@ -141,7 +155,7 @@ for (const input of ["keyboard", "pointer"] as const) {
 test("illustrated reconnect preserves history and worker loss requires attention", async ({
   page,
 }) => {
-  await page.goto("/");
+  await visit(page, "/");
   await page.locator("#reconnect").scrollIntoViewIfNeeded();
   await page.getByRole("button", { name: "Close Argent", exact: true }).click();
   await expect(page.locator("#reconnect")).toContainText("new event", {
@@ -189,7 +203,7 @@ async function peakBrightness(
 test("hero shows interactive liquid silver beside the headline", async ({
   page,
 }) => {
-  await page.goto("/");
+  await visit(page, "/");
   const liquid = page.locator("#intro [data-liquid-silver]");
   const canvas = liquid.locator("canvas");
   await expect(liquid).toHaveAttribute("aria-hidden", "true");
@@ -252,7 +266,7 @@ test("hero shows interactive liquid silver beside the headline", async ({
 test("liquid silver pauses offscreen and holds a still frame under reduced motion", async ({
   page,
 }) => {
-  await page.goto("/");
+  await visit(page, "/");
   const canvas = page.locator("#intro [data-liquid-silver] canvas");
   await expect(canvas).toHaveAttribute("data-state", "animating", {
     timeout: 15_000,
@@ -284,7 +298,7 @@ test("hero keeps a static liquid fallback without WebGL", async ({ page }) => {
       return original.call(this, kind, ...args);
     } as typeof original;
   });
-  await page.goto("/");
+  await visit(page, "/");
   await expect(page.locator("#intro [data-liquid-fallback]")).toBeVisible();
   await expect(page.locator("#intro canvas")).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -294,7 +308,7 @@ test("hero keeps a static liquid fallback without WebGL", async ({ page }) => {
 
 test("liquid silver sits below the hero copy on phones", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await visit(page, "/");
   const liquid = (await page
     .locator("#intro [data-liquid-silver]")
     .boundingBox())!;
@@ -314,7 +328,7 @@ test("atom keeps its static fallback without canvas support", async ({
     HTMLCanvasElement.prototype.getContext = (() =>
       null) as typeof HTMLCanvasElement.prototype.getContext;
   });
-  await page.goto("/");
+  await visit(page, "/");
   await expect(page.locator("[data-atom-fallback]")).toBeVisible();
   await expect(page.locator("[data-atom-electron]")).toHaveCount(47);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -331,7 +345,7 @@ test("copy commands reports success and provides a failure fallback", async ({
         Object.assign(window, { copiedCommands: text }),
     });
   });
-  await page.goto("/");
+  await visit(page, "/");
   await page.getByRole("button", { name: "Copy commands" }).click();
   await expect(page.getByRole("status")).toHaveText(
     "Commands copied to clipboard.",
@@ -366,7 +380,7 @@ test("copy commands reports success and provides a failure fallback", async ({
 test("section chrome and navbar reading progress are removed", async ({
   page,
 }) => {
-  await page.goto("/");
+  await visit(page, "/");
   for (const label of [
     "The nature of Argent",
     "A considered process",
@@ -387,7 +401,7 @@ test("section chrome and navbar reading progress are removed", async ({
 test("workflow stages are compact and keyboard selectable", async ({
   page,
 }) => {
-  await page.goto("/");
+  await visit(page, "/");
   const tabs = page.getByRole("tablist", {
     name: "Explore the planned workflow",
   });
@@ -435,7 +449,7 @@ test("larger silver atom has no pause control, stops offscreen and respects redu
       return original.apply(this, args);
     };
   });
-  await page.goto("/");
+  await visit(page, "/");
   const atom = page.locator("[data-silver-atom] canvas");
   await atom.scrollIntoViewIfNeeded();
   const image = await atom.evaluate((el) =>
@@ -487,7 +501,7 @@ test("hero next steps and prototype status fit the first mobile screen", async (
     [390, 844],
   ]) {
     await page.setViewportSize({ width: width!, height: height! });
-    await page.goto("/");
+    await visit(page, "/");
     const hero = page.locator("#intro");
     const demo = hero.getByRole("link", { name: "See it in action" });
     const github = hero.getByRole("link", { name: "View on GitHub" });
@@ -516,7 +530,7 @@ test("navigation follows the current section and local entry reaches the termina
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  await visit(page, "/");
   for (const id of ["lifecycle", "hallmark", "faq", "roadmap"]) {
     await page
       .locator(`#${id}`)
@@ -548,7 +562,7 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     page,
   }) => {
     await page.emulateMedia({ reducedMotion });
-    await page.goto("/#faq");
+    await visit(page, "/#faq");
     const items = page.locator("#faq details");
     await expect(items).toHaveCount(5);
     await expect(items.first()).toHaveAttribute("open", "");
@@ -603,7 +617,7 @@ test("FAQ answers remain readable without JavaScript", async ({ browser }) => {
 test("magnetic links keep their hit area stable and stop moving under reduced motion", async ({
   page,
 }) => {
-  await page.goto("/");
+  await visit(page, "/");
   const link = page
     .locator("#intro")
     .getByRole("link", { name: "See it in action" });
@@ -634,7 +648,7 @@ test("official Argent icon loads consistently and the headline is concise", asyn
   page,
   request,
 }) => {
-  await page.goto("/");
+  await visit(page, "/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Delegate work.Keep control.",
   );
@@ -667,7 +681,7 @@ test("borderless navigation compacts to one logo and preserves keyboard access",
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  await visit(page, "/");
   const header = page.locator("header");
   await expect(header).toHaveAttribute("data-compact", "false");
   await expect(page.getByRole("link", { name: "Argent home" })).toHaveText("");
@@ -716,7 +730,7 @@ test("borderless navigation compacts to one logo and preserves keyboard access",
 test("liquid buttons reflect on hover without moving the target and respect reduced motion", async ({
   page,
 }) => {
-  await page.goto("/");
+  await visit(page, "/");
   const button = page
     .locator("#intro")
     .getByRole("link", { name: "See it in action" });
@@ -754,7 +768,7 @@ test("liquid buttons reflect on hover without moving the target and respect redu
 test("headings use Inter and product paragraphs describe the actual workflow", async ({
   page,
 }) => {
-  await page.goto("/");
+  await visit(page, "/");
   const statement = page.locator("#statement-title").locator("..");
   await expect(statement).toContainText(
     "code changes, test results and independent review",
@@ -780,7 +794,7 @@ test("footer uses the supplied artwork as a working home link", async ({
   request,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  await visit(page, "/");
   const footer = page.locator("footer");
   const home = footer.getByRole("link", {
     name: "Argent — back to top",
@@ -821,7 +835,7 @@ test("scroll compaction reverses, handles deep links and respects live reduced m
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/");
+  await visit(page, "/");
   const widths = await page.evaluate(async () => {
     const samples: number[] = [];
     const started = performance.now();
@@ -838,7 +852,7 @@ test("scroll compaction reverses, handles deep links and respects live reduced m
   });
   // Read actual intermediate geometry, rather than inferring animation from props.
   expect(widths.some((width) => width > 49 && width < 63)).toBeTruthy();
-  await page.goto("/#faq");
+  await visit(page, "/#faq");
   const header = page.locator("header");
   await expect(header).toHaveAttribute("data-compact", "true");
   await page
@@ -876,7 +890,7 @@ test("scrolling transfers keyboard focus when navigation controls are replaced",
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
+  await visit(page, "/");
   const home = page.getByRole("link", { name: "Argent home", exact: true });
   const logo = page.getByRole("button", {
     name: "Open navigation",
@@ -922,4 +936,131 @@ test("scrolling transfers keyboard focus when navigation controls are replaced",
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await expect(home).toBeFocused();
   await expect(menu).toBeHidden();
+});
+
+test("first load choreographs the header, hero and liquid silver", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const seen = { states: [] as string[], split: 0, animations: 0 };
+    (window as unknown as EntranceWindow).entrance = seen;
+    const tick = () => {
+      const state = document.documentElement?.dataset.entrance;
+      if (state && seen.states.at(-1) !== state) seen.states.push(state);
+      seen.split = Math.max(
+        seen.split,
+        document.querySelectorAll("#intro h1 [data-split-word]").length,
+      );
+      seen.animations = Math.max(
+        seen.animations,
+        document.getAnimations().length,
+      );
+      if (state !== "done") requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  await page.goto("/");
+  await expect
+    .poll(
+      () => page.evaluate(() => document.documentElement.dataset.entrance),
+      {
+        timeout: 15_000,
+      },
+    )
+    .toBe("done");
+  const seen = await page.evaluate(
+    () => (window as unknown as EntranceWindow).entrance,
+  );
+  expect(seen.states).toEqual(["pending", "running", "done"]);
+  // Four headline words rose individually alongside nav, copy and liquid.
+  expect(seen.split).toBe(4);
+  expect(seen.animations).toBeGreaterThan(10);
+
+  // Settled state: original markup, accessible name and no leftover styles.
+  const title = page.getByRole("heading", { level: 1 });
+  await expect(title).toHaveText("Delegate work.Keep control.");
+  expect(await title.getAttribute("aria-label")).toBeNull();
+  await expect(page.locator("#intro [data-split-word]")).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          [
+            ...document.querySelectorAll<HTMLElement>(
+              ".site-header .nav-logo-dock, .site-header .nav-links > li, #intro .hero-copy > div > *, #intro .hero-actions > *, #intro [data-liquid-silver]",
+            ),
+          ].filter(
+            (el) => el.style.opacity || el.style.transform || el.style.filter,
+          ).length,
+      ),
+    )
+    .toBe(0);
+});
+
+test("sections reveal their heading word by word as they scroll in", async ({
+  page,
+}) => {
+  await visit(page);
+  const heading = page.locator("#roadmap h2");
+  expect(await heading.evaluate((el) => el.style.opacity)).toBe("0");
+  await page.evaluate(() => {
+    const target = document.querySelector("#roadmap h2")!;
+    const win = window as unknown as EntranceWindow;
+    win.headingSplit = 0;
+    new MutationObserver(() => {
+      win.headingSplit = Math.max(
+        win.headingSplit,
+        target.querySelectorAll("[data-split-word]").length,
+      );
+    }).observe(target, { childList: true, subtree: true });
+  });
+  await heading.scrollIntoViewIfNeeded();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as unknown as EntranceWindow).headingSplit),
+    )
+    .toBe(5);
+  await expect
+    .poll(() => heading.evaluate((el) => el.innerHTML), { timeout: 10_000 })
+    .toBe("Early, and honest<br>about it.");
+  expect(await heading.getAttribute("aria-label")).toBeNull();
+  await expect(page.locator("#roadmap li").last()).toHaveCSS("opacity", "1");
+});
+
+test("reduced motion skips the entrance and shows everything at once", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  expect(
+    await page.evaluate(() => document.documentElement.dataset.entrance),
+  ).toBeUndefined();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCSS(
+    "opacity",
+    "1",
+  );
+  await expect(page.locator("#roadmap h2")).toHaveCSS("opacity", "1");
+  await expect(page.locator(".site-header .nav-logo-dock")).toHaveCSS(
+    "opacity",
+    "1",
+  );
+  await expect(page.locator("[data-split-word]")).toHaveCount(0);
+});
+
+test("content appears even if the app scripts never load", async ({ page }) => {
+  await page.route(/\/_next\/static\/chunks\/.+\.js/, (route) => route.abort());
+  await page.goto("/");
+  await expect
+    .poll(
+      () => page.evaluate(() => document.documentElement.dataset.entrance),
+      {
+        timeout: 8_000,
+      },
+    )
+    .toBe("done");
+  await expect(page.locator("#intro .hero-layout > *").first()).toHaveCSS(
+    "opacity",
+    "1",
+  );
+  await expect(page.locator("#roadmap")).toHaveCSS("opacity", "1");
 });

@@ -1,8 +1,5 @@
 "use client";
 
-import { useReducedMotion } from "@/lib/use-reduced-motion";
-
-import { motion } from "motion/react";
 import { M0, ROADMAP_URL } from "@/lib/site";
 
 const MILESTONES = [
@@ -44,7 +41,6 @@ const MILESTONES = [
 ];
 
 export function Roadmap() {
-  const reduce = useReducedMotion();
   return (
     <section
       id="roadmap"
@@ -76,21 +72,12 @@ export function Roadmap() {
       </div>
       <div className="silver-surface relative mt-12 overflow-hidden rounded-3xl border border-hairline-strong px-6 py-8 md:px-10">
         <div>
-          <ol className="grid gap-8 md:grid-cols-5 md:gap-6">
-            {MILESTONES.map((milestone, index) => (
-              <motion.li
-                key={milestone.id}
-                className="relative pl-10 md:pl-0"
-                initial={{ opacity: 1, y: reduce ? 0 : 24 }}
-                whileInView={{ y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                transition={{
-                  type: "spring",
-                  visualDuration: 0.65,
-                  bounce: 0,
-                  delay: reduce ? 0 : index * 0.07,
-                }}
-              >
+          <ol
+            data-reveal-children
+            className="grid gap-8 md:grid-cols-5 md:gap-6"
+          >
+            {MILESTONES.map((milestone) => (
+              <li key={milestone.id} className="relative pl-10 md:pl-0">
                 <span
                   aria-hidden
                   className={`absolute top-0 left-0 flex size-6 items-center justify-center rounded-full border ${milestone.complete ? "metal-node border-polished/40" : "border-hairline-strong bg-oxide"}`}
@@ -113,7 +100,7 @@ export function Roadmap() {
                 >
                   {milestone.label}
                 </p>
-              </motion.li>
+              </li>
             ))}
           </ol>
         </div>

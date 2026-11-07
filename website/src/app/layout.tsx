@@ -27,6 +27,10 @@ export const metadata: Metadata = {
     "Argent is an open-source desktop app for running AI coding agents in persistent workspaces. A local simulated desktop prototype today. Persistent cloud execution and independently verified code are the roadmap.",
 };
 
+// Runs before first paint: hide content for the entrance only when scripts run
+// and motion is allowed, and reveal it anyway if the app never takes over.
+const ENTRANCE_SCRIPT = `(function(){try{var d=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;d.dataset.entrance="pending";setTimeout(function(){if(d.dataset.entrance==="pending")d.dataset.entrance="done"},4000)}catch(e){}})()`;
+
 export const viewport: Viewport = {
   themeColor: "#08090c",
 };
@@ -36,7 +40,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${inter.variable} ${manrope.variable} ${jetbrains.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: ENTRANCE_SCRIPT }} />
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>
