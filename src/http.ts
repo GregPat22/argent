@@ -8,6 +8,7 @@ import {
 import { DomainError, type Run } from "./domain.js";
 import { Store } from "./store.js";
 import { inspectArtifact } from "./artifacts.js";
+import { createLocalWorkspace } from "./local-worktree.js";
 
 function publicRun(run: Run): Omit<Run, "leaseToken"> {
   const { leaseToken: _token, ...result } = run;
@@ -48,6 +49,8 @@ function send(response: ServerResponse, status: number, body: unknown): void {
 
 export interface ServerOptions {
   artifactRoot?: string;
+  /** Enables real local worktree workspaces (spec 0013) under this folder. */
+  worktreeRoot?: string;
   instanceId?: string;
   onStop?: () => void;
 }
@@ -104,7 +107,20 @@ export function makeServer(
         );
       } else if (method === "POST" && url.pathname === "/workspaces") {
         const body = await readBody(request);
-        send(response, 201, store.createWorkspace(body.repository));
+        if (body.source === "local") {
+          if (!options.worktreeRoot)
+            throw new DomainError(
+              409,
+              "Local execution is not enabled in this service",
+            );
+          send(
+            response,
+            201,
+            createLocalWorkspace(store, options.worktreeRoot, body.path),
+          );
+        } else {
+          send(response, 201, store.createWorkspace(body.repository));
+        }
       } else if (
         parts[0] === "workspaces" &&
         parts.length === 3 &&
@@ -178,6 +194,8 @@ export function makeServer(
               body.task,
               request.headers["idempotency-key"],
               body.maxRuntimeMs,
+              undefined,
+              body.permissionMode,
             ),
           ),
         );

@@ -11,6 +11,9 @@ export function inspectArtifact(
 ): Record<string, unknown> {
   const run = store.getRun(runId);
   const evidence = store.evidence(runId);
+  // A worktree record has no stored file to re-read; the diff view is L1.3.
+  if (evidence.kind === "worktree-record")
+    return { evidence, content: null, simulation: false };
   if (![run.id, run.workspaceId].every((id) => /^[a-f0-9-]{36}$/.test(id)))
     throw new DomainError(400, "Invalid artifact identity");
   const path = join(root, run.workspaceId, `${run.id}.json`);

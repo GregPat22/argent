@@ -20,6 +20,7 @@ import { DatabaseSync } from "node:sqlite";
 import { test, type TestContext } from "node:test";
 import { fileURLToPath } from "node:url";
 import { LocalWorkspace, ScriptedAgent } from "../src/adapters.js";
+import type { SimulationEvidence } from "../src/domain.js";
 import { exportHistory } from "../src/continuity-export.js";
 import { readHistoryFile, writeHistoryFile } from "../src/continuity-files.js";
 import { ContinuityStore } from "../src/continuity-store.js";
@@ -97,7 +98,7 @@ test("real simulator history round-trips with matching artifacts, cursors and se
   assert.equal(historical.artifact?.availability, "included");
   assert.equal(
     digest(historical.artifact!.content!),
-    f.store.evidence(run.id).sha256,
+    (f.store.evidence(run.id) as SimulationEvidence).sha256,
   );
   assert.deepEqual(
     historical.events.map((event) => event.cursor),

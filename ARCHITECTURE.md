@@ -387,7 +387,7 @@ an interrupted desktop service can finish draining and release ownership. It
 preserves the existing worker-shutdown `needs_attention` state and does not replay
 work. The API/worker/store boundaries and loopback restriction remain unchanged.
 
-## Local execution mode (in development)
+## Local execution mode (engine implemented, desktop controls planned)
 
 [Spec 0013](docs/specs/0013-local-mvp.md) adds a second workspace provider beside
 the simulation. A `local-worktree` workspace records a local repository, its base

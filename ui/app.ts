@@ -399,8 +399,15 @@ function renderVerification(): void {
       ? "This run did not complete with verified evidence. Inspect its activity for the recorded outcome."
       : "A completed simulation will include an independently checked artifact and its SHA-256 fingerprint.");
   if (!artifact) return;
-  element("artifact-name").textContent = artifact.evidence.artifact;
-  element("artifact-sha").textContent = artifact.evidence.sha256;
+  const evidence = artifact.evidence;
+  element("artifact-name").textContent =
+    evidence.kind === "simulation-artifact-check"
+      ? evidence.artifact
+      : `${evidence.branch} at ${evidence.headSha.slice(0, 12)}, ${evidence.changedFiles} changed files (not tested)`;
+  element("artifact-sha").textContent =
+    evidence.kind === "simulation-artifact-check"
+      ? evidence.sha256
+      : evidence.diffSha256;
   element("artifact-content").textContent = JSON.stringify(
     artifact.content,
     null,
@@ -464,7 +471,9 @@ function render(): void {
   element("inspector-artifact-summary").textContent = !run
     ? "Select a session to inspect its retained simulation artifact."
     : artifact
-      ? `Retained artifact: ${artifact.evidence.artifact}`
+      ? artifact.evidence.kind === "simulation-artifact-check"
+        ? `Retained artifact: ${artifact.evidence.artifact}`
+        : `Worktree record: ${artifact.evidence.changedFiles} changed files`
       : "No verified artifact available for this session.";
   element("inspector-check-summary").textContent = !run
     ? "Select a session to inspect its verification status."

@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { dirname } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { LocalWorkspace, ScriptedAgent } from "../adapters.js";
+import { ClaudeCodeAgent } from "../claude-code.js";
+import { LocalWorktreeWorkspace } from "../local-worktree.js";
 import { dataPaths } from "../config.js";
 import { makeServer } from "../http.js";
 import { Store } from "../store.js";
@@ -40,8 +42,10 @@ try {
   const store = new Store(paths.database);
   const shutdown = new AbortController();
   const token = randomBytes(32).toString("hex");
+  const worktreeRoot = join(directory, "worktrees");
   const server = makeServer(store, token, {
     artifactRoot: paths.workspaces,
+    worktreeRoot,
     instanceId,
     onStop: () => shutdown.abort(),
   });
@@ -49,6 +53,11 @@ try {
     store,
     new LocalWorkspace(paths.workspaces),
     new ScriptedAgent(1200),
+    5000,
+    {
+      workspace: new LocalWorktreeWorkspace(store, worktreeRoot),
+      agent: new ClaudeCodeAgent(store),
+    },
   );
   for (const signal of ["SIGINT", "SIGTERM"] as const)
     process.once(signal, () => shutdown.abort());
