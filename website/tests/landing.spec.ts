@@ -200,7 +200,7 @@ async function peakBrightness(
   }, png.toString("base64"));
 }
 
-test("hero shows interactive liquid silver beside the headline", async ({
+test("hero centers the copy inside a field of interactive liquid silver", async ({
   page,
 }) => {
   await visit(page, "/");
@@ -211,53 +211,60 @@ test("hero shows interactive liquid silver beside the headline", async ({
     timeout: 15_000,
   });
   await expect(page.locator("#intro button")).toHaveCount(0);
+
+  // The copy is centered and the metal fills the whole hero behind it.
+  const viewport = page.viewportSize()!;
   const heading = (await page
     .getByRole("heading", { level: 1 })
     .boundingBox())!;
+  const actions = (await page.locator("#intro .hero-actions").boundingBox())!;
   const box = (await canvas.boundingBox())!;
-  expect(box.width).toBeGreaterThanOrEqual(440);
-  expect(box.x).toBeGreaterThanOrEqual(heading.x + heading.width - 1);
-  expect(box.y).toBeLessThan(heading.y + heading.height);
-  expect(box.y + box.height).toBeGreaterThan(heading.y);
+  expect(
+    Math.abs(heading.x + heading.width / 2 - viewport.width / 2),
+  ).toBeLessThan(2);
+  expect(
+    Math.abs(actions.x + actions.width / 2 - viewport.width / 2),
+  ).toBeLessThan(2);
+  expect(box.x).toBeLessThanOrEqual(1);
+  expect(box.width).toBeGreaterThanOrEqual(viewport.width - 2);
+  expect(box.y).toBeLessThanOrEqual(heading.y);
+  expect(box.y + box.height).toBeGreaterThan(actions.y + actions.height);
 
-  // The metal renders lit highlights around its centre.
-  const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-  await expect
-    .poll(
-      () =>
-        peakBrightness(page, {
-          x: centre.x - 60,
-          y: centre.y - 60,
-          width: 120,
-          height: 120,
-        }),
-      { timeout: 15_000 },
-    )
-    .toBeGreaterThan(110);
+  // Two masses sit on opposite sides of the copy and render lit highlights.
+  const masses = (await canvas.getAttribute("data-masses"))!
+    .split(" ")
+    .map((pair) => pair.split(",").map(Number) as [number, number]);
+  expect(masses).toHaveLength(2);
+  expect(masses[0]![0]).toBeLessThan(heading.x);
+  expect(masses[1]![0]).toBeGreaterThan(heading.x + heading.width);
+  for (const [x, y] of masses) {
+    const cx = Math.min(Math.max(x, 70), viewport.width - 70);
+    await expect
+      .poll(
+        () =>
+          peakBrightness(page, {
+            x: cx - 60,
+            y: box.y + y - 60,
+            width: 120,
+            height: 120,
+          }),
+        { timeout: 15_000 },
+      )
+      .toBeGreaterThan(110);
+  }
 
-  // A droplet follows the pointer to an empty corner and returns when it leaves.
-  const reach = {
-    x: centre.x + box.width * 0.283 - 8,
-    y: centre.y - box.height * 0.283 - 8,
-    width: 16,
-    height: 16,
-  };
-  expect(await peakBrightness(page, reach)).toBeLessThan(45);
-  await page.mouse.move(centre.x, centre.y);
-  await page.mouse.move(
-    centre.x + box.width * 0.3,
-    centre.y - box.height * 0.3,
-    {
-      steps: 12,
-    },
-  );
-  await expect
-    .poll(() => peakBrightness(page, reach), { timeout: 15_000 })
-    .toBeGreaterThan(80);
-  await page.mouse.move(heading.x + 20, heading.y + 20, { steps: 6 });
-  await expect
-    .poll(() => peakBrightness(page, reach), { timeout: 15_000 })
-    .toBeLessThan(45);
+  // Beside the copy, the nearest mass reaches for the pointer; over the copy
+  // it lets go so reading and clicking never drag the metal around.
+  const [ax, ay] = masses[0]!;
+  await page.mouse.move(ax + 100, box.y + ay);
+  await page.mouse.move(ax + 230, box.y + ay - 60, { steps: 8 });
+  await expect(canvas).toHaveAttribute("data-engaged", "mass", {
+    timeout: 15_000,
+  });
+  await page.mouse.move(heading.x + 40, heading.y + 20, { steps: 6 });
+  await expect(canvas).toHaveAttribute("data-engaged", "none", {
+    timeout: 15_000,
+  });
   await expect(
     page.getByRole("link", { name: "See it in action" }),
   ).toBeVisible();
@@ -332,19 +339,32 @@ test("hero keeps a static liquid fallback without WebGL", async ({ page }) => {
   await expect(page.locator("[data-atom-fallback]")).toHaveCount(0);
 });
 
-test("liquid silver sits below the hero copy on phones", async ({ page }) => {
+test("liquid silver frames the centered copy on phones", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await visit(page, "/");
-  const liquid = (await page
-    .locator("#intro [data-liquid-silver]")
+  const canvas = page.locator("#intro [data-liquid-silver] canvas");
+  await expect(canvas).toHaveAttribute("data-state", "animating", {
+    timeout: 15_000,
+  });
+  const box = (await canvas.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  const heading = (await page
+    .getByRole("heading", { level: 1 })
     .boundingBox())!;
-  const status = (await page
-    .locator("#intro")
-    .getByText("Local prototype · simulated execution.", { exact: false })
-    .boundingBox())!;
-  expect(liquid.y).toBeGreaterThan(status.y);
-  expect(liquid.x).toBeGreaterThanOrEqual(0);
-  expect(liquid.x + liquid.width).toBeLessThanOrEqual(390);
+  const actions = (await page.locator("#intro .hero-actions").boundingBox())!;
+  expect(Math.abs(heading.x + heading.width / 2 - 195)).toBeLessThan(2);
+  // One mass above the copy, one below it.
+  const masses = (await canvas.getAttribute("data-masses"))!
+    .split(" ")
+    .map((pair) => Number(pair.split(",")[1]));
+  expect(Math.min(...masses)).toBeLessThan(heading.y - box.y);
+  expect(Math.max(...masses)).toBeGreaterThan(
+    actions.y + actions.height - box.y,
+  );
 });
 
 test("atom keeps its static fallback without canvas support", async ({
@@ -518,9 +538,7 @@ test("larger silver atom has no pause control, stops offscreen and respects redu
   ).toHaveCount(0);
 });
 
-test("hero next steps and prototype status fit the first mobile screen", async ({
-  page,
-}) => {
+test("hero next steps fit the first mobile screen", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   for (const [width, height] of [
     [360, 800],
@@ -540,10 +558,7 @@ test("hero next steps and prototype status fit the first mobile screen", async (
     expect((await github.innerText()).trim()).toBe("GitHub");
     const boxes = await Promise.all([demo.boundingBox(), github.boundingBox()]);
     expect(Math.abs(boxes[0]!.y - boxes[1]!.y)).toBeLessThan(2);
-    const status = await hero
-      .getByText("Local prototype · simulated execution.", { exact: false })
-      .boundingBox();
-    expect(status!.y + status!.height).toBeLessThanOrEqual(height!);
+    expect(boxes[0]!.y + boxes[0]!.height).toBeLessThanOrEqual(height!);
     await demo.click();
     await expect(page).toHaveURL(/#reconnect$/);
     await expect(
@@ -676,7 +691,7 @@ test("official Argent icon loads consistently and the headline is concise", asyn
 }) => {
   await visit(page, "/");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Delegate work.Keep control.",
+    "Argent is a good conductor.",
   );
   const marks = page.locator("img.argent-mark");
   expect(await marks.count()).toBeGreaterThanOrEqual(2);
@@ -998,13 +1013,13 @@ test("first load choreographs the header, hero and liquid silver", async ({
     () => (window as unknown as EntranceWindow).entrance,
   );
   expect(seen.states).toEqual(["pending", "running", "done"]);
-  // Four headline words rose individually alongside nav, copy and liquid.
-  expect(seen.split).toBe(4);
+  // Five headline words rose individually alongside nav, copy and liquid.
+  expect(seen.split).toBe(5);
   expect(seen.animations).toBeGreaterThan(10);
 
   // Settled state: original markup, accessible name and no leftover styles.
   const title = page.getByRole("heading", { level: 1 });
-  await expect(title).toHaveText("Delegate work.Keep control.");
+  await expect(title).toHaveText("Argent is a good conductor.");
   expect(await title.getAttribute("aria-label")).toBeNull();
   await expect(page.locator("#intro [data-split-word]")).toHaveCount(0);
   await expect
