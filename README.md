@@ -49,12 +49,14 @@ In order:
 
 1. **Local MVP (in development).** Real coding agents on your own computer:
    each workspace is a new branch in its own Git worktree of a local repository,
-   so tasks run side by side without overwriting each other. Claude Code, through
-   its official CLI and your own sign-in, is the first agent. You follow the
-   session live, review the diff and test results, and open a draft pull request.
+   so tasks run side by side without overwriting each other. It ships with Claude
+   Code first, then Codex, each through its official CLI and your own sign-in;
+   every workspace chooses its agent and every run its model (Claude models or
+   GPT models). You follow the session live, review the diff and test results,
+   and open a draft pull request.
    Local execution is not a sandbox: the agent has the same access as running it
    in your terminal. See [spec 0013](docs/specs/0013-local-mvp.md).
-2. **Codex**, then Cursor and OpenCode, through their official interfaces.
+2. **Cursor and OpenCode**, through their official interfaces.
 3. **Signed public downloads** from the website.
 4. **Cloud workspaces.** Hand off a task, close your laptop, and come back to a
    tested draft pull request.

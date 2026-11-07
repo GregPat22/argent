@@ -19,21 +19,43 @@ usable product, and it exercises the agent, transcript, cancellation, diff,
 check and pull-request contracts that [M1](0002-cloud-mvp.md) reuses later. The
 cloud lifecycle, custody and GitHub pilot work stays as implemented.
 
-The first agent is Claude Code, through its official CLI, then Codex. Cursor and
-OpenCode remain later targets.
+The local MVP ships two agents, both through their official CLIs: Claude Code
+first, then Codex. Each workspace chooses its agent, and each run can choose a
+model that the agent offers under the developer's own sign-in, so the same
+desktop runs Claude models through Claude Code and GPT models through Codex.
+Cursor and OpenCode remain later targets.
 
 ## User journey
 
 1. Add a local repository by choosing its folder.
-2. Create a workspace: Argent creates branch `argent/<short-id>` from the current
-   commit and checks it out in a private worktree.
-3. Describe a task. Claude Code works in that worktree; its messages and tool
+2. Create a workspace and choose its agent: Argent creates branch
+   `argent/<short-id>` from the current commit and checks it out in a private
+   worktree.
+3. Choose a model (or keep the agent's default) and describe a task. The agent
+   works in that worktree; its messages and tool
    calls stream into the session view. Follow-up messages continue the same
    conversation. Cancel stops the agent and its child processes.
 4. Inspect the changed files and diff, run the repository's test command, and see
    the result recorded against the exact commit.
 5. Open a draft pull request through the developer's own `gh` sign-in. Merging is
    always a separate human action. Archive the workspace when done.
+
+## Agent and model choice
+
+1. **The agent is chosen per workspace.** A workspace's conversation belongs to
+   one agent and is resumed only by that agent. Running another agent on the same
+   change means a new workspace from the same base.
+2. **The model is chosen per run.** Argent passes the choice to the agent's own
+   model option (for example Claude Code's and Codex's `--model`) as a separate
+   argument, never through a shell. Omitting it keeps the agent's default.
+3. **No stale catalogue, no routing.** Argent offers the models each agent
+   documents as a suggestion list and accepts a typed identifier matching
+   `^[A-Za-z0-9._:-]{1,64}$`. Whether a model is available is decided by the
+   agent and the developer's plan; a refusal fails the run visibly. Argent never
+   calls models itself, never proxies them and never switches to another agent,
+   provider or paid API usage on failure.
+4. **Recorded.** Each run's events record the requested agent and model and,
+   separately, the model the agent reports having used.
 
 ## Security model
 
@@ -169,16 +191,20 @@ recording the pull request URL. Archive removes the worktree only when it has no
 uncommitted changes, unless the developer explicitly discards them; the branch is
 kept.
 
-### L1.6 Codex
+### L1.6 Codex and model choice
 
-The same controls through Codex's official CLI.
+The same controls through Codex's official CLI. The create-workspace dialog
+offers both agents, and the task dialog a per-run model choice for either agent,
+following [agent and model choice](#agent-and-model-choice). A developer can then
+run Claude and GPT models side by side in separate workspaces.
 
 ## Exit evidence for L1
 
 Automated tests for every slice, a recorded desktop walkthrough, and maintainers
 completing real tasks on this repository through Argent: two workspaces running in
-parallel without interference, and at least one pull request created through
-Argent and merged by a person.
+parallel without interference, at least one task completed with each of Claude
+Code and Codex, and at least one pull request created through Argent and merged
+by a person.
 
 ## Out of scope for L1
 

@@ -53,12 +53,14 @@ address, never a personal one.
   status") in the website or README. Prefer a description that stays true.
 - When a capability, priority or order changes, update **all** surfaces in the
   same change: README, ROADMAP.md, VISION.md, docs/DECISIONS.md, docs/README.md,
-  the relevant spec, the website hero, roadmap, FAQ and commitments sections, the
+  the relevant spec, the website hero, roadmap, FAQ and open-source sections, the
   GitHub repository description and the `package.json` description.
 - Keep shared facts identical everywhere. Today: the first release is the local
   MVP (L1), real agents in isolated Git worktrees on the developer's computer,
   before cloud workspaces; the first real agent is Claude Code through its
-  official CLI, then Codex, then Cursor and OpenCode; in local mode the agent uses
+  official CLI, then Codex (both in the local MVP), then Cursor and OpenCode;
+  each workspace chooses its agent and each run a model that agent offers, and
+  Argent never routes or proxies models; in local mode the agent uses
   its own official sign-in and never receives provider API-key variables; local
   execution is not a sandbox; a spend budget is not a hard spending cap.
 - Never invent customer evidence, metrics, pricing, download links, availability
