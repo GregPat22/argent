@@ -23,7 +23,9 @@ The [updated roadmap](ROADMAP.md) incorporates the
 [Conductor shutdown findings](docs/research/conductor-shutdown-analysis.md):
 provider-specific authentication validation, visible execution/control, portable
 export/restore, and staged agent breadth/team handoff before dependency orchestration.
-These are planned capabilities; P1 execution remains simulated.
+The [7 November capability review](docs/research/replacement-roadmap-review-2026-11-07.md)
+places basic worktrees and daily setup/run/review/archive before personal release.
+The first offline history slice below is implemented; real execution remains simulated.
 
 **Current milestone: P1, a working local desktop prototype.** Install and launch
 Argent as an application, create a workspace, submit a task, inspect live activity
@@ -270,6 +272,22 @@ does. Website source and a local desktop archive are provided; there is no publi
 website deployment or signed release. TLS, user/tenant authorization,
 PostgreSQL, credential brokering, isolated execution, quotas and backups must be
 implemented before a managed or remotely accessible release.
+
+## Offline history export and restore
+
+`npm run continuity -- help` provides export, inspect, restore, list and show.
+[Spec 0012](docs/specs/0012-portable-history.md#using-the-offline-cli) contains the
+exact commands, format, private-directory requirements and limits. Export selects
+one existing simulator workspace from a consistent read-only SQLite snapshot.
+Metadata is the default; private task/log text and fixed artifacts require
+`--include-text`. Credential stores, lease authority and arbitrary files are excluded.
+Review selected text for secrets; credential-marker rejection is not sanitization.
+
+Restore writes a separate historical database with no execution queue. It works
+offline after source files are unavailable, retains uncertainty, and never turns
+imported checks or approvals into execution authority. All archived work remains
+simulated. This is not Conductor import, desktop migration UI, cloud filesystem
+restore or live-session resumption; the full M1d acceptance contract remains open.
 
 ## Contributing
 

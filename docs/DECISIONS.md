@@ -1,5 +1,25 @@
 # Decision register
 
+## Replacement sequencing and offline continuity — 7 November 2026
+
+On `GregPat22/conductor-replacement-roadmap-review`, base main `5c25835`, the
+founder requested careful review and autonomous next-phase development.
+[The review](research/replacement-roadmap-review-2026-11-07.md) retains the existing
+foundation and puts basic branch/worktree and setup/run/test/review/archive
+workflows on the personal replacement path. Dependency scheduling stays later;
+full team/cloud replacement additionally requires attributed shared handoff.
+No generic feature-parity or market-demand claim follows from Grok's report.
+
+Implement [spec 0012](specs/0012-portable-history.md) as an independent continuity
+slice while the live M1a account/custody/isolation/resource gates remain open.
+Use an explicit read-only source snapshot and a separate immutable history store,
+not restored execution rows. Imported active/uncertain states remain
+`needs_attention`; imported verification is historical/untrusted. Text selection
+is opt-in and not guaranteed secret sanitization. No API/desktop privilege or
+remote exposure is added. The format is original Argent history; Conductor import
+requires a consented sample. Fresh process/data-directory recovery is tested;
+fresh-machine and live-cloud recovery remain separate acceptance gates.
+
 Recorded 6 November 2026. **Accepted** means a product or engineering requirement;
 **provisional** means a recommendation still needing a practical check. Neither
 label proves a capability is implemented. Read [Project context](PROJECT_CONTEXT.md)
