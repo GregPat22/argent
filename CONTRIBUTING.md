@@ -1,9 +1,10 @@
 # Contributing to Argent
 
-Argent is early-stage software. This branch contains P1, a local desktop
-prototype with simulated execution. Persistent real-cloud execution and signed
-public distribution remain future work. Start with [Project context](docs/PROJECT_CONTEXT.md),
-[the documentation index](docs/README.md) and [AGENTS.md](AGENTS.md).
+Argent is early-stage software: a durable local engine and a macOS desktop
+prototype, with simulated agent execution. Persistent cloud execution, real
+agents and signed public distribution are future work. Start with the
+[README](README.md), [architecture](ARCHITECTURE.md), [roadmap](ROADMAP.md) and
+[AGENTS.md](AGENTS.md).
 
 ## Set up a development checkout
 
@@ -24,7 +25,7 @@ JSON artifact in an ignored `.data/demo-<id>` directory and prints the location.
 It does not clone a target repository, invoke a coding agent or create a PR.
 
 For standalone API/worker configuration, use the
-[README setup instructions](README.md#environment-setup) and `.env.example`.
+[README setup instructions](README.md#configuration) and `.env.example`.
 Create your own local operator token and keep `.env` out of Git. Do not use the
 known conformance-test token for an operator deployment.
 
@@ -40,12 +41,12 @@ behavior change, add or update a focused written specification with observable
 acceptance criteria, constraints, failure handling and verification evidence.
 Prefer one coherent improvement over an unrelated collection of changes.
 
-Use a `codex/`, `feat/` or `fix/` branch with a clear task name. If another person
+Use a `feat/`, `fix/` or `docs/` branch with a clear task name. If another person
 or agent is working in the same checkout, use a separate Git worktree. Do not
 stage their unfinished files, switch their active branch or overwrite their work.
 
-Keep the current foundation until the founder approves a replacement or upstream
-fork. Provider research, a mock integration and a paid trial are different
+Keep the current foundation unless the maintainers approve a replacement or an
+upstream fork. Provider research, a mock integration and a paid trial are different
 activities; research does not authorize provisioning.
 
 ## Implement within the boundaries
@@ -103,14 +104,13 @@ local macOS build is not a signed public installer. A repository URL is not GitH
 authorization. Provider usage counters are not a final invoice or a hard budget
 cap. Do not describe a local simulator as laptop-independent cloud execution.
 
-## License and sensitive reports
+## License and security reports
 
-The original project is [MIT-licensed](LICENSE). Keep required notices and review
-upstream licenses before adding third-party code. Future commercial packaging or
-licensing changes must account for code ownership and contribution terms.
+Argent is [MIT-licensed](LICENSE). Keep required notices and review upstream
+licenses before adding third-party code. Future commercial packaging or licensing
+changes must account for code ownership and contribution terms.
 
-Do not put live credentials, personal/customer data or an active exploit with
-sensitive details into public issues. A dedicated private vulnerability-reporting
-channel has not yet been established in this publication; arrange a private
-channel with the maintainer before sending sensitive details. No response-time
-or production security guarantee is currently offered.
+Never put live credentials, personal or customer data, or exploit details in public
+issues or pull requests. Report vulnerabilities privately as described in
+[SECURITY.md](SECURITY.md). No response-time or production security guarantee is
+offered for this prototype.

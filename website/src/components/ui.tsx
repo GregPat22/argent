@@ -46,7 +46,7 @@ export function StatusTag({
   );
 }
 
-/** Faithful web derivative of the founder-supplied official Argent icon. */
+/** Faithful web derivative of the official Argent icon. */
 export function ArgentMark({ size = 40 }: { size?: number }) {
   return (
     <img

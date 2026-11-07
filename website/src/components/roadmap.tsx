@@ -1,40 +1,47 @@
 "use client";
 
-import { M0, ROADMAP_URL } from "@/lib/site";
+import { ROADMAP_URL } from "@/lib/site";
 
 const MILESTONES = [
   {
     id: "M0",
     title: "Durable engine",
-    body: `Scripted runs, an independent worker, crash recovery and reconnect. ${M0.testsPassed} of ${M0.testsTotal} tests pass.`,
+    body: "Scripted runs, an independent worker, crash recovery and reconnect, covered by real multi-process tests.",
     label: "Works today · simulation",
     complete: true,
   },
   {
-    id: "P1",
+    id: "P1–P2",
     title: "Desktop prototype",
-    body: "A local macOS app with workspaces, tasks and retained history. Included in the source repository; execution is simulated.",
+    body: "A local macOS app with workspaces, tasks, retained history and a familiar three-pane layout. Build it from source; execution is simulated.",
     label: "Prototype complete · simulation",
     complete: true,
+  },
+  {
+    id: "M1",
+    title: "Cloud MVP",
+    body: "One GitHub repository, one persistent cloud workspace, one real agent (Codex first) and an independently tested draft pull request.",
+    label: "In development",
+    complete: false,
+  },
+  {
+    id: "W1",
+    title: "Daily workflows",
+    body: "A branch or worktree per task, isolated workspaces side by side, setup, run and test actions, diffs and a terminal.",
+    label: "Planned",
+    complete: false,
+  },
+  {
+    id: "P3–P4",
+    title: "More agents, and your phone",
+    body: "Claude Code and Codex with the subscriptions you already have where providers allow it, then Cursor and OpenCode. A native iOS companion to check in.",
+    label: "Planned",
+    complete: false,
   },
   {
     id: "Release",
     title: "Public downloads",
     body: "Signed, versioned builds with checksums, downloadable from this site.",
-    label: "Planned",
-    complete: false,
-  },
-  {
-    id: "M1",
-    title: "Cloud MVP",
-    body: "One GitHub repository, one persistent cloud workspace, one real agent and an independently tested draft pull request.",
-    label: "Planned",
-    complete: false,
-  },
-  {
-    id: "M2",
-    title: "More agents",
-    body: "Additional agents and dependent tasks, each in its own worktree.",
     label: "Planned",
     complete: false,
   },
@@ -58,7 +65,7 @@ export function Roadmap() {
         </h2>
         <p className="max-w-[34rem] text-sterling md:col-span-5">
           Each milestone ends with evidence, not a date. Here is what exists and
-          what comes next.{" "}
+          what comes next; team handoff and dependent tasks follow.{" "}
           <a
             href={ROADMAP_URL}
             target="_blank"
@@ -74,7 +81,7 @@ export function Roadmap() {
         <div>
           <ol
             data-reveal-children
-            className="grid gap-8 md:grid-cols-5 md:gap-6"
+            className="grid gap-8 md:grid-cols-3 md:gap-6 xl:grid-cols-6"
           >
             {MILESTONES.map((milestone) => (
               <li key={milestone.id} className="relative pl-10 md:pl-0">

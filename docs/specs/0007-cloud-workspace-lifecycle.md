@@ -1,8 +1,7 @@
 # M1a: repository access and persistent isolated workspace
 
 Status: proposed live-provider contract; internal lifecycle and repository-bootstrap
-simulations implemented, not provider-certified. Originally prepared on
-`GregPat22/next-step-v2` from main `fd60a5a` on 6 November 2026. P1 is integrated
+simulations implemented, not provider-certified. Originally prepared from main `fd60a5a` on 6 November 2026. P1 is integrated
 in that main revision; execution remains simulated.
 
 This narrows [M1 criteria 1–3, 6, 11–13](0002-cloud-mvp.md) before provider code.
@@ -19,11 +18,10 @@ workspace compute separate. Real coding-agent turns and tested draft PRs belong
 to M1b/M1c.
 
 Technical decision, 6 November 2026: retain Argent's current core for bounded
-M1a implementation. The founder delegated technical decisions to the engineering
-agent. The [source spike](../research/t3-adoption-spike.md) found no demonstrated
+M1a implementation. The [source spike](../research/t3-adoption-spike.md) found no demonstrated
 runtime advantage that justifies replacement now. Reconsider T3 if measured
 adapter complexity warrants a separate spike; do not fork or replace the core
-without the separately required founder approval.
+without the separately required maintainer approval.
 
 Before a live provider test, record concrete authorization for the provider,
 account/project, region, resource shape, maximum concurrent workspaces (one),
@@ -232,17 +230,16 @@ retention manifests, cleanup inventory, live isolation/budget evidence and an
 operator resolution workflow unimplemented. These remain required before M1a;
 none may be inferred from the lifecycle fixture tests.
 
-Evidence on `GregPat22/next-step-v2`, continuing from `74068ae`: 27 focused
+Evidence, continuing from `74068ae`: 27 focused
 simulation tests pass, including actual child-process death/claim races and
 transaction rollback, with 68 tests passing in the full `npm run check`. The
 implementation is internal `Store.lifecycle` plus its bounded simulation worker;
 no API or desktop integration is enabled. Native/package smoke and real-provider
-checks were not run. See the [handoff](../../HANDOFF.md#retained-core-decision-and-lifecycle-slice-6-november-2026)
-for exact limits and next work.
+checks were not run.
 
 ## Second implementation slice: simulated repository access/bootstrap
 
-Acceptance criteria for `GregPat22/next-step-v3`, based on main `1424b92`:
+Acceptance criteria, based on main `1424b92`:
 
 - Add an internal, simulation-only repository bootstrap queue with transactional
   state/events, idempotency, atomic claims, fenced leases and absolute deadlines.
@@ -279,7 +276,7 @@ retains unresolved obligations; automated revocation after process death and an
 audited operator-resolution path remain required before a live adapter is enabled.
 The desktop/API and existing simulation-only lifecycle contract stay unchanged.
 
-Evidence on `GregPat22/next-step-v3`, based on `1424b92`: **50 focused simulation
+Evidence, based on `1424b92`: **50 focused simulation
 tests** pass; the full `npm run check` passes **118 tests**, strict types,
 formatting and compilation. This includes actual independent-process claim and
 pause/enrollment races, process death after mint intent, stale ownership after
@@ -288,8 +285,7 @@ the operation/events, SQLite/WAL and credential-free plan. No real credential,
 argv, remote filesystem or credential-channel erasure was tested. No GitHub or
 provider mutation, native/package smoke or website check was performed. Actual
 diff review was performed by the implementing agent; external independent review
-and all live A1–A10 evidence remain open. See the
-[current handoff](../../HANDOFF.md#repository-accessbootstrap-slice--6-november-2026).
+and all live A1–A10 evidence remain open.
 
 PR preparation on the same branch, 6 November 2026: five additional tests cover
 malformed mint responses and heartbeat failure during an outstanding adapter
@@ -298,10 +294,9 @@ call. The focused suite now contains **55 simulation tests** and fresh
 formatting and compilation. Independent read-only agent reviews of the actual
 diff and bounded acceptance coverage found no blocking issue. These supersede
 the initial review gap above; human review and all live A1–A10 evidence remain
-open. Package version `0.0.1` is unchanged. See the
-[PR preparation handoff](../../HANDOFF.md#repository-bootstrap-pr-preparation--6-november-2026).
+open. Package version `0.0.1` is unchanged.
 
-Hardening on `GregPat22/code-review`, based on `757f8eb`, supersedes parts of the
+Hardening, based on `757f8eb`, supersedes parts of the
 criteria above:
 
 - A failure before mint intent (denial, authorization timeout or lease expiry
@@ -314,10 +309,9 @@ criteria above:
 - Allowed branch refs may contain dots where Git permits them.
 
 Evidence: `npm run check` passes **129 tests, 0 failures, 0 skips**. The
-operator-resolution workflow and all live A1–A10 evidence remain open. See the
-[hardening handoff](../../HANDOFF.md#repository-bootstrap-hardening--6-november-2026).
+operator-resolution workflow and all live A1–A10 evidence remain open.
 
-Review fixes on `GregPat22/code-review-v2`, based on `333d662`, supersede parts
+Review fixes, based on `333d662`, supersede parts
 of the hardening criteria:
 
 - Token identity is the numeric repository ID alone; a renamed or transferred
@@ -329,12 +323,11 @@ of the hardening criteria:
 - The persisted phase and credential state alone decide between `failed` and
   `needs_attention`, for workers and lease reconciliation alike.
 
-Evidence: `npm run check` passes **131 tests, 0 failures, 0 skips**. See the
-[review-fix handoff](../../HANDOFF.md#repository-bootstrap-review-fixes--6-november-2026).
+Evidence: `npm run check` passes **131 tests, 0 failures, 0 skips**.
 
 ## Third implementation slice: audited simulated bootstrap resolution
 
-Acceptance criteria for `GregPat22/next-step-v4`, based on main `86255f8`:
+Acceptance criteria, based on main `86255f8`:
 
 - Add an internal operator resolution path for `needs_attention` repository
   operations only. The actor comes from a trusted authenticated caller and must
@@ -373,19 +366,17 @@ may perform the same read-only inspection, but one key commits only one receipt.
 An inspection interrupted by process death has no receipt and may safely be
 repeated: the inspection itself cannot dispatch an external effect.
 
-Evidence on `GregPat22/next-step-v4`, based on `86255f8`: fresh
+Evidence, based on `86255f8`: fresh
 `npm run check` passes strict types, formatting, compilation and **156 tests,
 0 failures, 0 skips**, including **25 new recovery simulation tests**. The actual
 diff was reviewed by the implementing agent. PR preparation added independent
 read-only code/security and bounded acceptance/coverage reviews, with no blocking
 findings; no measured coverage percentage is claimed. Live-provider evidence and
-human review remain open. See the
-[resolution handoff](../../HANDOFF.md#audited-simulated-bootstrap-resolution--6-november-2026)
-for exact coverage, limitations and next steps.
+human review remain open.
 
 ## Fourth implementation slice: encrypted simulated credential custody
 
-Acceptance criteria for `GregPat22/next-step-v5`, based on main `7b2eeca`:
+Acceptance criteria, based on main `7b2eeca`:
 
 - Reserve an opaque credential reference with mint intent and its event in the
   same transaction. Keep all credential custody internal to the simulation;
@@ -417,19 +408,18 @@ captured can still leave an unknown token; late mint responses and external
 request fencing are not solved here. Recovery cleanup/inspection and all live
 A1–A10 gates remain required before enabling real credentials or adapters.
 
-Evidence on `GregPat22/next-step-v5`, based on `7b2eeca`: fresh `npm run check`
+Evidence, based on `7b2eeca`: fresh `npm run check`
 passes strict types, formatting, compilation and **176 tests, 0 failures,
 0 skips**, including **20 new custody simulation tests**. Actual child-process
 kill/restart and competing capture processes exercise durability/serialization;
 SQLite/WAL canaries check both token and key bytes. The implementing agent
 reviewed the actual source/test/docs diff; no external cryptographic/security
 review or measured coverage percentage is claimed. Production key custody,
-audited recovery cleanup and every live A1–A10 gate remain open. See the
-[custody handoff](../../HANDOFF.md#encrypted-simulated-credential-custody--6-november-2026).
+audited recovery cleanup and every live A1–A10 gate remain open.
 
 ## Fifth slice acceptance: audited simulated recovery cleanup
 
-On `GregPat22/next-step-v6`, based on main `1cb55c3`:
+Based on main `1cb55c3`:
 
 - Add an internal, explicitly requested simulation cleanup coordinator for an
   uncertain bootstrap, authorized only for its original trusted operator. Keep
@@ -457,7 +447,7 @@ This is synthetic cleanup, not production credential custody or proof of provide
 request fencing. One uncertain cleanup attempt deliberately requires independent
 inspection/manual recovery; there is no automatic retry. Live A1–A10 remain open.
 
-Fifth-slice implementation on `GregPat22/next-step-v6`, base `1cb55c3`: repository
+Fifth-slice implementation, base `1cb55c3`: repository
 schema 5 adds one cleanup receipt per operation without modifying old bootstrap
 history. The receipt records inspection time, phase, deadline and latest event
 cursor. A killed coordinator may retain historical `running` status past its
@@ -465,13 +455,13 @@ deadline, but cannot be reclaimed. Fresh independent resolution can settle only
 with exact cleanup ID/current cursor and settled-effects evidence. Thirty-nine
 focused simulation tests pass, including actual process death and competing
 process reservations. Fresh `npm run check` passes strict types, formatting,
-compilation and **220 tests, 0 failures, 0 skips**. See [HANDOFF.md](../../HANDOFF.md).
+compilation and **220 tests, 0 failures, 0 skips**.
 No live credential/provider, production key lifecycle, external security review,
 measured coverage percentage, desktop/package or website verification is claimed.
 
 ## Sixth slice acceptance: read-only GitHub preflight
 
-On `GregPat22/next-step-v6`, base main `1cb55c3`, continuing audited simulated
+Based on main `1cb55c3`, continuing audited simulated
 cleanup. This is an unwired read-only HTTP component, not authorization to mint
 credentials or execute a repository:
 
@@ -508,7 +498,7 @@ cloud creation additionally requires the concrete limits in the entry gates.
 
 ## Seventh slice acceptance: current installation-token compatibility
 
-On `GregPat22/next-step-v6`, 7 November 2026, official GitHub guidance confirms
+On 7 November 2026, official GitHub guidance confirms
 `ghs_`-prefixed JWT-format installation tokens containing dots, hyphens and
 underscores, approximately 520 characters. The earlier 512-byte alphanumeric-only
 simulation parser/ciphertext bound cannot retain these. Before live adapters:
@@ -530,7 +520,7 @@ Sources checked 7 November 2026:
 and [format guidance](https://github.blog/changelog/2026-05-15-github-app-installation-tokens-per-request-override-header/).
 These document compatibility requirements, not live integration evidence.
 
-Sixth/seventh-slice evidence on `GregPat22/next-step-v6`, base `1cb55c3`:
+Sixth/seventh-slice evidence, base `1cb55c3`:
 **53 synthetic HTTP tests** and **four synthetic stateless-token tests** pass;
 three token regressions were observed failing before the compatibility fix.
 Fresh `npm run check` passes **277 tests, 0 failures, 0 skips**, strict types,

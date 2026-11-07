@@ -1,27 +1,22 @@
 # Argent: Claude Code entry point
 
-This is the Argent repository, an open-source desktop-first platform for AI coding
-agents in persistent local or cloud workspaces.
+Argent is an open-source, desktop-first app for delegating coding tasks to AI
+agents in persistent workspaces and reviewing independently verified results.
+Agent execution is currently simulated.
 
-Before asking the founder to explain the product again, read:
+Read before making changes:
 
-1. [HANDOFF.md](HANDOFF.md): latest completed work, branch/PR locations and next steps.
-2. [START_HERE.md](START_HERE.md): product summary and checkout/context checks.
-3. [AGENTS.md](AGENTS.md): the shared engineering rules; follow them in Claude too.
-4. [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md): accepted requirements,
-   implementation status, decisions and business direction.
-5. For website work, [the landing-page brief](docs/briefs/landing-page.md).
-6. For next steps, [the roadmap](ROADMAP.md), [decision register](docs/DECISIONS.md)
-   and [shutdown findings](docs/research/conductor-shutdown-analysis.md). The
-   founder wants the overlapping audiences served through a shared core and
-   staged delivery; the saved context already records authentication advice.
+1. [AGENTS.md](AGENTS.md): the shared engineering rules; follow them in Claude too.
+2. [README.md](README.md): what works today, quick start and commands.
+3. [ARCHITECTURE.md](ARCHITECTURE.md) and [ROADMAP.md](ROADMAP.md).
+4. The relevant acceptance spec in [docs/specs/](docs/README.md), and
+   [docs/DECISIONS.md](docs/DECISIONS.md) for why choices were made.
+5. For website work, [website/README.md](website/README.md).
 
-The repository is public. Never commit credentials, token-bearing dependency URLs
-or private configuration. Keep the website separate from the headless engine and
-desktop packaging. Use relevant skills when available, but do not let an
-unavailable optional MCP tool prevent reading the repository context or making
-independent progress.
+The repository is public. Never commit credentials, token-bearing dependency URLs,
+private configuration, founder instructions, private research or local log paths.
+Keep the website separate from the headless engine and desktop packaging.
 
-Ask about real unresolved choices after reading the brief. Distinguish accepted
-requirements, proposed draft design and implemented features. Do not invent
-customer evidence, pricing, download availability or live cloud capabilities.
+Distinguish accepted requirements, proposed designs and implemented features. Do
+not invent customer evidence, pricing, download availability or live cloud or
+agent capabilities, in code, docs or website copy.

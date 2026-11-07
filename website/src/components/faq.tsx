@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
-import { DOCS_URL, REPO_URL } from "@/lib/site";
+import { ARCHITECTURE_URL, REPO_URL } from "@/lib/site";
 
 const QUESTIONS: { question: string; answer: ReactNode }[] = [
   {
@@ -34,9 +34,9 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     question: "Which coding agents can I use today?",
     answer: (
       <>
-        The prototype uses a scripted adapter, with no AI model or repository
-        connected. Codex through its official interface is the first real-agent
-        target. Claude Code and OpenCode are longer-term plans.
+        None yet: the prototype uses a scripted adapter, with no AI model or
+        repository connected. Codex through its official interface is the first
+        real-agent target. Claude Code follows, then Cursor and OpenCode.
       </>
     ),
   },
@@ -58,8 +58,8 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         You do. Human merge authority is a product requirement. The current
         prototype does not create pull requests; the planned workflow prepares a
         draft with evidence for your review.{" "}
-        <a href={DOCS_URL} target="_blank" rel="noreferrer">
-          Read the product context
+        <a href={ARCHITECTURE_URL} target="_blank" rel="noreferrer">
+          Read the architecture
         </a>{" "}
         for the execution and approval boundaries.
       </>

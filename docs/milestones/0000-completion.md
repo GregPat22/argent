@@ -56,6 +56,6 @@ untrusted execution. There is no operator resolution/delete API, production
 secret broker or deployed backup/restore path. Uncertain work blocks its workspace.
 
 Next: test a pinned T3 Code version against our acceptance contract before further
-custom orchestration. Obtain founder approval before any upstream fork/import
+custom orchestration. Obtain maintainer approval before any upstream fork/import
 or billable provisioning. Then implement real isolated workspace and official
 agent adapters against the M1 specification.

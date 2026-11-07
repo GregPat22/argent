@@ -29,7 +29,7 @@ const ITEMS: {
   },
   {
     title: "Bring your agent",
-    body: "Codex comes first, through its official interface. Claude Code and OpenCode are on the roadmap. Model keys stay separate from GitHub and cloud credentials.",
+    body: "Codex comes first, through its official interface, then Claude Code, Cursor and OpenCode, with your existing subscriptions where providers allow it. Model credentials stay separate from GitHub and cloud credentials.",
     status: "planned",
     subject: "Real agents",
   },

@@ -19,7 +19,7 @@ const STAGES = [
   {
     tab: "Run within limits",
     title: "Room to work. Boundaries in place.",
-    body: "The worker owns execution. Set time, turns and spend before the agent starts. Close the app and return to the record; an unknown outcome stops for inspection.",
+    body: "The worker owns execution. Set time and turn limits and a spend budget before the agent starts. Close the app and return to the record; an unknown outcome stops for inspection.",
     details: [
       "Scoped credentials and permissions",
       "Explicit execution limits",
@@ -88,7 +88,7 @@ function ExecutionPreview() {
         {[
           ["Wall time", "12 / 30 min", 0.4],
           ["Agent turns", "18 / 60 turns", 0.3],
-          ["Spend", "$2 / $5", 0.4],
+          ["Budget used", "$2 / $5", 0.4],
         ].map(([label, value, ratio]) => (
           <div key={label}>
             <div className="flex justify-between gap-4 text-sm">

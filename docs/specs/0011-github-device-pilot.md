@@ -1,7 +1,7 @@
 # GitHub device sign-in and read-only pilot
 
-Prepared 7 November 2026 on unchanged `GregPat22/next-step-v6`, base main `1cb55c3`.
-This continues the installed fixture App from [spec 0010](0010-live-repository-pilot-gates.md).
+Recorded 7 November 2026, based on main `1cb55c3`.
+This continues the installed test App from [spec 0010](0010-live-repository-pilot-gates.md).
 The first integration is an explicit local pilot command, separate from desktop,
 API and execution workers. It proves user sign-in/preflight before durable account
 connections or untrusted checkout. The installed desktop remains the primary product.
@@ -42,62 +42,77 @@ connections or untrusted checkout. The installed desktop remains the primary pro
 
 ## Live enablement
 
-The existing private App initially had device flow disabled. The founder has now
-approved enablement and App-user consent for this single fixture pilot. Keep
-Contents/Metadata read and the single fixture installation unchanged. Use the
-existing protected pilot key; never regenerate it or broaden installation access.
-Once consent is supplied, record exact identities/SHA and selected metadata from a
-live read-only run. Do not substitute the host's existing GitHub OAuth session.
+The pilot App initially had device flow disabled. The maintainer enabled it, and
+gave App-user consent, for this single test-repository pilot only. Contents/Metadata
+read and the single installation stay unchanged. The existing protected pilot key
+is reused, never regenerated, and installation access is never broadened. The
+host's existing GitHub OAuth session is never substituted.
 
-This session lasts only for the pilot process. Persistent sign-in, refresh/revoke,
-production secret custody, authenticated remote operators, desktop integration,
-isolated checkout and every live M1a execution gate remain separate work. GitHub
-may retain an authorized grant and an issued token remains valid until expiry or
-revocation even after this process forgets it. Revocation is available in the
+This session lasts only for the pilot process. Persistent sign-in, refresh and
+revocation, production secret custody, authenticated remote operators, desktop
+integration, isolated checkout and every live M1a execution gate remain separate
+work. GitHub may retain the authorized grant, and an issued token stays valid until
+expiry or revocation even after this process forgets it. Revoke it in the
 account's GitHub App authorization settings; no remote sign-out is claimed here.
+
+## Config format
+
+The config is a JSON file with exactly these fields; unknown fields are rejected.
+Values below are placeholders:
+
+```json
+{
+  "githubUserId": 1234567,
+  "appId": 1234567,
+  "clientId": "Iv23xxxxxxxxxxxxxxxx",
+  "installationId": 12345678,
+  "repositoryId": 123456789,
+  "repository": "https://github.com/your-account/your-test-repo",
+  "ref": "refs/heads/main",
+  "keyPath": "/absolute/private/dir/app-private-key.pem",
+  "keyFingerprint": "SHA256:…"
+}
+```
+
+The App needs device flow enabled, Contents and Metadata read only, and an
+installation on the single selected repository. `keyFingerprint` is the public
+SHA-256 fingerprint GitHub shows for the App's signing key. The config file and the
+key must be regular files you own, mode `600`, inside directories with mode `700`.
 
 Primary reference checked 7 November 2026:
 [GitHub App device flow](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app#using-the-device-flow-to-generate-a-user-access-token).
 
 ## Implementation evidence
 
-On unchanged `GregPat22/next-step-v6`, base main `1cb55c3`, **39 focused synthetic
-protocol/key/pilot tests pass**. These exercise interval/slow-down handling,
-malformed/ambiguous responses, denial/expiry, cancellation and late responses,
-body limits, lost exchange/no retry, secret-free prompt/session/receipt output,
-wrong GitHub identity, closed/expired sessions, key fingerprint/modes/symlinks,
-config validation and the composed read-only receipt. The real local protected
-pilot config/key also pass the loader without making network requests.
+At main `1cb55c3` plus the pilot changes, **39 focused synthetic protocol, key and
+pilot tests pass**. They exercise interval and slow-down handling, malformed or
+ambiguous responses, denial and expiry, cancellation and late responses, body
+limits, a lost exchange with no retry, secret-free prompt/session/receipt output,
+a wrong GitHub identity, closed and expired sessions, key fingerprint, modes and
+symlinks, config validation and the composed read-only receipt. The real protected
+pilot config and key also pass the loader without making network requests.
 
-Default `npm run check` passes strict types, formatting, compilation and **316
-tests, 0 failures, 0 skips** after serializing independent files. Earlier concurrent
-runs failed pre-existing short-lease/noisy-worker fixtures under host load; their
-assertions and production timeouts are unchanged. Explicit race tests still spawn
-competing processes. Logs: `.context/device-tests.log`, `.context/device-check.log`
-and `.context/device-lease-recheck.log`.
+`npm run check` passed strict types, formatting, compilation and **316 tests, 0
+failures, 0 skips** after independent test files were serialized. Earlier
+concurrent runs had failed existing short-lease fixtures under host load; their
+assertions and production timeouts are unchanged, and explicit race tests still
+spawn competing processes.
 
-Live verification completed after the founder's explicit device-flow/OAuth
-approval. At `2026-11-07T10:19:52.061Z`, the real CLI receipt identifies
-`local-uid:501` and expected GitHub user `132290928`, App `5654610`, installation
-`179529579`, private repository `1449217243`, ref `refs/heads/main` and exact SHA
-`d630d7a792d7a7f2cf4783d6e62c9f849f7f57c0`. `source: github_api` and
-`simulation: false` distinguish it from fixtures. The process exited 0, closed
-its in-memory session and stored a redacted `600` receipt beside the private config.
-No installation token was minted; no checkout, cloud, API/desktop connection or
-source publication. GitHub's remote user authorization can remain after local close.
-
-Local evidence: `.context/live-github-device-receipt.json` and runtime manifest
-`.context/live-github-device-runtime.json`. Seven source/seven compiled runtime
-files are SHA-256 hashed, bound to main HEAD `1cb55c3` plus the unchanged branch's
-local implementation. Combined runtime-manifest SHA-256:
-`75b9f80d025cb1a8c2e407687399b2d91a46688e4e65de8873634eb355ba58f0`.
-The tracked source/tests and identities above are reproducible evidence; ignored
-local receipts are supplemental. This does not satisfy live checkout/isolation/
-cleanup/budget gates or establish a production account/secret service.
+A live run then completed after the maintainer approved device flow and consent.
+The real CLI receipt (`source: github_api`, `simulation: false`) identified the
+local OS operator, the expected GitHub user, App, installation and private test
+repository, `refs/heads/main` and its exact commit SHA. The process exited 0,
+closed its in-memory session and stored a redacted `600` receipt beside the
+private config. No installation token was minted, and there was no checkout,
+cloud resource or API/desktop connection. The receipt and a hash manifest of the
+seven source and seven compiled runtime files are kept locally, outside Git; the
+identifiers are deliberately not published. This does not satisfy the live
+checkout, isolation, cleanup or budget gates, or establish a production account
+or secret service.
 
 ## PR hardening — 7 November 2026
 
-On `GregPat22/next-step-v6`, after integrating main `8acab52`, review reproduced
+After main `8acab52` was integrated, review reproduced
 an indefinite open of a local FIFO before config/key file-type validation. Both
 loaders now open with `O_NONBLOCK` and reject non-regular descriptors. Two bounded
 subprocess regressions timed out before the fix and reject promptly afterward.
@@ -116,4 +131,4 @@ synthetic credentials. This does not expand the pilot's authorization or scope.
 
 Final PR verification after hardening: `npm run check` passes types, formatting,
 build and **320 tests, 0 failures, 0 skips**; focused device/key/pilot tests pass
-**43/43**. Logs: `.context/pr-final-check.log`, `.context/pr-device-review-tests.log`.
+**43/43**.

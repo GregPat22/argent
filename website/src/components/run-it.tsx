@@ -130,7 +130,7 @@ export function RunIt() {
               rel="noreferrer"
               variant="ghost"
             >
-              Read the project context
+              Read the README
             </LiquidLink>
           </div>
           <p className="mt-8 max-w-[32rem] border-t border-hairline pt-5 text-[0.9375rem] text-sterling-dim">

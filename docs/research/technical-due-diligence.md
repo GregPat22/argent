@@ -11,7 +11,7 @@ Build a small headless durability conformance prototype now. Before expanding it
 into a substantial custom orchestrator, evaluate a pinned T3 Code revision against
 the same acceptance tests. T3 is the strongest existing application foundation;
 adopting it could avoid significant reinvention. Its models and operational
-dependencies need a practical spike before a founder-approved fork decision.
+dependencies need a practical spike before a maintainer-approved fork decision.
 
 Use a TypeScript modular monolith with API and independent worker processes.
 Keep authoritative state outside the workspace. SQLite is enough for this local
@@ -21,7 +21,7 @@ managed path. Use official Codex interfaces and API-key authentication for the
 first real agent. Keep other providers behind explicit capability adapters.
 
 This recommendation does not select a foundational upstream repository. A future
-fork or substantial import requires founder approval and pinned-license review.
+fork or substantial import requires maintainer approval and pinned-license review.
 
 ## Existing application foundations
 
@@ -132,17 +132,16 @@ No real agent is installed or invoked by M0. There is no subscription-token reus
 or model charge. ACP interoperability and official SDKs can reduce adapter work;
 they do not provide our durable workflow, tested-commit policy or cloud lifecycle.
 
-### Authentication qualification from the shutdown review
+### Authentication qualification
 
-The [6 November shutdown analysis](conductor-shutdown-analysis.md) rechecked
-current official guidance. OpenAI documents ChatGPT plan use for open-source/local
+A 6 November recheck of current official guidance found the following. OpenAI documents ChatGPT plan use for open-source/local
 tools and self-hosted VMs, with a separate eligibility path for paid/remotely
 hosted apps. Anthropic distinguishes SDK applications from hosting the unmodified
 Claude Code binary with end-user authentication under stated commercial
 conditions. Do not extend an SDK restriction into a blanket claim that all
 hosted official-binary subscription use is prohibited, or assume a competitor's
-support establishes permission for Argent's design. The linked review supplies
-the primary sources, boundaries and proposed validation gate.
+support establishes permission for Argent's design. [Spec 0006](../specs/0006-portable-continuity.md#provider-authentication-gate)
+defines the validation gate.
 
 API-key auth remains the M1 technical-pilot baseline. No subscription route, account
 entitlement or commercial approval has been tested or adopted. Existing rules

@@ -29,10 +29,10 @@ export function Hero() {
               className="hero-description mt-6 text-base leading-relaxed text-sterling md:mt-7 md:text-lg"
               data-liquid-avoid
             >
-              The open-source ADE for running coding agents in parallel, in the
-              cloud. Hand off a task, close your laptop, check in from your
-              phone. Your workspaces, history and results stay alive between
-              sessions, and stay yours.
+              We’re building the open-source ADE for coding agents that work in
+              parallel, in the cloud: hand off a task, close your laptop, check
+              in from your phone. Today it’s an early local prototype with
+              simulated runs, built in the open.
             </p>
             <div
               className="hero-actions mt-8 flex flex-wrap items-center justify-center gap-3"

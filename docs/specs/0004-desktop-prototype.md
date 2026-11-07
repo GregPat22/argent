@@ -3,10 +3,10 @@
 Status: implemented as a local macOS Apple Silicon prototype, 6 November 2026.
 Public signing/distribution and the real cloud MVP remain separate milestones.
 
-## Founder requirement
+## Product requirement
 
-The installation and launch experience follows Conductor: visit the website,
-download the application, install it locally and launch a desktop app. The
+The installation and launch experience is that of a desktop app: visit the
+website, download the application, install it locally and launch it. The
 installed application is the primary product interface. A browser-only dashboard
 does not satisfy this requirement.
 
@@ -52,21 +52,19 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
 
 ## Boundaries
 
-Review follow-up, 6 November 2026: [PR #1 review](../research/p1-pr-review.md)
+Review follow-up, 6 November 2026: the PR #1 review
 at `6104961` reproduced a selected-workspace refresh gap in criterion 6.
-Fix commit `f929ae3` on `GregPat22/next-step-request` refreshes the selected
+Fix commit `f929ae3` refreshes the selected
 workspace independently of retained history. Eight compiled-renderer regressions
 pass with edge-case tests `b888840`, and `npm run check` passes 41 tests with
 strict types and formatting. A rebuilt local package passed packaged-executable
 smoke and archive checksum validation.
-The harness uses controlled bridge responses and a minimal DOM; native smoke
-results and remaining limits are in the [review follow-up](../research/p1-pr-review.md#fix-verification-follow-up).
-The update originally targeted PR #1 head `codex/desktop-handoff`. Main integrated
-that PR and the refresh fixes in `fd60a5a`; this checkout includes them. The package
+The harness uses controlled bridge responses and a minimal DOM; it is not a
+native smoke test. Main integrated PR #1 and the refresh fixes in `fd60a5a`; this checkout includes them. The package
 remains unsigned, unnotarized and unpublished. Evidence above belongs to the
 recorded revisions; the later documentation merge does not re-run native smoke.
 
-No upstream fork/import without founder approval. No silent purchase, cloud
+No upstream fork/import without maintainer approval. No silent purchase, cloud
 provisioning, merge, deployment or public release. Prefer a thin desktop shell
 around the existing engine; review the pinned upstream comparison before larger
 orchestrator changes. The desktop client is not an isolation boundary for running
