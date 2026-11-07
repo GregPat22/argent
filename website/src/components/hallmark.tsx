@@ -203,8 +203,8 @@ type Mark = { name: string; body: string; glyph: ReactNode };
 
 const MARKS: Mark[] = [
   {
-    name: "Maker’s mark",
-    body: "Which agent did the work, and the limits it ran under.",
+    name: "Who did the work",
+    body: "The maker’s mark: which agent ran, and the limits it ran under.",
     glyph: (
       <>
         <path d="M10 14h60l6 12-6 12H10l-6-12z" />
@@ -215,8 +215,8 @@ const MARKS: Mark[] = [
     ),
   },
   {
-    name: "Standard mark",
-    body: "The checks it had to pass, from a policy the agent can’t change.",
+    name: "What it had to pass",
+    body: "The standard mark: checks from your project’s policy, which the agent can’t change.",
     glyph: (
       <>
         <ellipse cx="40" cy="26" rx="32" ry="17" />
@@ -225,8 +225,8 @@ const MARKS: Mark[] = [
     ),
   },
   {
-    name: "Assay office mark",
-    body: "Who verified the result. Never the agent that produced it.",
+    name: "Who checked it",
+    body: "The assay mark: an independent verifier, never the agent that produced the work.",
     glyph: (
       <>
         <path d="M14 8h52v18c0 12-12 20-26 24-14-4-26-12-26-24z" />
@@ -237,8 +237,8 @@ const MARKS: Mark[] = [
     ),
   },
   {
-    name: "Date letter",
-    body: "The exact commit those checks ran against.",
+    name: "Which commit",
+    body: "The date letter: the exact commit those checks ran against.",
     glyph: (
       <>
         <path d="M18 8h44l8 8v20l-8 8H18l-8-8V16z" />
@@ -316,22 +316,21 @@ export function Hallmark() {
           id="hallmark-title"
           className="display text-[clamp(2.4rem,5vw,4.6rem)] md:col-span-7"
         >
-          Independent checks. Evidence you can review.
+          An agent’s word is not proof.
         </h2>
         <div className="md:col-span-5 md:pt-3">
           <p className="max-w-[34rem] leading-[1.75] text-sterling">
-            An agent’s success message is only a claim. Argent’s planned
-            verification workflow runs trusted tests against the exact proposed
-            commit and records the results separately. You inspect the diff and
-            evidence before deciding what to merge.
+            Silversmiths have stamped hallmarks on their work for centuries, so
+            anyone can check what it is without taking the maker’s word for it.
+            Argent does the same for code: trusted checks run against the exact
+            commit, and the record is kept apart from what the agent says.
           </p>
         </div>
       </div>
 
       <div className="mt-14">
         <p className="mb-4 text-sm text-sterling-dim">
-          Illustrative planned workflow · example commit and simulated check
-          results. Drag the divider or use arrow keys.
+          Illustrative example · drag the divider or use the arrow keys.
         </p>
         <Comparison />
       </div>
@@ -340,13 +339,14 @@ export function Hallmark() {
 
       <div className="mt-14 flex flex-col gap-4 border-t border-hairline pt-6 md:flex-row md:items-center md:justify-between">
         <p className="max-w-[40rem] text-[0.9375rem] text-sterling-dim">
-          In M0, a separate verifier checks a simulated artifact’s identity and
-          SHA-256 before a run can complete. Repository tests and exact-commit
-          evidence arrive with the local MVP.
+          Today, a Claude Code run completes only after Argent records the
+          branch, commit, changed files and a checksum of the diff itself
+          (recorded, not tested). Tests run against the exact commit arrive with
+          the local MVP.
         </p>
         <div className="flex flex-wrap gap-2">
-          <StatusTag status="live" subject="Independent check" />
-          <StatusTag status="planned" subject="Commit evidence" />
+          <StatusTag status="live" subject="Commit record" />
+          <StatusTag status="planned" subject="Test results" />
         </div>
       </div>
     </section>

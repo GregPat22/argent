@@ -3,20 +3,54 @@
 import { motion } from "motion/react";
 import { useState, type ReactNode } from "react";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
-import { ARCHITECTURE_URL, REPO_URL } from "@/lib/site";
+import { ARCHITECTURE_URL, LOCAL_MVP_URL, REPO_URL } from "@/lib/site";
 
 const QUESTIONS: { question: string; answer: ReactNode }[] = [
   {
-    question: "Can I download Argent?",
+    question: "Can I use Argent today?",
     answer: (
       <>
-        The local macOS prototype is in the source repository. It runs Claude
-        Code on your local repositories with your own sign-in, and it is not a
-        sandbox; signed public downloads are still planned. You can{" "}
+        Yes, if you{" "}
         <a href={REPO_URL} target="_blank" rel="noreferrer">
-          build the desktop prototype from source
-        </a>{" "}
-        or try the headless simulator below.
+          build the desktop app from source
+        </a>
+        . It runs Claude Code on your local repositories, each task in its own
+        branch and Git worktree, with your own sign-in. It is early and not a
+        sandbox, and diff review, tests and pull requests are still in
+        development. Star and watch the repository to hear when signed downloads
+        land.
+      </>
+    ),
+  },
+  {
+    question: "Which agents and models will it support?",
+    answer: (
+      <>
+        Claude Code works in the desktop app today. Codex comes next in the
+        local MVP, together with a model picker, so you can use Claude models
+        and GPT models and choose the agent for each workspace and the model for
+        each task. Cursor and OpenCode follow. Each agent runs with its own
+        official sign-in, so you use the subscription you already have. Argent
+        never reads or copies that sign-in, and it keeps provider API keys away
+        from agents, so a missing sign-in fails visibly instead of quietly
+        billing your API account.
+      </>
+    ),
+  },
+  {
+    question: "Is it safe to let agents run on my computer?",
+    answer: (
+      <>
+        Local mode is not a sandbox, and Argent says so. The agent runs as you,
+        with the same access as running it in your terminal; a worktree
+        separates changes, not privileges. What Argent adds is discipline: no
+        shell strings, validated paths, Git commands that never run repository
+        hooks, a minimal environment for the agent, and a person in charge of
+        every merge.{" "}
+        <a href={LOCAL_MVP_URL} target="_blank" rel="noreferrer">
+          Read the security model
+        </a>
+        .
       </>
     ),
   },
@@ -24,33 +58,34 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     question: "Does work keep running when I close my laptop?",
     answer: (
       <>
-        Today’s local service survives quitting the desktop app, but your Mac
-        must stay awake. Laptop-independent execution needs a remote service and
-        worker. Persistent cloud workspaces are planned; the reconnect
-        illustration shows that intended experience.
+        Not yet. Today the local service survives quitting the app, but your
+        computer has to stay awake. Cloud workspaces, which keep running while
+        you are away, come after the local MVP, followed by the iPhone
+        companion.
       </>
     ),
   },
   {
-    question: "Which coding agents can I use today?",
+    question: "Will it cost anything?",
     answer: (
       <>
-        Claude Code, through its official CLI and your own sign-in, on a local
-        repository: each workspace gets its own branch and Git worktree. The
-        GitHub-URL workspaces are still a scripted simulation with no AI model
-        or repository connected. Codex follows, then Cursor and OpenCode.
+        The desktop app and engine are free and MIT licensed, and stay that way.
+        We may later offer a paid managed cloud for people who would rather not
+        run servers. It would run the same core, and self-hosting would remain a
+        first-class option.
       </>
     ),
   },
   {
-    question: "What does “proof” mean in the prototype?",
+    question: "How is it different from running agents in a terminal?",
     answer: (
       <>
-        For a Claude Code run, Argent itself records the branch, commit, changed
-        files and a SHA-256 of the diff, instead of trusting the agent. For a
-        simulation, a separate verifier checks a generated JSON artifact.
-        Neither proves a repository’s correctness: trusted tests of the exact
-        commit and independent code review are still on the roadmap.
+        Argent doesn’t replace your agent; it conducts it. Today it gives every
+        task its own branch and worktree, keeps a durable record of every run
+        and records what changed itself instead of trusting the agent. The rest
+        of the local MVP adds diff review, tests for the exact commit and a
+        draft pull request you merge yourself. It is open source, built for more
+        than one agent, and designed to continue in the cloud and on your phone.
       </>
     ),
   },
@@ -58,9 +93,8 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     question: "Who decides what gets merged?",
     answer: (
       <>
-        You do. Human merge authority is a product requirement. The current
-        prototype does not create pull requests; the planned workflow prepares a
-        draft with evidence for your review.{" "}
+        You do, always. In the local MVP, Argent’s work ends at a draft pull
+        request with its evidence; merging is a separate human action.{" "}
         <a href={ARCHITECTURE_URL} target="_blank" rel="noreferrer">
           Read the architecture
         </a>{" "}
@@ -131,12 +165,11 @@ export function FAQ() {
             id="faq-title"
             className="display text-[clamp(2.4rem,5vw,4.6rem)]"
           >
-            Before you
-            <br className="hidden lg:block" /> dive in.
+            Fair
+            <br className="hidden lg:block" /> questions.
           </h2>
           <p className="mt-6 max-w-[26rem] text-sterling">
-            What you can try today, what comes next, and where you stay in
-            control.
+            What works today, what it will cost, and where you stay in control.
           </p>
         </div>
         <div className="grid content-start gap-3 lg:col-span-8">

@@ -1,53 +1,85 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { ROADMAP_URL } from "@/lib/site";
 
-const MILESTONES = [
+/*
+ * The one place on the page that says plainly what exists and what does not.
+ * A rail runs through the milestones; when it scrolls in, polished silver
+ * flows from the start to the "you are here" drop, and the road ahead stays
+ * unpolished.
+ */
+
+type State = "done" | "now" | "next";
+
+const MILESTONES: { title: string; body: string; state: State }[] = [
   {
-    id: "M0",
-    title: "Durable engine",
-    body: "Scripted runs, an independent worker, crash recovery and reconnect, covered by real multi-process tests.",
-    label: "Works today · simulation",
-    complete: true,
+    title: "Engine and desktop prototype",
+    body: "Durable runs, crash recovery, reconnect and independent records of what changed, in a local macOS app you build from source.",
+    state: "done",
   },
   {
-    id: "P1–P2",
-    title: "Desktop prototype",
-    body: "A local macOS app with workspaces, tasks, retained history and a familiar three-pane layout. Build it from source; execution is simulated.",
-    label: "Prototype complete · simulation",
-    complete: true,
-  },
-  {
-    id: "L1",
     title: "Local MVP",
-    body: "Real agents on your own computer, Claude Code first: a branch and worktree per task, side by side, a live session, diffs, tests and a draft pull request you merge yourself.",
-    label: "In development · Claude Code runs locally",
-    complete: false,
+    body: "Claude Code already runs in the app, each task in its own branch and worktree with a live session. Still to come: diffs, tests, a draft pull request, Codex and the model picker.",
+    state: "now",
   },
   {
-    id: "Release",
-    title: "More agents, public downloads",
-    body: "Codex, then Cursor and OpenCode, through their official interfaces. Signed, versioned builds with checksums, downloadable from this site.",
-    label: "Planned",
-    complete: false,
+    title: "More agents",
+    body: "Cursor and OpenCode, through their official tools.",
+    state: "next",
   },
   {
-    id: "M1",
+    title: "Public downloads",
+    body: "Signed, versioned builds with checksums, downloadable from this site.",
+    state: "next",
+  },
+  {
     title: "Cloud workspaces",
-    body: "Hand off a task, close your laptop and come back to a tested draft pull request, on the same engine.",
-    label: "Planned",
-    complete: false,
+    body: "Hand off a task, close your laptop, and come back to a tested draft pull request.",
+    state: "next",
   },
   {
-    id: "P4",
-    title: "Your phone",
-    body: "A native iOS companion to check progress and steer your agents.",
-    label: "Planned",
-    complete: false,
+    title: "iPhone companion",
+    body: "Check progress, review the evidence and steer your agents from your phone.",
+    state: "next",
   },
 ];
 
+const TODAY = [
+  "A durable engine that survives crashes and never repeats an uncertain step",
+  "Claude Code in the desktop app, one branch and worktree per task (early, not a sandbox)",
+  "A local macOS desktop app, built from source",
+  "Argent’s own record of what each run changed",
+  "History export and restore, from the command line",
+];
+
+const NOT_YET = [
+  "Diff review, tests and pull requests in the app (in development)",
+  "Codex and the model picker (in development)",
+  "Cloud workspaces and the iPhone companion",
+  "Signed downloads: today you build from source",
+];
+
 export function Roadmap() {
+  const rail = useRef<HTMLOListElement>(null);
+  const [lit, setLit] = useState(false);
+
+  useEffect(() => {
+    const element = rail.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setLit(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section
       id="roadmap"
@@ -64,8 +96,8 @@ export function Roadmap() {
           about it.
         </h2>
         <p className="max-w-[34rem] text-sterling md:col-span-5">
-          Each milestone ends with evidence, not a date. Here is what exists and
-          what comes next; team handoff and dependent tasks follow.{" "}
+          Each step ends with working evidence, not a date. After these come
+          team handoff and dependent tasks.{" "}
           <a
             href={ROADMAP_URL}
             target="_blank"
@@ -77,39 +109,67 @@ export function Roadmap() {
           .
         </p>
       </div>
-      <div className="silver-surface relative mt-12 overflow-hidden rounded-3xl border border-hairline-strong px-6 py-8 md:px-10">
-        <div>
-          <ol
-            data-reveal-children
-            className="grid gap-8 md:grid-cols-3 md:gap-6 xl:grid-cols-6"
-          >
-            {MILESTONES.map((milestone) => (
-              <li key={milestone.id} className="relative pl-10 md:pl-0">
-                <span
-                  aria-hidden
-                  className={`absolute top-0 left-0 flex size-6 items-center justify-center rounded-full border ${milestone.complete ? "metal-node border-polished/40" : "border-hairline-strong bg-oxide"}`}
-                >
-                  <span
-                    className={`size-1 rounded-full ${milestone.complete ? "bg-oxide" : "bg-sterling-dim"}`}
-                  />
-                </span>
-                <p className="font-mono text-xs text-sterling-dim md:mt-10">
-                  {milestone.id}
-                </p>
-                <h3 className="display mt-3 text-[1.4rem] leading-tight tracking-[-0.04em]">
-                  {milestone.title}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-sterling">
-                  {milestone.body}
-                </p>
-                <p
-                  className={`mt-5 text-xs leading-relaxed ${milestone.complete ? "text-verified" : "text-sterling-dim"}`}
-                >
-                  {milestone.label}
-                </p>
-              </li>
+
+      <div className="silver-surface relative mt-12 overflow-hidden rounded-3xl border border-hairline-strong px-6 py-10 md:px-10">
+        <ol
+          ref={rail}
+          data-lit={lit}
+          className="roadmap-rail grid gap-10 md:grid-cols-3 md:gap-8 xl:grid-cols-6 xl:gap-6"
+        >
+          {MILESTONES.map((milestone) => (
+            <li
+              key={milestone.title}
+              className="roadmap-stop"
+              data-state={milestone.state}
+            >
+              <span aria-hidden className="roadmap-node">
+                {milestone.state === "now" && (
+                  <span className="roadmap-here">You are here</span>
+                )}
+              </span>
+              <p className="roadmap-label">
+                {milestone.state === "done"
+                  ? "Works today"
+                  : milestone.state === "now"
+                    ? "In development · Claude Code runs today"
+                    : "Planned"}
+              </p>
+              <h3 className="display mt-2 text-[1.35rem] leading-tight tracking-[-0.04em]">
+                {milestone.title}
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-sterling">
+                {milestone.body}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="mt-6 grid gap-5 md:grid-cols-2">
+        <div className="rounded-3xl border border-hairline p-7">
+          <h3 className="flex items-center gap-2 text-base font-medium text-polished">
+            <span aria-hidden className="size-1.5 rounded-full bg-verified" />
+            Works today
+          </h3>
+          <ul className="mt-4 grid gap-2.5 text-[0.9375rem] text-sterling">
+            {TODAY.map((item) => (
+              <li key={item}>{item}</li>
             ))}
-          </ol>
+          </ul>
+        </div>
+        <div className="rounded-3xl border border-hairline p-7">
+          <h3 className="flex items-center gap-2 text-base font-medium text-polished">
+            <span
+              aria-hidden
+              className="size-1.5 rounded-full bg-sterling-dim"
+            />
+            Not yet
+          </h3>
+          <ul className="mt-4 grid gap-2.5 text-[0.9375rem] text-sterling">
+            {NOT_YET.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>

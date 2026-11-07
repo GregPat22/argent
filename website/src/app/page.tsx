@@ -1,14 +1,16 @@
-import { Commitments } from "@/components/commitments";
+import { Agents } from "@/components/agents";
 import { Entrance } from "@/components/entrance";
 import { Footer } from "@/components/footer";
 import { FAQ } from "@/components/faq";
 import { Hallmark } from "@/components/hallmark";
 import { Hero } from "@/components/hero";
-import { Lifecycle } from "@/components/lifecycle";
+import { HowItWorks } from "@/components/how-it-works";
+import { Journey } from "@/components/journey";
+import { Manifesto } from "@/components/manifesto";
 import { Nav } from "@/components/nav";
-import { ReconnectDemo } from "@/components/reconnect-demo";
 import { Roadmap } from "@/components/roadmap";
 import { RunIt } from "@/components/run-it";
+import { SectionActivity } from "@/components/section-activity";
 import { Statement } from "@/components/statement";
 
 export default function Home() {
@@ -24,16 +26,18 @@ export default function Home() {
       <main id="top" tabIndex={-1}>
         <Hero />
         <Statement />
-        <ReconnectDemo />
-        <Lifecycle />
+        <Journey />
+        <HowItWorks />
+        <Agents />
         <Hallmark />
-        <Commitments />
+        <Manifesto />
         <Roadmap />
         <FAQ />
         <RunIt />
       </main>
       <Footer />
       <Entrance />
+      <SectionActivity />
     </>
   );
 }

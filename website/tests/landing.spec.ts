@@ -25,10 +25,12 @@ test("page hydrates cleanly and every section has a readable heading", async ({
   await visit(page, "/");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: /Assign a task.*Review the changes/ }),
+    page.getByRole("heading", {
+      name: /Silver conducts better than any metal/,
+    }),
   ).toBeVisible();
   const sections = page.locator("main > section");
-  await expect(sections).toHaveCount(9);
+  await expect(sections).toHaveCount(10);
   for (const section of await sections.all()) {
     await section.scrollIntoViewIfNeeded();
     await expect(section.locator("h1,h2").first()).toBeVisible();
@@ -37,10 +39,11 @@ test("page hydrates cleanly and every section has a readable heading", async ({
     ).toBeTruthy();
   }
   await expect(page.locator("#roadmap")).toContainText(
-    "Prototype complete · simulation",
+    "In development · Claude Code runs today",
   );
-  await expect(page.locator("#hallmark")).toContainText(
-    "example commit and simulated check results",
+  await expect(page.locator("#hallmark")).toContainText("Illustrative example");
+  await expect(page.locator("#reconnect")).toContainText(
+    "An illustration of the planned experience, not a live system.",
   );
   expect(errors).toEqual([]);
 });
@@ -152,29 +155,51 @@ for (const input of ["keyboard", "pointer"] as const) {
   });
 }
 
-test("illustrated reconnect preserves history and worker loss requires attention", async ({
+test("the journey follows the scroll from desk to cloud to phone", async ({
   page,
 }) => {
   await visit(page, "/");
-  await page.locator("#reconnect").scrollIntoViewIfNeeded();
-  await page.getByRole("button", { name: "Close Argent", exact: true }).click();
-  await expect(page.locator("#reconnect")).toContainText("new event", {
-    timeout: 5000,
-  });
-  await page
-    .getByRole("button", { name: "Reopen Argent", exact: true })
-    .first()
-    .click();
-  await expect(page.locator("#reconnect")).toContainText("Reconnected.");
-  await page.getByRole("button", { name: "Cut the worker’s power" }).click();
-  await expect(page.locator("#reconnect")).toContainText("Needs attention");
-  await expect(
-    page.getByRole("button", { name: "Cut the worker’s power" }),
-  ).toBeDisabled();
-  await page.getByRole("button", { name: "Start over" }).click();
-  await expect(
-    page.getByRole("button", { name: "Cut the worker’s power" }),
-  ).toBeEnabled();
+  const journey = page.locator("#reconnect");
+  const steps = journey.locator(".journey-step");
+  await expect(steps).toHaveCount(3);
+  await expect(journey).toContainText("Local MVP");
+  await expect(steps.filter({ hasText: "Planned" })).toHaveCount(2);
+  await expect(journey.locator(".journey-stage")).toHaveAttribute(
+    "aria-hidden",
+    "true",
+  );
+
+  const scrollTo = (fraction: number) =>
+    page.locator(".journey-track").evaluate((track, f) => {
+      const top = track.getBoundingClientRect().top + window.scrollY;
+      const travel = (track as HTMLElement).offsetHeight - window.innerHeight;
+      window.scrollTo({ top: top + travel * f, behavior: "instant" });
+    }, fraction);
+
+  await scrollTo(0.02);
+  await expect(steps.nth(0)).toHaveAttribute("aria-current", "step");
+  await scrollTo(0.55);
+  await expect(steps.nth(1)).toHaveAttribute("aria-current", "step");
+  await expect(journey.locator(".journey-desktop")).toHaveAttribute(
+    "data-closed",
+    "true",
+  );
+  await scrollTo(1);
+  await expect(steps.nth(2)).toHaveAttribute("aria-current", "step");
+  await expect(journey.locator(".journey-notice")).toHaveAttribute(
+    "data-shown",
+    "true",
+  );
+
+  // Reduced motion shows the finished hand-off with every step readable.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await scrollTo(0);
+  for (const step of await steps.all())
+    await expect(step).toHaveAttribute("data-active", "true");
+  await expect(journey.locator(".journey-notice")).toHaveAttribute(
+    "data-shown",
+    "true",
+  );
 });
 
 /** Brightest pixel (0-255 mean of RGB) inside a page region. */
@@ -266,7 +291,7 @@ test("hero centers the copy inside a field of interactive liquid silver", async 
     timeout: 15_000,
   });
   await expect(
-    page.getByRole("link", { name: "See it in action" }),
+    page.getByRole("link", { name: "See where it’s going" }),
   ).toBeVisible();
 });
 
@@ -444,43 +469,52 @@ test("section chrome and navbar reading progress are removed", async ({
   }
 });
 
-test("workflow stages are compact and keyboard selectable", async ({
+test("how it works plays its three objects once and labels local mode honestly", async ({
   page,
 }) => {
   await visit(page, "/");
-  const tabs = page.getByRole("tablist", {
-    name: "Explore the planned workflow",
+  const section = page.locator("#lifecycle");
+  const list = section.locator(".hiw-list");
+  await expect(section.locator(".hiw-plate")).toHaveCount(3);
+  await expect(list).toHaveAttribute("data-playing", "false");
+  await list.scrollIntoViewIfNeeded();
+  await expect(list).toHaveAttribute("data-playing", "true");
+  await expect(section).toContainText("Local mode is not a sandbox");
+  await expect(section).toContainText("Claude Code first, then Codex");
+  await expect(section.getByText("In development")).toHaveCount(1);
+});
+
+test("agents section shows Claude Code and Codex with their models and a manual pick sticks", async ({
+  page,
+}) => {
+  await visit(page, "/");
+  const section = page.locator("#agents");
+  await section.scrollIntoViewIfNeeded();
+  const claude = section.getByRole("button", { name: /Claude Code/ });
+  const codex = section.getByRole("button", { name: /Codex/ });
+  await expect(claude.locator("svg path")).toHaveCount(1);
+  await expect(codex.locator("svg path")).toHaveCount(1);
+  await expect(claude).toContainText("Claude models");
+  await expect(codex).toContainText("GPT models");
+  await expect(section).toContainText("Cursor");
+  await expect(section).toContainText("OpenCode");
+  await expect(section).toContainText("not affiliated");
+
+  // The preview alternates on its own until someone picks an agent.
+  await expect(claude).toHaveAttribute("aria-pressed", "true");
+  await expect(codex).toHaveAttribute("aria-pressed", "true", {
+    timeout: 6000,
   });
-  await expect(tabs.getByRole("tab")).toHaveCount(3);
-  const first = page.getByRole("tab", { name: "Define the work" });
-  await first.focus();
-  await page.keyboard.press("ArrowRight");
-  const run = page.getByRole("tab", { name: "Run within limits" });
-  await expect(run).toBeFocused();
-  await expect(run).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel")).toContainText(
-    "Room to work. Boundaries in place.",
+  await claude.click();
+  await expect(claude).toHaveAttribute("aria-pressed", "true");
+  await expect(section.locator(".agents-composer")).toContainText(
+    "Claude models",
   );
-  await page.keyboard.press("End");
-  await expect(
-    page.getByRole("tab", { name: "Review the evidence" }),
-  ).toBeFocused();
-  await expect(page.getByRole("tabpanel")).toContainText(
-    "The agent finishes. You decide.",
-  );
-  await expect(page.getByRole("tabpanel")).toContainText(
-    "At most one repair, then recheck",
-  );
-  await page.keyboard.press("Home");
-  await expect(first).toBeFocused();
-  await expect(page.getByRole("tabpanel")).toContainText(
-    "Written acceptance criteria",
-  );
-  expect(
-    await page
-      .locator("#lifecycle")
-      .evaluate((el) => el.getBoundingClientRect().height),
-  ).toBeLessThan(1500);
+  await page.waitForTimeout(4000);
+  await expect(claude).toHaveAttribute("aria-pressed", "true");
+  await codex.focus();
+  await page.keyboard.press("Enter");
+  await expect(section.locator(".agents-composer")).toContainText("GPT models");
 });
 
 test("larger silver atom has no pause control, stops offscreen and respects reduced motion", async ({
@@ -547,22 +581,22 @@ test("hero next steps fit the first mobile screen", async ({ page }) => {
     await page.setViewportSize({ width: width!, height: height! });
     await visit(page, "/");
     const hero = page.locator("#intro");
-    const demo = hero.getByRole("link", { name: "See it in action" });
-    const github = hero.getByRole("link", { name: "View on GitHub" });
+    const demo = hero.getByRole("link", { name: "See where it’s going" });
+    const github = hero.getByRole("link", { name: "Star Argent on GitHub" });
     await expect(demo).toHaveAttribute("href", "#reconnect");
     await expect(github).toHaveAttribute(
       "href",
       "https://github.com/GregPat22/argent",
     );
-    await expect(github).toHaveText("View on GitHub");
-    expect((await github.innerText()).trim()).toBe("GitHub");
+    await expect(github).toHaveText("Star on GitHub");
+    expect((await github.innerText()).trim()).toBe("Star");
     const boxes = await Promise.all([demo.boundingBox(), github.boundingBox()]);
     expect(Math.abs(boxes[0]!.y - boxes[1]!.y)).toBeLessThan(2);
     expect(boxes[0]!.y + boxes[0]!.height).toBeLessThanOrEqual(height!);
     await demo.click();
     await expect(page).toHaveURL(/#reconnect$/);
     await expect(
-      page.getByRole("heading", { name: /Close the app/ }),
+      page.getByRole("heading", { name: /Start at your desk/ }),
     ).toBeInViewport();
   }
 });
@@ -592,9 +626,7 @@ test("navigation follows the current section and local entry reaches the termina
     .click();
   await expect(page).toHaveURL(/#run$/);
   await expect(
-    page.getByRole("heading", {
-      name: "Built in the open. Run the engine today.",
-    }),
+    page.getByRole("heading", { name: "Join the build." }),
   ).toBeInViewport();
 });
 
@@ -605,15 +637,15 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await page.emulateMedia({ reducedMotion });
     await visit(page, "/#faq");
     const items = page.locator("#faq details");
-    await expect(items).toHaveCount(5);
+    await expect(items).toHaveCount(7);
     await expect(items.first()).toHaveAttribute("open", "");
-    const item = items.nth(1);
+    const item = items.nth(3);
     const summary = item.locator("summary");
     await summary.focus();
     await page.keyboard.press("Enter");
     await expect(item).toHaveAttribute("open", "");
     await expect(item.locator("p")).toBeVisible();
-    await expect(item).toContainText("your Mac must stay awake");
+    await expect(item).toContainText("your computer has to stay awake");
     await page.keyboard.press("Space");
     await expect(item).not.toHaveAttribute("open");
     for (let i = 0; i < 5; i++) await summary.click();
@@ -628,7 +660,7 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
       ),
     ).toBe("0s");
     await expect(items.first()).toContainText(
-      "signed public downloads are still planned",
+      "runs Claude Code on your local repositories",
     );
   });
 }
@@ -644,7 +676,7 @@ test("FAQ answers remain readable without JavaScript", async ({ browser }) => {
     const question = page.locator("#faq details").nth(2);
     await question.locator("summary").click();
     await expect(question.locator("p")).toBeVisible();
-    await expect(question).toContainText("no AI model or repository connected");
+    await expect(question).toContainText("Local mode is not a sandbox");
     expect(
       await question
         .locator("p")
@@ -661,7 +693,7 @@ test("magnetic links keep their hit area stable and stop moving under reduced mo
   await visit(page, "/");
   const link = page
     .locator("#intro")
-    .getByRole("link", { name: "See it in action" });
+    .getByRole("link", { name: "See where it’s going" });
   await expect(link).toBeVisible();
   // Measure after the hero's delayed arrival has actually settled.
   await expect(page.locator("#intro .hero-actions").locator("..")).toHaveCSS(
@@ -774,7 +806,7 @@ test("liquid buttons reflect on hover without moving the target and respect redu
   await visit(page, "/");
   const button = page
     .locator("#intro")
-    .getByRole("link", { name: "See it in action" });
+    .getByRole("link", { name: "See where it’s going" });
   const before = (await button.boundingBox())!;
   const reflectionBefore = await button.evaluate(
     (el) => getComputedStyle(el, "::before").transform,
@@ -812,10 +844,10 @@ test("headings use Inter and product paragraphs describe the actual workflow", a
   await visit(page, "/");
   const statement = page.locator("#statement-title").locator("..");
   await expect(statement).toContainText(
-    "code changes, test results and independent review",
+    "you hold the baton when it’s time to merge",
   );
-  await expect(statement).toContainText(
-    "Today’s local desktop prototype runs Claude Code",
+  await expect(page.locator("#statement")).toContainText(
+    "Without a conductor, agents are just noise",
   );
   await expect(
     page.getByText("Silver connects. Argent coordinates.", { exact: false }),
