@@ -576,15 +576,43 @@ test("simulated bootstrap ownership expiry rejects stale writes and restart reta
 });
 
 test("simulated heartbeat keeps a slow authorization claim alive", async (t) => {
+  t.mock.timers.enable({
+    apis: ["Date", "setInterval", "setTimeout"],
+    now: Date.now(),
+  });
   const f = fixture(t);
   const op = f.request();
   const original = f.adapter.authorize.bind(f.adapter);
+  let release!: () => void;
   f.adapter.authorize = async (...args) => {
-    await delay(250);
+    await new Promise<void>((resolve) => {
+      release = resolve;
+    });
     return original(...args);
   };
-  await f.work(100);
+  const heartbeat = t.mock.method(f.store.repositories, "heartbeat");
+  const working = f.work(100);
+  const initialExpiry = f.store.repositories.operation(op.id).leaseExpiresAt!;
+  // Cross the original lease while authorization remains pending. Use small
+  // clock steps so time never jumps over an unrenewed lease.
+  for (let i = 0; i < 8; i++) {
+    t.mock.timers.tick(33);
+    const current = f.store.repositories.operation(op.id);
+    assert.equal(current.phase, "authorizing");
+    assert.ok(current.leaseExpiresAt! > Date.now());
+  }
+  assert.ok(Date.now() > initialExpiry);
+  assert.ok(heartbeat.mock.callCount() > 0);
+  release();
+  assert.equal(await working, true);
   assert.equal(f.store.repositories.operation(op.id).status, "succeeded");
+  const settledHeartbeats = heartbeat.mock.callCount();
+  t.mock.timers.tick(1000);
+  assert.equal(
+    heartbeat.mock.callCount(),
+    settledHeartbeats,
+    "settlement clears the heartbeat",
+  );
 });
 
 test("simulated repository submissions enforce idempotency, readiness and lifecycle serialization", async (t) => {

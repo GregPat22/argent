@@ -43,6 +43,16 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Deterministic timing tests and complete service teardown — 8 November 2026
+
+Use controlled time for isolated heartbeat, deadline and event-volume assertions;
+retain real-process crash and lock-contention tests. Desktop test teardown must
+wait for process exit before deleting its data, since HTTP closure precedes
+SQLite closure. CI failures at `6b49267`, `e57c4b7`, `2bdde47`, `ffbeef2` and
+`93a2df9` motivate these test-only changes. Preserve production lease/deadline
+checks and workflow failure notifications. Acceptance and validation limits are
+in [spec 0014](specs/0014-ci-test-determinism.md); implementation is in development.
+
 ### Local MVP first, Claude Code first — 7 November 2026
 
 The project had real cloud provisioning on the critical path while every run was
