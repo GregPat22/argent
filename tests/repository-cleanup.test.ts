@@ -634,15 +634,29 @@ test("simulated cleanup rechecks its deadline after acquiring a contended databa
 });
 
 test("simulated expired cleanup cannot accept a late acknowledgment even after independent resolution", async (t) => {
+  t.mock.timers.enable({ apis: ["Date", "setTimeout"], now: Date.now() });
   const f = fixture(t);
   let release!: () => void;
+  let enteredClear!: () => void;
+  const clearing = new Promise<void>((resolve) => {
+    enteredClear = resolve;
+  });
   f.onCall = async (name) => {
     if (name === "clear")
       await new Promise<void>((r) => {
         release = r;
+        enteredClear();
       });
   };
-  const attempt = await f.cleanup("cleanup", 100);
+  const running = f.cleanup("cleanup", 100);
+  await clearing;
+  assert.equal(
+    f.store.repositories.recoveryCleanup(f.op.id, "operator")!.phase,
+    "clear_intent",
+  );
+  // Expire only after dispatch, independent of database/runner speed.
+  t.mock.timers.tick(100);
+  const attempt = await running;
   assert.equal(attempt.reason, "timeout");
   assert.equal(attempt.phase, "clear_intent");
   assert.throws(
@@ -662,7 +676,7 @@ test("simulated expired cleanup cannot accept a late acknowledgment even after i
   assert.equal((await f.resolve()).status, "resolved");
   const events = f.store.repositories.events(f.op.id);
   release();
-  await delay(0);
+  await new Promise<void>((resolve) => setImmediate(resolve));
   assert.deepEqual(f.store.repositories.events(f.op.id), events);
   assert.throws(
     () =>

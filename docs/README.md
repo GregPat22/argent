@@ -40,6 +40,9 @@ recorded revision.
 Spec 0005 (the landing-page draft) is maintained privately with the website's
 design history.
 
+[0014 CI test determinism](specs/0014-ci-test-determinism.md) records the
+in-development timing and service-teardown regression criteria and evidence.
+
 ## Milestone reports
 
 - [M0 completion](milestones/0000-completion.md): the durable engine's test and
