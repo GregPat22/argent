@@ -62,16 +62,24 @@ export function Nav() {
 
   useEffect(() => {
     setCompact(window.scrollY > 120);
+    const sections = Array.from(
+      document.querySelectorAll("main > section[id]"),
+    );
+    const visible = new Set<Element>();
     const observer = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries)
-          if (entry.isIntersecting) setActive(`#${entry.target.id}`);
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.add(entry.target);
+          else visible.delete(entry.target);
+        }
+        // Entries contain changes, not all matches. An exit-only notification
+        // must restore the preceding section when scrolling upward.
+        const current = sections.findLast((section) => visible.has(section));
+        setActive(current ? `#${current.id}` : null);
       },
       { rootMargin: "-15% 0px -65% 0px" },
     );
-    document
-      .querySelectorAll("main > section[id]")
-      .forEach((section) => observer.observe(section));
+    sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
   }, []);
 
@@ -209,6 +217,15 @@ export function Nav() {
                       </a>
                     </motion.li>
                   ))}
+                  <motion.li variants={reduce ? FADE : SQUEEZE}>
+                    <a
+                      href="#top"
+                      onClick={() => setMenuOpen(false)}
+                      className="nav-squeeze-link"
+                    >
+                      Back to top
+                    </a>
+                  </motion.li>
                   <motion.li variants={reduce ? FADE : SQUEEZE}>
                     <LiquidLink
                       href="#run"

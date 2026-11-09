@@ -617,6 +617,22 @@ test("navigation follows the current section and local entry reaches the termina
       "location",
     );
   }
+  // Both sections intersect the observer band, then only the FAQ leaves it.
+  // The roadmap must become active again without a fresh enter notification.
+  for (const [offset, active] of [
+    [200, "faq"],
+    [330, "roadmap"],
+  ] as const) {
+    await page.locator("#faq").evaluate((el, top) => {
+      window.scrollTo({
+        top: window.scrollY + el.getBoundingClientRect().top - top,
+        behavior: "instant",
+      });
+    }, offset);
+    await expect(
+      page.locator(`.nav-full a[href='#${active}']`),
+    ).toHaveAttribute("aria-current", "location");
+  }
   await page
     .getByRole("button", { name: "Open navigation", exact: true })
     .click();
@@ -776,10 +792,10 @@ test("borderless navigation compacts to one logo and preserves keyboard access",
     .toBeCloseTo(20, 0);
   await expect
     .poll(async () => (await logo.boundingBox())!.y)
-    .toBeCloseTo(16, 0);
+    .toBeCloseTo(12, 0);
   await expect
     .poll(async () => (await logo.boundingBox())!.width)
-    .toBeCloseTo(48, 0);
+    .toBeCloseTo(68, 0);
   await page.setViewportSize({ width: 360, height: 800 });
   await logo.focus();
   await page.keyboard.press("Enter");
@@ -909,22 +925,41 @@ test("scroll compaction reverses, handles deep links and respects live reduced m
 }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await visit(page, "/");
-  const widths = await page.evaluate(async () => {
-    const samples: number[] = [];
-    const started = performance.now();
-    window.scrollTo({ top: 500, behavior: "instant" });
-    while (performance.now() - started < 850) {
-      await new Promise<void>((resolve) =>
-        requestAnimationFrame(() => resolve()),
-      );
-      samples.push(
-        document.querySelector(".nav-logo-dock")!.getBoundingClientRect().width,
-      );
-    }
-    return samples;
-  });
-  // Read actual intermediate geometry, rather than inferring animation from props.
-  expect(widths.some((width) => width > 49 && width < 63)).toBeTruthy();
+  const dock = page.locator(".nav-logo-dock");
+  await expect
+    .poll(async () => (await dock.boundingBox())!.width)
+    .toBeCloseTo(204, 0);
+  const intermediate = await page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        const dock = document.querySelector<HTMLElement>(".nav-logo-dock")!;
+        dock.addEventListener("transitionrun", function sample(event) {
+          if (event.target !== dock || event.propertyName !== "width") return;
+          dock.removeEventListener("transitionrun", sample);
+          const transition = dock
+            .getAnimations()
+            .find(
+              (animation) =>
+                animation instanceof CSSTransition &&
+                animation.transitionProperty === "width",
+            )!;
+          // Control the real CSS transition's clock: software rendering can skip
+          // every intermediate frame in a wall-clock sampling window.
+          transition.pause();
+          transition.currentTime =
+            Number(transition.effect!.getTiming().duration) / 2;
+          const width = dock.getBoundingClientRect().width;
+          transition.finish();
+          resolve(width);
+        });
+        window.scrollTo({ top: 500, behavior: "instant" });
+      }),
+  );
+  expect(intermediate).toBeGreaterThan(69);
+  expect(intermediate).toBeLessThan(203);
+  await expect
+    .poll(async () => (await dock.boundingBox())!.width)
+    .toBeCloseTo(68, 0);
   await visit(page, "/#faq");
   const header = page.locator("header");
   await expect(header).toHaveAttribute("data-compact", "true");
@@ -955,7 +990,7 @@ test("scroll compaction reverses, handles deep links and respects live reduced m
     .poll(
       async () => (await page.locator(".nav-logo-dock").boundingBox())!.width,
     )
-    .toBeCloseTo(64, 0);
+    .toBeCloseTo(204, 0);
 });
 
 test("scrolling transfers keyboard focus when navigation controls are replaced", async ({

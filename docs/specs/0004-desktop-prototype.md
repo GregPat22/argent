@@ -69,3 +69,15 @@ provisioning, merge, deployment or public release. Prefer a thin desktop shell
 around the existing engine; review the pinned upstream comparison before larger
 orchestrator changes. The desktop client is not an isolation boundary for running
 untrusted repository code.
+
+## Delivery regression gates (in development)
+
+Acceptance criteria, 9 November 2026, based on main `241e6e6`: CI must check the
+website's own lockfile, types, production build and complete browser suite in a
+separate job. The desktop job must build the unsigned macOS Apple Silicon package
+and exercise both development and packaged executables with the native smoke
+fixture. No signing, artifact publication or deployment follows automatically.
+Website geometry assertions follow the wordmark design documented in
+[the website README](../../website/README.md#navigation-regression-contract),
+while preserving exact endpoints, intermediate animation, keyboard and
+reduced-motion coverage.
