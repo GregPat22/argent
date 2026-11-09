@@ -4,7 +4,7 @@ import type {
   ExecutionAdapters,
   WorkspaceAdapter,
 } from "./adapters.js";
-import { DomainError } from "./domain.js";
+import { DomainError, UncertainExecutionError } from "./domain.js";
 import { Store } from "./store.js";
 
 export class Worker {
@@ -87,7 +87,9 @@ export class Worker {
       ) {
         const reason: unknown = controller.signal.reason;
         const status =
-          reason === "worker_shutdown" || reason === "lease_lost"
+          error instanceof UncertainExecutionError ||
+          reason === "worker_shutdown" ||
+          reason === "lease_lost"
             ? "needs_attention"
             : current.status === "cancelling"
               ? "cancelled"

@@ -161,3 +161,14 @@ agent or to paid API usage. See
 The project is named **Argent**. Other software also uses the name; no exclusive
 brand, domain or trademark is claimed. See
 [spec 0003](specs/0003-project-identity.md).
+
+### Local execution ownership and hardening — 9 November 2026
+
+Accepted safety requirements; implementation in development against main
+`241e6e6`. A durable lease fences database writes, not a detached agent's writes
+to a worktree. Real interrupted runs must remain blocked unless independent
+process reconciliation proves quiescence; a resolution note is insufficient.
+A live process supervisor owns the whole process group through normal exit,
+cancellation and early reader failure. Unconfirmed cleanup remains uncertain.
+See [spec 0013](specs/0013-local-mvp.md#local-execution-hardening-in-development)
+for acceptance criteria and remaining recovery limits.

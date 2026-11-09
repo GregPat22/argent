@@ -93,6 +93,16 @@ export class DomainError extends Error {
   }
 }
 
+/** Cleanup could not establish that external execution has stopped. */
+export class UncertainExecutionError extends DomainError {
+  constructor() {
+    super(
+      409,
+      "Local process termination is unconfirmed; workspace remains blocked",
+    );
+  }
+}
+
 export function requireString(
   value: unknown,
   name: string,

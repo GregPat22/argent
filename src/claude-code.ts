@@ -1,8 +1,8 @@
-import { spawn } from "node:child_process";
 import { accessSync, constants, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, isAbsolute, join, relative } from "node:path";
 import { createInterface } from "node:readline";
+import { launchProcess } from "./process-group.js";
 import type { AgentAdapter, AgentMessage } from "./adapters.js";
 import { DomainError, type Run } from "./domain.js";
 import type { Store } from "./store.js";
@@ -141,46 +141,34 @@ export class ClaudeCodeAgent implements AgentAdapter {
         ? ["--resume", session.id]
         : ["--session-id", session.id]),
     ];
-    const child = spawn(command, args, {
-      cwd: directory,
-      env: agentEnvironment(this.env),
-      stdio: ["pipe", "pipe", "pipe"],
-      // Its own process group, so cancel stops the agent's children too.
-      detached: true,
-    });
-    const exited = new Promise<{ code: number | null; error?: Error }>(
-      (resolve) => {
-        child.once("error", (error) => resolve({ code: null, error }));
-        child.once("close", (code) => resolve({ code }));
+    const process = launchProcess(
+      command,
+      args,
+      {
+        cwd: directory,
+        env: agentEnvironment(this.env),
       },
+      signal,
+      this.killGraceMs,
     );
-    let stderr = "";
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (chunk: string) => {
-      stderr = (stderr + chunk).slice(-4000);
-    });
-    let killTimer: NodeJS.Timeout | undefined;
-    const stop = () => {
-      if (killTimer) return;
-      signalGroup(child.pid, "SIGTERM");
-      killTimer = setTimeout(
-        () => signalGroup(child.pid, "SIGKILL"),
-        this.killGraceMs,
-      );
-    };
-    signal.addEventListener("abort", stop, { once: true });
-    child.stdin.on("error", () => undefined);
-    child.stdin.end(run.task);
-
-    yield {
-      kind: "status",
-      text:
-        run.permissionMode === "full"
-          ? "Claude Code started with full access: commands run without approval."
-          : "Claude Code started: file edits allowed, other actions needing approval are denied.",
-    };
-    let result: StreamEvent | null = null;
+    const { child, exited } = process;
     try {
+      let stderr = "";
+      child.stderr.setEncoding("utf8");
+      child.stderr.on("data", (chunk: string) => {
+        stderr = (stderr + chunk).slice(-4000);
+      });
+      child.stdin.on("error", () => undefined);
+      child.stdin.end(run.task);
+
+      yield {
+        kind: "status",
+        text:
+          run.permissionMode === "full"
+            ? "Claude Code started with full access: commands run without approval."
+            : "Claude Code started: file edits allowed, other actions needing approval are denied.",
+      };
+      let result: StreamEvent | null = null;
       const lines = createInterface({
         input: child.stdout,
         crlfDelay: Infinity,
@@ -228,23 +216,8 @@ export class ClaudeCodeAgent implements AgentAdapter {
         text: `Claude Code finished after ${result.num_turns ?? "?"} turns in ${Math.round((result.duration_ms ?? 0) / 1000)} s.`,
       };
     } finally {
-      signal.removeEventListener("abort", stop);
-      // If the worker stops reading early, never leave the agent running.
-      if (child.exitCode === null && child.signalCode === null) {
-        stop();
-        await exited;
-      }
-      if (killTimer) clearTimeout(killTimer);
+      await process.dispose();
     }
-  }
-}
-
-function signalGroup(pid: number | undefined, name: NodeJS.Signals): void {
-  if (!pid) return;
-  try {
-    process.kill(-pid, name);
-  } catch {
-    // The group has already exited.
   }
 }
 

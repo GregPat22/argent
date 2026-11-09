@@ -602,7 +602,10 @@ function render(): void {
     run.status === "cancelling" ? "Cancelling…" : "Cancel task";
   element("attention-panel").hidden = run.status !== "needs_attention";
   element<HTMLButtonElement>("resolve-run").disabled =
-    !connected || mutationBusy;
+    !connected || mutationBusy || !run.simulation;
+  element("attention-description").textContent = run.simulation
+    ? "This simulation was interrupted. Review the activity, then abandon it to continue."
+    : "The local agent may still be running. This workspace stays blocked until its process can be reconciled. Review its files and running processes; reconnecting does not stop or replay it.";
   renderEvents();
   renderVerification();
 }

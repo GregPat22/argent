@@ -22,7 +22,8 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   the ordered event history from its last cursor.
 - **Safe failure handling.** If a worker disappears mid-run, the run becomes
   `needs_attention`. Argent never retries something that may already have
-  happened; a person reviews it first.
+  happened; a person reviews it first. Interrupted real local runs require
+  process reconciliation before their workspace can accept more work.
 - **Independent evidence.** A run completes only after Argent checks the result
   itself instead of trusting the agent: for a local Claude Code run, the branch,
   commit, changed files and a SHA-256 of the diff (recorded, not tested); for a

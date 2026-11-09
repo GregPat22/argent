@@ -58,7 +58,10 @@ function repository(root: string, name = "repo"): string {
  * Writes a fake `claude` CLI. It records its argv, stdin, cwd and environment
  * next to itself, then behaves according to `mode`.
  */
-function fakeClaude(root: string, mode: "success" | "fail" | "hang"): string {
+function fakeClaude(
+  root: string,
+  mode: "success" | "fail" | "hang" | "resistant",
+): string {
   const path = join(root, `claude-${mode}`);
   const record = join(root, `record-${mode}.json`);
   const pidFile = join(root, `grandchild-${mode}.pid`);
@@ -74,13 +77,15 @@ process.stdin.on("end", () => {
   const index = args.indexOf("--session-id") + 1 || args.indexOf("--resume") + 1;
   const session = args[index];
   const records = fs.existsSync(${JSON.stringify(record)}) ? JSON.parse(fs.readFileSync(${JSON.stringify(record)}, "utf8")) : [];
-  records.push({ args, input, cwd: process.cwd(), env: process.env });
+  records.push({ pid: process.pid, args, input, cwd: process.cwd(), env: process.env });
   fs.writeFileSync(${JSON.stringify(record)}, JSON.stringify(records));
   const out = (event) => process.stdout.write(JSON.stringify(event) + "\\n");
   out({ type: "system", subtype: "hook_started", session_id: session });
   out({ type: "system", subtype: "init", session_id: session, model: "fake-model" });
-  if (${JSON.stringify(mode)} === "hang") {
-    const child = spawn("sleep", ["30"], { stdio: "ignore" });
+  if (["hang", "resistant"].includes(${JSON.stringify(mode)})) {
+    const child = ${JSON.stringify(mode)} === "hang"
+      ? spawn("sleep", ["30"], { stdio: "ignore" })
+      : spawn(process.execPath, ["-e", "process.on('SIGTERM', () => {}); setInterval(() => require('node:fs').appendFileSync('child-writes', 'x'), 20)"], { stdio: "ignore" });
     fs.writeFileSync(${JSON.stringify(pidFile)}, String(child.pid));
     out({ type: "assistant", message: { content: [{ type: "text", text: "Working for a long time" }] } });
     setInterval(() => {}, 1000);
@@ -108,6 +113,7 @@ function records(root: string, mode: string) {
   return JSON.parse(
     readFileSync(join(root, `record-${mode}.json`), "utf8"),
   ) as {
+    pid: number;
     args: string[];
     input: string;
     cwd: string;
@@ -117,7 +123,7 @@ function records(root: string, mode: string) {
 
 function fixture(
   t: TestContext,
-  mode: "success" | "fail" | "hang" = "success",
+  mode: "success" | "fail" | "hang" | "resistant" = "success",
 ) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "argent-local-")));
   const store = new Store(join(root, "db.sqlite"));
@@ -480,4 +486,46 @@ test("an existing database gains the local execution columns", (t) => {
   const run = store.getRun("00000000-0000-4000-8000-000000000001");
   assert.equal(run.simulation, true);
   assert.equal(run.permissionMode, "edits");
+});
+
+test("cancel waits for a SIGTERM-resistant descendant after the CLI exits", async (t) => {
+  const f = fixture(t, "resistant");
+  const workspace = createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const run = f.store.createRun(workspace.id, "Hang", "key");
+  const tick = f.worker.tick();
+  const written = join(workspace.local!.worktreePath, "child-writes");
+  for (let i = 0; i < 100 && !existsSync(written); i++) await delay(25);
+  assert.ok(
+    existsSync(written),
+    "descendant must start writing before cancellation",
+  );
+  f.store.cancel(run.id);
+  await tick;
+  assert.equal(f.store.getRun(run.id).status, "cancelled");
+  const content = readFileSync(written, "utf8");
+  await delay(300);
+  assert.equal(
+    readFileSync(written, "utf8"),
+    content,
+    "no writes after acknowledged cancellation",
+  );
+});
+
+test("closing the iterator at its first status cleans up the running CLI", async (t) => {
+  const f = fixture(t, "hang");
+  const workspace = createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const run = f.store.createRun(workspace.id, "Hang", "key");
+  const agent = new ClaudeCodeAgent(f.store, {
+    executable: join(f.root, "claude-hang"),
+    killGraceMs: 50,
+  });
+  const iterator = agent
+    .execute(run, workspace.local!.worktreePath, new AbortController().signal)
+    [Symbol.asyncIterator]();
+  await iterator.next();
+  const record = join(f.root, "record-hang.json");
+  for (let i = 0; i < 100 && !existsSync(record); i++) await delay(25);
+  const pid = records(f.root, "hang")[0]!.pid;
+  await iterator.return?.();
+  assert.throws(() => process.kill(pid, 0));
 });

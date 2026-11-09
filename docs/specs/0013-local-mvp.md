@@ -211,3 +211,27 @@ by a person.
 Cloud workspaces, laptop-independent execution, mobile access, sandboxed
 execution, team features, dependent tasks, automatic merges and any claim of
 feature parity with other tools.
+
+## Local execution hardening (in development)
+
+Acceptance criteria, 9 November 2026, based on main `241e6e6`:
+
+1. A note cannot resolve an interrupted real run or permit a replacement writer.
+   Until independent process reconciliation is available, such workspaces remain
+   blocked. Simulation abandonment remains available.
+2. Every post-spawn operation, including the first emitted status, is covered by
+   process cleanup. Cancellation waits for group quiescence and escalates even
+   when the leader exits before a resistant descendant. Unconfirmed termination
+   leaves the run in `needs_attention`. Zombie processes are quiescent; a PID
+   from a previous service instance is never signalled without identity proof.
+3. Trusted Git operations disable command-producing filters and remain
+   asynchronous, bounded and cancellable so service requests and leases stay live.
+4. Separate workspaces execute concurrently within a bounded service limit;
+   one workspace still permits only one active or uncertain execution.
+5. Evidence binds untracked content and file type as well as tracked changes.
+   Unsafe or oversized inputs fail verification instead of producing partial proof.
+6. Workspace creation has one mutation owner; refresh cannot permit duplicate
+   dispatch. Every persisted transcript event remains reachable in the desktop.
+
+A real model-backed walkthrough and durable process reconciliation after a hard
+service crash remain separate requirements; fake-CLI tests do not prove them.
