@@ -240,8 +240,21 @@ test("detached service persists across clients, deduplicates startup, and expose
     if (connection) {
       await serviceRequest(connection, "/service/stop", "POST", {});
       const until = Date.now() + 5000;
-      while (Date.now() < until && (await isServiceAlive(connection)))
+      // HTTP closes before SQLite and the ownership files. Wait for the owned
+      // process to exit before removing its directory, including on failure.
+      for (;;) {
+        try {
+          process.kill(connection.pid, 0);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === "ESRCH") break;
+          throw error;
+        }
+        assert.ok(
+          Date.now() < until,
+          "owned test service must finish shutdown",
+        );
         await new Promise((resolve) => setTimeout(resolve, 50));
+      }
     }
     rmSync(root, { recursive: true, force: true });
   }

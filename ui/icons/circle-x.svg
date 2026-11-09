@@ -1,6 +1,6 @@
 <!-- @license lucide-static v1.70.0 - ISC -->
 <svg
-  class="lucide lucide-arrow-up-right"
+  class="lucide lucide-circle-x"
   xmlns="http://www.w3.org/2000/svg"
   width="24"
   height="24"
@@ -11,6 +11,7 @@
   stroke-linecap="round"
   stroke-linejoin="round"
 >
-  <path d="M7 7h10v10" />
-  <path d="M7 17 17 7" />
+  <circle cx="12" cy="12" r="10" />
+  <path d="m15 9-6 6" />
+  <path d="m9 9 6 6" />
 </svg>

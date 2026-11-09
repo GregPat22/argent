@@ -158,7 +158,10 @@ notice; real-agent labels replace simulation labels only for real workspaces.
 - The task dialog for a local workspace has the permission choice (edits only by
   default, or full access with a warning), a limit in minutes up to two hours,
   and becomes "Continue the conversation" once the workspace has a run. A pending
-  submission keeps its permission mode when retried.
+  submission keeps its permission mode when retried. (Since
+  [spec 0015](0015-desktop-restyle.md) these choices are composer chips: edits
+  only by default, full access confirmed once per workspace and reset after each
+  send.)
 - The activity view labels agent text, tool calls, tool errors and status lines;
   the verification view shows the worktree record as "NOT TESTED".
 - Resolving an interrupted real run records `abandon_run` with
@@ -267,8 +270,9 @@ signals every slot and waits for all cleanup before closing the store. The
 standalone simulation worker retains one slot. Regression coverage requires both
 overlapping real-process fixtures and a third queued run at the concurrency limit.
 
-Desktop hardening keeps all fetched events for the selected bounded run in memory,
-with 500 visible rows and explicit earlier/later controls. Polling preserves an
+Desktop hardening keeps all fetched events for each loaded conversation turn in
+memory, with 500 visible events per turn page and explicit earlier/later controls.
+Polling preserves an
 older page until the user returns to the latest events. Workspace creation shares
 the existing mutation lock, including native-dialog cancellation and refresh.
 Renderer regressions cover duplicate synthetic clicks and access to both ends of

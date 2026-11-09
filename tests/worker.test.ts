@@ -98,6 +98,8 @@ test("worker shutdown marks uncertain work and never silently replays it", async
 });
 
 test("event budget bounds noisy adapters", async (t) => {
+  // This tests the event budget, not disk throughput within a short lease.
+  t.mock.timers.enable({ apis: ["Date"], now: Date.now() });
   const noisy: AgentAdapter = {
     async *execute() {
       for (let i = 0; i < 200; i++) yield "log";
@@ -109,13 +111,16 @@ test("event budget bounds noisy adapters", async (t) => {
   assert.equal(store.getRun(run.id).status, "failed");
   let cursor = 0;
   let count = 0;
+  let reason: unknown;
   for (;;) {
     const events = store.events(run.id, cursor);
     if (!events.length) break;
     count += events.filter((event) => event.type === "agent.log").length;
+    reason = events.at(-1)?.data.reason;
     cursor = events.at(-1)!.cursor;
   }
   assert.equal(count, 100);
+  assert.equal(reason, "Run log limit exceeded");
 });
 
 test("dispatch is bounded and shutdown drains every active slot", async (t) => {

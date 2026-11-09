@@ -43,6 +43,16 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Deterministic timing tests and complete service teardown — 8 November 2026
+
+Use controlled time for isolated heartbeat, deadline and event-volume assertions;
+retain real-process crash and lock-contention tests. Desktop test teardown must
+wait for process exit before deleting its data, since HTTP closure precedes
+SQLite closure. CI failures at `6b49267`, `e57c4b7`, `2bdde47`, `ffbeef2` and
+`93a2df9` motivate these test-only changes. Preserve production lease/deadline
+checks and workflow failure notifications. Acceptance and validation limits are
+in [spec 0014](specs/0014-ci-test-determinism.md); implementation is in development.
+
 ### Local MVP first, Claude Code first — 7 November 2026
 
 The project had real cloud provisioning on the critical path while every run was
@@ -155,6 +165,19 @@ Codex). Argent passes the choice to the agent's official model option and record
 it; it never calls, routes or proxies models, and never falls back to another
 agent or to paid API usage. See
 [spec 0013](specs/0013-local-mvp.md#agent-and-model-choice).
+
+### The desktop shows only what works — 7 November 2026
+
+The desktop app no longer reserves space for planned tools. The inspector, the
+terminal preview, the mobile and migration pages and the provider tabs are
+removed until they are real; the right panel returns with the changes view
+(L1.3). This supersedes the right-hand inspection placement in
+[spec 0008](specs/0008-desktop-workspace-shell.md). A workspace is shown as one
+conversation, because follow-ups already resume the same Claude Code session.
+The composer sends directly: edits only by default, full access confirmed once
+per workspace and reset after every send. Green is reserved for verified
+results, so a Claude Code run, which is recorded but not tested, ends in silver.
+See [spec 0015](specs/0015-desktop-restyle.md).
 
 ### Name
 

@@ -386,6 +386,19 @@ or renderer privileges are added. Presentation state includes workspace-scoped
 memory-only composer drafts and keyboard tab/search navigation. See
 [the desktop UX contract](docs/specs/0009-desktop-ux-polish.md).
 
+## P3 desktop restyle
+
+[Spec 0015](docs/specs/0015-desktop-restyle.md) replaces the P2 layout. The
+renderer is split into small modules: DOM helpers, a pure presentation model
+(tested in Node), state, and views for the sidebar, conversation, record,
+composer and search. Each workspace shows one conversation, with every run as a
+turn that ends in Argent's record. The composer calls the existing `createRun`
+bridge method directly with an idempotency key; an unconfirmed key is kept and
+retried, never regenerated. Placeholder inspector, terminal, migration and mobile
+surfaces are removed. The protocol allowlist is still built at startup from strict
+filenames: the renderer's own `*.js` modules, `icons/*.svg`, `fonts/*.woff2` and
+two brand images. No bridge method, renderer privilege or network access is added.
+
 The existing `/service/stop` response explicitly closes its keep-alive socket so
 an interrupted desktop service can finish draining and release ownership. It
 preserves the existing worker-shutdown `needs_attention` state and does not replay
