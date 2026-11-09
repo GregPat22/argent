@@ -32,8 +32,10 @@ flowchart LR
 
 M0 implements the control API, durable SQLite store and independent worker with
 local simulation adapters. P1 adds the installed desktop client and local download
-page source. Real cloud workspaces, coding agents and the GitHub PR broker remain
-M1 targets. Verification currently checks only a simulation artifact.
+page source. L1.1 and L1.2 add Claude Code in local worktrees. Real cloud
+workspaces and the GitHub PR broker remain M1 targets. Verification checks a
+simulation artifact or records local Git evidence; executing trusted repository
+tests remains planned.
 
 ## Persistence and execution
 
@@ -56,7 +58,7 @@ stateDiagram-v2
   queued --> cancelled: cancel
   running --> cancelling: cancel requested
   cancelling --> cancelled: worker acknowledges
-  running --> completed: independent simulation verification
+  running --> completed: independent evidence recorded
   running --> failed: acknowledged failure or deadline
   running --> needs_attention: expired lease or shutdown
   cancelling --> needs_attention: expired lease or shutdown
@@ -306,8 +308,9 @@ M0 uses a unique operator bearer token and loopback binding. It rejects browser
 origins, validates inputs, caps bodies/events and never launches repository code.
 It has no tenants, TLS termination, OAuth, production secret store or public
 ingress. Local workspace directories persist files; they are not a sandbox.
-Only the trusted scripted adapter is supported. Trusted host owners can inspect
-or alter local state; this prototype is not tamper-resistant evidence storage.
+The desktop service additionally enables the local Claude Code adapter, as
+described below. Trusted host owners can inspect or alter local state; this
+prototype is not tamper-resistant evidence storage.
 
 The managed product needs authenticated users and authorization on every
 workspace/run/artifact, isolated microVM execution, no host mounts or Docker
@@ -422,3 +425,23 @@ shell, and agents receive an allowlisted environment without provider API keys.
 The repository folder reaches the service only from a native dialog in the
 desktop main process, or from a workspace the service already recorded; the
 sandboxed renderer cannot pass a path.
+
+### Local hardening contract (in development)
+
+The [local hardening acceptance criteria](docs/specs/0013-local-mvp.md#local-execution-hardening-in-development)
+require a supervisor to retain process-group ownership until quiescence, including
+early transcript rejection. Unconfirmed termination blocks the workspace;
+database leases and operator notes do not prove an old process has stopped.
+Durable process reconciliation after a service crash remains unimplemented.
+
+Trusted Git commands use bounded asynchronous child processes and neutralize
+configured filters. Repositories containing submodules are unsupported: their
+nested configuration and contents cannot be safely covered by parent-only
+inspection. Versioned evidence binds untracked content as well as tracked diffs,
+with explicit size and filesystem limits. This is a record of Git-visible content,
+not a sandbox, a test result or an atomic filesystem snapshot.
+
+The desktop service has two worker slots, sharing atomic store claims and a
+single-run-per-workspace constraint. Shutdown drains all slots before closing
+the store. The renderer retains the selected run's bounded event history and
+paginates it without changing execution ownership.

@@ -1057,6 +1057,7 @@ kbd {
 .steps,
 .says,
 .steps-disclosure,
+.event-pages,
 .end,
 .record {
   margin-left: 31px;
@@ -1193,6 +1194,16 @@ kbd {
 .end-attention p {
   margin: 4px 0 12px;
   color: var(--sterling);
+}
+
+.event-pages {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--sterling-dim);
+  font-size: 12px;
 }
 
 /* Argent's record: an engraved certificate with its hallmarks. */

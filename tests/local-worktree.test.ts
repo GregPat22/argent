@@ -8,6 +8,8 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -25,6 +27,8 @@ import {
 } from "../src/local-worktree.js";
 import { Store } from "../src/store.js";
 import { Worker } from "../src/worker.js";
+import { untrackedManifest } from "../src/worktree-evidence.js";
+import { git as trustedGit } from "../src/git.js";
 
 const TOKEN = "local-worktree-test-token-0123456789abcdef";
 
@@ -58,13 +62,17 @@ function repository(root: string, name = "repo"): string {
  * Writes a fake `claude` CLI. It records its argv, stdin, cwd and environment
  * next to itself, then behaves according to `mode`.
  */
-function fakeClaude(root: string, mode: "success" | "fail" | "hang"): string {
+function fakeClaude(
+  root: string,
+  mode: "success" | "fail" | "hang" | "resistant",
+): string {
   const path = join(root, `claude-${mode}`);
   const record = join(root, `record-${mode}.json`);
   const pidFile = join(root, `grandchild-${mode}.pid`);
   writeFileSync(
     path,
     `#!${process.execPath}
+if (process.argv.includes('--version')) { console.log('2.1.259 (Claude Code)'); process.exit(0); }
 const fs = require("node:fs");
 const { spawn } = require("node:child_process");
 let input = "";
@@ -74,13 +82,15 @@ process.stdin.on("end", () => {
   const index = args.indexOf("--session-id") + 1 || args.indexOf("--resume") + 1;
   const session = args[index];
   const records = fs.existsSync(${JSON.stringify(record)}) ? JSON.parse(fs.readFileSync(${JSON.stringify(record)}, "utf8")) : [];
-  records.push({ args, input, cwd: process.cwd(), env: process.env });
+  records.push({ pid: process.pid, args, input, cwd: process.cwd(), env: process.env });
   fs.writeFileSync(${JSON.stringify(record)}, JSON.stringify(records));
   const out = (event) => process.stdout.write(JSON.stringify(event) + "\\n");
   out({ type: "system", subtype: "hook_started", session_id: session });
   out({ type: "system", subtype: "init", session_id: session, model: "fake-model" });
-  if (${JSON.stringify(mode)} === "hang") {
-    const child = spawn("sleep", ["30"], { stdio: "ignore" });
+  if (["hang", "resistant"].includes(${JSON.stringify(mode)})) {
+    const child = ${JSON.stringify(mode)} === "hang"
+      ? spawn("sleep", ["30"], { stdio: "ignore" })
+      : spawn(process.execPath, ["-e", "process.on('SIGTERM', () => {}); setInterval(() => require('node:fs').appendFileSync('child-writes', 'x'), 20)"], { stdio: "ignore" });
     fs.writeFileSync(${JSON.stringify(pidFile)}, String(child.pid));
     out({ type: "assistant", message: { content: [{ type: "text", text: "Working for a long time" }] } });
     setInterval(() => {}, 1000);
@@ -108,6 +118,7 @@ function records(root: string, mode: string) {
   return JSON.parse(
     readFileSync(join(root, `record-${mode}.json`), "utf8"),
   ) as {
+    pid: number;
     args: string[];
     input: string;
     cwd: string;
@@ -117,7 +128,7 @@ function records(root: string, mode: string) {
 
 function fixture(
   t: TestContext,
-  mode: "success" | "fail" | "hang" = "success",
+  mode: "success" | "fail" | "hang" | "resistant" = "success",
 ) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "argent-local-")));
   const store = new Store(join(root, "db.sqlite"));
@@ -149,10 +160,10 @@ function fixture(
   return { root, store, repo, worktrees, worker };
 }
 
-test("a local workspace is a new branch in a private worktree at HEAD", (t) => {
+test("a local workspace is a new branch in a private worktree at HEAD", async (t) => {
   const f = fixture(t);
   const head = sh(f.repo, "rev-parse", "HEAD");
-  const workspace = createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
   assert.equal(workspace.provider, "local-worktree");
   assert.equal(workspace.repository, f.repo);
   assert.match(workspace.local!.branch, /^argent\/[a-f0-9]{8}$/);
@@ -171,58 +182,96 @@ test("a local workspace is a new branch in a private worktree at HEAD", (t) => {
   assert.equal(f.store.listWorkspaces().items[0]!.id, workspace.id);
 });
 
-test("repository paths are validated before any Git change", (t) => {
+test("repository paths are validated before any Git change", async (t) => {
   const f = fixture(t);
   const rejects = (path: unknown, message: RegExp) =>
-    assert.throws(
+    assert.rejects(
       () => createLocalWorkspace(f.store, f.worktrees, path),
       (error: unknown) =>
         error instanceof DomainError &&
         error.status === 400 &&
         message.test(error.message),
     );
-  rejects("relative/repo", /absolute/);
-  rejects(join(f.root, "missing"), /existing directory/);
-  rejects(join(f.repo, ".git"), /top-level|Git working tree/);
+  await rejects("relative/repo", /absolute/);
+  await rejects(join(f.root, "missing"), /existing directory/);
+  await rejects(join(f.repo, ".git"), /top-level|Git working tree/);
   mkdirSync(join(f.repo, "sub"));
-  rejects(join(f.repo, "sub"), /top-level/);
+  await rejects(join(f.repo, "sub"), /top-level/);
   mkdirSync(join(f.root, "plain"));
-  rejects(join(f.root, "plain"), /Git working tree/);
+  await rejects(join(f.root, "plain"), /Git working tree/);
   const empty = join(f.root, "empty");
   mkdirSync(empty);
   sh(empty, "init", "--quiet");
-  rejects(empty, /no commits/);
-  rejects(`${f.repo}\0`, /string/);
-  rejects(f.root, /contain each other|top-level|Git working tree/);
+  await rejects(empty, /no commits/);
+  await rejects(`${f.repo}\0`, /string/);
+  await rejects(f.root, /contain each other|top-level|Git working tree/);
   assert.equal(f.store.listWorkspaces().items.length, 0);
   assert.equal(sh(f.repo, "branch", "--list", "argent/*"), "");
 });
 
-test("Argent's Git commands do not run repository hooks", (t) => {
+test("Argent's Git commands do not run repository hooks", async (t) => {
   const f = fixture(t);
   const marker = join(f.root, "hook-ran");
   const hook = join(f.repo, ".git", "hooks", "post-checkout");
   writeFileSync(hook, `#!/bin/sh\ntouch ${JSON.stringify(marker)}\n`);
   chmodSync(hook, 0o755);
-  createLocalWorkspace(f.store, f.worktrees, f.repo);
+  await createLocalWorkspace(f.store, f.worktrees, f.repo);
   assert.equal(existsSync(marker), false);
 });
 
-test("a failed record removes the worktree and branch it created", (t) => {
+test("a failed record removes the worktree and branch it created", async (t) => {
   const f = fixture(t);
   const original = f.store.createLocalWorkspace.bind(f.store);
   f.store.createLocalWorkspace = () => {
     throw new DomainError(500, "simulated database failure");
   };
-  assert.throws(() => createLocalWorkspace(f.store, f.worktrees, f.repo));
+  await assert.rejects(() =>
+    createLocalWorkspace(f.store, f.worktrees, f.repo),
+  );
   f.store.createLocalWorkspace = original;
   assert.equal(sh(f.repo, "branch", "--list", "argent/*"), "");
   assert.equal(sh(f.repo, "worktree", "list").split("\n").length, 1);
 });
 
+test("failed checkout rolls back its owned branch without deleting existing branches", async (t) => {
+  const f = fixture(t);
+  sh(f.repo, "branch", "argent/preexisting");
+  const executable = execFileSync("which", ["git"], {
+    encoding: "utf8",
+  }).trim();
+  const bin = join(f.root, "bin");
+  mkdirSync(bin);
+  writeFileSync(
+    join(bin, "git"),
+    `#!${process.execPath}
+const args = process.argv.slice(2);
+if (args.includes('worktree') && args.includes('add')) process.exit(1);
+const result = require('node:child_process').spawnSync(${JSON.stringify(executable)}, args, { stdio: 'inherit' });
+process.exit(result.status ?? 1);
+`,
+    { mode: 0o755 },
+  );
+  const oldPath = process.env.PATH;
+  process.env.PATH = bin + ":" + oldPath;
+  try {
+    await assert.rejects(
+      createLocalWorkspace(f.store, f.worktrees, f.repo),
+      /Git worktree failed/,
+    );
+  } finally {
+    process.env.PATH = oldPath;
+  }
+  assert.equal(
+    sh(f.repo, "branch", "--list", "argent/*"),
+    "argent/preexisting",
+  );
+  assert.equal(sh(f.repo, "worktree", "list").split("\n").length, 1);
+  assert.equal(f.store.listWorkspaces().items.length, 0);
+});
+
 test("Claude Code runs in the worktree and completion is Argent's own record", async (t) => {
   const f = fixture(t);
-  const workspace = createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
   const run = f.store.createRun(workspace.id, "Add hello.txt", "key-1");
   assert.equal(run.simulation, false);
   assert.equal(run.permissionMode, "edits");
@@ -284,7 +333,7 @@ test("Claude Code runs in the worktree and completion is Argent's own record", a
 
 test("follow-up runs resume the conversation; full access is explicit", async (t) => {
   const f = fixture(t);
-  const workspace = createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
   f.store.createRun(workspace.id, "First", "key-1");
   await f.worker.tick();
   const second = f.store.createRun(
@@ -310,7 +359,7 @@ test("follow-up runs resume the conversation; full access is explicit", async (t
 
 test("an unsuccessful agent run fails without a verification record", async (t) => {
   const f = fixture(t, "fail");
-  const workspace = createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
   const run = f.store.createRun(workspace.id, "Break", "key");
   await f.worker.tick();
   assert.equal(f.store.getRun(run.id).status, "failed");
@@ -328,7 +377,7 @@ test("an unsuccessful agent run fails without a verification record", async (t) 
 
 test("cancel stops the agent's whole process group", async (t) => {
   const f = fixture(t, "hang");
-  const workspace = createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
   const run = f.store.createRun(workspace.id, "Hang", "key");
   const tick = f.worker.tick();
   const pidFile = join(f.root, "grandchild-hang.pid");
@@ -343,7 +392,7 @@ test("cancel stops the agent's whole process group", async (t) => {
 
 test("without configured local adapters a real run fails safely", async (t) => {
   const f = fixture(t);
-  const workspace = createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
   const run = f.store.createRun(workspace.id, "Task", "key");
   const worker = new Worker(
     f.store,
@@ -360,7 +409,7 @@ test("without configured local adapters a real run fails safely", async (t) => {
   assert.equal(existsSync(join(f.root, "record-success.json")), false);
 });
 
-test("run limits and permission modes depend on the workspace kind", (t) => {
+test("run limits and permission modes depend on the workspace kind", async (t) => {
   const f = fixture(t);
   const simulated = f.store.createWorkspace(
     "https://github.com/example/project",
@@ -378,7 +427,7 @@ test("run limits and permission modes depend on the workspace kind", (t) => {
     /no permission modes/,
   );
   assert.equal(f.store.createRun(simulated.id, "Task", "b").simulation, true);
-  const local = createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const local = await createLocalWorkspace(f.store, f.worktrees, f.repo);
   assert.throws(
     () =>
       f.store.createRun(local.id, "Task", "c", undefined, undefined, "root"),
@@ -449,7 +498,7 @@ test("the API creates local workspaces only when enabled", async (t) => {
   assert.equal(enabled.body.provider, "local-worktree");
 });
 
-test("an existing database gains the local execution columns", (t) => {
+test("an existing database gains the local execution columns", async (t) => {
   const root = mkdtempSync(join(tmpdir(), "argent-migrate-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const path = join(root, "db.sqlite");
@@ -481,3 +530,333 @@ test("an existing database gains the local execution columns", (t) => {
   assert.equal(run.simulation, true);
   assert.equal(run.permissionMode, "edits");
 });
+
+test("cancel waits for a SIGTERM-resistant descendant after the CLI exits", async (t) => {
+  const f = fixture(t, "resistant");
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const run = f.store.createRun(workspace.id, "Hang", "key");
+  const tick = f.worker.tick();
+  const written = join(workspace.local!.worktreePath, "child-writes");
+  for (let i = 0; i < 100 && !existsSync(written); i++) await delay(25);
+  assert.ok(
+    existsSync(written),
+    "descendant must start writing before cancellation",
+  );
+  f.store.cancel(run.id);
+  await tick;
+  assert.equal(f.store.getRun(run.id).status, "cancelled");
+  const content = readFileSync(written, "utf8");
+  await delay(300);
+  assert.equal(
+    readFileSync(written, "utf8"),
+    content,
+    "no writes after acknowledged cancellation",
+  );
+});
+
+test("closing the iterator at its first status cleans up the running CLI", async (t) => {
+  const f = fixture(t, "hang");
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const run = f.store.createRun(workspace.id, "Hang", "key");
+  const agent = new ClaudeCodeAgent(f.store, {
+    executable: join(f.root, "claude-hang"),
+    killGraceMs: 50,
+  });
+  const iterator = agent
+    .execute(run, workspace.local!.worktreePath, new AbortController().signal)
+    [Symbol.asyncIterator]();
+  await iterator.next();
+  const record = join(f.root, "record-hang.json");
+  for (let i = 0; i < 100 && !existsSync(record); i++) await delay(25);
+  const pid = records(f.root, "hang")[0]!.pid;
+  await iterator.return?.();
+  assert.throws(() => process.kill(pid, 0));
+});
+
+for (const filter of ["clean", "smudge", "process"] as const) {
+  test(`trusted Git never executes a configured ${filter} filter`, async (t) => {
+    const f = fixture(t);
+    writeFileSync(join(f.repo, ".gitattributes"), "*.txt filter=probe\n");
+    writeFileSync(join(f.repo, "filtered.txt"), "base\n");
+    sh(f.repo, "add", ".");
+    sh(f.repo, "commit", "-qm", "filter fixture");
+    const marker = join(f.root, "filter-ran");
+    const command = join(f.root, "filter-command");
+    writeFileSync(
+      command,
+      `#!${process.execPath}\nrequire('node:fs').writeFileSync(${JSON.stringify(marker)}, 'ran'); process.exit(42);\n`,
+      { mode: 0o755 },
+    );
+    const included = join(f.root, "included-config");
+    writeFileSync(
+      included,
+      `[filter "probe"]\n  ${filter} = ${command}\n  required = true\n`,
+    );
+    sh(f.repo, "config", "include.path", included);
+    const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+    writeFileSync(
+      join(workspace.local!.worktreePath, "filtered.txt"),
+      "changed\n",
+    );
+    const run = f.store.createRun(workspace.id, "verify", "key");
+    await new LocalWorktreeWorkspace(f.store, f.worktrees).verify(
+      workspace.local!.worktreePath,
+      run,
+    );
+    assert.equal(existsSync(marker), false);
+  });
+}
+
+/** An initialized child repository whose own filter config is not in its parent. */
+function hostileSubmodule(
+  root: string,
+  parent: string,
+  state: "index" | "HEAD" | "base",
+): { marker: string; gitlinkCommit: string | undefined } {
+  const source = repository(root, "submodule-source");
+  writeFileSync(join(source, ".gitattributes"), "*.txt filter=child\n");
+  writeFileSync(join(source, "child.txt"), "initial\n");
+  sh(source, "add", ".");
+  sh(source, "commit", "-qm", "submodule fixture");
+  sh(
+    parent,
+    "-c",
+    "protocol.file.allow=always",
+    "submodule",
+    "add",
+    "--quiet",
+    source,
+    "child",
+  );
+  let gitlinkCommit: string | undefined;
+  if (state !== "index") {
+    sh(parent, "commit", "-qm", "record submodule");
+    gitlinkCommit = sh(parent, "rev-parse", "HEAD");
+    // Leave the initialized child on disk, but remove its link from the index.
+    sh(parent, "rm", "--cached", "child");
+    if (state === "base") sh(parent, "commit", "-qm", "remove submodule");
+  }
+  sh(parent, "config", "diff.submodule", "diff");
+  sh(parent, "config", "submodule.recurse", "true");
+  sh(parent, "config", "submodule.child.ignore", "none");
+  const marker = join(root, "child-filter-ran");
+  const command = join(root, "child-filter");
+  writeFileSync(
+    command,
+    `#!${process.execPath}
+require('node:fs').writeFileSync(${JSON.stringify(marker)}, 'ran');
+process.stdin.pipe(process.stdout);
+`,
+    { mode: 0o755 },
+  );
+  sh(join(parent, "child"), "config", "filter.child.clean", command);
+  writeFileSync(join(parent, "child", "child.txt"), "dirty\n");
+  return { marker, gitlinkCommit };
+}
+
+for (const state of ["HEAD", "index"] as const) {
+  test(`submodules in the source ${state} are rejected before creating a worktree`, async (t) => {
+    const f = fixture(t);
+    const { marker } = hostileSubmodule(f.root, f.repo, state);
+    await assert.rejects(
+      createLocalWorkspace(f.store, f.worktrees, f.repo),
+      /Submodules are not supported/,
+    );
+    assert.equal(existsSync(marker), false);
+    assert.equal(f.store.listWorkspaces().items.length, 0);
+    assert.equal(sh(f.repo, "branch", "--list", "argent/*"), "");
+    assert.equal(sh(f.repo, "worktree", "list").split("\n").length, 1);
+  });
+}
+
+for (const state of ["index", "HEAD", "base"] as const) {
+  test(`gitlinks introduced in ${state} cannot produce evidence or run child filters`, async (t) => {
+    const f = fixture(t);
+    const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+    const directory = workspace.local!.worktreePath;
+    const { marker, gitlinkCommit } = hostileSubmodule(
+      f.root,
+      directory,
+      state,
+    );
+    if (state === "base") {
+      // Model an existing persisted workspace whose base predates this guard.
+      const database = new DatabaseSync(join(f.root, "db.sqlite"));
+      try {
+        database
+          .prepare(
+            "UPDATE local_worktrees SET base_sha = ? WHERE workspace_id = ?",
+          )
+          .run(gitlinkCommit!, workspace.id);
+      } finally {
+        database.close();
+      }
+    }
+    const run = f.store.createRun(workspace.id, "verify", "submodule");
+    const adapter = new LocalWorktreeWorkspace(f.store, f.worktrees);
+    await assert.rejects(
+      adapter.prepare(f.store.getWorkspace(workspace.id)),
+      /Submodules are not supported/,
+    );
+    await assert.rejects(
+      adapter.verify(directory, run),
+      /Submodules are not supported/,
+    );
+    // Defense in depth: even accidental dirty probing must not invoke child Git
+    // filters. Evidence still fails above instead of silently excluding them.
+    await trustedGit(directory, [
+      "diff",
+      "--binary",
+      "--no-ext-diff",
+      "--no-textconv",
+      "HEAD",
+    ]);
+    assert.equal(existsSync(marker), false);
+    assert.equal(
+      f.store
+        .events(run.id)
+        .some((event) => event.type === "verification.recorded"),
+      false,
+    );
+  });
+}
+
+test("worktree evidence binds untracked contents, mode and symlink target", async (t) => {
+  const f = fixture(t);
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const directory = workspace.local!.worktreePath;
+  const run = f.store.createRun(workspace.id, "verify", "key");
+  const adapter = new LocalWorktreeWorkspace(f.store, f.worktrees);
+  const file = join(directory, "new.txt");
+  writeFileSync(file, "one");
+  const first = await adapter.verify(directory, run);
+  writeFileSync(file, "two");
+  const second = await adapter.verify(directory, run);
+  assert.notEqual(second.diffSha256, first.diffSha256);
+  chmodSync(file, 0o755);
+  const executable = await adapter.verify(directory, run);
+  assert.notEqual(executable.diffSha256, second.diffSha256);
+  unlinkSync(file);
+  symlinkSync("outside-one", file);
+  const link = await adapter.verify(directory, run);
+  unlinkSync(file);
+  symlinkSync("outside-two", file);
+  assert.notEqual(
+    (await adapter.verify(directory, run)).diffSha256,
+    link.diffSha256,
+  );
+  assert.equal(first.contentHashVersion, 2);
+  assert.equal(first.changedFiles, 1);
+});
+
+test("oversized or special untracked files cannot become complete evidence", async (t) => {
+  const f = fixture(t);
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const directory = workspace.local!.worktreePath;
+  const run = f.store.createRun(workspace.id, "verify", "key");
+  const adapter = new LocalWorktreeWorkspace(f.store, f.worktrees);
+  writeFileSync(join(directory, "large"), Buffer.alloc((16 << 20) + 1));
+  await assert.rejects(adapter.verify(directory, run), /exceeds its limits/);
+  unlinkSync(join(directory, "large"));
+  execFileSync("mkfifo", [join(directory, "pipe")]);
+  await assert.rejects(
+    untrackedManifest(directory, Buffer.from("pipe\0")),
+    /unsafe/,
+  );
+});
+
+test("slow Git verification keeps the service responsive and the lease alive", async (t) => {
+  const f = fixture(t);
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const executable = execFileSync("which", ["git"], {
+    encoding: "utf8",
+  }).trim();
+  const bin = join(f.root, "bin");
+  mkdirSync(bin);
+  writeFileSync(
+    join(bin, "git"),
+    `#!${process.execPath}
+const { spawnSync } = require('node:child_process');
+const args = process.argv.slice(2);
+setTimeout(() => { const r = spawnSync(${JSON.stringify(executable)}, args, { stdio: 'inherit' }); process.exit(r.status ?? 1); }, args.includes('diff') ? 700 : 0);
+`,
+    { mode: 0o755 },
+  );
+  const oldPath = process.env.PATH;
+  process.env.PATH = bin + ":" + oldPath;
+  t.after(() => {
+    process.env.PATH = oldPath;
+  });
+  const server = makeServer(f.store, TOKEN);
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => server.close());
+  const run = f.store.createRun(workspace.id, "Task", "slow");
+  let completed = false;
+  const tick = f.worker.tick().then(() => {
+    completed = true;
+  });
+  await delay(500);
+  const response = await fetch(
+    `http://127.0.0.1:${(server.address() as { port: number }).port}/health`,
+    { headers: { Authorization: `Bearer ${TOKEN}` } },
+  );
+  assert.equal(response.status, 200);
+  assert.equal(
+    completed,
+    false,
+    "health responds while slow Git is still in flight",
+  );
+  assert.equal(f.store.getRun(run.id).status, "running");
+  assert.ok(f.store.getRun(run.id).leaseExpiresAt! > Date.now());
+  await tick;
+  assert.equal(f.store.getRun(run.id).status, "completed");
+});
+
+test("unsupported CLI versions fail before starting a task", async (t) => {
+  const f = fixture(t);
+  const executable = join(f.root, "claude-success");
+  writeFileSync(
+    executable,
+    readFileSync(executable, "utf8").replace(
+      "2.1.259 (Claude Code)",
+      "2.1.258 (Claude Code)",
+    ),
+  );
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const run = f.store.createRun(workspace.id, "Task", "old-version");
+  await f.worker.tick();
+  assert.equal(f.store.getRun(run.id).status, "failed");
+  assert.match(
+    String(f.store.events(run.id).at(-1)!.data.reason),
+    /2.1.259 or newer/,
+  );
+  assert.equal(existsSync(join(f.root, "record-success.json")), false);
+});
+
+for (const mode of ["oversized", "invalid-result"] as const) {
+  test(`invalid CLI output (${mode}) fails without evidence and cleans up`, async (t) => {
+    const f = fixture(t);
+    const executable = join(f.root, "claude-success");
+    const pidFile = join(f.root, "stream.pid");
+    writeFileSync(
+      executable,
+      `#!${process.execPath}
+if (process.argv.includes('--version')) { console.log('2.1.259 (Claude Code)'); process.exit(0); }
+require('node:fs').writeFileSync(${JSON.stringify(pidFile)}, String(process.pid));
+process.stdout.write(${JSON.stringify(mode)} === 'oversized' ? Buffer.alloc((1 << 20) + 1, 120) : JSON.stringify({type:'result',subtype:'success',is_error:'false'}) + '\\n');
+setInterval(() => {}, 1000);
+`,
+    );
+    const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+    const run = f.store.createRun(workspace.id, "Task", "stream");
+    await f.worker.tick();
+    assert.equal(f.store.getRun(run.id).status, "failed");
+    assert.equal(
+      f.store
+        .events(run.id)
+        .some((event) => event.type === "verification.recorded"),
+      false,
+    );
+    assert.throws(() => process.kill(Number(readFileSync(pidFile, "utf8")), 0));
+  });
+}

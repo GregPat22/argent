@@ -6,6 +6,11 @@ runs Claude Code in local worktrees as the first part of the local MVP
 ([spec 0013](specs/0013-local-mvp.md)), which is in development; cloud execution
 and signed public distribution follow.
 
+The [local hardening contract](specs/0013-local-mvp.md#local-execution-hardening-in-development)
+and [delivery regression gates](specs/0004-desktop-prototype.md#delivery-regression-gates-in-development)
+record the safety and validation work in development, including the limits of
+process recovery, repository inspection and native packaging evidence.
+
 ## Product and decisions
 
 | Document                                                       | What it contains                                                                                     |

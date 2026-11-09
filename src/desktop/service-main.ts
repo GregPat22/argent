@@ -2,7 +2,6 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { dirname } from "node:path";
-import { setTimeout as delay } from "node:timers/promises";
 import { LocalWorkspace, ScriptedAgent } from "../adapters.js";
 import { ClaudeCodeAgent } from "../claude-code.js";
 import { LocalWorktreeWorkspace } from "../local-worktree.js";
@@ -10,6 +9,7 @@ import { dataPaths } from "../config.js";
 import { makeServer } from "../http.js";
 import { Store } from "../store.js";
 import { Worker } from "../worker.js";
+import { runWorkers } from "../worker-pool.js";
 import { DatabaseSync } from "node:sqlite";
 import type { ServiceConnection } from "./service-client.js";
 
@@ -79,10 +79,7 @@ try {
     const temp = join(directory, `service-${instanceId}.tmp`);
     writeFileSync(temp, JSON.stringify(record), { mode: 0o600, flag: "wx" });
     renameSync(temp, recordPath);
-    while (!shutdown.signal.aborted) {
-      const worked = await worker.tick(shutdown.signal);
-      if (!worked && !shutdown.signal.aborted) await delay(100);
-    }
+    await runWorkers(worker, shutdown.signal);
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
     store.close();

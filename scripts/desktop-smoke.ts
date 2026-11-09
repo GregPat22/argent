@@ -41,6 +41,7 @@ const claude = join(directory, "claude");
 writeFileSync(
   claude,
   `#!${process.execPath}
+if (process.argv.includes('--version')) { console.log('2.1.259 (Claude Code)'); process.exit(0); }
 const fs = require("node:fs");
 let input = "";
 process.stdin.on("data", (c) => (input += c));

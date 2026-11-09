@@ -104,6 +104,16 @@ Finished, Failed, Cancelled, Needs review.
    needs-review resolution, local workspace, parallel workspace and reduced motion.
 3. `npm run check` passes; screenshots reviewed locally.
 
+### Execution hardening integration (in development)
+
+Preserve the [local hardening contract](0013-local-mvp.md#local-execution-hardening-in-development)
+in the modular conversation view. Each turn retains all fetched events, with
+500 visible events per page and earlier/later controls; polling must not move an
+older page. Real interrupted turns explain why process reconciliation is needed
+and cannot open the simulation abandonment flow. Repository creation remains
+under one mutation lock even while a native dialog and refresh overlap. Tests
+must exercise these behaviors through the compiled renderer modules.
+
 ## Evidence
 
 Laws of UX heuristic review (Hick, Tesler, Miller, serial position, Fitts, Jakob,

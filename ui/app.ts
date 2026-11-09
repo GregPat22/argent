@@ -207,7 +207,7 @@ async function refresh(): Promise<void> {
           record.events = [
             ...record.events,
             ...history.events.filter((item) => item.cursor > record.cursor),
-          ].slice(-500);
+          ];
           record.cursor = history.nextCursor;
           if (history.events.length < 100) {
             exhausted = true;
@@ -314,6 +314,8 @@ function openSettings(): void {
 }
 
 function resolveRun(id: string): void {
+  const run = state.runs.find((item) => item.id === id);
+  if (!run?.simulation || run.status !== "needs_attention") return;
   resolving = id;
   formError("resolve-form-error");
   openDialog("resolve-dialog", "resolution-input");
@@ -414,7 +416,13 @@ byId<HTMLFormElement>("resolve-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const id = resolving;
   const button = byId<HTMLButtonElement>("resolution-submit");
-  if (button.disabled || !id) return;
+  const selected = state.runs.find((run) => run.id === id);
+  if (
+    button.disabled ||
+    !selected?.simulation ||
+    selected.status !== "needs_attention"
+  )
+    return;
   button.disabled = true;
   button.setAttribute("aria-busy", "true");
   void (async () => {

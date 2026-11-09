@@ -39,5 +39,11 @@
     "electron": "45.2.3",
     "prettier": "3.9.10",
     "typescript": "5.8.3"
+  },
+  "overrides": {
+    "@electron/asar": {
+      "glob": "14.0.4",
+      "minimatch": "11.0.5"
+    }
   }
 }

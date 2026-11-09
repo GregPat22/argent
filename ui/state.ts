@@ -20,6 +20,8 @@ export interface Pending {
 export interface TurnRecord {
   events: RunEvent[];
   cursor: number;
+  /** Null follows the latest page; a number pins an earlier page during polling. */
+  eventPageStart: number | null;
   artifact: ArtifactView | null;
   artifactError: string;
   /** Terminal, all events read and any record fetched: no more polling. */
@@ -64,6 +66,7 @@ export function turnRecord(runId: string): TurnRecord {
     record = {
       events: [],
       cursor: 0,
+      eventPageStart: null,
       artifact: null,
       artifactError: "",
       settled: false,

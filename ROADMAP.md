@@ -65,6 +65,10 @@ The desktop says so plainly. See [spec 0013](docs/specs/0013-local-mvp.md).
 1. Deliver L1 slice by slice, each as its own reviewed pull request with tests.
    Changes to process launching, paths or Git commands get a dedicated security
    review; the rules are in [spec 0013](docs/specs/0013-local-mvp.md#security-model).
+   The in-development [local hardening gate](docs/specs/0013-local-mvp.md#local-execution-hardening-in-development)
+   requires process-cleanup, crash-blocking, concurrent-workspace and evidence
+   regressions before expanding execution capabilities. Real CLI walkthroughs
+   and durable process recovery remain separate evidence requirements.
 2. Use Argent to build Argent now that L1.2 is in the app, and fix what that
    exposes before adding scope. L1.3 (changes panel) is next.
 3. Keep the cloud simulations, custody and GitHub pilot code as they are; resume

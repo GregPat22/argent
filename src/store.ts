@@ -468,6 +468,11 @@ export class Store {
       const run = this.getRun(id);
       if (run.status !== "needs_attention")
         throw new DomainError(409, "Only uncertain runs can be resolved");
+      if (!run.simulation)
+        throw new DomainError(
+          409,
+          "Interrupted local execution requires process reconciliation; this workspace remains blocked",
+        );
       const now = Date.now();
       this.db.prepare("UPDATE runs SET status = 'failed' WHERE id = ?").run(id);
       this.event(

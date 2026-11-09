@@ -88,3 +88,24 @@ the clipboard, reduced motion, the atom and liquid rendering and fallbacks, the
 how-it-works objects, the FAQ (including without JavaScript), the entrance states and
 the scripts-blocked failsafe, and icon delivery. Use the `visit()` helper, which
 waits for the entrance to settle, and build before running the suite.
+
+## Navigation regression contract
+
+The wordmark dock is 204×68 px when expanded and 68×68 px at top 12 px and
+left 20 px when compact. These dimensions come from the design implemented in
+main `241e6e6`; the earlier 64→48 px assertions described an obsolete icon-only
+header. Tests require exact endpoints, an observed intermediate width, keyboard
+focus continuity, deep links and live reduced-motion changes. Updating these
+expectations must not remove those behavioral checks.
+
+CI coverage is in development: the website job installs this package's lockfile
+and Chromium, then runs typecheck, production build and the full browser suite.
+The separate desktop job checks native and packaged smoke on macOS Apple Silicon.
+Neither job signs, publishes or deploys artifacts.
+
+Navigation fixes in development retain the full set of intersecting sections so
+scrolling upward restores the preceding section even when the observer reports
+only an exit. The compact menu also provides a Back to top link. The regression
+suite checks this boundary reversal and seeks the actual CSS width transition to
+its midpoint before checking the final compact geometry; it does not depend on
+software rendering producing an intermediate frame inside a fixed time window.

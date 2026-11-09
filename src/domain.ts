@@ -80,6 +80,8 @@ export interface WorktreeEvidence {
   headSha: string;
   changedFiles: number;
   diffSha256: string;
+  /** Version 2 also binds untracked file contents and types. */
+  contentHashVersion?: 2;
 }
 
 export type Evidence = SimulationEvidence | WorktreeEvidence;
@@ -90,6 +92,16 @@ export class DomainError extends Error {
     message: string,
   ) {
     super(message);
+  }
+}
+
+/** Cleanup could not establish that external execution has stopped. */
+export class UncertainExecutionError extends DomainError {
+  constructor() {
+    super(
+      409,
+      "Local process termination is unconfirmed; workspace remains blocked",
+    );
   }
 }
 

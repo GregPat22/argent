@@ -17,11 +17,13 @@ import { state, turnRecord } from "./state.js";
 
 /** Turns shown before "Show earlier messages". */
 export const VISIBLE_TURNS = 6;
+const EVENT_PAGE_SIZE = 500;
 
 interface Rendered {
   signature: string;
   element: HTMLElement;
   status: HTMLElement;
+  eventControls: HTMLButtonElement[];
 }
 const rendered = new Map<string, Rendered>();
 let renderedWorkspace = "";
@@ -106,14 +108,17 @@ function end(run: RunView, reason: string): HTMLElement | null {
         {},
         h("strong", { text: "This run stopped without a clear outcome." }),
         h("p", {
-          text: "Argent did not retry it, in case part of it already happened. Look over what it did, then mark it reviewed.",
+          text: run.simulation
+            ? "Argent did not retry it, in case part of it already happened. Look over what it did, then mark it reviewed."
+            : "The local agent may still be running. This workspace stays blocked until its process can be reconciled. Review its files and running processes; reconnecting does not stop or replay it.",
         }),
-        h("button", {
-          class: "button",
-          text: "Review and abandon",
-          attrs: { type: "button", "data-action": "resolve" },
-          on: { click: () => actions.resolveRun(run.id) },
-        }),
+        run.simulation &&
+          h("button", {
+            class: "button",
+            text: "Review and abandon",
+            attrs: { type: "button", "data-action": "resolve" },
+            on: { click: () => actions.resolveRun(run.id) },
+          }),
       ),
     );
   return null;
@@ -121,7 +126,12 @@ function end(run: RunView, reason: string): HTMLElement | null {
 
 function turnElement(run: RunView): Rendered {
   const record = turnRecord(run.id);
-  const turn = turnFrom(record.events);
+  const eventControls: HTMLButtonElement[] = [];
+  const start =
+    record.eventPageStart ??
+    Math.max(0, record.events.length - EVENT_PAGE_SIZE);
+  const turn = turnFrom(record.events.slice(start, start + EVENT_PAGE_SIZE));
+  const summary = turnFrom(record.events);
   const agent = run.simulation ? "Scripted demo" : "Claude Code";
   const working = isWorking(run.status);
   const meta = h(
@@ -134,7 +144,7 @@ function turnElement(run: RunView): Rendered {
   meta.append(h("span", { text: `${limitLabel(run.maxRuntimeMs)} limit` }));
   const status = h("span", {
     class: `status status-${run.status}`,
-    text: statusText(run, turn.lastAt),
+    text: statusText(run, summary.lastAt),
   });
   const reply = h(
     "div",
@@ -151,6 +161,55 @@ function turnElement(run: RunView): Rendered {
       status,
     ),
   );
+  if (record.events.length > EVENT_PAGE_SIZE) {
+    const pageButton = (earlier: boolean) => {
+      const button = h("button", {
+        class: "button",
+        text: earlier ? "Earlier events" : "Later events",
+        attrs: { type: "button" },
+        data: { action: earlier ? "earlier-events" : "later-events" },
+        on: {
+          click: () => {
+            if (earlier)
+              record.eventPageStart = Math.max(0, start - EVENT_PAGE_SIZE);
+            else {
+              const next = start + EVENT_PAGE_SIZE;
+              record.eventPageStart =
+                next >= record.events.length - EVENT_PAGE_SIZE ? null : next;
+            }
+            actions.render();
+            // Rebuilding this turn replaces the focused button. Keep keyboard
+            // navigation on the same control, or its enabled neighbor at an end.
+            const controls = rendered.get(run.id)?.eventControls;
+            const preferred = controls?.[earlier ? 0 : 1];
+            const focus = preferred?.disabled
+              ? controls?.find((control) => !control.disabled)
+              : preferred;
+            focus?.focus();
+          },
+        },
+      });
+      button.disabled = earlier
+        ? start === 0
+        : start + EVENT_PAGE_SIZE >= record.events.length;
+      eventControls.push(button);
+      return button;
+    };
+    reply.append(
+      h(
+        "nav",
+        {
+          class: "event-pages",
+          attrs: { "aria-label": `Activity history for ${run.task}` },
+        },
+        pageButton(true),
+        h("span", {
+          text: `Events ${start + 1}–${Math.min(start + EVENT_PAGE_SIZE, record.events.length)} of ${record.events.length}`,
+        }),
+        pageButton(false),
+      ),
+    );
+  }
   if (working) {
     const live = h("ol", { class: "steps live" });
     for (const step of turn.steps) live.append(stepRow(step));
@@ -193,7 +252,7 @@ function turnElement(run: RunView): Rendered {
         ),
       );
     }
-    const ending = end(run, turn.reason);
+    const ending = end(run, summary.reason);
     if (ending) reply.append(ending);
   }
   const element = h(
@@ -211,16 +270,18 @@ function turnElement(run: RunView): Rendered {
     ),
     reply,
   );
-  return { signature: signature(run), element, status };
+  return { signature: signature(run), element, status, eventControls };
 }
 
 function signature(run: RunView): string {
   const record = turnRecord(run.id);
   return JSON.stringify([
     run.status,
+    run.simulation,
     state.connected,
     run.task,
     record.events.length,
+    record.eventPageStart,
     !!record.artifact,
     record.artifactError,
     state.struck.has(run.id),

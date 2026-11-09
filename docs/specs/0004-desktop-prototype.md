@@ -69,3 +69,42 @@ provisioning, merge, deployment or public release. Prefer a thin desktop shell
 around the existing engine; review the pinned upstream comparison before larger
 orchestrator changes. The desktop client is not an isolation boundary for running
 untrusted repository code.
+
+## Delivery regression gates (in development)
+
+Acceptance criteria, 9 November 2026, based on main `241e6e6`: CI must check the
+website's own lockfile, types, production build and complete browser suite in a
+separate job. The desktop job must build the unsigned macOS Apple Silicon package
+and exercise both development and packaged executables with the native smoke
+fixture. No signing, artifact publication or deployment follows automatically.
+Website geometry assertions follow the wordmark design documented in
+[the website README](../../website/README.md#navigation-regression-contract),
+while preserving exact endpoints, intermediate animation, keyboard and
+reduced-motion coverage.
+
+### Delivery evidence
+
+Recorded 9 November 2026 at `8183ff8`: `npm run desktop:smoke` passes for the
+restyled desktop, and `npm run desktop:package` produces the unsigned macOS
+Apple Silicon application and archive. The archive's SHA-256 sidecar verifies.
+The same smoke fixture passes against the packaged executable, including service
+survival after the app exits; native screenshots were inspected locally.
+The root and website dependency audits report no known advisories. A direct ASAR
+round-trip check also exercises the overridden glob traversal and unpack matching.
+
+An earlier native capture failed with a destroyed window before integration;
+unchanged main `176384a` and the integrated native run passed. This does not prove
+the capture path is free of intermittent failures. Hosted CI, signing,
+notarization, publication and real model-backed execution have not been exercised
+by these local fixture checks.
+
+Website validation at `5870ae2` passes `npm run typecheck`, `npm run build` and
+the complete browser suite. Geometry assertions now match the recorded wordmark
+design; navigation also handles exit-only section observations and provides the
+compact menu's Back to top action. Animation tests inspect the actual transition
+midpoint, and the atom test waits for offscreen observer delivery before retaining
+the strict no-draw assertion. An intermediate run exposed a canvas timing failure;
+unchanged main passed its focused reruns. A later contended run timed out while
+waiting for scroll stability and was interrupted. The final browser-only run
+passes without raising timeouts or removing assertions. These results establish
+local regression coverage, not execution of the new hosted CI jobs.

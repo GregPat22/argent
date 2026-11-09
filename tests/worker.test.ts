@@ -10,6 +10,9 @@ import {
 } from "../src/adapters.js";
 import { Store } from "../src/store.js";
 import { Worker } from "../src/worker.js";
+import { UncertainExecutionError } from "../src/domain.js";
+import { runWorkers } from "../src/worker-pool.js";
+import { setTimeout as delay } from "node:timers/promises";
 
 function fixture(t: TestContext, agent: AgentAdapter = new ScriptedAgent(5)) {
   const root = mkdtempSync(join(tmpdir(), "platform-worker-"));
@@ -118,4 +121,100 @@ test("event budget bounds noisy adapters", async (t) => {
   }
   assert.equal(count, 100);
   assert.equal(reason, "Run log limit exceeded");
+});
+
+test("dispatch is bounded and shutdown drains every active slot", async (t) => {
+  let live = 0;
+  let peak = 0;
+  const agent: AgentAdapter = {
+    async *execute(_run, _directory, signal) {
+      live++;
+      peak = Math.max(peak, live);
+      try {
+        yield "started";
+        await delay(10000, undefined, { signal });
+      } finally {
+        await delay(50);
+        live--;
+      }
+    },
+  };
+  const f = fixture(t, agent);
+  const spaces = [
+    f.workspace,
+    f.store.createWorkspace("https://github.com/example/two"),
+    f.store.createWorkspace("https://github.com/example/three"),
+  ];
+  const runs = spaces.map((space, i) =>
+    f.store.createRun(space.id, "wait", String(i), 30000),
+  );
+  const shutdown = new AbortController();
+  const running = runWorkers(f.worker, shutdown.signal, 2);
+  try {
+    const end = Date.now() + 2000;
+    while (live < 2) {
+      assert.ok(Date.now() < end);
+      await delay(10);
+    }
+    assert.equal(
+      runs.filter((run) => f.store.getRun(run.id).status === "queued").length,
+      1,
+    );
+    assert.equal(peak, 2);
+  } finally {
+    shutdown.abort();
+    await running;
+  }
+  assert.equal(live, 0);
+  assert.equal(
+    runs.filter((run) => f.store.getRun(run.id).status === "needs_attention")
+      .length,
+    2,
+  );
+});
+
+test("uncertain process cleanup takes precedence over requested cancellation", async (t) => {
+  const agent: AgentAdapter = {
+    async *execute(_run, _directory, signal) {
+      yield "started";
+      try {
+        await delay(10000, undefined, { signal });
+      } finally {
+        throw new UncertainExecutionError();
+      }
+    },
+  };
+  const f = fixture(t, agent);
+  const run = f.store.createRun(f.workspace.id, "wait", "uncertain");
+  const running = f.worker.tick();
+  await delay(10);
+  f.store.cancel(run.id);
+  await running;
+  assert.equal(f.store.getRun(run.id).status, "needs_attention");
+  assert.match(
+    String(f.store.events(run.id).at(-1)!.data.reason),
+    /termination is unconfirmed/,
+  );
+});
+
+test("a rejected log cannot hide uncertainty from iterator cleanup", async (t) => {
+  const agent: AgentAdapter = {
+    async *execute(run) {
+      try {
+        f.store.cancel(run.id);
+        yield "late log";
+      } finally {
+        throw new UncertainExecutionError();
+      }
+    },
+  };
+  const f = fixture(t, agent);
+  const run = f.store.createRun(f.workspace.id, "wait", "late-log");
+  await f.worker.tick();
+  assert.equal(f.store.getRun(run.id).status, "needs_attention");
+  assert.match(
+    String(f.store.events(run.id).at(-1)!.data.reason),
+    /termination is unconfirmed/,
+  );
+  assert.throws(() => f.store.createRun(f.workspace.id, "again", "retry"));
 });

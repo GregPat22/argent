@@ -116,7 +116,7 @@ export function makeServer(
           send(
             response,
             201,
-            createLocalWorkspace(store, options.worktreeRoot, body.path),
+            await createLocalWorkspace(store, options.worktreeRoot, body.path),
           );
         } else {
           send(response, 201, store.createWorkspace(body.repository));

@@ -165,7 +165,9 @@ notice; real-agent labels replace simulation labels only for real workspaces.
 - The activity view labels agent text, tool calls, tool errors and status lines;
   the verification view shows the worktree record as "NOT TESTED".
 - Resolving an interrupted real run records `abandon_run` with
-  `simulation: false` instead of the simulation labels.
+  `simulation: false` instead of the simulation labels in the initial
+  implementation. The hardening contract below removes this unsafe resolution
+  path: a note does not prove that the previous process has stopped.
 - The desktop service now receives `USER`, `LOGNAME`, `SHELL`, `LANG`, `LC_ALL`,
   `LC_CTYPE`, `TERM`, `CLAUDE_CONFIG_DIR` and `ARGENT_CLAUDE_PATH` from the app, so
   the CLI can find its sign-in when Argent is opened from Finder. The agent still
@@ -214,3 +216,80 @@ by a person.
 Cloud workspaces, laptop-independent execution, mobile access, sandboxed
 execution, team features, dependent tasks, automatic merges and any claim of
 feature parity with other tools.
+
+## Local execution hardening (in development)
+
+Acceptance criteria, 9 November 2026, based on main `241e6e6`:
+
+1. A note cannot resolve an interrupted real run or permit a replacement writer.
+   Until independent process reconciliation is available, such workspaces remain
+   blocked. Simulation abandonment remains available.
+2. Every post-spawn operation, including the first emitted status, is covered by
+   process cleanup. Cancellation waits for group quiescence and escalates even
+   when the leader exits before a resistant descendant. Unconfirmed termination
+   leaves the run in `needs_attention`. Zombie processes are quiescent; a PID
+   from a previous service instance is never signalled without identity proof.
+3. Trusted Git operations disable command-producing filters and remain
+   asynchronous, bounded and cancellable so service requests and leases stay live.
+4. Separate workspaces execute concurrently within a bounded service limit;
+   one workspace still permits only one active or uncertain execution.
+5. Evidence binds untracked content and file type as well as tracked changes.
+   Unsafe or oversized inputs fail verification instead of producing partial proof.
+6. Workspace creation has one mutation owner; refresh cannot permit duplicate
+   dispatch. Every persisted transcript event remains reachable in the desktop.
+7. Before task dispatch, the official CLI must report version 2.1.259 or newer,
+   which introduced the required noninteractive permission setting in the
+   [official release](https://github.com/anthropics/claude-code/releases/tag/v2.1.259).
+   The probe has
+   a five-second deadline and a 1 KiB output bound. A refusal dispatches no task.
+8. JSONL input is validated before interpretation, with a 1 MiB event limit and
+   64 MiB total stream limit. Malformed events or success results fail the run;
+   every failure still waits for process cleanup before settlement.
+
+A real model-backed walkthrough and durable process reconciliation after a hard
+service crash remain separate requirements; fake-CLI tests do not prove them.
+
+Hardening verification contract: version 2 worktree records hash the tracked
+binary diff and a deterministic untracked manifest (path, Git file mode and
+SHA-256 of bytes, or of a symlink target without following it). Reads are bounded
+at 16 MiB per regular file, 64 MiB total and 10,000 untracked entries. Special
+files supplied to the reader, hardlinks, parent symlinks and files changing during
+inspection are rejected. This records Git-visible content, not ignored files or
+an immutable filesystem snapshot. Existing versionless records remain historical.
+Trusted Git ignores global/system configuration and clears configured local or
+included clean/smudge/process filters per invocation; it does not alter repository
+configuration. Like the rest of local mode, this is not protection against a
+host owner concurrently rewriting configuration or filesystem state.
+Submodules are rejected before workspace checkout, agent dispatch and evidence
+inspection: a parent repository's filter overrides do not neutralize nested
+configuration. No successful record may silently omit submodule content.
+
+The in-development desktop dispatcher uses two execution slots. Each slot makes
+an atomic store claim; the workspace uniqueness constraint is unchanged. Shutdown
+signals every slot and waits for all cleanup before closing the store. The
+standalone simulation worker retains one slot. Regression coverage requires both
+overlapping real-process fixtures and a third queued run at the concurrency limit.
+
+Desktop hardening keeps all fetched events for each loaded conversation turn in
+memory, with 500 visible events per turn page and explicit earlier/later controls.
+Polling preserves an
+older page until the user returns to the latest events. Workspace creation shares
+the existing mutation lock, including native-dialog cancellation and refresh.
+Renderer regressions cover duplicate synthetic clicks and access to both ends of
+a transcript longer than one page.
+
+### Hardening evidence
+
+Recorded 9 November 2026 at `8183ff8`, after integrating main `176384a`:
+`npm run check` passes strict types, formatting and the complete suite. Real
+temporary Git repositories and fake CLI processes exercise resistant descendants,
+early-reader failures, uncertain cleanup, service death, bounded parallel runs,
+unsafe filters/submodules, malformed output and content-bound evidence. Compiled
+renderer tests cover retained history, keyboard paging, duplicate creation and
+the blocked real-run recovery flow. The native Electron smoke passes the
+restyled desktop, local fixture execution, cancellation and service reconnection.
+
+These tests call no model. They do not establish recovery of a process that
+escaped its original group, durable reconciliation after a hard service crash,
+an immutable filesystem snapshot or production sandbox isolation. A real CLI
+walkthrough remains required before claiming the complete local MVP exit gate.

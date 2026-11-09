@@ -1,10 +1,10 @@
-import { spawn } from "node:child_process";
 import { accessSync, constants, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, isAbsolute, join, relative } from "node:path";
-import { createInterface } from "node:readline";
+import { readAgentEvents, type StreamEvent } from "./agent-stream.js";
+import { captureProcess, launchProcess } from "./process-group.js";
 import type { AgentAdapter, AgentMessage } from "./adapters.js";
-import { DomainError, type Run } from "./domain.js";
+import { DomainError, UncertainExecutionError, type Run } from "./domain.js";
 import type { Store } from "./store.js";
 
 // Spec 0013: the agent gets only these variables. Provider API keys and host
@@ -83,18 +83,6 @@ export interface ClaudeCodeOptions {
   killGraceMs?: number;
 }
 
-interface StreamEvent {
-  type?: string;
-  subtype?: string;
-  session_id?: string;
-  model?: string;
-  is_error?: boolean;
-  num_turns?: number;
-  duration_ms?: number;
-  result?: unknown;
-  message?: { content?: unknown };
-}
-
 /**
  * Runs Claude Code through its official CLI in the workspace's worktree. The
  * task is written to standard input; output is the CLI's JSON event stream.
@@ -127,6 +115,8 @@ export class ClaudeCodeAgent implements AgentAdapter {
         409,
         "Claude Code CLI not found. Install it and sign in, or set ARGENT_CLAUDE_PATH.",
       );
+    const env = agentEnvironment(this.env);
+    await requireSupportedCli(command, directory, env, signal);
     const session = this.store.agentSession(run.workspaceId);
     const args = [
       "-p",
@@ -141,57 +131,35 @@ export class ClaudeCodeAgent implements AgentAdapter {
         ? ["--resume", session.id]
         : ["--session-id", session.id]),
     ];
-    const child = spawn(command, args, {
-      cwd: directory,
-      env: agentEnvironment(this.env),
-      stdio: ["pipe", "pipe", "pipe"],
-      // Its own process group, so cancel stops the agent's children too.
-      detached: true,
-    });
-    const exited = new Promise<{ code: number | null; error?: Error }>(
-      (resolve) => {
-        child.once("error", (error) => resolve({ code: null, error }));
-        child.once("close", (code) => resolve({ code }));
+    const execution = launchProcess(
+      command,
+      args,
+      {
+        cwd: directory,
+        env,
       },
+      signal,
+      this.killGraceMs,
     );
-    let stderr = "";
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (chunk: string) => {
-      stderr = (stderr + chunk).slice(-4000);
-    });
-    let killTimer: NodeJS.Timeout | undefined;
-    const stop = () => {
-      if (killTimer) return;
-      signalGroup(child.pid, "SIGTERM");
-      killTimer = setTimeout(
-        () => signalGroup(child.pid, "SIGKILL"),
-        this.killGraceMs,
-      );
-    };
-    signal.addEventListener("abort", stop, { once: true });
-    child.stdin.on("error", () => undefined);
-    child.stdin.end(run.task);
-
-    yield {
-      kind: "status",
-      text:
-        run.permissionMode === "full"
-          ? "Claude Code started with full access: commands run without approval."
-          : "Claude Code started: file edits allowed, other actions needing approval are denied.",
-    };
-    let result: StreamEvent | null = null;
+    const { child, exited } = execution;
     try {
-      const lines = createInterface({
-        input: child.stdout,
-        crlfDelay: Infinity,
+      let stderr = "";
+      child.stderr.setEncoding("utf8");
+      child.stderr.on("data", (chunk: string) => {
+        stderr = (stderr + chunk).slice(-4000);
       });
-      for await (const line of lines) {
-        let event: StreamEvent;
-        try {
-          event = JSON.parse(line) as StreamEvent;
-        } catch {
-          continue;
-        }
+      child.stdin.on("error", () => undefined);
+      child.stdin.end(run.task);
+
+      yield {
+        kind: "status",
+        text:
+          run.permissionMode === "full"
+            ? "Claude Code started with full access: commands run without approval."
+            : "Claude Code started: file edits allowed, other actions needing approval are denied.",
+      };
+      let result: StreamEvent | null = null;
+      for await (const event of readAgentEvents(child.stdout)) {
         if (event.type === "system" && event.subtype === "init") {
           if (event.session_id === session.id)
             this.store.markAgentSessionStarted(run.workspaceId);
@@ -212,7 +180,12 @@ export class ClaudeCodeAgent implements AgentAdapter {
           409,
           `Claude Code could not start: ${outcome.error.message}`,
         );
-      if (outcome.code !== 0 || !result || result.is_error) {
+      if (
+        outcome.code !== 0 ||
+        !result ||
+        result.is_error ||
+        result.subtype !== "success"
+      ) {
         const detail =
           typeof result?.result === "string"
             ? result.result
@@ -228,23 +201,8 @@ export class ClaudeCodeAgent implements AgentAdapter {
         text: `Claude Code finished after ${result.num_turns ?? "?"} turns in ${Math.round((result.duration_ms ?? 0) / 1000)} s.`,
       };
     } finally {
-      signal.removeEventListener("abort", stop);
-      // If the worker stops reading early, never leave the agent running.
-      if (child.exitCode === null && child.signalCode === null) {
-        stop();
-        await exited;
-      }
-      if (killTimer) clearTimeout(killTimer);
+      await execution.dispose();
     }
-  }
-}
-
-function signalGroup(pid: number | undefined, name: NodeJS.Signals): void {
-  if (!pid) return;
-  try {
-    process.kill(-pid, name);
-  } catch {
-    // The group has already exited.
   }
 }
 
@@ -278,7 +236,12 @@ function toolSummary(
   directory: string,
 ): string {
   const name = typeof block.name === "string" ? block.name : "tool";
-  const input = (block.input ?? {}) as Record<string, unknown>;
+  const input =
+    block.input &&
+    typeof block.input === "object" &&
+    !Array.isArray(block.input)
+      ? (block.input as Record<string, unknown>)
+      : {};
   const path = (value: unknown) =>
     typeof value === "string"
       ? isAbsolute(value) && !relative(directory, value).startsWith("..")
@@ -304,4 +267,39 @@ function flatten(value: unknown): string {
       )
       .join(" ");
   return "";
+}
+
+async function requireSupportedCli(
+  command: string,
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+  signal: AbortSignal,
+): Promise<void> {
+  try {
+    const output = await captureProcess(
+      command,
+      ["--version"],
+      { cwd, env },
+      { signal, timeoutMs: 5000, maxBuffer: 1024 },
+    );
+    const match = /^(\d+)\.(\d+)\.(\d+) \(Claude Code\)$/.exec(
+      output.toString("utf8").trim(),
+    );
+    const [major, minor, patch] = match
+      ? match.slice(1).map(Number)
+      : [0, 0, 0];
+    if (
+      major! > 2 ||
+      (major === 2 && (minor! > 1 || (minor === 1 && patch! >= 259)))
+    )
+      return;
+  } catch (error) {
+    if (error instanceof UncertainExecutionError) throw error;
+    signal.throwIfAborted();
+    if (error instanceof DomainError) throw error;
+  }
+  throw new DomainError(
+    409,
+    "Claude Code 2.1.259 or newer is required. Update the official CLI and sign in before retrying.",
+  );
 }

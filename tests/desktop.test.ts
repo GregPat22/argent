@@ -100,7 +100,7 @@ test("reviewing an uncertain simulation records abandonment and allows new work 
   }
 });
 
-test("reviewing an uncertain real run records it as a real run, not a simulation", () => {
+test("an uncertain real run stays blocked until process reconciliation exists", () => {
   const store = new Store(":memory:");
   try {
     const workspace = store.createLocalWorkspace(
@@ -117,12 +117,17 @@ test("reviewing an uncertain real run records it as a real run, not a simulation
     const run = store.createRun(workspace.id, "Task", "key", 1000, 1000);
     store.claim(100, 1000);
     store.reconcile(1100);
-    store.resolveSimulation(run.id, "Checked the worktree; abandon this run.");
-    const [resolved, failed] = store.events(run.id).slice(-2);
-    assert.equal(resolved?.data.action, "abandon_run");
-    assert.equal(resolved?.data.simulation, false);
-    assert.equal(failed?.data.reason, "operator_abandoned_run");
-    assert.equal(failed?.data.simulation, false);
+    const events = store.events(run.id);
+    assert.throws(
+      () => store.resolveSimulation(run.id, "Inspected files"),
+      /process reconciliation/,
+    );
+    assert.equal(store.getRun(run.id).status, "needs_attention");
+    assert.deepEqual(store.events(run.id), events);
+    assert.throws(
+      () => store.createRun(workspace.id, "Replacement", "new"),
+      /uncertain work/,
+    );
   } finally {
     store.close();
   }
@@ -348,6 +353,7 @@ test("desktop bridge creates local workspaces only from a chosen folder and runs
   writeFileSync(
     claude,
     `#!${process.execPath}
+if (process.argv.includes('--version')) { console.log('2.1.259 (Claude Code)'); process.exit(0); }
 const fs = require("node:fs");
 let input = "";
 process.stdin.on("data", (c) => (input += c));
