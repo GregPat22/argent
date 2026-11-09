@@ -13,6 +13,13 @@ const renderer = ts.transpileModule(
 ).outputText;
 
 class Element {
+  value = "";
+  get firstElementChild(): Element | undefined {
+    return this.children[0];
+  }
+  querySelectorAll(): Element[] {
+    return [];
+  }
   textContent = "";
   hidden = false;
   disabled = false;
@@ -64,6 +71,8 @@ async function launch(
   let connected = true;
   let readError = initialReadError;
   let pendingRead: Promise<Workspace> | undefined;
+  let createCalls = 0;
+  let pendingCreation: Promise<Workspace | null> | undefined;
   const reads: string[] = [];
   const runReads: string[] = [];
   const preferences = new Map(
@@ -82,6 +91,10 @@ async function launch(
     window: {
       argent: {
         status: async () => ({ connected }),
+        createLocalWorkspace: async () => {
+          createCalls++;
+          return pendingCreation ?? null;
+        },
         listWorkspaces: async (cursor?: string) => ({
           items: cursor ? [{ ...older }] : recent.map((item) => ({ ...item })),
           nextCursor: cursor ? null : "older-page",
@@ -125,6 +138,13 @@ async function launch(
   await settle();
   return {
     element,
+    get createCalls() {
+      return createCalls;
+    },
+    holdCreation: () =>
+      new Promise<(workspace: Workspace | null) => void>((resolve) => {
+        pendingCreation = new Promise((release) => resolve(release));
+      }),
     recent,
     reads,
     runReads,
@@ -302,4 +322,106 @@ test("composer drafts remain attached to their selected workspace", async () => 
   app.select("recent-0");
   await settle();
   assert.equal(composer.value, "recent workspace draft");
+});
+
+test("refresh cannot unlock a pending repository creation or dispatch twice", async () => {
+  const app = await launch(false);
+  const release = await app.holdCreation();
+  app.element("local-workspace-choose").click();
+  assert.equal(app.createCalls, 1);
+  assert.equal(app.element("local-workspace-choose").disabled, true);
+  await app.poll();
+  assert.equal(app.element("local-workspace-choose").disabled, true);
+  // Dispatch even a synthetic click: the handler, not just the DOM, is guarded.
+  app.element("local-workspace-choose").click();
+  assert.equal(app.createCalls, 1);
+  release(null);
+  await settle();
+  assert.equal(app.element("local-workspace-choose").disabled, false);
+});
+
+test("a long transcript remains reachable across pages and live polling", async () => {
+  const elements = new Map<string, Element>();
+  const element = (id: string) => {
+    if (!elements.has(id)) elements.set(id, new Element());
+    return elements.get(id)!;
+  };
+  let timer: (() => void) | undefined;
+  const workspace = {
+    id: "workspace",
+    provider: "local-simulation",
+    repository: "https://github.com/example/repo",
+    state: "running",
+    createdAt: 1,
+  };
+  const run = {
+    id: "run",
+    workspaceId: workspace.id,
+    task: "Task",
+    status: "running",
+    simulation: false,
+    maxRuntimeMs: 30000,
+    createdAt: 1,
+  };
+  const history = Array.from({ length: 600 }, (_, i) => ({
+    cursor: i + 1,
+    type: "agent.log",
+    data: { kind: "text", message: `Message ${i + 1}` },
+    createdAt: 1,
+  }));
+  runInNewContext(renderer, {
+    exports: {},
+    require: () => ({ mergeHistory }),
+    window: {
+      argent: {
+        status: async () => ({ connected: true }),
+        listWorkspaces: async () => ({ items: [workspace], nextCursor: null }),
+        listRuns: async () => ({ items: [run], nextCursor: null }),
+        getRun: async () => run,
+        events: async (_id: string, after: number) => {
+          const events = history.filter((e) => e.cursor > after).slice(0, 100);
+          return { events, nextCursor: events.at(-1)?.cursor ?? after };
+        },
+      },
+      addEventListener() {},
+    },
+    document: {
+      getElementById: element,
+      createElement: () => new Element(),
+      querySelectorAll: () => [],
+      addEventListener() {},
+    },
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+    setTimeout: (callback: () => void) => {
+      timer = callback;
+      return 1;
+    },
+    clearTimeout: () => {
+      timer = undefined;
+    },
+  });
+  await settle();
+  timer!();
+  await settle();
+  const rows = () => element("activity-list").children;
+  assert.equal(rows()[0]!.dataset.cursor, "101");
+  assert.equal(rows().at(-1)!.dataset.cursor, "600");
+  element("earlier-events").click();
+  assert.equal(rows()[0]!.dataset.cursor, "1");
+  assert.equal(rows().at(-1)!.dataset.cursor, "500");
+  timer!();
+  await settle();
+  assert.equal(
+    rows()[0]!.dataset.cursor,
+    "1",
+    "polling preserves the older page",
+  );
+  element("later-events").click();
+  assert.equal(rows().at(-1)!.dataset.cursor, "600");
+  assert.equal(element("event-count").textContent, "600");
+  assert.equal(
+    rows().length,
+    500,
+    "DOM stays bounded while history remains reachable",
+  );
 });

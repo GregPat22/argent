@@ -55,6 +55,8 @@ let workspaceSignature = "";
 let runSignature = "";
 let events: RunEvent[] = [];
 let eventCursor = 0;
+const EVENT_PAGE_SIZE = 500;
+let eventPageStart: number | null = null;
 let artifact: ArtifactView | null = null;
 let artifactError = "";
 let connected = false;
@@ -396,13 +398,26 @@ function renderEvents(): void {
         list.parentElement.clientHeight <
       65
     : true;
+  const start = eventPageStart ?? Math.max(0, events.length - EVENT_PAGE_SIZE);
+  const visible = events.slice(start, start + EVENT_PAGE_SIZE);
+  if (
+    (list.firstElementChild as HTMLElement | null)?.dataset.cursor !==
+    String(visible[0]?.cursor)
+  )
+    list.replaceChildren();
+  element<HTMLButtonElement>("earlier-events").disabled = start === 0;
+  element<HTMLButtonElement>("later-events").disabled =
+    start + visible.length >= events.length;
+  element("event-range").textContent = events.length
+    ? `Events ${start + 1}–${start + visible.length} of ${events.length}`
+    : "No events yet";
   const rendered = new Set(
     Array.from(list.children).map(
       (item) => (item as HTMLElement).dataset.cursor,
     ),
   );
   const real = currentRun()?.simulation === false;
-  for (const event of events) {
+  for (const event of visible) {
     if (rendered.has(String(event.cursor))) continue;
     const row = node("article", "", "activity-event");
     row.dataset.cursor = String(event.cursor);
@@ -433,7 +448,6 @@ function renderEvents(): void {
     row.append(eventIcon, copy);
     list.append(row);
   }
-  while (list.children.length > 500) list.firstElementChild?.remove();
   element("event-count").textContent = String(events.length);
   element("activity-empty").hidden = events.length > 0;
   if (nearBottom && list.parentElement)
@@ -627,6 +641,7 @@ function selectWorkspace(id: string): void {
 function resetInspection(): void {
   events = [];
   eventCursor = 0;
+  eventPageStart = null;
   artifact = null;
   artifactError = "";
   element("activity-list").replaceChildren();
@@ -731,7 +746,7 @@ async function refresh(): Promise<void> {
           events = [
             ...events,
             ...history.events.filter((item) => item.cursor > eventCursor),
-          ].slice(-500);
+          ];
           eventCursor = history.nextCursor;
           if (history.events.length < 100) break;
         }
@@ -864,12 +879,11 @@ element("new-workspace").addEventListener("click", () => {
   showDialog("workspace-dialog", "local-workspace-choose");
 });
 element("local-workspace-choose").addEventListener("click", () => {
-  const button = element<HTMLButtonElement>("local-workspace-choose");
-  if (button.disabled) return;
-  button.disabled = true;
-  button.setAttribute("aria-busy", "true");
-  formError("workspace-form-error");
-  void (async () => {
+  if (!connected || mutationBusy) return;
+  void mutate(async () => {
+    const button = element<HTMLButtonElement>("local-workspace-choose");
+    button.setAttribute("aria-busy", "true");
+    formError("workspace-form-error");
     try {
       const workspace = await api().createLocalWorkspace();
       if (!workspace) return;
@@ -879,10 +893,20 @@ element("local-workspace-choose").addEventListener("click", () => {
     } catch (error) {
       formError("workspace-form-error", error);
     } finally {
-      button.disabled = !connected;
       button.setAttribute("aria-busy", "false");
     }
-  })();
+  });
+});
+element("earlier-events").addEventListener("click", () => {
+  const start = eventPageStart ?? Math.max(0, events.length - EVENT_PAGE_SIZE);
+  eventPageStart = Math.max(0, start - EVENT_PAGE_SIZE);
+  renderEvents();
+});
+element("later-events").addEventListener("click", () => {
+  if (eventPageStart === null) return;
+  const start = eventPageStart + EVENT_PAGE_SIZE;
+  eventPageStart = start >= events.length - EVENT_PAGE_SIZE ? null : start;
+  renderEvents();
 });
 element("workspace-parallel").addEventListener("click", () => {
   const source = currentWorkspace();

@@ -253,3 +253,10 @@ an atomic store claim; the workspace uniqueness constraint is unchanged. Shutdow
 signals every slot and waits for all cleanup before closing the store. The
 standalone simulation worker retains one slot. Regression coverage requires both
 overlapping real-process fixtures and a third queued run at the concurrency limit.
+
+Desktop hardening keeps all fetched events for the selected bounded run in memory,
+with 500 visible rows and explicit earlier/later controls. Polling preserves an
+older page until the user returns to the latest events. Workspace creation shares
+the existing mutation lock, including native-dialog cancellation and refresh.
+Renderer regressions cover duplicate synthetic clicks and access to both ends of
+a transcript longer than one page.
