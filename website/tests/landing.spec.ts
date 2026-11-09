@@ -546,7 +546,20 @@ test("larger silver atom has no pause control, stops offscreen and respects redu
     /47 electrons/,
   );
   await page.locator("#roadmap").scrollIntoViewIfNeeded();
-  await page.waitForTimeout(250);
+  await atom.evaluate(
+    (el) =>
+      new Promise<void>((resolve) => {
+        // Scrolling completes before intersection notifications are delivered.
+        // Wait for the offscreen notification and rendering turns, rather than
+        // assuming the component has stopped after a fixed wall-clock delay.
+        const observer = new IntersectionObserver(([entry]) => {
+          if (entry?.isIntersecting) return;
+          observer.disconnect();
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        });
+        observer.observe(el);
+      }),
+  );
   const frames = await page.evaluate(
     () => (window as unknown as { atomFrames: number }).atomFrames,
   );
