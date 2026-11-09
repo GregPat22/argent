@@ -119,6 +119,10 @@
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
+  /* Clipped-to-text backgrounds only paint inside the box, and descenders
+     hang below a 1.08 line. Extend the box without moving the layout. */
+  padding-bottom: 0.2em;
+  margin-bottom: -0.2em;
 }
 
 .faq-item {
@@ -301,6 +305,12 @@
 .argent-button:active .argent-button-label {
   transform: translateY(1px);
 }
+.argent-button:active,
+.argent-control:not(:disabled):active {
+  box-shadow:
+    inset 0 2px 6px rgb(0 0 0 / 0.28),
+    0 2px 8px rgb(0 0 0 / 0.2);
+}
 .argent-control:disabled {
   cursor: not-allowed;
   opacity: 0.4;
@@ -325,6 +335,9 @@
   }
   .argent-button:hover .button-arrow {
     transform: translate(2px, -2px);
+  }
+  .argent-button:hover .button-arrow--down {
+    transform: translateY(3px);
   }
 }
 
@@ -612,6 +625,27 @@
   width: 68px;
   height: 68px;
 }
+/* On narrower screens the compact mark floats over left-aligned copy. A
+   feathered halo (no panel, no border) keeps both legible. */
+.nav-logo-dock::before {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    closest-side,
+    rgb(8 9 12 / 0.92) 48%,
+    rgb(8 9 12 / 0.6) 72%,
+    rgb(8 9 12 / 0)
+  );
+  opacity: 0;
+  transition: opacity 360ms ease;
+}
+.is-compact .nav-logo-dock::before {
+  opacity: 1;
+}
 /* A soft top fade keeps the links legible without drawing a panel. */
 .nav-scrim {
   position: fixed;
@@ -863,7 +897,7 @@ html[data-entrance="pending"] .site-footer {
  * ------------------------------------------------------------------------- */
 
 /* Looping decorations rest while their section is off screen. */
-main > section:not([data-onscreen="true"]) .cta-drops span,
+main > section:not([data-onscreen="true"]) .cta-drops i,
 main > section:not([data-onscreen="true"]) .hiw-pulse,
 main > section:not([data-onscreen="true"]) .roadmap-node,
 main > section:not([data-onscreen="true"]) .journey-pulse {
@@ -1006,23 +1040,24 @@ main > section:not([data-onscreen="true"]) .journey-pulse {
   color: var(--color-sterling);
 }
 .journey-sidebar li {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
+  display: block;
   padding: 0.35em 0.5em;
   border-radius: 0.5em;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 .journey-sidebar li[data-current="true"] {
   background: rgb(238 241 245 / 0.07);
   color: var(--color-polished);
 }
 .journey-sidebar i {
-  flex: none;
+  display: inline-block;
   width: 0.5em;
   height: 0.5em;
+  margin-right: 0.5em;
   border-radius: 50%;
+  vertical-align: 0.05em;
 }
 .journey-session {
   padding: 0.8em;
@@ -1561,68 +1596,158 @@ main > section:not([data-onscreen="true"]) .journey-pulse {
   inset: 0;
   pointer-events: none;
 }
-.cta-drops span {
+/* The outer span holds the position and follows the pointer; the inner one
+   is the metal and drifts on its own. */
+.cta-drops > span {
   position: absolute;
   aspect-ratio: 1;
+}
+.cta-drops i {
+  position: absolute;
+  inset: 0;
   border-radius: 48% 52% 45% 55% / 54% 46% 54% 46%;
   background:
+    /* key light: a soft studio window */
     radial-gradient(
-      circle at 34% 28%,
-      #fff 0 3%,
-      rgb(236 241 248 / 0.85) 8%,
-      transparent 22%
+      ellipse 34% 20% at 34% 24%,
+      rgb(255 255 255 / 0.96) 0 38%,
+      rgb(255 255 255 / 0) 72%
     ),
+    /* bounce light from below */
     radial-gradient(
-      circle at 62% 74%,
-      rgb(190 205 230 / 0.55),
-      transparent 32%
-    ),
+        ellipse 58% 24% at 60% 84%,
+        rgb(206 216 232 / 0.5),
+        rgb(206 216 232 / 0) 72%
+      ),
+    /* rim: the edge of a sphere catches the room */
     radial-gradient(
-      circle at 45% 42%,
-      #c9d1dc 0,
-      #6f7987 34%,
-      #262b33 62%,
-      #0d0f13 80%
-    );
+        circle at 50% 50%,
+        rgb(0 0 0 / 0) 56%,
+        rgb(214 224 240 / 0.22) 66%,
+        rgb(8 9 12 / 0.85) 71%
+      ),
+    /* the horizon band every polished sphere reflects */
+    linear-gradient(
+        172deg,
+        #e3e8f0 0%,
+        #9aa4b3 22%,
+        #2a2f38 44%,
+        #0b0d11 52%,
+        #454d5a 68%,
+        #b3bcc9 100%
+      );
   box-shadow:
-    inset -10px -14px 30px rgb(0 0 0 / 0.55),
-    inset 8px 10px 22px rgb(255 255 255 / 0.12);
+    inset -10px -14px 30px rgb(0 0 0 / 0.5),
+    inset 8px 10px 22px rgb(255 255 255 / 0.14),
+    0 30px 60px -24px rgb(0 0 0 / 0.75);
   animation: cta-drift 14s ease-in-out infinite alternate;
 }
-.cta-drops span:nth-child(1) {
+.cta-drops > span:nth-child(1) {
   left: -6%;
   bottom: -18%;
   width: min(30vw, 18rem);
 }
-.cta-drops span:nth-child(2) {
+.cta-drops > span:nth-child(2) {
   right: -5%;
   top: -20%;
   width: min(24vw, 15rem);
+}
+.cta-drops > span:nth-child(2) i {
   animation-delay: -5s;
 }
-.cta-drops span:nth-child(3) {
+.cta-drops > span:nth-child(3) {
   left: 14%;
   top: 14%;
   width: 2.2rem;
+}
+.cta-drops > span:nth-child(3) i {
   animation-delay: -9s;
 }
-.cta-drops span:nth-child(4) {
+.cta-drops > span:nth-child(4) {
   right: 16%;
   bottom: 16%;
   width: 1.6rem;
+}
+.cta-drops > span:nth-child(4) i {
   animation-delay: -2s;
 }
+/* Transform only: the squash stands in for a changing outline without
+   repainting the gradients every frame. */
 @keyframes cta-drift {
   to {
-    transform: translate(12px, -16px) rotate(18deg);
-    border-radius: 54% 46% 52% 48% / 46% 54% 46% 54%;
+    transform: translate(12px, -16px) rotate(14deg) scale(1.035, 0.97);
   }
 }
 @media (max-width: 639px) {
-  .cta-drops span:nth-child(1),
-  .cta-drops span:nth-child(2) {
+  .cta-drops > span:nth-child(1),
+  .cta-drops > span:nth-child(2) {
     opacity: 0.45;
   }
+}
+
+/* Try it: two ways to run Argent, as tabs above one terminal. */
+.try-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-hairline);
+  border-radius: 14px;
+  background: rgb(238 241 245 / 0.03);
+}
+.try-tab {
+  position: relative;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-sterling);
+  cursor: pointer;
+  transition: color 180ms;
+}
+.try-tab:hover,
+.try-tab[aria-selected="true"] {
+  color: var(--color-polished);
+}
+.try-tab-pill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border: 1px solid var(--color-hairline-strong);
+  border-radius: 10px;
+  background: linear-gradient(
+    145deg,
+    rgb(227 236 249 / 0.12),
+    rgb(227 236 249 / 0.03)
+  );
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+.try-tab-label {
+  position: relative;
+  z-index: 1;
+}
+.try-needs {
+  display: grid;
+  gap: 0.6rem;
+}
+.try-needs li {
+  position: relative;
+  padding-left: 1.4rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-sterling);
+}
+.try-needs li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #8e99a8 55%, #2a2f38);
 }
 
 /* Agents: pick the agent per workspace and the model per task. */

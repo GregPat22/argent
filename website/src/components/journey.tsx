@@ -3,6 +3,7 @@
 import {
   type MotionValue,
   motion,
+  useMotionValue,
   useMotionValueEvent,
   useScroll,
   useSpring,
@@ -150,20 +151,21 @@ function Stage({
   progress: MotionValue<number>;
 }) {
   const path = useRef<SVGPathElement>(null);
-  const [drop, setDrop] = useState({ x: 330, y: 118 });
+  const length = useRef(0);
+  // The drop moves on motion values, so following the scroll writes one
+  // transform per frame and never re-renders the stage.
+  const dropX = useMotionValue(330);
+  const dropY = useMotionValue(118);
 
   const place = (value: number) => {
     const element = path.current;
     if (!element) return;
+    if (!length.current) length.current = element.getTotalLength();
     const point = element.getPointAtLength(
-      Math.min(1, Math.max(0, value)) * element.getTotalLength(),
+      Math.min(1, Math.max(0, value)) * length.current,
     );
-    setDrop((previous) =>
-      Math.abs(previous.x - point.x) < 0.1 &&
-      Math.abs(previous.y - point.y) < 0.1
-        ? previous
-        : { x: point.x, y: point.y },
-    );
+    dropX.set(point.x);
+    dropY.set(point.y);
   };
   useMotionValueEvent(progress, "change", place);
   useEffect(() => place(progress.get()), [progress]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -203,14 +205,10 @@ function Stage({
           strokeLinecap="round"
           style={{ pathLength: progress }}
         />
-        <circle cx={drop.x} cy={drop.y} r="9" fill="url(#journey-drop)" />
-        <circle
-          cx={drop.x - 2.5}
-          cy={drop.y - 3}
-          r="2.2"
-          fill="#fff"
-          opacity="0.85"
-        />
+        <motion.g style={{ x: dropX, y: dropY }}>
+          <circle cx="0" cy="0" r="9" fill="url(#journey-drop)" />
+          <circle cx="-2.5" cy="-3" r="2.2" fill="#fff" opacity="0.85" />
+        </motion.g>
       </svg>
       <DesktopWindow stage={stage} />
       <CloudIngot stage={stage} />

@@ -21,10 +21,27 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
+const TITLE = "Argent: AI coding agents you can verify";
+const DESCRIPTION =
+  "Argent is an open-source desktop app for running AI coding agents in persistent workspaces. A local desktop prototype that runs Claude Code in Git worktrees today. Persistent cloud execution and independently verified code are the roadmap.";
+
 export const metadata: Metadata = {
-  title: "Argent: AI coding agents you can verify",
-  description:
-    "Argent is an open-source desktop app for running AI coding agents in persistent workspaces. A local desktop prototype that runs Claude Code in Git worktrees today. Persistent cloud execution and independently verified code are the roadmap.",
+  title: TITLE,
+  description: DESCRIPTION,
+  // Shown when the page is shared. No image or address yet: the site is not
+  // deployed, so there is no canonical URL to point at.
+  openGraph: {
+    type: "website",
+    siteName: "Argent",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary",
+    title: TITLE,
+    description: DESCRIPTION,
+    site: "@Argent_build",
+  },
 };
 
 // Runs before first paint: hide content for the entrance only when scripts run

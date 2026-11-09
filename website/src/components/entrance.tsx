@@ -170,6 +170,19 @@ export function Entrance() {
         : [];
       const liquid = hero?.querySelector<HTMLElement>("[data-liquid-silver]");
 
+      // Later sections and the footer wait for the viewport. Find their blocks
+      // now, while nothing has been written yet: reading styles in between
+      // writes would make the browser recalculate once per section.
+      const sections = [
+        ...root.querySelectorAll<HTMLElement>(
+          "main > section:not(#intro):not([data-entrance-skip]), .site-footer",
+        ),
+      ];
+      const prepared = sections.map((section) => {
+        const heading = section.querySelector<HTMLElement>("h2");
+        return { section, heading, blocks: followersOf(section, heading) };
+      });
+
       const splits = lines.map((line) => splitWords(line));
       const heroWords = splits.flatMap((split) => split.words);
       const gradients = lines.map((line, index) =>
@@ -182,18 +195,8 @@ export function Entrance() {
       for (const word of heroWords) word.style.transform = RISE_FROM;
       hide([...navItems, ...followers, ...(liquid ? [liquid] : [])]);
 
-      // Later sections and the footer wait for the viewport.
-      const sections = [
-        ...root.querySelectorAll<HTMLElement>(
-          "main > section:not(#intro):not([data-entrance-skip]), .site-footer",
-        ),
-      ];
-      const prepared = sections.map((section) => {
-        const heading = section.querySelector<HTMLElement>("h2");
-        const blocks = followersOf(section, heading);
+      for (const { heading, blocks } of prepared)
         hide([...blocks, ...(heading ? [heading] : [])]);
-        return { section, heading, blocks };
-      });
 
       // Every element now owns its hidden state; drop the blanket CSS hide.
       root.dataset.entrance = "running";
