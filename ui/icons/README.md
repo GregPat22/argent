@@ -5,7 +5,10 @@ Source: https://registry.npmjs.org/lucide-static/-/lucide-static-1.70.0.tgz
 
 Integrity: `sha512-A9UgY98g94IuHQY7rl7/AFwHX7T1qNpzryim+Kw5CGhdV2STobtBY+ib/Z44ohyqXEJB88gvXFAeJ87uOOHKLw==` (verified before extracting the used subset).
 
-The 45 SVGs here are unmodified package assets. Required Lucide ISC and
+The 21 SVGs here are unmodified package assets, limited to the icons the
+desktop uses. The set was re-extracted on 7 November 2026 from the same
+package, with the same integrity, for the restyle in
+[spec 0015](../../docs/specs/0015-desktop-restyle.md). Required Lucide ISC and
 Feather-derived MIT notices are preserved in [LICENSE](LICENSE) and included
 in desktop builds. See [Lucide's license](https://lucide.dev/license).
 

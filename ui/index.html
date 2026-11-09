@@ -11,723 +11,408 @@
     <title>Argent</title>
     <link rel="stylesheet" href="./styles.css" />
     <script type="module" src="./app.js"></script>
-    <script type="module" src="./shell.js"></script>
   </head>
   <body>
-    <header class="titlebar">
-      <button
-        id="brand-home"
-        class="titlebar-brand"
-        aria-label="Open workspace overview"
-        title="Home"
-      >
-        <img class="brand-symbol" src="./argent-icon.webp" alt="" /> Argent
-      </button>
-      <div class="titlebar-label">Your workspace, in focus</div>
-      <span class="prototype-label">EARLY PREVIEW</span>
-    </header>
     <div class="app-shell">
-      <aside class="sidebar" aria-label="Workspaces">
-        <div class="account-heading">
-          <img class="account-avatar" src="./argent-icon.webp" alt="" /><span
-            >Local workspaces</span
-          ><span class="account-location">LOCAL</span>
-        </div>
-        <nav class="primary-navigation" aria-label="Main navigation">
-          <button id="home-nav">
-            <span class="icon icon-house" aria-hidden="true"></span> Home
-            <kbd>⇧⌘H</kbd>
-          </button>
-          <button id="create-nav">
-            <span class="icon icon-plus" aria-hidden="true"></span> Create
-            <kbd>⌘N</kbd>
-          </button>
-          <button id="search-nav">
-            <span class="icon icon-search" aria-hidden="true"></span> Search
-            <kbd>⌘K</kbd>
-          </button>
-        </nav>
-        <div class="sidebar-heading">
-          <span>My workspaces</span
-          ><button
-            id="new-workspace"
+      <aside class="sidebar" aria-label="Repositories and workspaces">
+        <div class="sidebar-top">
+          <button
+            id="search-nav"
             class="icon-button"
-            aria-label="Add workspace"
-            title="Add workspace"
+            aria-label="Search workspaces and actions"
+            title="Search (⌘K)"
           >
-            <span class="icon icon-plus" aria-hidden="true"></span>
+            <span class="icon icon-search" aria-hidden="true"></span>
           </button>
         </div>
-        <div id="workspace-list" class="workspace-list"></div>
-        <button id="more-workspaces" class="load-more" hidden>
-          Load more workspaces
-        </button>
-        <div id="sidebar-empty" class="sidebar-empty">
-          No workspaces yet.<br />Add a repository to begin.
-        </div>
-        <section id="task-navigation" class="tasks-panel" aria-label="Tasks">
-          <div class="panel-heading">
-            <h2>Sessions <span id="task-count" class="count">0</span></h2>
-            <span id="task-list-label">This workspace</span>
-          </div>
-          <div id="run-list" class="run-list"></div>
-          <div id="tasks-empty" class="tasks-empty">
-            <span class="empty-icon"
-              ><span class="icon icon-message-square" aria-hidden="true"></span
-            ></span>
-            <h3>A fresh workspace.</h3>
-            <p>
-              Start a task to see execution, activity and verification in one
-              place.
-            </p>
-            <button id="empty-new-task" class="button secondary">
-              Create a task
+        <nav class="sidebar-scroll" aria-label="Workspaces">
+          <div id="workspace-list" class="workspace-list"></div>
+          <button id="more-workspaces" class="text-button load-more" hidden>
+            Show older workspaces
+          </button>
+          <p id="sidebar-empty" class="sidebar-empty">
+            No repositories yet. Add one to give Claude Code its first branch.
+          </p>
+        </nav>
+        <div class="sidebar-foot">
+          <button id="new-workspace" class="add-repository">
+            <span class="icon icon-folder-plus" aria-hidden="true"></span>
+            <span>Add repository</span><kbd>⌘O</kbd>
+          </button>
+          <div class="foot-row">
+            <button
+              id="service-menu"
+              class="service-button"
+              popovertarget="service-popover"
+              aria-label="Local service status"
+            >
+              <span
+                id="service-indicator"
+                class="status-dot offline"
+                aria-hidden="true"
+              ></span
+              ><span id="service-status">Connecting…</span>
             </button>
-          </div>
-          <button id="more-runs" class="load-more" hidden>
-            Load older tasks
-          </button>
-          <div class="task-list-footer">
-            Runs and evidence are saved locally.
-          </div>
-        </section>
-
-        <div class="sidebar-bottom">
-          <div class="sidebar-tools">
-            <span class="prototype-label">ARGENT PREVIEW</span
-            ><button
+            <button
               id="settings-open"
               class="icon-button"
               aria-label="Settings"
-              title="Settings"
+              title="Settings (⌘,)"
             >
               <span class="icon icon-settings-2" aria-hidden="true"></span>
             </button>
           </div>
-          <div class="environment-label">
-            <span class="environment-icon"
-              ><span class="icon icon-monitor" aria-hidden="true"></span
-            ></span>
-            <div>
-              <strong>Local environment</strong><span>This computer</span>
-            </div>
-          </div>
-          <div class="service-row">
-            <span
-              id="service-indicator"
-              class="status-dot offline"
-              aria-hidden="true"
-            ></span
-            ><span id="service-status">Connecting…</span
-            ><button id="service-toggle" class="text-button" disabled>
-              Reconnect
-            </button>
-          </div>
+        </div>
+        <div
+          id="service-popover"
+          class="popover service-popover"
+          popover
+          aria-label="Local service"
+        >
+          <strong>Local service</strong>
+          <p id="service-detail"></p>
+          <button id="service-toggle" class="button">Reconnect</button>
         </div>
       </aside>
-      <main class="main-content">
-        <header class="workspace-header">
-          <div class="workspace-heading">
-            <span class="eyebrow"
-              ><span class="icon icon-folder-git-2" aria-hidden="true"></span>
-              WORKSPACE</span
-            >
-            <h1 id="workspace-title">Welcome to Argent</h1>
-            <p id="workspace-repository">
-              A durable place for your development tasks.
-            </p>
+
+      <main class="main">
+        <header class="main-header">
+          <div id="workspace-header-copy" class="crumbs" hidden>
+            <h1 id="workspace-title"></h1>
+            <span class="crumb-separator" aria-hidden="true">/</span>
+            <button id="workspace-repository" class="branch">
+              <span class="icon icon-git-branch" aria-hidden="true"></span
+              ><span id="workspace-branch"></span>
+            </button>
+            <span id="workspace-demo-tag" class="tag" hidden>Demo</span>
+            <span id="workspace-state" class="pill" role="status" hidden></span>
           </div>
-          <div class="workspace-actions">
-            <span id="workspace-state" class="badge" hidden></span
-            ><button id="workspace-lifecycle" class="button secondary" hidden>
-              Stop workspace</button
-            ><button id="workspace-parallel" class="button secondary" hidden>
-              <span class="icon icon-folder-git-2" aria-hidden="true"></span>
-              Parallel workspace</button
-            ><button id="new-task" class="button primary" disabled>
+          <button
+            id="workspace-menu-button"
+            class="icon-button header-menu"
+            popovertarget="workspace-menu"
+            aria-label="Workspace actions"
+            title="Workspace actions"
+          >
+            <span class="icon icon-ellipsis" aria-hidden="true"></span>
+          </button>
+          <div
+            id="workspace-menu"
+            class="popover menu"
+            popover
+            aria-label="Workspace actions"
+          >
+            <button id="copy-path" class="menu-item">
+              <span class="icon icon-copy" aria-hidden="true"></span> Copy
+              worktree path
+            </button>
+            <button id="workspace-parallel" class="menu-item">
               <span class="icon icon-plus" aria-hidden="true"></span> New
-              session
+              workspace from this repository <kbd>⌘N</kbd>
+            </button>
+            <hr />
+            <button id="workspace-lifecycle" class="menu-item">
+              Stop workspace
             </button>
           </div>
         </header>
-        <div id="execution-notice" class="simulation-notice" role="note">
-          <span
-            id="execution-notice-icon"
-            class="icon icon-info"
-            aria-hidden="true"
-          ></span
-          ><span
-            ><strong id="execution-notice-title">Local simulation</strong
-            ><span id="execution-notice-detail" class="notice-detail">
-              · Scripted execution and verified artifacts. No model, cloud
-              resource or pull request.</span
-            ></span
-          >
-        </div>
-        <div id="error-banner" class="error-banner" role="alert" hidden>
-          <span id="error-text"></span
-          ><button
-            id="dismiss-error"
-            class="icon-button"
-            aria-label="Dismiss error"
-          >
-            <span class="icon icon-x" aria-hidden="true"></span>
-          </button>
-        </div>
-        <div
-          id="disconnected-banner"
-          class="offline-banner"
-          role="status"
-          hidden
-        >
-          The local service is offline. Your saved history remains here.
-          Reconnect to refresh and continue.
-        </div>
-        <section id="welcome" class="welcome-panel">
-          <img class="welcome-mark" src="./argent-icon.webp" alt="" />
-          <span class="eyebrow">WELCOME TO ARGENT</span>
-          <h2>Start with a repository.</h2>
-          <p>
-            Choose a local Git repository. Each workspace gets its own branch
+
+        <section id="welcome" class="welcome" hidden>
+          <img
+            class="welcome-wordmark"
+            src="./argent-wordmark.webp"
+            alt="Argent"
+            width="320"
+            height="107"
+          />
+          <h2 class="welcome-title">
+            Assign a task.
+            <span class="polished">Review the changes.</span>
+          </h2>
+          <p class="welcome-text">
+            Pick a Git repository. Argent gives each workspace its own branch
             and worktree, and Claude Code works there with your own sign-in.
           </p>
-          <button id="welcome-create" class="button primary">
-            Add your first workspace
-            <span class="icon icon-arrow-right" aria-hidden="true"></span>
+          <button id="welcome-create" class="button primary large">
+            <span class="icon icon-folder-plus" aria-hidden="true"></span>
+            Add a repository <kbd>⌘O</kbd>
           </button>
-          <div class="welcome-facts">
-            <span>Persistent history</span><span>Independent verification</span
-            ><span>You stay in control</span>
-          </div>
+          <p class="welcome-note">
+            Your checkout is never changed. Claude Code runs as you, not in a
+            sandbox.
+          </p>
+          <button id="welcome-demo" class="text-button">
+            Or try a scripted demo first
+          </button>
         </section>
-        <div id="workspace-content" class="workspace-content" hidden>
-          <section class="detail-panel" aria-label="Task details">
-            <div class="session-tabbar">
-              <span
-                ><span
-                  class="icon icon-message-square"
-                  aria-hidden="true"
-                ></span>
-                Agent session</span
-              ><button
-                id="session-add"
-                class="icon-button"
-                aria-label="New session"
-              >
-                <span class="icon icon-plus" aria-hidden="true"></span></button
-              ><button
-                id="inspector-toggle"
-                class="icon-button"
-                aria-label="Toggle inspection panel"
-                aria-expanded="true"
-              >
-                <span class="icon icon-panel-right" aria-hidden="true"></span>
+
+        <div id="workspace-content" class="workspace" hidden>
+          <div id="conversation" class="conversation">
+            <div class="conversation-column">
+              <button id="show-earlier" class="text-button earlier" hidden>
+                Show earlier messages
               </button>
-            </div>
-            <div id="detail-empty" class="detail-empty">
-              <span class="empty-icon"
-                ><span
-                  class="icon icon-message-square"
-                  aria-hidden="true"
-                ></span
-              ></span>
-              <h3>Ready for your next task.</h3>
-              <p>
-                Start a session, or select one from the sidebar to see its
-                activity and verification.
-              </p>
-              <button id="detail-start" class="button primary">
-                <span class="icon icon-plus" aria-hidden="true"></span> New
-                session
+              <button id="more-runs" class="text-button earlier" hidden>
+                Load older messages
               </button>
+              <section id="detail-empty" class="empty-state" hidden>
+                <img
+                  class="empty-mark"
+                  src="./argent-icon.webp"
+                  alt=""
+                  width="40"
+                  height="40"
+                />
+                <h2 id="empty-title">A fresh branch, ready.</h2>
+                <p id="empty-text"></p>
+              </section>
+              <div id="transcript" class="transcript" aria-live="polite"></div>
             </div>
-            <div id="run-detail" class="run-detail" hidden>
-              <div class="detail-heading">
-                <div>
-                  <div class="detail-kicker">
-                    <span id="run-state" class="badge"></span
-                    ><span id="run-id" class="mono"></span>
-                  </div>
-                  <h2 id="run-title"></h2>
-                  <p id="run-meta"></p>
-                </div>
-                <button id="cancel-run" class="button danger" hidden>
-                  Cancel task
-                </button>
-              </div>
-              <div id="attention-panel" class="attention-panel" hidden>
-                <strong>This run needs your review</strong>
-                <p>
-                  This session was interrupted before its outcome was confirmed.
-                  Argent did not replay the task. Review the activity, then
-                  abandon this run to continue.
-                </p>
-                <button id="resolve-run" class="button secondary">
-                  Review and resolve
-                </button>
-              </div>
-              <nav
-                class="detail-tabs"
-                role="tablist"
-                aria-label="Task inspection"
-              >
-                <button
-                  id="activity-tab"
-                  class="tab active"
-                  role="tab"
-                  aria-controls="activity-pane"
-                  aria-selected="true"
-                >
-                  Activity <span id="event-count" class="count">0</span></button
-                ><button
-                  id="verification-tab"
-                  class="tab"
-                  role="tab"
-                  aria-controls="verification-pane"
-                  tabindex="-1"
-                  aria-selected="false"
-                >
-                  Verification
-                  <span
-                    id="verification-indicator"
-                    class="icon icon-circle-dashed"
-                    aria-hidden="true"
-                  ></span>
-                </button>
-              </nav>
+          </div>
+
+          <div class="dock">
+            <div class="dock-column">
               <div
-                id="activity-pane"
-                class="inspection-pane"
-                role="tabpanel"
-                tabindex="0"
-                aria-labelledby="activity-tab"
-              >
-                <div
-                  id="activity-list"
-                  class="activity-list"
-                  aria-live="polite"
-                  aria-relevant="additions"
-                ></div>
-                <p id="activity-empty" class="muted pane-message">
-                  Waiting for the first recorded event…
-                </p>
-              </div>
-              <div
-                id="verification-pane"
-                class="inspection-pane"
-                role="tabpanel"
-                tabindex="0"
-                aria-labelledby="verification-tab"
+                id="disconnected-banner"
+                class="notice notice-offline"
+                role="status"
                 hidden
               >
-                <div id="verification-empty" class="verification-empty">
-                  <span class="empty-icon"
-                    ><span
-                      class="icon icon-shield-check"
-                      aria-hidden="true"
-                    ></span
-                  ></span>
-                  <h3 id="verification-empty-title">Evidence comes first.</h3>
-                  <p id="verification-empty-text">
-                    A completed simulation will include an independently checked
-                    artifact and its SHA-256 fingerprint.
-                  </p>
-                </div>
-                <div
-                  id="verification-result"
-                  class="verification-result"
-                  hidden
+                <span class="icon icon-power" aria-hidden="true"></span>
+                <span
+                  >The local service is offline. Your history is still
+                  here.</span
                 >
-                  <div class="verified-heading">
-                    <span
-                      class="icon icon-circle-check"
-                      aria-hidden="true"
-                    ></span>
-                    <div>
-                      <h3 id="verified-title">Artifact verified</h3>
-                      <p id="verified-subtitle">
-                        Independent simulation check passed
-                      </p>
-                    </div>
-                    <span id="verified-badge" class="badge neutral"
-                      >SIMULATION</span
-                    >
-                  </div>
-                  <dl class="evidence-fields">
-                    <div>
-                      <dt>Check</dt>
-                      <dd id="evidence-check">Artifact identity and content</dd>
-                    </div>
-                    <div>
-                      <dt id="artifact-label">Artifact</dt>
-                      <dd id="artifact-name" class="mono"></dd>
-                    </div>
-                    <div>
-                      <dt id="sha-label">SHA-256</dt>
-                      <dd id="artifact-sha" class="mono fingerprint"></dd>
-                    </div>
-                  </dl>
-                  <div class="artifact-heading">
-                    <h4 id="artifact-heading-title">Artifact contents</h4>
-                    <span>Persisted JSON</span>
-                  </div>
-                  <pre id="artifact-content" class="artifact-content"></pre>
-                  <p id="evidence-note" class="evidence-note">
-                    This verifies a simulation artifact. It is not evidence of
-                    repository tests or a pull request.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <form id="composer-form" class="composer">
-              <label class="sr-only" for="composer-input"
-                >Describe a task</label
-              >
-              <textarea
-                id="composer-input"
-                maxlength="4000"
-                rows="3"
-                placeholder="What would you like to work on?"
-              ></textarea>
-              <div class="composer-toolbar">
-                <button id="agent-picker" type="button" class="agent-picker">
-                  <span class="icon icon-bot" aria-hidden="true"></span>
-                  <span id="agent-label">Scripted adapter</span>
-                  <span
-                    class="icon icon-chevron-down"
-                    aria-hidden="true"
-                  ></span></button
-                ><span id="composer-status" class="composer-hint" role="status"
-                  >Local simulation</span
-                ><button
-                  id="composer-submit"
-                  type="submit"
-                  class="send-button"
-                  title="Review task (⌘/Ctrl+Enter)"
-                  aria-label="Review task"
-                >
-                  <span class="icon icon-arrow-up" aria-hidden="true"></span>
+                <button id="reconnect-inline" class="button small">
+                  Reconnect
                 </button>
               </div>
-              <div class="composer-footnote">
-                <span id="composer-agent-note"
-                  >Scripted simulation · No model connected</span
-                ><span><kbd>⌘ / Ctrl ↵</kbd> to review</span>
+              <div
+                id="error-banner"
+                class="notice notice-fault"
+                role="alert"
+                hidden
+              >
+                <span class="icon icon-circle-x" aria-hidden="true"></span>
+                <span id="error-text"></span>
+                <button
+                  id="dismiss-error"
+                  class="icon-button small"
+                  aria-label="Dismiss error"
+                >
+                  <span class="icon icon-x" aria-hidden="true"></span>
+                </button>
               </div>
-            </form>
-          </section>
+              <div
+                id="pending-bar"
+                class="notice notice-attention"
+                role="status"
+                hidden
+              >
+                <span class="icon icon-clock-3" aria-hidden="true"></span>
+                <span
+                  >Argent could not confirm this message reached the service.
+                  Retrying checks the same message, so it never runs
+                  twice.</span
+                >
+                <button id="pending-retry" class="button small">Retry</button>
+              </div>
+
+              <form id="composer-form" class="composer">
+                <label class="sr-only" for="composer-input">Message</label>
+                <textarea
+                  id="composer-input"
+                  maxlength="4000"
+                  rows="1"
+                  placeholder="What should Claude Code do here?"
+                ></textarea>
+                <div class="composer-bar">
+                  <span class="agent-chip" title="The agent for this workspace">
+                    <span class="icon icon-terminal" aria-hidden="true"></span>
+                    <span id="agent-label">Claude Code</span>
+                  </span>
+                  <button
+                    id="permission-toggle"
+                    type="button"
+                    class="chip permission"
+                    aria-pressed="false"
+                    hidden
+                  >
+                    Edits only
+                  </button>
+                  <label class="chip select-chip">
+                    <span class="sr-only">Time limit</span>
+                    <select id="limit-select"></select>
+                    <span
+                      class="icon icon-chevron-down"
+                      aria-hidden="true"
+                    ></span>
+                  </label>
+                  <span
+                    id="composer-status"
+                    class="composer-status"
+                    role="status"
+                  ></span>
+                  <button
+                    id="composer-start"
+                    type="button"
+                    class="button small"
+                    hidden
+                  >
+                    Start workspace
+                  </button>
+                  <button
+                    id="cancel-run"
+                    type="button"
+                    class="send-button stop"
+                    aria-label="Stop this run"
+                    hidden
+                  >
+                    <span class="stop-square" aria-hidden="true"></span>
+                  </button>
+                  <button
+                    id="composer-submit"
+                    type="submit"
+                    class="send-button"
+                    aria-label="Send"
+                    title="Send (↵)"
+                  >
+                    <span class="icon icon-arrow-up" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <div
+                  id="full-access-confirm"
+                  class="popover confirm"
+                  popover
+                  role="alertdialog"
+                  aria-labelledby="full-access-title"
+                >
+                  <strong id="full-access-title">Allow full access?</strong>
+                  <p>
+                    For the next message, Claude Code may run any command as you
+                    without asking, with your network and credentials. It goes
+                    back to edits only after you send.
+                  </p>
+                  <div class="confirm-actions">
+                    <button
+                      id="full-access-keep"
+                      type="button"
+                      class="button small"
+                    >
+                      Keep edits only</button
+                    ><button
+                      id="full-access-allow"
+                      type="button"
+                      class="button small warning"
+                    >
+                      Allow full access
+                    </button>
+                  </div>
+                </div>
+              </form>
+              <div class="composer-foot">
+                <span id="composer-agent-note"></span>
+                <span class="keys"
+                  ><kbd>↵</kbd> send <kbd>⇧↵</kbd> new line</span
+                >
+              </div>
+            </div>
+          </div>
         </div>
-        <footer class="statusbar">
-          <span
-            ><span class="status-dot silver" aria-hidden="true"></span> Argent ·
-            Local prototype</span
-          ><span id="sync-status"
-            >Execution stays with the service when this window closes.</span
-          >
-        </footer>
       </main>
-      <aside id="inspector" class="inspector" aria-label="Workspace inspection">
-        <div class="inspector-heading">
-          <span>Workspace inspection</span
-          ><span class="status-dot silver" aria-hidden="true"></span>
-        </div>
-        <nav class="inspector-tabs" aria-label="Inspect workspace">
-          <button data-inspector="artifacts" aria-pressed="true">
-            <span class="icon icon-package" aria-hidden="true"></span
-            ><span>Artifacts</span></button
-          ><button data-inspector="files" aria-pressed="false">
-            <span class="icon icon-files" aria-hidden="true"></span
-            ><span>All files</span></button
-          ><button data-inspector="changes" aria-pressed="false">
-            <span class="icon icon-git-compare-arrows" aria-hidden="true"></span
-            ><span>Changes</span></button
-          ><button data-inspector="checks" aria-pressed="false">
-            <span class="icon icon-list-checks" aria-hidden="true"></span
-            ><span>Checks</span>
-          </button>
-        </nav>
-        <section id="inspector-artifacts" class="inspector-pane">
-          <div class="inspector-mark">
-            <span class="icon icon-package" aria-hidden="true"></span>
-          </div>
-          <div class="inspector-section-label">RECORDED EVIDENCE</div>
-          <p id="inspector-artifact-summary">
-            Select a session to inspect its retained simulation artifact.
-          </p>
-          <button id="inspect-artifact" class="button secondary">
-            <span class="icon icon-file-check-2" aria-hidden="true"></span>
-            Inspect artifact
-          </button>
-          <p class="field-note">
-            Argent records evidence itself, independently of agent messages.
-          </p>
-        </section>
-        <section id="inspector-files" class="inspector-pane" hidden>
-          <div class="inspector-mark">
-            <span class="icon icon-files" aria-hidden="true"></span>
-          </div>
-          <div class="inspector-section-label">REPOSITORY FILES</div>
-          <h3>No file tree yet</h3>
-          <p>
-            Local workspaces have their own worktree, shown under the workspace
-            title. Open it in your editor; a file tree is planned.
-          </p>
-          <span class="planned-label">Planned integration</span>
-        </section>
-        <section id="inspector-changes" class="inspector-pane" hidden>
-          <div class="inspector-mark">
-            <span
-              class="icon icon-git-compare-arrows"
-              aria-hidden="true"
-            ></span>
-          </div>
-          <div class="inspector-section-label">WORKING CHANGES</div>
-          <h3>No diff view yet</h3>
-          <p>
-            A changes view for local workspaces comes next. Until then, each
-            finished run records its changed-file count and a diff fingerprint.
-            Simulation workspaces write a fixed JSON artifact only.
-          </p>
-          <span class="planned-label">Planned integration</span>
-        </section>
-        <section id="inspector-checks" class="inspector-pane" hidden>
-          <div class="inspector-mark">
-            <span class="icon icon-shield-check" aria-hidden="true"></span>
-          </div>
-          <div class="inspector-section-label">INDEPENDENT VERIFICATION</div>
-          <p id="inspector-check-summary">
-            Select a session to inspect its verification status.
-          </p>
-          <button id="inspect-checks" class="button secondary">
-            <span class="icon icon-shield-check" aria-hidden="true"></span> View
-            verification
-          </button>
-          <p class="field-note">
-            Recorded evidence is separate from repository tests, which are
-            planned.
-          </p>
-        </section>
-        <section class="terminal-preview" aria-label="Terminal preview">
-          <div class="terminal-tabs" aria-label="Workspace tools">
-            <button data-terminal="Setup" aria-pressed="false">Setup</button
-            ><button data-terminal="Run" aria-pressed="false">Run</button
-            ><button data-terminal="Terminal" aria-pressed="true">
-              Terminal</button
-            ><span
-              class="terminal-unavailable"
-              title="Terminal integration is not connected"
-              ><span class="icon icon-lock" aria-hidden="true"></span
-            ></span>
-          </div>
-          <div id="terminal-output" class="terminal-body">
-            <span class="planned-label">Preview · not connected</span>
-            <p id="terminal-description">
-              A terminal for this workspace's worktree will live here.
-            </p>
-            <span class="terminal-prompt"
-              >argent
-              <span
-                ><span class="icon icon-chevron-right" aria-hidden="true"></span
-              ></span>
-              <span class="terminal-cursor" aria-hidden="true"></span
-            ></span>
-          </div>
-        </section>
-      </aside>
     </div>
 
-    <dialog id="navigation-dialog" aria-labelledby="navigation-title">
-      <div class="dialog-heading">
-        <div class="dialog-icon">
-          <span class="icon icon-search" aria-hidden="true"></span>
-        </div>
-        <span class="eyebrow">WORKSPACES</span>
-        <h2 id="navigation-title">Your workspaces</h2>
-        <p>Select a saved workspace to continue.</p>
-      </div>
-      <label class="sr-only" for="workspace-search"
-        >Search saved workspaces</label
-      ><input
-        id="workspace-search"
-        type="search"
-        placeholder="Search workspaces…"
-      />
-      <p
-        id="search-summary"
-        class="field-note"
-        role="status"
-        aria-live="polite"
-      ></p>
-      <div id="workspace-search-results" class="search-results"></div>
-      <div class="dialog-actions">
-        <button class="button secondary" data-close-dialog>Close</button>
-      </div>
-    </dialog>
     <dialog
-      id="settings-dialog"
-      class="settings-dialog"
-      aria-labelledby="settings-title"
+      id="navigation-dialog"
+      class="palette"
+      aria-label="Search workspaces and actions"
     >
-      <div
-        class="settings-sidebar"
-        role="navigation"
-        aria-label="Settings sections"
-      >
-        <span class="eyebrow">SETTINGS</span>
-        <h2 id="settings-title">Argent</h2>
-        <button data-settings="agents" aria-pressed="true">
-          <span class="icon icon-bot" aria-hidden="true"></span> Agents</button
-        ><button data-settings="continuity" aria-pressed="false">
-          <span class="icon icon-cloud-upload" aria-hidden="true"></span> Cloud
-          & migration</button
-        ><button data-settings="mobile" aria-pressed="false">
-          <span class="icon icon-smartphone" aria-hidden="true"></span>
-          Mobile</button
-        ><button class="button secondary" data-close-dialog>
-          <span class="icon icon-arrow-left" aria-hidden="true"></span> Back to
-          workspace
-        </button>
+      <div class="palette-input">
+        <span class="icon icon-search" aria-hidden="true"></span>
+        <label class="sr-only" for="workspace-search"
+          >Search workspaces and actions</label
+        ><input
+          id="workspace-search"
+          type="search"
+          placeholder="Jump to a workspace or action…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <kbd>esc</kbd>
       </div>
-      <div class="settings-content">
-        <section id="settings-agents">
-          <h2>Agents</h2>
-          <p>Bring the subscriptions you already use.</p>
-          <div class="settings-notice">
-            <span class="icon icon-info" aria-hidden="true"></span
-            ><span
-              >Claude Code is available for local repositories through its
-              official CLI. Other agents are planned.</span
-            >
-          </div>
-          <div class="provider-tabs" aria-label="Agent providers">
-            <button data-provider="Claude Code" aria-pressed="true">
-              Claude Code</button
-            ><button data-provider="Codex" aria-pressed="false">Codex</button
-            ><button data-provider="Cursor" aria-pressed="false">Cursor</button
-            ><button data-provider="OpenCode" aria-pressed="false">
-              OpenCode
-            </button>
-          </div>
-          <div id="provider-detail">
-            <h3 id="provider-name">Claude Code</h3>
-            <span id="provider-status" class="planned-label"
-              >Available · local repositories · official CLI</span
-            >
-            <div class="auth-options">
-              <div>
-                <span class="icon icon-log-in" aria-hidden="true"></span
-                ><strong>Subscription sign-in</strong
-                ><span>Through the provider's supported flow</span>
-              </div>
-              <div>
-                <span class="icon icon-terminal" aria-hidden="true"></span
-                ><strong>Official CLI</strong
-                ><span>Where supported for this environment</span>
-              </div>
-              <div>
-                <span class="icon icon-key-round" aria-hidden="true"></span
-                ><strong>API key</strong><span>Separate usage and billing</span>
-              </div>
-            </div>
-            <p id="provider-note">
-              Runs the claude CLI with your own sign-in. Argent never reads or
-              stores it and never passes API-key variables, so a missing sign-in
-              fails instead of billing an API account.
-            </p>
-            <p class="field-note">
-              Sign in once with the claude CLI in a terminal. Argent stores no
-              credentials. Other connection choices shown here are previews.
-              Subscription limits never trigger automatic API billing.
-            </p>
-            <div class="settings-current">
-              <strong>Currently available</strong
-              ><span
-                >Claude Code for local repositories (your sign-in, not a
-                sandbox) · Scripted adapter for simulation workspaces</span
-              >
-            </div>
-          </div>
-        </section>
-        <section id="settings-continuity" hidden>
-          <h2>Cloud & migration</h2>
-          <p>Keep your files and context when you move.</p>
-          <span class="planned-label">Planned · no transfer available yet</span>
-          <div class="settings-current">
-            <strong>1. Preserve your work</strong
-            ><span
-              >Preview selected repository files, working changes, history and
-              artifacts before transfer.</span
-            >
-          </div>
-          <div class="settings-current">
-            <strong>2. Restore an independent workspace</strong
-            ><span
-              >Check manifest integrity and report missing or unsupported data.
-              Credentials require a fresh connection.</span
-            >
-          </div>
-          <div class="settings-current">
-            <strong>3. Review before continuing</strong
-            ><span
-              >File recovery does not resume a process. Uncertain work stays
-              blocked until reconciled.</span
-            >
-          </div>
-          <p class="field-note">
-            A Conductor importer requires a consented sample and separate
-            acceptance tests. This preview imports nothing.
-          </p>
-        </section>
-        <section id="settings-mobile" hidden>
-          <h2>Mobile companion</h2>
-          <p>Check progress and steer work away from your desk.</p>
-          <span class="planned-label">Planned · no mobile app connected</span>
-          <div class="phone-preview">
-            <span>ARGENT / WORKSPACES</span>
-            <h3>Your work, wherever you are.</h3>
-            <p>Activity · Diffs · Input requests · Cancellation</p>
-            <div class="phone-placeholder">
-              Cloud execution stays with the service.
-            </div>
-          </div>
-          <p class="field-note">
-            First scope: authenticated workspace status, review and bounded
-            input. Native iOS delivery follows the same remote-service contract;
-            no execution runs on the phone.
-          </p>
-        </section>
-      </div>
+      <div id="workspace-search-results" class="search-results"></div>
+      <p id="search-summary" class="palette-summary" role="status"></p>
     </dialog>
-    <dialog id="workspace-dialog" aria-labelledby="workspace-dialog-title">
-      <form id="workspace-form">
-        <div class="dialog-heading">
-          <div class="dialog-icon">
-            <span class="icon icon-folder-git-2" aria-hidden="true"></span>
-          </div>
-          <span class="eyebrow">GET STARTED</span>
-          <h2 id="workspace-dialog-title">Add a workspace</h2>
-          <p>A persistent place for tasks and their history.</p>
-        </div>
+
+    <dialog id="settings-dialog" class="sheet" aria-labelledby="settings-title">
+      <header class="sheet-head">
+        <h2 id="settings-title">Settings</h2>
         <button
-          id="local-workspace-choose"
-          type="button"
-          class="button primary local-choose"
-          aria-describedby="local-workspace-note"
+          id="settings-close"
+          class="icon-button"
+          aria-label="Close settings"
+          data-close-dialog
         >
-          <span class="icon icon-folder-git-2" aria-hidden="true"></span>
-          Choose a local repository…
+          <span class="icon icon-x" aria-hidden="true"></span>
         </button>
-        <p id="local-workspace-note" class="field-note">
-          Argent creates a new <span class="mono">argent/</span> branch in a
-          private worktree and runs Claude Code there with your own sign-in.
-          Your checkout is not changed. This is not a sandbox: the agent runs as
-          you.
+      </header>
+      <section class="settings-section" aria-labelledby="settings-agent">
+        <h3 id="settings-agent">Agent</h3>
+        <div class="agent-card">
+          <span class="agent-mark"
+            ><span class="icon icon-terminal" aria-hidden="true"></span
+          ></span>
+          <div>
+            <strong>Claude Code</strong>
+            <p>
+              Runs the official <span class="mono">claude</span> CLI with your
+              own sign-in. Argent never reads or stores it and never passes
+              API-key variables, so a missing sign-in fails instead of billing
+              an API account.
+            </p>
+          </div>
+          <span class="tag tag-live">Available</span>
+        </div>
+        <p class="settings-note">
+          Sign in once with <span class="mono">claude</span> in a terminal.
+          Codex, Cursor and OpenCode are planned and not connected.
         </p>
-        <div class="dialog-divider"><span>or try a simulation</span></div>
-        <label for="repository-input">GitHub repository (simulation)</label
+      </section>
+      <section class="settings-section" aria-labelledby="settings-local">
+        <h3 id="settings-local">On this computer</h3>
+        <ul class="settings-list">
+          <li>
+            Each workspace is an <span class="mono">argent/</span> branch in its
+            own worktree. Your checkout is not changed.
+          </li>
+          <li>
+            Claude Code runs as you, with your files, network and credentials.
+            It is not a sandbox. Edits only is the default for every message.
+          </li>
+          <li>
+            Workspaces, runs and records are saved here. Runs keep going when
+            you close the window.
+          </li>
+        </ul>
+      </section>
+      <p class="sheet-foot">Argent early preview · open source, MIT</p>
+    </dialog>
+
+    <dialog id="workspace-dialog" aria-labelledby="workspace-dialog-title">
+      <form id="workspace-form" class="dialog-form">
+        <span class="dialog-icon"
+          ><span class="icon icon-flask-conical" aria-hidden="true"></span
+        ></span>
+        <h2 id="workspace-dialog-title">Try a scripted demo</h2>
+        <p>
+          A simulation that records scripted steps and checks a sample artifact.
+          No model runs, and Argent does not clone the repository or ask for
+          GitHub access.
+        </p>
+        <label for="repository-input">GitHub repository URL</label
         ><input
           id="repository-input"
-          aria-describedby="repository-note workspace-form-error"
+          aria-describedby="workspace-form-error"
           type="url"
           required
           maxlength="250"
@@ -735,10 +420,6 @@
           autocomplete="off"
           spellcheck="false"
         />
-        <p id="repository-note" class="field-note">
-          Repository metadata only in this preview. Argent will not clone it or
-          request GitHub access.
-        </p>
         <p
           id="workspace-form-error"
           class="form-error"
@@ -747,115 +428,32 @@
           hidden
         ></p>
         <div class="dialog-actions">
-          <button type="button" class="button secondary" data-close-dialog>
-            Cancel</button
-          ><button id="workspace-submit" type="submit" class="button secondary">
-            Create simulation
+          <button type="button" class="button" data-close-dialog>Cancel</button
+          ><button id="workspace-submit" type="submit" class="button primary">
+            Create demo
           </button>
         </div>
       </form>
     </dialog>
-    <dialog id="task-dialog" aria-labelledby="task-dialog-title">
-      <form id="task-form">
-        <div class="dialog-heading">
-          <div class="dialog-icon">
-            <span class="icon icon-bot" aria-hidden="true"></span>
-          </div>
-          <span id="task-eyebrow" class="eyebrow">LOCAL SIMULATION</span>
-          <h2 id="task-dialog-title">Start a task</h2>
-          <p id="task-description">
-            The scripted adapter will record activity and create a verifiable
-            artifact.
-          </p>
-        </div>
-        <label for="task-input">What would you like to work on?</label
-        ><textarea
-          id="task-input"
-          aria-describedby="task-form-error pending-notice"
-          required
-          maxlength="4000"
-          rows="5"
-          placeholder="Describe a small, verifiable task…"
-        ></textarea>
-        <fieldset id="permission-field" class="permission-field" hidden>
-          <legend>Permissions</legend>
-          <label class="permission-option"
-            ><input type="radio" name="permission" value="edits" checked /><span
-              ><strong>Edit files only</strong
-              ><span
-                >Claude Code may read and edit files in this worktree. Anything
-                that needs approval, such as commands, is denied.</span
-              ></span
-            ></label
-          ><label class="permission-option"
-            ><input type="radio" name="permission" value="full" /><span
-              ><strong>Full access</strong
-              ><span
-                >Claude Code may also run any command as you without asking,
-                with your network and credentials.</span
-              ></span
-            ></label
-          >
-        </fieldset>
-        <div class="runtime-field">
-          <div>
-            <label for="runtime-input">Execution limit</label>
-            <p class="field-note">Stop a run that exceeds this time.</p>
-          </div>
-          <div class="input-suffix">
-            <input
-              id="runtime-input"
-              aria-describedby="task-form-error"
-              type="number"
-              min="1"
-              max="300"
-              value="30"
-              required
-            /><span id="runtime-unit">seconds</span>
-          </div>
-        </div>
-        <p
-          id="task-form-error"
-          class="form-error"
-          role="alert"
-          aria-live="polite"
-          hidden
-        ></p>
-        <p id="pending-notice" class="field-note pending-notice" hidden>
-          The previous request may have been accepted. Retry checks the same
-          submission without creating a duplicate.
-        </p>
-        <div class="dialog-actions">
-          <button type="button" class="button secondary" data-close-dialog>
-            Close</button
-          ><button id="task-submit" type="submit" class="button primary">
-            Start simulation
-            <span class="icon icon-arrow-right" aria-hidden="true"></span>
-          </button>
-        </div>
-      </form>
-    </dialog>
+
     <dialog id="resolve-dialog" aria-labelledby="resolve-dialog-title">
-      <form id="resolve-form">
-        <div class="dialog-heading">
-          <div class="dialog-icon">
-            <span class="icon icon-triangle-alert" aria-hidden="true"></span>
-          </div>
-          <span class="eyebrow">HUMAN REVIEW</span>
-          <h2 id="resolve-dialog-title">Resolve this run</h2>
-          <p>
-            This marks the uncertain run as abandoned. It preserves its history
-            and does not replay any work.
-          </p>
-        </div>
-        <label for="resolution-input">Review note</label
+      <form id="resolve-form" class="dialog-form">
+        <span class="dialog-icon attention"
+          ><span class="icon icon-triangle-alert" aria-hidden="true"></span
+        ></span>
+        <h2 id="resolve-dialog-title">Mark this run reviewed</h2>
+        <p>
+          The run is marked abandoned and its history is kept. Nothing is
+          replayed. Check the worktree yourself for anything it changed.
+        </p>
+        <label for="resolution-input">What you checked</label
         ><textarea
           id="resolution-input"
           aria-describedby="resolve-form-error"
           required
           maxlength="1000"
           rows="3"
-          placeholder="Explain what you reviewed and why this run can be abandoned."
+          placeholder="For example: checked the worktree, no partial changes worth keeping."
         ></textarea>
         <p
           id="resolve-form-error"
@@ -865,32 +463,32 @@
           hidden
         ></p>
         <div class="dialog-actions">
-          <button type="button" class="button secondary" data-close-dialog>
-            Keep unresolved</button
+          <button type="button" class="button" data-close-dialog>
+            Keep it open</button
           ><button id="resolution-submit" type="submit" class="button primary">
             Mark reviewed and abandon
           </button>
         </div>
       </form>
     </dialog>
+
     <dialog id="stop-dialog" aria-labelledby="stop-dialog-title">
-      <div class="dialog-heading">
-        <div class="dialog-icon">
-          <span class="icon icon-power" aria-hidden="true"></span>
-        </div>
-        <span class="eyebrow">LOCAL SERVICE</span>
-        <h2 id="stop-dialog-title">Stop execution on this computer?</h2>
+      <div class="dialog-form">
+        <span class="dialog-icon"
+          ><span class="icon icon-power" aria-hidden="true"></span
+        ></span>
+        <h2 id="stop-dialog-title">Stop the local service?</h2>
         <p>
-          Active runs, including Claude Code sessions, are stopped and will need
-          review. Workspaces, worktrees and activity history remain saved.
+          Active runs, including Claude Code, are stopped and will need your
+          review. Workspaces, worktrees and history stay saved.
         </p>
-      </div>
-      <div class="dialog-actions">
-        <button type="button" class="button secondary" data-close-dialog>
-          Keep running</button
-        ><button id="service-stop-confirm" class="button danger">
-          Stop local service
-        </button>
+        <div class="dialog-actions">
+          <button type="button" class="button" data-close-dialog>
+            Keep running</button
+          ><button id="service-stop-confirm" class="button danger">
+            Stop service
+          </button>
+        </div>
       </div>
     </dialog>
   </body>
