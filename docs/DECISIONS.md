@@ -51,7 +51,7 @@ wait for process exit before deleting its data, since HTTP closure precedes
 SQLite closure. CI failures at `6b49267`, `e57c4b7`, `2bdde47`, `ffbeef2` and
 `93a2df9` motivate these test-only changes. Preserve production lease/deadline
 checks and workflow failure notifications. Acceptance and validation limits are
-in [spec 0014](specs/0014-ci-test-determinism.md); implementation is in development.
+in [spec 0014](specs/0014-ci-test-determinism.md). Implemented in main `32748a5`.
 
 ### Local MVP first, Claude Code first — 7 November 2026
 
@@ -187,13 +187,12 @@ brand, domain or trademark is claimed. See
 
 ### Local execution ownership and hardening — 9 November 2026
 
-Accepted safety requirements; implementation in development against main
-`241e6e6`. A durable lease fences database writes, not a detached agent's writes
+Accepted safety requirements, implemented in main `82f180b`. A durable lease fences database writes, not a detached agent's writes
 to a worktree. Real interrupted runs must remain blocked unless independent
 process reconciliation proves quiescence; a resolution note is insufficient.
 A live process supervisor owns the whole process group through normal exit,
 cancellation and early reader failure. Unconfirmed cleanup remains uncertain.
-See [spec 0013](specs/0013-local-mvp.md#local-execution-hardening-in-development)
+See [spec 0013](specs/0013-local-mvp.md#local-execution-hardening)
 for acceptance criteria and remaining recovery limits.
 
 Keep the modular monolith, single-host SQLite and official CLI adapters. Extract
@@ -207,4 +206,4 @@ The delivery contract adds website build/browser checks and native development
 and packaged smoke checks to CI. Packaging dependency overrides are narrow and
 temporary: remove them when the upstream dependency ranges include patched
 releases, with package compatibility and advisory checks repeated. See
-[spec 0004](specs/0004-desktop-prototype.md#delivery-regression-gates-in-development).
+[spec 0004](specs/0004-desktop-prototype.md#delivery-regression-gates).

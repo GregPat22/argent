@@ -1,9 +1,10 @@
 # L1: local MVP with real agents in isolated worktrees
 
 Recorded 7 November 2026, based on main `ffbeef2`.
-Status: L1.1 (engine) and L1.2 (desktop) implemented; L1.3 onward planned. A
-recorded run against the real CLI is still pending; automated tests use a fake
-CLI.
+Status: L1.1 (engine), L1.2 (desktop) and the local execution hardening are
+implemented; L1.3 onward is planned. A recorded run against the real CLI is
+still pending; automated tests use a fake CLI. The order of the remaining work
+is in the [roadmap's work queue](../../ROADMAP.md#work-queue).
 
 ## Product decision
 
@@ -217,7 +218,7 @@ Cloud workspaces, laptop-independent execution, mobile access, sandboxed
 execution, team features, dependent tasks, automatic merges and any claim of
 feature parity with other tools.
 
-## Local execution hardening (in development)
+## Local execution hardening
 
 Acceptance criteria, 9 November 2026, based on main `241e6e6`:
 
@@ -264,7 +265,7 @@ Submodules are rejected before workspace checkout, agent dispatch and evidence
 inspection: a parent repository's filter overrides do not neutralize nested
 configuration. No successful record may silently omit submodule content.
 
-The in-development desktop dispatcher uses two execution slots. Each slot makes
+The desktop dispatcher uses two execution slots. Each slot makes
 an atomic store claim; the workspace uniqueness constraint is unchanged. Shutdown
 signals every slot and waits for all cleanup before closing the store. The
 standalone simulation worker retains one slot. Regression coverage requires both

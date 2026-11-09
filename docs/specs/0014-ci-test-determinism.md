@@ -1,6 +1,6 @@
 # Deterministic timing and service teardown tests
 
-Status: test hardening in development. Investigation baseline: `241e6e6`,
+Status: implemented (main `32748a5`). Investigation baseline: `241e6e6`,
 8 November 2026. Product behavior and release scope are unchanged.
 
 ## Problem and evidence

@@ -1,6 +1,6 @@
 # Roadmap
 
-Last reviewed 7 November 2026. Milestones are sequenced by demonstrated behavior,
+Last reviewed 9 November 2026. Milestones are sequenced by demonstrated behavior,
 not dates: each one ends with evidence, and nothing is advertised before it works.
 Planning does not authorize spending, publication or foundation replacement.
 
@@ -60,20 +60,37 @@ The desktop says so plainly. See [spec 0013](docs/specs/0013-local-mvp.md).
 | M2b: dependent tasks                   | After daily workflow adoption.                                                                     | Explicit dependencies, bounded concurrency/repair, recovery and review evidence.                                                                                                                                                                           |
 | Later                                  | Advanced enterprise controls, Android and broader editor capabilities as justified.                | Separate product/acceptance decisions. No availability implied.                                                                                                                                                                                            |
 
-## Next actions and limits
+## Work queue
 
-1. Deliver L1 slice by slice, each as its own reviewed pull request with tests.
-   Changes to process launching, paths or Git commands get a dedicated security
-   review; the rules are in [spec 0013](docs/specs/0013-local-mvp.md#security-model).
-   The in-development [local hardening gate](docs/specs/0013-local-mvp.md#local-execution-hardening-in-development)
-   requires process-cleanup, crash-blocking, concurrent-workspace and evidence
-   regressions before expanding execution capabilities. Real CLI walkthroughs
-   and durable process recovery remain separate evidence requirements.
-2. Use Argent to build Argent now that L1.2 is in the app, and fix what that
-   exposes before adding scope. L1.3 (changes panel) is next.
-3. Keep the cloud simulations, custody and GitHub pilot code as they are; resume
+This is the order of work for the local MVP. Take the first item that is not
+done. Do not start a later item early, and do not add scope to an item: propose
+it instead (see [AGENTS.md](AGENTS.md#9-when-to-stop-and-ask)). Each item is one
+or more small pull requests with tests. Anything that launches a process,
+builds a path or runs Git gets a dedicated security review against the
+[security model](docs/specs/0013-local-mvp.md#security-model).
+
+| #   | Item                                 | Status   | Depends on                                                     | Done when                                                                                                                                                                                                                                                                   |
+| --- | ------------------------------------ | -------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Real run with the official CLI       | **Next** | A maintainer's signed-in Claude Code CLI. Maintainer go-ahead. | A maintainer completes real tasks in the desktop app on this repository: one in edits-only mode, one in full access, one cancelled mid-run, two workspaces in parallel. The walkthrough is recorded in spec 0013 by commit, with every defect found either fixed or listed. |
+| 2   | L1.3 changes panel                   | Planned  | Item 1.                                                        | The desktop shows the workspace's changed files and a bounded diff against its base, read through the service with trusted Git; untracked, renamed, deleted and binary files are handled; tests cover path traversal and oversized diffs.                                   |
+| 3   | L1.4 setup, run and test actions     | Planned  | Item 2. Security review.                                       | Commands come from a reviewed per-repository configuration the agent cannot change; a test result is recorded as evidence for the exact commit, separate from what the agent says; a later change marks it stale.                                                           |
+| 4   | L1.5 draft pull request and archive  | Planned  | Item 3. The developer's own `gh` sign-in.                      | Commit, push and a draft pull request through `gh`, with the URL recorded; an unknown outcome becomes `needs_attention` and is never retried; archive removes only a worktree Argent created, only when clean or explicitly discarded.                                      |
+| 5   | Process reconciliation after a crash | Planned  | Items 1 to 4 may expose more cases.                            | After a hard service crash, Argent proves by process identity whether the earlier agent has stopped, and only then lets the developer continue the workspace. Required by the [hardening contract](docs/specs/0013-local-mvp.md#local-execution-hardening).                 |
+| 6   | L1.6 Codex and model choice          | Planned  | Items 1 to 4. Codex installed and signed in for testing.       | Codex runs through its official CLI with the same controls; agent chosen per workspace, model per run, for both agents.                                                                                                                                                     |
+| 7   | L1 exit evidence                     | Planned  | Items 1 to 6.                                                  | The [exit evidence](docs/specs/0013-local-mvp.md#exit-evidence-for-l1) in spec 0013, including one pull request created through Argent and merged by a person.                                                                                                              |
+| 8   | Desktop distribution                 | After L1 | Item 7. Maintainer authorization for signing and publishing.   | Signed and notarized macOS build, checksum, versioned release; the website's claims match that release.                                                                                                                                                                     |
+
+Already done and not to be redone: L1.1, L1.2, the
+[local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening) and
+the [desktop restyle](docs/specs/0015-desktop-restyle.md).
+
+## Limits
+
+1. Keep the cloud simulations, custody and GitHub pilot code as they are; resume
    M1 after L1 with the live gates in
    [spec 0010](docs/specs/0010-live-repository-pilot-gates.md) unchanged.
+2. Fake-CLI tests do not prove real behavior. A real CLI walkthrough and durable
+   process recovery are separate evidence requirements (items 1 and 5).
 
 Retain Electron and the current API/store/worker/adapter boundaries. No upstream
 fork, swarms or automatic merges. Never expose the local service beyond loopback.

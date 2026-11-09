@@ -6,7 +6,9 @@ These rules apply to every contributor: people and AI coding agents of any kind
 of truth. If a rule here conflicts with an agent's default habits, this file wins.
 
 Before making changes, read README.md, ARCHITECTURE.md, ROADMAP.md, the relevant
-`docs/specs/` file and docs/DECISIONS.md. Before completing substantial work,
+`docs/specs/` file and docs/DECISIONS.md. What to work on next, in order, is the
+[work queue](ROADMAP.md#work-queue); what you must not decide alone is
+[section 9](#9-when-to-stop-and-ask). Before completing substantial work,
 update the relevant specification, decision entry and documentation with the
 evidence, limits and next steps.
 
@@ -145,6 +147,40 @@ hosts or a managed multi-tenant service. Do not put SQLite on a network filesyst
   caused it, and report the result either way. Never delete or weaken a test to
   get a pass.
 - Report what actually ran, what passed, what failed and what was not checked.
+
+## 9. When to stop and ask
+
+Routine technical choices are yours: names, internal structure, test design,
+small refactors inside the task, fixing a defect you found in the code you are
+changing. Make them, and say what you chose and why in the pull request.
+
+Stop and ask the maintainers before you:
+
+- change what Argent is, who it is for, or how it is described (positioning,
+  the hero and headline claims, the name);
+- change the order or scope of milestones, add or drop a capability, or mark
+  something done whose exit evidence in ROADMAP.md is not met;
+- change a decision recorded as accepted in docs/DECISIONS.md, or resolve one
+  listed there as open;
+- weaken or work around the local security model in spec 0013, expose the
+  service beyond loopback, or let a hosted component execute repository code;
+- replace the foundation (engine, store, desktop shell) or add a runtime
+  dependency to the engine;
+- spend money or create accounts or billable resources; sign, publish, deploy
+  or release anything; change repository settings;
+- run a real agent against a real account, contact anyone, or post anywhere;
+- delete, rewrite or discard work you did not create.
+
+When you ask, give the decision needed, the options, your recommendation and
+what you will do meanwhile. Then continue with whatever does not depend on the
+answer. A proposal is not a decision: until the maintainers accept it, the
+documents keep describing the approved plan, and the proposal is labelled as a
+proposal wherever it is written down.
+
+A task is finished when its "done when" in the [work queue](ROADMAP.md#work-queue)
+is met, the tests for it exist and pass, section 8 has been followed, and every
+surface in section 2 agrees with the result. "It compiles" and "the fake passes"
+are not "it works": say which of the two you have shown.
 
 ## Before you push
 
