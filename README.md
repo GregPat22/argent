@@ -22,8 +22,10 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   the ordered event history from its last cursor.
 - **Safe failure handling.** If a worker disappears mid-run, the run becomes
   `needs_attention`. Argent never retries something that may already have
-  happened; a person reviews it first. Interrupted real local runs require
-  process reconciliation before their workspace can accept more work.
+  happened; a person reviews it first. The
+  [hardening work in development](docs/specs/0013-local-mvp.md#local-execution-hardening-in-development)
+  requires process reconciliation before an interrupted real workspace can
+  accept more work.
 - **Independent evidence.** A run completes only after Argent checks the result
   itself instead of trusting the agent: for a local Claude Code run, the branch,
   commit, changed files and a SHA-256 of the diff (recorded, not tested); for a
@@ -76,13 +78,19 @@ automatic merging are explicitly out of scope for now.
 - **Self-hosting is first-class.** The core is MIT-licensed and runs without our
   servers or any particular model provider. A managed cloud, if offered, would
   run the same core.
-- **Credentials stay separate.** Model credentials, GitHub credentials and cloud
-  credentials are kept apart, and agents never inherit the host's credentials.
+- **Credentials stay separate.** Agents use their official local sign-in and
+  receive an allowlisted environment without provider API keys or host tokens.
+  Local execution still has the developer's filesystem and credential access.
 
 ## Quick start
 
 You need Node.js **22.19.0** or a later 22.x release, npm 10.9.3 and Git. No
 Docker, cloud account or model key is needed.
+
+For real tasks, install and sign in to the official Claude Code CLI. The
+[local hardening contract](docs/specs/0013-local-mvp.md#local-execution-hardening-in-development)
+adds a minimum CLI version check, bounded output and explicit rejection of
+repositories containing submodules. These safeguards are in development.
 
 ```sh
 git clone https://github.com/GregPat22/argent.git

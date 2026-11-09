@@ -162,7 +162,9 @@ notice; real-agent labels replace simulation labels only for real workspaces.
 - The activity view labels agent text, tool calls, tool errors and status lines;
   the verification view shows the worktree record as "NOT TESTED".
 - Resolving an interrupted real run records `abandon_run` with
-  `simulation: false` instead of the simulation labels.
+  `simulation: false` instead of the simulation labels in the initial
+  implementation. The hardening contract below removes this unsafe resolution
+  path: a note does not prove that the previous process has stopped.
 - The desktop service now receives `USER`, `LOGNAME`, `SHELL`, `LANG`, `LC_ALL`,
   `LC_CTYPE`, `TERM`, `CLAUDE_CONFIG_DIR` and `ARGENT_CLAUDE_PATH` from the app, so
   the CLI can find its sign-in when Argent is opened from Finder. The agent still
@@ -232,6 +234,14 @@ Acceptance criteria, 9 November 2026, based on main `241e6e6`:
    Unsafe or oversized inputs fail verification instead of producing partial proof.
 6. Workspace creation has one mutation owner; refresh cannot permit duplicate
    dispatch. Every persisted transcript event remains reachable in the desktop.
+7. Before task dispatch, the official CLI must report version 2.1.259 or newer,
+   which introduced the required noninteractive permission setting in the
+   [official release](https://github.com/anthropics/claude-code/releases/tag/v2.1.259).
+   The probe has
+   a five-second deadline and a 1 KiB output bound. A refusal dispatches no task.
+8. JSONL input is validated before interpretation, with a 1 MiB event limit and
+   64 MiB total stream limit. Malformed events or success results fail the run;
+   every failure still waits for process cleanup before settlement.
 
 A real model-backed walkthrough and durable process reconciliation after a hard
 service crash remain separate requirements; fake-CLI tests do not prove them.
@@ -247,6 +257,9 @@ Trusted Git ignores global/system configuration and clears configured local or
 included clean/smudge/process filters per invocation; it does not alter repository
 configuration. Like the rest of local mode, this is not protection against a
 host owner concurrently rewriting configuration or filesystem state.
+Submodules are rejected before workspace checkout, agent dispatch and evidence
+inspection: a parent repository's filter overrides do not neutralize nested
+configuration. No successful record may silently omit submodule content.
 
 The in-development desktop dispatcher uses two execution slots. Each slot makes
 an atomic store claim; the workspace uniqueness constraint is unchanged. Shutdown
