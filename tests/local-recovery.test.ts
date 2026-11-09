@@ -59,6 +59,7 @@ test(
     writeFileSync(
       cli,
       `#!${process.execPath}
+if (process.argv.includes('--version')) { console.log('2.1.259 (Claude Code)'); process.exit(0); }
 const fs = require('node:fs');
 process.stdout.on('error', () => {});
 process.stdin.resume();

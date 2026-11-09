@@ -6,6 +6,7 @@ import { untrackedManifest } from "./worktree-evidence.js";
 import type { WorkspaceAdapter } from "./adapters.js";
 import {
   DomainError,
+  UncertainExecutionError,
   requireString,
   type Run,
   type Workspace,
@@ -22,6 +23,37 @@ async function text(
   signal?: AbortSignal,
 ): Promise<string> {
   return (await git(cwd, args, undefined, signal)).toString("utf8").trim();
+}
+
+/** Inspect only tree/index entries: never recurse into a submodule worktree. */
+async function rejectSubmodules(
+  directory: string,
+  revisions: string[],
+  signal?: AbortSignal,
+): Promise<void> {
+  const commands = [
+    ["ls-files", "--stage", "-z"],
+    ...[...new Set(revisions)].map((revision) => [
+      "ls-tree",
+      "-r",
+      "-z",
+      "--full-tree",
+      revision,
+    ]),
+  ];
+  for (const args of commands) {
+    const entries = await git(directory, args, 8 << 20, signal);
+    if (
+      entries
+        .toString("utf8")
+        .split("\0")
+        .some((entry) => entry.startsWith("160000 "))
+    )
+      throw new DomainError(
+        409,
+        "Submodules are not supported in local workspaces; no checkout or worktree evidence is produced",
+      );
+  }
 }
 
 /** Validates a local repository and returns its real top-level path and HEAD. */
@@ -59,6 +91,7 @@ export async function inspectRepository(path: unknown): Promise<{
     throw new DomainError(400, "Repository has no commits yet");
   }
   if (!SHA.test(head)) throw new DomainError(409, "Unexpected HEAD format");
+  await rejectSubmodules(real, [head]);
   return { path: real, head };
 }
 
@@ -87,16 +120,17 @@ export async function createLocalWorkspace(
   const id = randomUUID();
   const branch = `argent/${id.slice(0, 8)}`;
   const worktreePath = join(root, id);
-  await git(repository.path, [
-    "worktree",
-    "add",
-    "--quiet",
-    "-b",
-    branch,
-    worktreePath,
-    repository.head,
-  ]);
+  // Establish ownership separately: a name collision must never cause cleanup
+  // to delete a branch that already existed before this request.
+  await git(repository.path, ["branch", branch, repository.head]);
   try {
+    await git(repository.path, [
+      "worktree",
+      "add",
+      "--quiet",
+      worktreePath,
+      branch,
+    ]);
     return store.createLocalWorkspace(
       id,
       {
@@ -108,6 +142,8 @@ export async function createLocalWorkspace(
       randomUUID(),
     );
   } catch (error) {
+    // Never race an external operation whose termination is unconfirmed.
+    if (error instanceof UncertainExecutionError) throw error;
     // Only remove what this call created: the new worktree and its new branch.
     try {
       await git(repository.path, [
@@ -116,9 +152,15 @@ export async function createLocalWorkspace(
         "--force",
         worktreePath,
       ]);
-      await git(repository.path, ["branch", "-D", branch]);
-    } catch {
+    } catch (cleanupError) {
+      if (cleanupError instanceof UncertainExecutionError) throw cleanupError;
       // Leave any remainder for the developer; never widen the deletion.
+    }
+    try {
+      await git(repository.path, ["branch", "-D", branch]);
+    } catch (cleanupError) {
+      if (cleanupError instanceof UncertainExecutionError) throw cleanupError;
+      // Git refuses to remove a branch still checked out in a leftover worktree.
     }
     throw error;
   }
@@ -156,6 +198,7 @@ export class LocalWorktreeWorkspace implements WorkspaceAdapter {
         409,
         `Worktree is on ${branch}, expected ${local.branch}`,
       );
+    await rejectSubmodules(local.worktreePath, ["HEAD", local.baseSha], signal);
     return local.worktreePath;
   }
 
@@ -185,6 +228,7 @@ export class LocalWorktreeWorkspace implements WorkspaceAdapter {
     );
     if (branch !== local.branch)
       throw new DomainError(409, "Worktree branch changed during execution");
+    await rejectSubmodules(directory, [headSha, local.baseSha], signal);
     // Tracked changes against the base (committed or not), plus untracked files.
     const diff = await git(
       directory,
@@ -221,6 +265,7 @@ export class LocalWorktreeWorkspace implements WorkspaceAdapter {
     for (const file of untracked.toString("utf8").split("\0"))
       if (file) changed.add(file);
     const manifest = await untrackedManifest(directory, untracked, signal);
+    await rejectSubmodules(directory, ["HEAD", local.baseSha], signal);
     signal?.throwIfAborted();
     return {
       kind: "worktree-record",

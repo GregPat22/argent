@@ -1,4 +1,4 @@
-import { DomainError } from "./domain.js";
+import { DomainError, UncertainExecutionError } from "./domain.js";
 import { captureProcess } from "./process-group.js";
 
 const SAFE_GIT = [
@@ -14,6 +14,14 @@ const SAFE_GIT = [
   "protocol.allow=never",
   "-c",
   "credential.helper=",
+  "-c",
+  "submodule.recurse=false",
+  "-c",
+  "diff.submodule=short",
+  // Callers reject gitlinks before recording evidence. Never let even a dirty
+  // submodule probe start child Git with its own, uninspected filter config.
+  "-c",
+  "diff.ignoreSubmodules=all",
 ];
 function environment(): NodeJS.ProcessEnv {
   return {
@@ -55,14 +63,21 @@ export async function git(
     "-c",
     `${name}=${name.endsWith(".required") ? "false" : ""}`,
   ]);
+  // Unlike diff.ignoreSubmodules, this option also overrides per-submodule
+  // ignore=none. Evidence callers reject all gitlinks rather than omit them.
+  const commandArgs =
+    args[0] === "diff"
+      ? ["diff", "--ignore-submodules=all", ...args.slice(1)]
+      : args;
   try {
     return await captureProcess(
       "git",
-      [...SAFE_GIT, ...overrides, ...args],
+      [...SAFE_GIT, ...overrides, ...commandArgs],
       options,
       { signal, maxBuffer },
     );
   } catch (error) {
+    if (error instanceof UncertainExecutionError) throw error;
     if (signal?.aborted) signal.throwIfAborted();
     if (error instanceof DomainError) throw error;
     throw new DomainError(409, `Git ${args[0]} failed`);
