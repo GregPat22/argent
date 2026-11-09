@@ -10,6 +10,7 @@ import {
 } from "../src/adapters.js";
 import { Store } from "../src/store.js";
 import { Worker } from "../src/worker.js";
+import { UncertainExecutionError } from "../src/domain.js";
 import { runWorkers } from "../src/worker-pool.js";
 import { setTimeout as delay } from "node:timers/promises";
 
@@ -165,4 +166,50 @@ test("dispatch is bounded and shutdown drains every active slot", async (t) => {
       .length,
     2,
   );
+});
+
+test("uncertain process cleanup takes precedence over requested cancellation", async (t) => {
+  const agent: AgentAdapter = {
+    async *execute(_run, _directory, signal) {
+      yield "started";
+      try {
+        await delay(10000, undefined, { signal });
+      } finally {
+        throw new UncertainExecutionError();
+      }
+    },
+  };
+  const f = fixture(t, agent);
+  const run = f.store.createRun(f.workspace.id, "wait", "uncertain");
+  const running = f.worker.tick();
+  await delay(10);
+  f.store.cancel(run.id);
+  await running;
+  assert.equal(f.store.getRun(run.id).status, "needs_attention");
+  assert.match(
+    String(f.store.events(run.id).at(-1)!.data.reason),
+    /termination is unconfirmed/,
+  );
+});
+
+test("a rejected log cannot hide uncertainty from iterator cleanup", async (t) => {
+  const agent: AgentAdapter = {
+    async *execute(run) {
+      try {
+        f.store.cancel(run.id);
+        yield "late log";
+      } finally {
+        throw new UncertainExecutionError();
+      }
+    },
+  };
+  const f = fixture(t, agent);
+  const run = f.store.createRun(f.workspace.id, "wait", "late-log");
+  await f.worker.tick();
+  assert.equal(f.store.getRun(run.id).status, "needs_attention");
+  assert.match(
+    String(f.store.events(run.id).at(-1)!.data.reason),
+    /termination is unconfirmed/,
+  );
+  assert.throws(() => f.store.createRun(f.workspace.id, "again", "retry"));
 });

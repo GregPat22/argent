@@ -56,14 +56,21 @@ export class Worker {
         controller.signal,
       );
       controller.signal.throwIfAborted();
-      for await (const message of adapters.agent.execute(
-        run,
-        directory,
-        controller.signal,
-      )) {
-        controller.signal.throwIfAborted();
-        const line = normalize(message);
-        this.store.appendLog(run.id, token, line.text, undefined, line.kind);
+      const iterator = adapters.agent
+        .execute(run, directory, controller.signal)
+        [Symbol.asyncIterator]();
+      try {
+        for (;;) {
+          const next = await iterator.next();
+          if (next.done) break;
+          controller.signal.throwIfAborted();
+          const line = normalize(next.value);
+          this.store.appendLog(run.id, token, line.text, undefined, line.kind);
+        }
+      } finally {
+        // Explicitly await cleanup: for-await preserves a consumer error over
+        // an IteratorClose error, which can hide unconfirmed process termination.
+        await iterator.return?.();
       }
       controller.signal.throwIfAborted();
       const current = this.store.getRun(run.id);
@@ -105,11 +112,13 @@ export class Worker {
               : "failed";
         this.store.finish(run.id, token, status, {
           reason:
-            typeof reason === "string"
-              ? reason
-              : error instanceof DomainError
-                ? error.message
-                : "adapter_or_verification_failed",
+            error instanceof UncertainExecutionError
+              ? error.message
+              : typeof reason === "string"
+                ? reason
+                : error instanceof DomainError
+                  ? error.message
+                  : "adapter_or_verification_failed",
         });
       }
     } finally {

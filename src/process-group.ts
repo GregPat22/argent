@@ -60,12 +60,20 @@ export function launchProcess(
     detached: true,
     stdio: ["pipe", "pipe", "pipe"],
   });
-  const exited = new Promise<{ code: number | null; error?: Error }>(
+  const closed = new Promise<{ code: number | null; error?: Error }>(
     (resolve) => {
       child.once("error", (error) => resolve({ code: null, error }));
       child.once("close", (code) => resolve({ code }));
     },
   );
+  let rejectStop: (error: unknown) => void = () => {};
+  const stopFailure = new Promise<never>((_resolve, reject) => {
+    rejectStop = reject;
+  });
+  const exited = Promise.race([closed, stopFailure]);
+  // A stop may fail while a generator is suspended at a yield. Keep that
+  // rejection observed until its owner resumes and disposes the execution.
+  void exited.catch(() => {});
   let stopping: Promise<void> | undefined;
   function stop(): Promise<void> {
     stopping ??= (async () => {
@@ -90,7 +98,17 @@ export function launchProcess(
         child.stdout.destroy();
         child.stderr.destroy();
       }
-    })();
+    })().catch((error: unknown) => {
+      // A failed liveness inspection must not leave capture waiting forever for
+      // a close event from the very process whose termination is uncertain.
+      try {
+        signalGroup(child.pid, "SIGKILL");
+      } catch {
+        /* still uncertain */
+      }
+      rejectStop(error);
+      throw error;
+    });
     return stopping;
   }
   const abort = () => {
