@@ -277,3 +277,19 @@ older page until the user returns to the latest events. Workspace creation share
 the existing mutation lock, including native-dialog cancellation and refresh.
 Renderer regressions cover duplicate synthetic clicks and access to both ends of
 a transcript longer than one page.
+
+### Hardening evidence
+
+Recorded 9 November 2026 at `8183ff8`, after integrating main `176384a`:
+`npm run check` passes strict types, formatting and the complete suite. Real
+temporary Git repositories and fake CLI processes exercise resistant descendants,
+early-reader failures, uncertain cleanup, service death, bounded parallel runs,
+unsafe filters/submodules, malformed output and content-bound evidence. Compiled
+renderer tests cover retained history, keyboard paging, duplicate creation and
+the blocked real-run recovery flow. The native Electron smoke passes the
+restyled desktop, local fixture execution, cancellation and service reconnection.
+
+These tests call no model. They do not establish recovery of a process that
+escaped its original group, durable reconciliation after a hard service crash,
+an immutable filesystem snapshot or production sandbox isolation. A real CLI
+walkthrough remains required before claiming the complete local MVP exit gate.
