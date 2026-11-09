@@ -10,8 +10,12 @@ import {
 } from "./domain.js";
 
 export interface WorkspaceAdapter {
-  prepare(workspace: Workspace): string;
-  verify(directory: string, run: Run): Evidence;
+  prepare(workspace: Workspace, signal?: AbortSignal): string | Promise<string>;
+  verify(
+    directory: string,
+    run: Run,
+    signal?: AbortSignal,
+  ): Evidence | Promise<Evidence>;
 }
 
 /** One line of agent output. Plain strings are agent text. */

@@ -235,3 +235,15 @@ Acceptance criteria, 9 November 2026, based on main `241e6e6`:
 
 A real model-backed walkthrough and durable process reconciliation after a hard
 service crash remain separate requirements; fake-CLI tests do not prove them.
+
+Hardening verification contract: version 2 worktree records hash the tracked
+binary diff and a deterministic untracked manifest (path, Git file mode and
+SHA-256 of bytes, or of a symlink target without following it). Reads are bounded
+at 16 MiB per regular file, 64 MiB total and 10,000 untracked entries. Special
+files supplied to the reader, hardlinks, parent symlinks and files changing during
+inspection are rejected. This records Git-visible content, not ignored files or
+an immutable filesystem snapshot. Existing versionless records remain historical.
+Trusted Git ignores global/system configuration and clears configured local or
+included clean/smudge/process filters per invocation; it does not alter repository
+configuration. Like the rest of local mode, this is not protection against a
+host owner concurrently rewriting configuration or filesystem state.

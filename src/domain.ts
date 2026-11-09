@@ -80,6 +80,8 @@ export interface WorktreeEvidence {
   headSha: string;
   changedFiles: number;
   diffSha256: string;
+  /** Version 2 also binds untracked file contents and types. */
+  contentHashVersion?: 2;
 }
 
 export type Evidence = SimulationEvidence | WorktreeEvidence;

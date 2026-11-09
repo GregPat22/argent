@@ -51,7 +51,11 @@ export class Worker {
       const adapters = real
         ? this.local!
         : { workspace: this.workspaces, agent: this.agent };
-      const directory = adapters.workspace.prepare(workspace);
+      const directory = await adapters.workspace.prepare(
+        workspace,
+        controller.signal,
+      );
+      controller.signal.throwIfAborted();
       for await (const message of adapters.agent.execute(
         run,
         directory,
@@ -68,7 +72,12 @@ export class Worker {
           reason: "user_cancelled",
         });
       } else {
-        const evidence = adapters.workspace.verify(directory, run);
+        const evidence = await adapters.workspace.verify(
+          directory,
+          run,
+          controller.signal,
+        );
+        controller.signal.throwIfAborted();
         this.store.finish(
           run.id,
           token,

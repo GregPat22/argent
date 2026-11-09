@@ -109,3 +109,54 @@ export function launchProcess(
     },
   };
 }
+
+/** Collect bounded output without blocking service requests or lease heartbeats. */
+export async function captureProcess(
+  command: string,
+  args: string[],
+  options: SpawnOptionsWithoutStdio,
+  limits: {
+    signal?: AbortSignal | undefined;
+    maxBuffer?: number;
+    timeoutMs?: number;
+    allowedExitCodes?: number[];
+  } = {},
+): Promise<Buffer> {
+  const controller = new AbortController();
+  const signal = limits.signal
+    ? AbortSignal.any([limits.signal, controller.signal])
+    : controller.signal;
+  const timer = setTimeout(
+    () => controller.abort("process_timeout"),
+    limits.timeoutMs ?? 30000,
+  );
+  const output: Buffer[] = [];
+  let bytes = 0;
+  let execution: ReturnType<typeof launchProcess> | undefined;
+  try {
+    execution = launchProcess(command, args, options, signal, 100);
+    execution.child.stdin.on("error", () => {});
+    execution.child.stdin.end();
+    execution.child.stdout.on("data", (chunk: Buffer) => {
+      bytes += chunk.length;
+      if (bytes > (limits.maxBuffer ?? 1 << 20))
+        controller.abort("process_output_limit");
+      else output.push(chunk);
+    });
+    // Error output is deliberately discarded: configuration and repository
+    // errors may contain secrets. Report a fixed command failure instead.
+    execution.child.stderr.resume();
+    const result = await execution.exited;
+    signal.throwIfAborted();
+    if (
+      result.error ||
+      result.code === null ||
+      !(limits.allowedExitCodes ?? [0]).includes(result.code)
+    )
+      throw new Error("Process failed");
+    return Buffer.concat(output);
+  } finally {
+    clearTimeout(timer);
+    await execution?.dispose();
+  }
+}
