@@ -31,7 +31,7 @@ async function until(check: () => boolean | Promise<boolean>) {
 }
 
 test(
-  "a service crash cannot unlock a worktree while its old agent is writing",
+  "local workspaces execute concurrently and remain blocked after a service crash",
   { timeout: 25000 },
   async () => {
     const root = realpathSync(mkdtempSync(join(tmpdir(), "argent-recovery-")));
@@ -63,7 +63,7 @@ const fs = require('node:fs');
 process.stdout.on('error', () => {});
 process.stdin.resume();
 process.stdin.on('end', () => {
-  fs.writeFileSync(${JSON.stringify(pidFile)}, String(process.pid));
+  fs.appendFileSync(${JSON.stringify(pidFile)}, String(process.pid) + "\\n");
   setInterval(() => fs.appendFileSync('writes', 'x'), 20);
 });
 `,
@@ -115,6 +115,40 @@ process.stdin.on('end', () => {
           existsSync(pidFile) &&
           existsSync(join(workspace.local!.worktreePath, "writes")),
       );
+      const other = (await serviceRequest(connection!, "/workspaces", "POST", {
+        source: "local",
+        path: repo,
+      })) as Workspace;
+      const second = (await serviceRequest(
+        connection!,
+        "/runs",
+        "POST",
+        { workspaceId: other.id, task: "parallel" },
+        "parallel",
+      )) as RunView;
+      await until(
+        () => readFileSync(pidFile, "utf8").trim().split("\n").length === 2,
+      );
+      assert.equal(
+        ((await serviceRequest(connection!, `/runs/${run.id}`)) as RunView)
+          .status,
+        "running",
+      );
+      assert.equal(
+        ((await serviceRequest(connection!, `/runs/${second.id}`)) as RunView)
+          .status,
+        "running",
+      );
+      await assert.rejects(
+        serviceRequest(
+          connection!,
+          "/runs",
+          "POST",
+          { workspaceId: workspace.id, task: "overlap" },
+          "overlap",
+        ),
+        /active or uncertain/,
+      );
       const gone = once(service!, "exit");
       service!.kill("SIGKILL");
       await gone;
@@ -124,7 +158,10 @@ process.stdin.on('end', () => {
           ((await serviceRequest(connection!, `/runs/${run.id}`)) as RunView)
             .status === "needs_attention",
       );
-      process.kill(Number(readFileSync(pidFile, "utf8")), 0);
+      process.kill(
+        Number(readFileSync(pidFile, "utf8").trim().split("\n")[0]),
+        0,
+      );
       await assert.rejects(
         serviceRequest(connection!, `/runs/${run.id}/resolve`, "POST", {
           note: "Inspected files",
@@ -148,10 +185,15 @@ process.stdin.on('end', () => {
       );
     } finally {
       if (existsSync(pidFile)) {
-        try {
-          process.kill(-Number(readFileSync(pidFile, "utf8")), "SIGKILL");
-        } catch {
-          /* fixture already stopped */
+        for (const pid of readFileSync(pidFile, "utf8")
+          .trim()
+          .split("\n")
+          .map(Number)) {
+          try {
+            process.kill(-pid, "SIGKILL");
+          } catch {
+            /* fixture already stopped */
+          }
         }
       }
       if (service && service.exitCode === null && service.signalCode === null) {

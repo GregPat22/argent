@@ -247,3 +247,9 @@ Trusted Git ignores global/system configuration and clears configured local or
 included clean/smudge/process filters per invocation; it does not alter repository
 configuration. Like the rest of local mode, this is not protection against a
 host owner concurrently rewriting configuration or filesystem state.
+
+The in-development desktop dispatcher uses two execution slots. Each slot makes
+an atomic store claim; the workspace uniqueness constraint is unchanged. Shutdown
+signals every slot and waits for all cleanup before closing the store. The
+standalone simulation worker retains one slot. Regression coverage requires both
+overlapping real-process fixtures and a third queued run at the concurrency limit.

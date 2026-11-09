@@ -10,6 +10,8 @@ import {
 } from "../src/adapters.js";
 import { Store } from "../src/store.js";
 import { Worker } from "../src/worker.js";
+import { runWorkers } from "../src/worker-pool.js";
+import { setTimeout as delay } from "node:timers/promises";
 
 function fixture(t: TestContext, agent: AgentAdapter = new ScriptedAgent(5)) {
   const root = mkdtempSync(join(tmpdir(), "platform-worker-"));
@@ -113,4 +115,54 @@ test("event budget bounds noisy adapters", async (t) => {
     cursor = events.at(-1)!.cursor;
   }
   assert.equal(count, 100);
+});
+
+test("dispatch is bounded and shutdown drains every active slot", async (t) => {
+  let live = 0;
+  let peak = 0;
+  const agent: AgentAdapter = {
+    async *execute(_run, _directory, signal) {
+      live++;
+      peak = Math.max(peak, live);
+      try {
+        yield "started";
+        await delay(10000, undefined, { signal });
+      } finally {
+        await delay(50);
+        live--;
+      }
+    },
+  };
+  const f = fixture(t, agent);
+  const spaces = [
+    f.workspace,
+    f.store.createWorkspace("https://github.com/example/two"),
+    f.store.createWorkspace("https://github.com/example/three"),
+  ];
+  const runs = spaces.map((space, i) =>
+    f.store.createRun(space.id, "wait", String(i), 30000),
+  );
+  const shutdown = new AbortController();
+  const running = runWorkers(f.worker, shutdown.signal, 2);
+  try {
+    const end = Date.now() + 2000;
+    while (live < 2) {
+      assert.ok(Date.now() < end);
+      await delay(10);
+    }
+    assert.equal(
+      runs.filter((run) => f.store.getRun(run.id).status === "queued").length,
+      1,
+    );
+    assert.equal(peak, 2);
+  } finally {
+    shutdown.abort();
+    await running;
+  }
+  assert.equal(live, 0);
+  assert.equal(
+    runs.filter((run) => f.store.getRun(run.id).status === "needs_attention")
+      .length,
+    2,
+  );
 });
