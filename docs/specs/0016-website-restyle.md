@@ -100,8 +100,8 @@ On the final content, 10 November 2026:
   resize, and the test waited on a transition to finish. It reproduced locally
   under heavy processor load. The resting positions at phone and tablet width
   are now a separate test on a fresh page with motion reduced, and the
-  behaviour test allows longer for each step; both pass 8 times out of 8 under
-  that load.
+  behaviour test allows longer for each step; each passed 4 runs out of 4
+  under that load.
 - Looked at in headless Chromium at 1440, 768 and 390 px, every section, and
   compared with the page before the change.
 - Motion: the new animations were classified by hand against Motion's
