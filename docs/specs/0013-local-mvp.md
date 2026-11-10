@@ -144,6 +144,29 @@ What Argent guarantees in local mode:
   test command, no archive; a conversation whose CLI process died before
   announcing its session is not recovered automatically.
 
+#### Failure-summary regression (in development)
+
+Acceptance criteria, 10 November 2026, based on main `a9bc431`:
+
+1. A usage-limit result with subtype `success`, `is_error: true` and exit code
+   1 must remain `failed`, with no verification record. The summary must read
+   "Claude Code failed (exit 1)." without repeating the CLI's internal subtype.
+2. The provider explanation and earlier conversation remain bounded, untrusted
+   transcript text. Provider markup must not become executable UI content or
+   part of Argent's failure summary.
+3. A nonzero exit, an error result, a non-success subtype or a missing result
+   must still fail. A successful run still requires independent worktree evidence.
+4. Reading history or ticking the worker must not retry a failed run. An explicit
+   follow-up resumes the same initialized session and keeps the earlier turn;
+   edits-only defaults and explicit full-access permissions remain unchanged.
+
+Regression coverage uses fake CLI processes in `tests/local-worktree.test.ts`
+and the compiled renderer in `tests/renderer-safety.test.ts`. These fixtures
+exercise contradictory result fields, stderr fallback, hostile subtype/text,
+retained history and explicit follow-up permissions. They call no model and do
+not replace the pending real-CLI cancellation and parallel-workspace walkthrough
+or complete the roadmap's first gate.
+
 ### L1.2 desktop on real execution
 
 Add-repository and create-workspace controls; the session view renders real
