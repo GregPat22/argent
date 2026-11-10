@@ -52,7 +52,7 @@ const PROMISES: {
     title: "Nothing advertised before it works.",
     body: "Every claim on this page is labelled works today, in development or planned, and matches the code on GitHub.",
     status: "policy",
-    subject: "Project rule",
+    subject: "Honest labels",
   },
 ];
 
@@ -149,7 +149,10 @@ export function Manifesto() {
         ))}
       </ul>
 
-      <div className="silver-surface mt-16 grid gap-8 rounded-3xl border border-hairline-strong p-8 md:grid-cols-2 md:p-10">
+      <div
+        data-light
+        className="silver-surface mt-16 grid gap-8 rounded-3xl p-8 md:grid-cols-2 md:p-10"
+      >
         <div>
           <h3 className="display text-[1.75rem] tracking-[-0.04em]">
             Free, for anyone who runs it.

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { StatusTag } from "@/components/ui";
-import { LOCAL_MVP_URL } from "@/lib/site";
+import { LOCAL_MVP_URL, type Status } from "@/lib/site";
 
 /*
  * The local MVP workflow in three plates. Each plate carries a small object
@@ -93,21 +93,31 @@ function EvidenceObject() {
   );
 }
 
-const STEPS: { title: string; body: string; object: ReactNode }[] = [
+// Each step says whether it works on main today, so the workflow is never
+// read as one finished feature.
+const STEPS: {
+  title: string;
+  body: string;
+  object: ReactNode;
+  status: Status;
+}[] = [
   {
     title: "Describe the work.",
-    body: "Write the outcome you want and the checks that would prove it. Plain language is enough.",
+    body: "Choose a repository and write the outcome you want. Plain language is enough.",
     object: <BriefObject />,
+    status: "live",
   },
   {
     title: "Agents run side by side.",
     body: "Each task gets its own branch and Git worktree of your repository, so parallel agents never overwrite each other. Follow every session live, send follow-ups, or stop it.",
     object: <BranchObject />,
+    status: "live",
   },
   {
     title: "Review the evidence. Then merge.",
     body: "See the real diff and the test results recorded for the exact commit, separate from what the agent says. Argent opens a draft pull request; merging is always your call.",
     object: <EvidenceObject />,
+    status: "next",
   },
 ];
 
@@ -147,10 +157,10 @@ export function HowItWorks() {
           You hold the baton.
         </h2>
         <p className="max-w-[34rem] text-sterling md:col-span-5">
-          This is the workflow of the local MVP, the first release. It runs real
-          agents on your own computer through their official command-line tools
+          This is the workflow of the local MVP, the first release. Real agents
+          run on your own computer, through their official command-line tools
           and your own sign-in: Claude Code first, then Codex in the first
-          update, with the model of your choice.
+          update. The first two steps work today; the third is being built.
         </p>
       </div>
 
@@ -160,7 +170,7 @@ export function HowItWorks() {
         className="hiw-list mt-14 grid gap-5 lg:grid-cols-3"
       >
         {STEPS.map((step, index) => (
-          <li key={step.title} className="hiw-plate silver-surface">
+          <li key={step.title} className="hiw-plate silver-surface" data-light>
             {step.object}
             <div className="mt-8 flex items-baseline gap-3">
               <span className="font-mono text-xs text-sterling-dim">
@@ -173,11 +183,14 @@ export function HowItWorks() {
             <p className="mt-3 text-[0.9375rem] leading-relaxed text-sterling">
               {step.body}
             </p>
+            <div className="mt-auto pt-6">
+              <StatusTag status={step.status} />
+            </div>
           </li>
         ))}
       </ol>
 
-      <div className="mt-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="mt-10">
         <p className="max-w-[44rem] text-[0.9375rem] text-sterling-dim">
           Illustrative example. Local mode is not a sandbox: an agent has the
           same access as running it in your terminal, and a worktree separates
@@ -192,7 +205,6 @@ export function HowItWorks() {
           </a>
           .
         </p>
-        <StatusTag status="next" subject="Local MVP" />
       </div>
     </section>
   );

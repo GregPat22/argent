@@ -69,11 +69,30 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
   2/8/18/18/1 electrons match neutral silver
   ([NIST data](https://physics.nist.gov/PhysRefData/Handbook/Tables/silvertable1.htm)).
   It stops offscreen and renders a still frame under reduced motion.
-- **Sections.** Below the hero: the conductor statement (with the atom), the
-  journey (desktop → remote workspace → phone), how it works, the agents, proof
-  (hallmarks), the open-source manifesto, the roadmap (the one place that lists
-  what works today and what doesn't), the FAQ, try it (`#run`) and the final
-  call to action (`#join`).
+- **Sections.** Below the hero, proof leads and plans come last: the conductor
+  statement (with the atom and the three problems, the unproven claim first),
+  proof (the claim-versus-record slider, what is recorded today next to what is
+  planned, and the four hallmarks), how it works, the agents, the open-source
+  manifesto, the journey (desktop → remote workspace → phone), the roadmap
+  (the one place that lists what works today and what doesn't), the FAQ, try
+  it (`#run`) and the final call to action (`#join`). The navigation lists its
+  links in the same order.
+- **Proof.** The four hallmarks are plates of silver. The two the desktop app
+  strikes today (maker's mark, date letter) land with a blow and a flash; the
+  two that wait for checks (standard mark, assay mark) are blank plates with
+  the mark only scribed. Keep them in step with the app's record
+  ([spec 0015](../docs/specs/0015-desktop-restyle.md)). Each how-it-works step
+  carries its own status for the same reason.
+- **One metal.** Plates (`.silver-surface`) have a gradient edge instead of a
+  flat hairline. Surfaces marked `data-light` receive the pointer's position
+  from `src/components/pointer-light.tsx` (one listener, one write per frame,
+  only with a fine pointer) and CSS draws an edge and face highlight from it.
+  `--lx` and `--ly` are registered as non-inheriting and passed to the two
+  light pseudo-elements only, so a pointer move never restyles a plate's
+  content. Keep looping decoration on `transform` and `opacity`: the hero's
+  live dot pulses a ring that scales and fades, not a shadow.
+  The drops in the closing band and in the hero's no-WebGL fallback are stills
+  rendered from the hero's own shader; see `public/liquid/README.md`.
 - **Try it.** `#run` is where the hero's and the navigation's "try it" actions
   land. Two keyboard-operable tabs sit above one terminal: the desktop app
   (real Claude Code, from source) and the engine demo (simulated). Each tab
@@ -84,16 +103,25 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
   with `data-entrance-skip`; it owns its scroll-linked reveal. Looping
   decorations pause while their section is off screen
   (`src/components/section-activity.tsx`).
-- **Conversion.** The hero offers the concrete action first (try it locally)
-  with starring beside it. The page closes on its one request: star and watch
-  the repository (Watch → Custom → Releases), with following on X as the
-  secondary action. No email capture or backend. The drops in the closing band
-  lean toward the pointer; they rest under reduced motion and on touch.
+- **Conversion.** The hero states the promise once, offers the concrete action
+  first (try it locally) with starring beside it, and puts today's facts in a
+  status line under the buttons. The action is named "Try it locally" wherever
+  it appears, with a down arrow because it scrolls the page. Once the
+  navigation is compact, a pill at the top right repeats it; the pill rests
+  while the hero, `#run` or `#join` is on screen and while the menu is open.
+  The page closes on its one request: star and watch the repository (Watch →
+  Custom → Releases), with following on X as the secondary action. No email
+  capture or backend. The drops in the closing band lean toward the pointer;
+  they rest under reduced motion and on touch.
 - **Navigation.** The borderless navbar compacts after 120 px of scrolling to a
-  single logo at the top left, which reopens the links; it expands again near the
-  top (48 px). Focus follows the logo when scrolling hides a focused control.
-  Below about 1,416 px wide the compact logo floats over left-aligned copy, so
-  it carries a feathered halo (a radial fade, not a panel or border).
+  logo at the top left, which reopens the links, and the action pill at the top
+  right; it expands again near the top (48 px). Focus follows the logo when
+  scrolling hides a focused control. While compact, content fades out under a
+  short gradient at the top of the page (no panel, border or blur), so it never
+  collides with the logo or the pill; the logo keeps its feathered halo.
+- **Journey on phones.** Below 900 px the stage sticks under the header while
+  the three steps scroll beneath it, and the hand-off plays between the pin and
+  its release. On wide screens the whole stage pins as before.
 - **Motion.** The runtime uses only the public `motion` package. Some CSS springs
   were generated with Motion's tooling; there is no private package, and no
   credentials or private install URLs belong in this repository.
@@ -101,6 +129,8 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
 ## Tests
 
 Playwright launches the built site on loopback port 3100. The suite covers
+the section order, the hero's promise and status line, the compact action pill,
+the hallmarks and their statuses, the pointer light, the journey on phones,
 keyboard navigation, responsive fit, the scroll-linked journey, the comparison slider,
 the try-it tabs and clipboard, reduced motion, the atom and liquid rendering,
 fallbacks and software-renderer governor, the headline's descenders, the
@@ -111,7 +141,8 @@ waits for the entrance to settle, and build before running the suite.
 ## Navigation regression contract
 
 The wordmark dock is 204×68 px when expanded and 68×68 px at top 12 px and
-left 20 px when compact. These dimensions come from the design implemented in
+left 20 px when compact. Compact navigation has exactly one button (the logo)
+and one link (the action pill to `#run`). These dimensions come from the design implemented in
 main `241e6e6`; the earlier 64→48 px assertions described an obsolete icon-only
 header. Tests require exact endpoints, an observed intermediate width, keyboard
 focus continuity, deep links and live reduced-motion changes. Updating these
