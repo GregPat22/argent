@@ -30,7 +30,7 @@ test("page hydrates cleanly and every section has a readable heading", async ({
     }),
   ).toBeVisible();
   const sections = page.locator("main > section");
-  await expect(sections).toHaveCount(10);
+  await expect(sections).toHaveCount(11);
   for (const section of await sections.all()) {
     await section.scrollIntoViewIfNeeded();
     await expect(section.locator("h1,h2").first()).toBeVisible();
@@ -291,7 +291,7 @@ test("hero centers the copy inside a field of interactive liquid silver", async 
     timeout: 15_000,
   });
   await expect(
-    page.getByRole("link", { name: "See where it’s going" }),
+    page.getByRole("link", { name: "Try it locally" }),
   ).toBeVisible();
 });
 
@@ -425,6 +425,20 @@ test("copy commands reports success and provides a failure fallback", async ({
     await page.evaluate(
       () => (window as unknown as { copiedCommands: string }).copiedCommands,
     ),
+  ).toContain("npm run desktop");
+  const terminal = page.locator("#run pre[aria-hidden]");
+  await expect(terminal).toContainText("Not a sandbox");
+  await page.getByRole("tab", { name: "Engine demo" }).click();
+  await expect(terminal).toContainText("limitations");
+  await expect(terminal).toContainText("No real repository");
+  await page.getByRole("button", { name: "Copy commands" }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Commands copied to clipboard.",
+  );
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { copiedCommands: string }).copiedCommands,
+    ),
   ).toContain("npm run demo");
   await page.evaluate(() =>
     Object.defineProperty(navigator.clipboard, "writeText", {
@@ -441,7 +455,6 @@ test("copy commands reports success and provides a failure fallback", async ({
   await expect(page.getByRole("status")).toContainText(
     "Select the commands in the terminal",
   );
-  const terminal = page.locator("#run pre[aria-hidden]");
   await expect(terminal).toContainText("limitations");
   expect(await terminal.evaluate((el) => getComputedStyle(el).overflowY)).toBe(
     "auto",
@@ -594,9 +607,9 @@ test("hero next steps fit the first mobile screen", async ({ page }) => {
     await page.setViewportSize({ width: width!, height: height! });
     await visit(page, "/");
     const hero = page.locator("#intro");
-    const demo = hero.getByRole("link", { name: "See where it’s going" });
+    const demo = hero.getByRole("link", { name: "Try it locally" });
     const github = hero.getByRole("link", { name: "Star Argent on GitHub" });
-    await expect(demo).toHaveAttribute("href", "#reconnect");
+    await expect(demo).toHaveAttribute("href", "#run");
     await expect(github).toHaveAttribute(
       "href",
       "https://github.com/GregPat22/argent",
@@ -607,9 +620,9 @@ test("hero next steps fit the first mobile screen", async ({ page }) => {
     expect(Math.abs(boxes[0]!.y - boxes[1]!.y)).toBeLessThan(2);
     expect(boxes[0]!.y + boxes[0]!.height).toBeLessThanOrEqual(height!);
     await demo.click();
-    await expect(page).toHaveURL(/#reconnect$/);
+    await expect(page).toHaveURL(/#run$/);
     await expect(
-      page.getByRole("heading", { name: /Start at your desk/ }),
+      page.getByRole("heading", { name: /Run it on/ }),
     ).toBeInViewport();
   }
 });
@@ -655,8 +668,11 @@ test("navigation follows the current section and local entry reaches the termina
     .click();
   await expect(page).toHaveURL(/#run$/);
   await expect(
-    page.getByRole("heading", { name: "Join the build." }),
+    page.getByRole("heading", { name: /Run it on/ }),
   ).toBeInViewport();
+  await expect(
+    page.locator("#join").getByRole("heading", { name: "Join the build." }),
+  ).toHaveCount(1);
 });
 
 for (const reducedMotion of ["no-preference", "reduce"] as const) {
@@ -666,7 +682,7 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await page.emulateMedia({ reducedMotion });
     await visit(page, "/#faq");
     const items = page.locator("#faq details");
-    await expect(items).toHaveCount(7);
+    await expect(items).toHaveCount(8);
     await expect(items.first()).toHaveAttribute("open", "");
     const item = items.nth(3);
     const summary = item.locator("summary");
@@ -691,6 +707,12 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await expect(items.first()).toContainText(
       "runs Claude Code on your local repositories",
     );
+    await expect(items.first()).toContainText("Macs with Apple silicon");
+    await expect(
+      page.locator("#faq details", {
+        hasText: "What happens to my work if Argent goes away?",
+      }),
+    ).toContainText("ordinary Git branch and worktree");
   });
 }
 
@@ -722,7 +744,7 @@ test("magnetic links keep their hit area stable and stop moving under reduced mo
   await visit(page, "/");
   const link = page
     .locator("#intro")
-    .getByRole("link", { name: "See where it’s going" });
+    .getByRole("link", { name: "Try it locally" });
   await expect(link).toBeVisible();
   // Measure after the hero's delayed arrival has actually settled.
   await expect(page.locator("#intro .hero-actions").locator("..")).toHaveCSS(
@@ -835,7 +857,7 @@ test("liquid buttons reflect on hover without moving the target and respect redu
   await visit(page, "/");
   const button = page
     .locator("#intro")
-    .getByRole("link", { name: "See where it’s going" });
+    .getByRole("link", { name: "Try it locally" });
   const before = (await button.boundingBox())!;
   const reflectionBefore = await button.evaluate(
     (el) => getComputedStyle(el, "::before").transform,
@@ -1184,4 +1206,136 @@ test("content appears even if the app scripts never load", async ({ page }) => {
     "1",
   );
   await expect(page.locator("#roadmap")).toHaveCSS("opacity", "1");
+});
+
+test("try it offers the desktop app and the engine demo as keyboard tabs", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await visit(page, "/#run");
+  const section = page.locator("#run");
+  const desktop = section.getByRole("tab", { name: "Desktop app" });
+  const engine = section.getByRole("tab", { name: "Engine demo" });
+  const panel = section.getByRole("tabpanel");
+  await expect(desktop).toHaveAttribute("aria-selected", "true");
+  await expect(engine).toHaveAttribute("tabindex", "-1");
+  await expect(panel).toHaveAttribute("aria-labelledby", "try-tab-desktop");
+  await expect(section).toContainText("Claude Code command-line tool");
+  await expect(section).toContainText("Local mode is not a sandbox");
+  await expect(panel.locator("pre.sr-only")).toContainText("npm run desktop");
+
+  await desktop.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(engine).toBeFocused();
+  await expect(engine).toHaveAttribute("aria-selected", "true");
+  await expect(panel).toHaveAttribute("aria-labelledby", "try-tab-engine");
+  await expect(section).toContainText("No account, model key or cloud");
+  await expect(panel.locator("pre.sr-only")).toContainText("npm run demo");
+  await page.keyboard.press("Home");
+  await expect(desktop).toBeFocused();
+  await expect(desktop).toHaveAttribute("aria-selected", "true");
+  for (const tab of [desktop, engine]) {
+    const box = (await tab.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("the headline's descenders are not clipped by its reveal mask", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await visit(page, "/");
+    const room = await page.locator(".hero-proof").evaluate((line) => {
+      const size = parseFloat(getComputedStyle(line).fontSize);
+      const mask = line.parentElement!.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(line);
+      const text = range.getBoundingClientRect();
+      const painted = line.getBoundingClientRect();
+      return {
+        // The text rectangle ends at the font's descender line, which hangs
+        // below a 1.08 line box. Both the reveal mask and the box the gradient
+        // paints in must reach past it.
+        mask: (mask.bottom - text.bottom) / size,
+        painted: (painted.bottom - text.bottom) / size,
+      };
+    });
+    expect(room.mask).toBeGreaterThanOrEqual(0.05);
+    expect(room.painted).toBeGreaterThanOrEqual(0.05);
+  }
+});
+
+test("liquid silver lowers its resolution on a software renderer and keeps moving", async ({
+  page,
+}) => {
+  await visit(page, "/");
+  const canvas = page.locator("#intro [data-liquid-silver] canvas");
+  await expect(canvas).toHaveAttribute("data-state", "animating", {
+    timeout: 15_000,
+  });
+  // The test browser has no GPU: every pixel is ray-marched on the CPU.
+  await expect(canvas).toHaveAttribute("data-renderer", "software");
+  const ratio = await canvas.evaluate(
+    (el: HTMLCanvasElement) => el.width / el.clientWidth,
+  );
+  expect(ratio).toBeLessThanOrEqual(0.36);
+  expect(ratio).toBeGreaterThanOrEqual(0.24);
+  // Frames must actually arrive: the old governor ignored every frame slower
+  // than 100 ms, so the slowest devices stayed at full resolution.
+  const frames = await page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        let count = 0;
+        const start = performance.now();
+        const tick = (now: number) => {
+          count++;
+          if (now - start < 1500) requestAnimationFrame(tick);
+          else resolve(count);
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+  expect(frames).toBeGreaterThan(15);
+  await expect(canvas).toHaveAttribute("data-state", "animating");
+});
+
+test("the compact logo keeps a feathered halo and the final band follows the pointer", async ({
+  page,
+}) => {
+  await visit(page, "/");
+  const halo = () =>
+    page
+      .locator(".nav-logo-dock")
+      .evaluate((el) => getComputedStyle(el, "::before").opacity);
+  expect(await halo()).toBe("0");
+  await page
+    .locator("#join")
+    .evaluate((el) =>
+      el.scrollIntoView({ block: "center", behavior: "instant" }),
+    );
+  await expect(page.locator("header")).toHaveAttribute("data-compact", "true");
+  await expect.poll(halo).toBe("1");
+  expect(
+    await page
+      .locator(".nav-logo-dock")
+      .evaluate((el) => getComputedStyle(el, "::before").borderTopWidth),
+  ).toBe("0px");
+
+  const band = page.locator("#join .cta-band");
+  const drop = band.locator(".cta-drops > span").nth(2);
+  await expect(band.locator(".cta-drops i")).toHaveCount(4);
+  const before = (await drop.boundingBox())!;
+  const box = (await band.boundingBox())!;
+  await page.mouse.move(box.x + box.width * 0.9, box.y + box.height * 0.5);
+  await expect
+    .poll(async () => (await drop.boundingBox())!.x - before.x)
+    .toBeGreaterThan(8);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.mouse.move(box.x + box.width * 0.5, box.y - 40);
+  await page.mouse.move(box.x + box.width * 0.1, box.y + box.height * 0.5);
+  await expect
+    .poll(async () => Math.abs((await drop.boundingBox())!.x - before.x))
+    .toBeLessThanOrEqual(2);
 });

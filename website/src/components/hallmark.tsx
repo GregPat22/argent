@@ -55,7 +55,9 @@ function Comparison() {
     [0, 1],
     ["inset(0 0 0 0%)", "inset(0 0 0 100%)"],
   );
-  const left = useTransform(smooth, [0, 1], ["0%", "100%"]);
+  // A full-width carrier moved by a percentage of its own width: the divider
+  // travels on a transform instead of animating `left`, so it never lays out.
+  const travel = useTransform(smooth, [0, 1], ["0%", "100%"]);
   const handleOffset = useTransform(smooth, [0, 1], [28, -28]);
   const dragging = useRef(false);
   const interacted = useRef(false);
@@ -167,8 +169,8 @@ function Comparison() {
 
       {/* Divider */}
       <motion.div
-        style={{ left }}
-        className="pointer-events-none absolute inset-y-0 w-0"
+        style={{ x: travel }}
+        className="pointer-events-none absolute inset-0"
       >
         <div className="absolute inset-y-0 -left-px w-0.5 bg-gradient-to-b from-transparent via-polished to-transparent" />
         <motion.div

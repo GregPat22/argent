@@ -426,9 +426,9 @@ The repository folder reaches the service only from a native dialog in the
 desktop main process, or from a workspace the service already recorded; the
 sandboxed renderer cannot pass a path.
 
-### Local hardening contract (in development)
+### Local hardening contract
 
-The [local hardening acceptance criteria](docs/specs/0013-local-mvp.md#local-execution-hardening-in-development)
+The implemented [local hardening acceptance criteria](docs/specs/0013-local-mvp.md#local-execution-hardening)
 require a supervisor to retain process-group ownership until quiescence, including
 early transcript rejection. Unconfirmed termination blocks the workspace;
 database leases and operator notes do not prove an old process has stopped.

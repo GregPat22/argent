@@ -3,6 +3,7 @@
 import {
   type MotionValue,
   motion,
+  useMotionValue,
   useMotionValueEvent,
   useScroll,
   useSpring,
@@ -32,14 +33,14 @@ const STEPS: {
 }[] = [
   {
     title: "Hand it off at your desk.",
-    body: "Choose a repository, an agent and a model, and describe the task. Claude Code or Codex starts in its own branch and worktree, so several tasks run side by side without overwriting each other.",
+    body: "Choose a repository and describe the task. Your agent starts in its own branch and worktree, so several tasks run side by side without overwriting each other.",
     subject: "Local MVP",
     status: "next",
   },
   {
     title: "Close the lid. It keeps going.",
-    body: "Cloud workspaces keep the repository, dependencies and history alive while you are away, on the same open-source engine.",
-    subject: "Cloud workspaces",
+    body: "A remote workspace keeps the repository, dependencies and history alive while you are away, on the same open-source engine: first on a machine you own that stays on, later in an optional managed cloud.",
+    subject: "Remote workspaces",
     status: "planned",
   },
   {
@@ -113,7 +114,7 @@ function CloudIngot({ stage }: { stage: number }) {
       data-on={stage >= 1}
     >
       <div className="journey-cloud-face">
-        <p className="journey-cloud-label">Cloud workspace</p>
+        <p className="journey-cloud-label">Remote workspace</p>
         <p className="journey-cloud-state">
           <i className="journey-pulse" /> still running
         </p>
@@ -150,20 +151,21 @@ function Stage({
   progress: MotionValue<number>;
 }) {
   const path = useRef<SVGPathElement>(null);
-  const [drop, setDrop] = useState({ x: 330, y: 118 });
+  const length = useRef(0);
+  // The drop moves on motion values, so following the scroll writes one
+  // transform per frame and never re-renders the stage.
+  const dropX = useMotionValue(330);
+  const dropY = useMotionValue(118);
 
   const place = (value: number) => {
     const element = path.current;
     if (!element) return;
+    if (!length.current) length.current = element.getTotalLength();
     const point = element.getPointAtLength(
-      Math.min(1, Math.max(0, value)) * element.getTotalLength(),
+      Math.min(1, Math.max(0, value)) * length.current,
     );
-    setDrop((previous) =>
-      Math.abs(previous.x - point.x) < 0.1 &&
-      Math.abs(previous.y - point.y) < 0.1
-        ? previous
-        : { x: point.x, y: point.y },
-    );
+    dropX.set(point.x);
+    dropY.set(point.y);
   };
   useMotionValueEvent(progress, "change", place);
   useEffect(() => place(progress.get()), [progress]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -203,14 +205,10 @@ function Stage({
           strokeLinecap="round"
           style={{ pathLength: progress }}
         />
-        <circle cx={drop.x} cy={drop.y} r="9" fill="url(#journey-drop)" />
-        <circle
-          cx={drop.x - 2.5}
-          cy={drop.y - 3}
-          r="2.2"
-          fill="#fff"
-          opacity="0.85"
-        />
+        <motion.g style={{ x: dropX, y: dropY }}>
+          <circle cx="0" cy="0" r="9" fill="url(#journey-drop)" />
+          <circle cx="-2.5" cy="-3" r="2.2" fill="#fff" opacity="0.85" />
+        </motion.g>
       </svg>
       <DesktopWindow stage={stage} />
       <CloudIngot stage={stage} />
@@ -281,8 +279,8 @@ export function Journey() {
         </div>
         <p className="max-w-[34rem] text-sterling md:col-span-5">
           One task, three places, one record. The desktop app is where work
-          begins, the cloud is where it keeps going, and your phone is where you
-          hear it is done.
+          begins, a machine that stays on is where it keeps going, and your
+          phone is where you hear it is done.
         </p>
       </div>
 
@@ -322,7 +320,7 @@ export function Journey() {
       <p className="pb-24 text-sm text-sterling-dim md:pb-32">
         An illustration of the planned experience, not a live system. Today, the
         desktop app runs Claude Code in local worktrees (early, and not a
-        sandbox); Codex, cloud workspaces and the iPhone companion are still
+        sandbox); Codex, remote workspaces and the iPhone companion are still
         ahead.
       </p>
     </section>

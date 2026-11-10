@@ -17,8 +17,9 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         . It runs Claude Code on your local repositories, each task in its own
         branch and Git worktree, with your own sign-in. It is early and not a
         sandbox, and diff review, tests and pull requests are still in
-        development. Star and watch the repository to hear when signed downloads
-        land.
+        development. Today it runs on Macs with Apple silicon; Windows, Linux
+        and Intel Mac builds have not been made or tested. Star and watch the
+        repository to hear when signed downloads land.
       </>
     ),
   },
@@ -26,14 +27,14 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     question: "Which agents and models will it support?",
     answer: (
       <>
-        Claude Code works in the desktop app today. Codex comes next in the
-        local MVP, together with a model picker, so you can use Claude models
-        and GPT models and choose the agent for each workspace and the model for
-        each task. Cursor and OpenCode follow. Each agent runs with its own
-        official sign-in, so you use the subscription you already have. Argent
-        never reads or copies that sign-in, and it keeps provider API keys away
-        from agents, so a missing sign-in fails visibly instead of quietly
-        billing your API account.
+        Claude Code works in the desktop app today, and the first release ships
+        with it. Codex is the first update after that, together with a model
+        picker, so you can use Claude models and GPT models and choose the agent
+        for each workspace and the model for each task. Cursor and OpenCode
+        follow. Each agent runs with its own official sign-in, so you use the
+        subscription you already have. Argent never reads or copies that
+        sign-in, and it keeps provider API keys away from agents, so a missing
+        sign-in fails visibly instead of quietly billing your API account.
       </>
     ),
   },
@@ -59,9 +60,24 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     answer: (
       <>
         Not yet. Today the local service survives quitting the app, but your
-        computer has to stay awake. Cloud workspaces, which keep running while
-        you are away, come after the local MVP, followed by the iPhone
-        companion.
+        computer has to stay awake. Work that keeps running while you are away
+        comes after the first release: first on a machine you own that stays on,
+        running the same engine, then in an optional managed cloud, followed by
+        the iPhone companion.
+      </>
+    ),
+  },
+  {
+    question: "What happens to my work if Argent goes away?",
+    answer: (
+      <>
+        It stays where it already is: on your computer. Every workspace is an
+        ordinary Git branch and worktree of your own repository, so your code
+        never lives inside Argent. The app and engine are MIT licensed and run
+        without our servers, your agents keep their own sign-in, and your Argent
+        history can be exported and restored on another machine (from the
+        command line today). No hosted service of ours sits between you and your
+        work.
       </>
     ),
   },
@@ -85,7 +101,8 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         and records what changed itself instead of trusting the agent. The rest
         of the local MVP adds diff review, tests for the exact commit and a
         draft pull request you merge yourself. It is open source, built for more
-        than one agent, and designed to continue in the cloud and on your phone.
+        than one agent, and designed to continue on a machine that stays on and
+        on your phone.
       </>
     ),
   },

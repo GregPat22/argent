@@ -16,7 +16,10 @@ export function Hero() {
         <div className="hero-copy">
           <h1 id="hero-title" className="display hero-title" data-liquid-avoid>
             {["Argent is a", "good conductor."].map((line, index) => (
-              <span key={line} className="block overflow-hidden pb-[0.08em]">
+              <span
+                key={line}
+                className="-mb-[0.12em] block overflow-hidden pb-[0.2em]"
+              >
                 <span className={`block ${index === 1 ? "hero-proof" : ""}`}>
                   {line}
                 </span>
@@ -29,19 +32,19 @@ export function Hero() {
               className="hero-description mt-6 text-base leading-relaxed text-sterling md:mt-7 md:text-lg"
               data-liquid-avoid
             >
-              We’re building the open-source home for your coding agents: Claude
-              Code and Codex side by side, each task in its own branch, and
-              nothing merged until you’ve seen the proof. On your Mac first,
-              then the cloud and your phone. Early, and built in the open.
+              We’re building the open-source desktop app for your coding agents:
+              every task in its own branch, and nothing merged until you’ve seen
+              the proof. Claude Code runs on your Mac today, from source. Codex,
+              remote workspaces and your phone come next.
             </p>
             <div
               className="hero-actions mt-8 flex flex-wrap items-center justify-center gap-3"
               data-liquid-avoid
             >
-              <LiquidLink href="#reconnect">
-                See where it’s going{" "}
-                <span aria-hidden className="button-arrow">
-                  ↗
+              <LiquidLink href="#run">
+                Try it locally{" "}
+                <span aria-hidden className="button-arrow button-arrow--down">
+                  ↓
                 </span>
               </LiquidLink>
               <LiquidLink

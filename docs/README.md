@@ -3,13 +3,18 @@
 Start with the [README](../README.md) for what works today, then the
 [architecture](../ARCHITECTURE.md) and [roadmap](../ROADMAP.md). The desktop app
 runs Claude Code in local worktrees as the first part of the local MVP
-([spec 0013](specs/0013-local-mvp.md)), which is in development; cloud execution
-and signed public distribution follow.
+([spec 0013](specs/0013-local-mvp.md)), which is in development; a signed public
+release, then remote and cloud execution, follow.
 
-The [local hardening contract](specs/0013-local-mvp.md#local-execution-hardening-in-development)
-and [delivery regression gates](specs/0004-desktop-prototype.md#delivery-regression-gates-in-development)
-record the safety and validation work in development, including the limits of
+The [local hardening contract](specs/0013-local-mvp.md#local-execution-hardening)
+and [delivery regression gates](specs/0004-desktop-prototype.md#delivery-regression-gates)
+record the implemented safety and validation work, including the limits of
 process recovery, repository inspection and native packaging evidence.
+
+Working on Argent? The [roadmap's work queue](../ROADMAP.md#work-queue) lists
+what to do next, in order, with what each step depends on and what counts as
+done. [AGENTS.md](../AGENTS.md#9-when-to-stop-and-ask) says which decisions
+belong to the maintainers.
 
 ## Product and decisions
 
@@ -47,7 +52,7 @@ Spec 0005 (the landing-page draft) is maintained privately with the website's
 design history.
 
 [0014 CI test determinism](specs/0014-ci-test-determinism.md) records the
-in-development timing and service-teardown regression criteria and evidence.
+timing and service-teardown regression criteria and evidence.
 
 ## Milestone reports
 

@@ -22,10 +22,10 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   the ordered event history from its last cursor.
 - **Safe failure handling.** If a worker disappears mid-run, the run becomes
   `needs_attention`. Argent never retries something that may already have
-  happened; a person reviews it first. The
-  [hardening work in development](docs/specs/0013-local-mvp.md#local-execution-hardening-in-development)
-  requires process reconciliation before an interrupted real workspace can
-  accept more work.
+  happened; a person reviews it first. An interrupted real run keeps its
+  workspace blocked: a note cannot unblock it, because nothing yet proves the
+  earlier process has stopped. See
+  [local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening).
 - **Independent evidence.** A run completes only after Argent checks the result
   itself instead of trusting the agent: for a local Claude Code run, the branch,
   commit, changed files and a SHA-256 of the diff (recorded, not tested); for a
@@ -52,18 +52,21 @@ In order:
 
 1. **Local MVP (in development).** Real coding agents on your own computer:
    each workspace is a new branch in its own Git worktree of a local repository,
-   so tasks run side by side without overwriting each other. It ships with Claude
-   Code first, then Codex, each through its official CLI and your own sign-in;
-   every workspace chooses its agent and every run its model (Claude models or
-   GPT models). You follow the session live, review the diff and test results,
-   and open a draft pull request.
+   so tasks run side by side without overwriting each other. It runs Claude
+   Code through its official CLI and your own sign-in. You follow the session
+   live, review the diff, see the result of checks Argent ran itself against the
+   exact commit, and open a draft pull request that carries that evidence.
    Local execution is not a sandbox: the agent has the same access as running it
    in your terminal. See [spec 0013](docs/specs/0013-local-mvp.md).
-2. **Cursor and OpenCode**, through their official interfaces.
-3. **Signed public downloads** from the website.
-4. **Cloud workspaces.** Hand off a task, close your laptop, and come back to a
-   tested draft pull request.
-5. **A mobile companion** (native iOS) to check progress and steer from your
+2. **Signed public downloads** from the website: the first public release, with
+   Claude Code.
+3. **Codex and a model picker**, the first update: every workspace chooses its
+   agent and every run its model (Claude models or GPT models).
+4. **Cursor and OpenCode**, through their official interfaces.
+5. **A remote host you own.** The same engine on a machine of yours that stays
+   on, so a task keeps going when you close your laptop.
+6. **Managed cloud workspaces**, as an optional service on the same core.
+7. **A mobile companion** (native iOS) to check progress and steer from your
    phone.
 
 After that: team handoff, then dependent tasks. A full IDE, agent swarms and
@@ -87,10 +90,10 @@ automatic merging are explicitly out of scope for now.
 You need Node.js **22.19.0** or a later 22.x release, npm 10.9.3 and Git. No
 Docker, cloud account or model key is needed.
 
-For real tasks, install and sign in to the official Claude Code CLI. The
-[local hardening contract](docs/specs/0013-local-mvp.md#local-execution-hardening-in-development)
-adds a minimum CLI version check, bounded output and explicit rejection of
-repositories containing submodules. These safeguards are in development.
+For real tasks, install and sign in to the official Claude Code CLI. Before each
+task Argent checks that the CLI is recent enough and tells you if it is not; it
+bounds the CLI's output and refuses repositories that contain submodules. See
+[local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening).
 
 ```sh
 git clone https://github.com/GregPat22/argent.git

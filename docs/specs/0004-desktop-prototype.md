@@ -70,7 +70,7 @@ around the existing engine; review the pinned upstream comparison before larger
 orchestrator changes. The desktop client is not an isolation boundary for running
 untrusted repository code.
 
-## Delivery regression gates (in development)
+## Delivery regression gates
 
 Acceptance criteria, 9 November 2026, based on main `241e6e6`: CI must check the
 website's own lockfile, types, production build and complete browser suite in a
@@ -108,3 +108,27 @@ unchanged main passed its focused reruns. A later contended run timed out while
 waiting for scroll stability and was interrupted. The final browser-only run
 passes without raising timeouts or removing assertions. These results establish
 local regression coverage, not execution of the new hosted CI jobs.
+
+### Hosted CI evidence
+
+Recorded 9 November 2026 for main `82f180b`, the first hosted run of the three
+jobs: the engine check and the macOS desktop job (development smoke, package,
+packaged smoke) passed. The website job passed its type check and production
+build, then failed twelve browser tests by timeout.
+
+Cause found locally: the hosted runner has no GPU, so the browser ray-marches
+the hero's liquid silver on the processor. The component's quality governor
+ignored every frame slower than 100 ms, which meant the slowest devices never
+had their resolution lowered. With software rendering at 1440 by 900 the canvas
+stayed at full resolution and drew about three frames a second, starving the
+rest of the page.
+
+The governor now treats a run of slow frames as the signal to lower the
+resolution, starts lower when the renderer reports software rendering, and holds
+a still frame if even the lowest resolution cannot animate. Measured locally
+with the same software renderer: the median frame went from about 300 ms to
+about 17 ms at 1440 by 900. A browser test covers it.
+
+Confirmed on 10 November 2026: the hosted run for the pull request carrying
+this change passed all three jobs, including every browser test in the website
+job.

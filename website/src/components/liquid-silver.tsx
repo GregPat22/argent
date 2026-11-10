@@ -49,6 +49,14 @@ const RELEASE = 0.95;
 const COPY_MARGIN = 0.035; // how close a silhouette may graze the copy
 const MAX_SCALE = 1.5;
 const MIN_SCALE = 0.5;
+// Without a GPU the browser ray-marches every pixel on the CPU. Those devices
+// start soft and may go softer still, so the page stays responsive.
+const SOFT_SCALE = 0.35;
+const FLOOR_SCALE = 0.25;
+const SOFTWARE_RENDERER =
+  /swiftshader|llvmpipe|softpipe|software|basic render/i;
+const LONG_FRAME = 100; // ms; a run of these means the device cannot keep up
+const STALLED_FRAME = 250; // ms; slower than this at the floor is not motion
 
 type State = "loading" | "animating" | "paused" | "still";
 type Engaged = "none" | "mass" | "drop";
@@ -1066,6 +1074,9 @@ export function LiquidSilver() {
     let scale = Math.min(window.devicePixelRatio || 1, MAX_SCALE);
     let average = 16.7;
     let samples = 0;
+    let long = 0;
+    let stalled = 0;
+    let resting = false;
     let state: State = "loading";
     let disposed = false;
 
@@ -1108,13 +1119,16 @@ export function LiquidSilver() {
         ...bridgeGaps(copy),
         ...nav.map((box) => toRect(box, pageTop)),
       ]);
-      // Anchor positions in CSS pixels, for tests and debugging.
-      canvas.dataset.masses = sim.masses
+      // Anchor positions in CSS pixels, for tests and debugging. Written only
+      // when they change: an attribute write between two layout reads forces
+      // the browser to recalculate style.
+      const masses = sim.masses
         .map(
           (m) =>
             `${Math.round(width / 2 + m.anchor[0] * ppu)},${Math.round(height / 2 - m.anchor[1] * ppu)}`,
         )
         .join(" ");
+      if (canvas.dataset.masses !== masses) canvas.dataset.masses = masses;
     };
 
     const resize = () => {
@@ -1163,16 +1177,36 @@ export function LiquidSilver() {
     };
 
     // Lower the pixel ratio when frames run long; never raise it mid-session.
+    const lower = (factor: number, floor: number) => {
+      if (scale <= floor) return false;
+      scale = Math.max(floor, scale * factor);
+      samples = 30;
+      average = 16.7;
+      long = 0;
+      stalled = 0;
+      resize();
+      return true;
+    };
     const adapt = (interval: number) => {
-      if (interval > 100) return;
+      if (interval > LONG_FRAME) {
+        // One long frame is a hiccup (a tab switch, a garbage collection). A
+        // run of them is a device that cannot keep up, which is exactly when
+        // the quality has to drop, and quickly.
+        if (interval > 2000) return;
+        long++;
+        if (interval > STALLED_FRAME) stalled++;
+        else stalled = 0;
+        if (long >= 3 && lower(0.6, FLOOR_SCALE)) return;
+        // Already at the floor and still far from motion: hold a still frame
+        // instead of pinning the processor for a slideshow.
+        if (stalled >= 4) rest();
+        return;
+      }
+      long = 0;
+      stalled = 0;
       samples++;
       average += (interval - average) * 0.05;
-      if (samples > 60 && average > 22 && scale > MIN_SCALE) {
-        scale = Math.max(MIN_SCALE, scale * 0.8);
-        samples = 30;
-        average = 16.7;
-        resize();
-      }
+      if (samples > 60 && average > 22) lower(0.8, MIN_SCALE);
     };
 
     const loop = (now: number) => {
@@ -1202,9 +1236,16 @@ export function LiquidSilver() {
       frame = 0;
     };
 
+    /** Give up on animation for this visit and keep one finished frame. */
+    const rest = () => {
+      resting = true;
+      canvas.dataset.resting = "true";
+      start();
+    };
+
     const start = () => {
       if (!ready) return;
-      if (reduce) {
+      if (reduce || resting) {
         stop();
         layout();
         sim.settle(3.1);
@@ -1270,6 +1311,15 @@ export function LiquidSilver() {
           ]),
         );
         gl.clearColor(0, 0, 0, 0);
+        const info = gl.getExtension("WEBGL_debug_renderer_info");
+        const renderer = String(
+          gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ??
+            "",
+        );
+        if (SOFTWARE_RENDERER.test(renderer)) {
+          scale = Math.min(scale, SOFT_SCALE);
+          canvas.dataset.renderer = "software";
+        }
         ready = true;
         resize();
         start();
