@@ -1910,3 +1910,99 @@ dialog::backdrop {
     color: var(--running);
   }
 }
+
+/* On-demand local inspection, sharing the desktop's existing metal palette. */
+.changes-panel {
+  width: min(1120px, calc(100vw - 48px));
+  max-width: none;
+  height: min(760px, calc(100vh - 48px));
+  max-height: calc(100vh - 48px);
+  padding: 24px;
+  overflow: auto;
+}
+.changes-panel[open] {
+  display: flex;
+  flex-direction: column;
+}
+.changes-panel .sheet-head {
+  flex-shrink: 0;
+  gap: 12px;
+}
+.changes-panel .sheet-head h2 {
+  flex: 1;
+}
+.changes-notice {
+  margin: 0 0 12px;
+  color: var(--sterling);
+}
+.changes-content {
+  display: grid;
+  grid-template-columns: minmax(180px, 28%) minmax(0, 1fr);
+  flex: 1;
+  min-height: 160px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.changes-files {
+  overflow: auto;
+  border-right: 1px solid var(--line);
+  padding: 8px;
+}
+.changes-file {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font: 11px/1.6 var(--mono);
+  color: var(--sterling);
+}
+.changes-file:hover {
+  background: var(--wash);
+}
+.changes-file[aria-pressed="true"] {
+  color: var(--polished);
+  background: var(--wash-strong);
+  border-color: var(--line-strong);
+}
+.changes-preview {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+}
+.changes-preview h3 {
+  margin: 0;
+  font: 500 12px/1.6 var(--mono);
+  overflow-wrap: anywhere;
+}
+.changes-preview p {
+  margin: 6px 0 12px;
+  color: var(--faint);
+  font-size: 11px;
+}
+.changes-preview pre {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+  white-space: pre;
+  font: 12px/1.7 var(--mono);
+  color: var(--sterling);
+  tab-size: 4;
+}
+@media (max-width: 700px) {
+  .changes-content {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 120px minmax(160px, 1fr);
+  }
+  .changes-files {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}

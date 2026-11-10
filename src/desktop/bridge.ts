@@ -12,6 +12,8 @@ import {
   serviceRequest,
 } from "./service-client.js";
 
+import { validateWorkspaceChanges } from "./changes.js";
+
 export const APP_URL = "argent://app/index.html";
 
 export function trustedSender(url: string, mainFrame: boolean): boolean {
@@ -109,6 +111,25 @@ export class DesktopClient {
           source: "local",
           path,
         });
+      }
+      case "workspaceChanges": {
+        if (
+          args.length !== 1 ||
+          typeof args[0] !== "string" ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
+            args[0],
+          )
+        )
+          throw new DomainError(400, "Expected one workspace identifier");
+        const value = await serviceRequest(
+          connection,
+          `/workspaces/${id()}/changes`,
+          "GET",
+          undefined,
+          undefined,
+          20000,
+        );
+        return validateWorkspaceChanges(value, args[0]);
       }
       case "getWorkspace":
         return serviceRequest(connection, `/workspaces/${id()}`);

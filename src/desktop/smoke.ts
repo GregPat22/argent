@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { mkdirSync, writeFileSync, renameSync, unlinkSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { RunView, Workspace, Page } from "../domain.js";
 import type { DesktopClient } from "./bridge.js";
@@ -32,6 +32,14 @@ export async function runDesktopSmoke(
   if (shots) mkdirSync(dirname(shots), { recursive: true });
   const capture = async (name: string) => {
     if (!shots) return;
+    // A modal can settle in the DOM while an occluded macOS window retains
+    // an older compositor frame. Capture the visible, painted fixture window.
+    window.show();
+    window.focus();
+    window.webContents.setBackgroundThrottling(false);
+    await js(
+      `new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`,
+    );
     await delay(260);
     writeFileSync(
       shots.replace(/\.png$/, `-${name}.png`),
@@ -187,6 +195,13 @@ export async function runDesktopSmoke(
     true,
   );
   await capture("demo-empty");
+  await js(`document.querySelector('#workspace-changes').click()`);
+  assert.match(await text("#changes-status"), /Scripted demo.*no real diff/);
+  assert.equal(
+    await js(`document.querySelector('#changes-refresh').disabled`),
+    true,
+  );
+  await js(`document.querySelector('#changes-close').click()`);
 
   // Search jumps to workspaces with arrows and Enter.
   await js(`document.querySelector('#search-nav').click()`);
@@ -412,6 +427,15 @@ export async function runDesktopSmoke(
     ["Edits only", "1800000"],
   );
   await capture("local-workspace");
+  await js(`document.querySelector('#workspace-changes').click()`);
+  await until(
+    () =>
+      js(
+        `document.querySelector('#changes-status').textContent.includes('No changes')`,
+      ),
+    "empty local changes",
+  );
+  await js(`document.querySelector('#changes-close').click()`);
   await js(`document.querySelector('#permission-toggle').click()`);
   assert.equal(
     await js(
@@ -453,6 +477,83 @@ export async function runDesktopSmoke(
     `document.querySelector('.steps-disclosure').open = true; document.querySelector('#conversation').scrollTop = 1e6`,
   );
   await capture("local-record");
+
+  // Real temporary Git content; inspection must not create runs or replace evidence.
+  const worktree = local.local!.worktreePath;
+  renameSync(join(worktree, "README.md"), join(worktree, "renamed.md"));
+  unlinkSync(join(worktree, "delete-me.txt"));
+  writeFileSync(join(worktree, "binary.bin"), Buffer.from([0, 1, 2, 255]));
+  const hostilePath = "<img src=x onerror=alert(1)>\n\u202e.txt";
+  writeFileSync(
+    join(worktree, hostilePath),
+    "<script>window.untrustedChanges = true</script>\n",
+  );
+  const beforeInspection = await call("artifact", [localRun.id]);
+  const beforeRuns = await call("listRuns", [local.id]);
+  await js(
+    `document.querySelector('#workspace-changes').focus(); document.querySelector('#workspace-changes').click()`,
+  );
+  await until(
+    () => js(`document.querySelectorAll('#changes-files button').length === 5`),
+    "live changes list",
+  );
+  assert.match(await text("#changes-files"), /renamed.*renamed.md/);
+  assert.match(await text("#changes-files"), /deleted.*delete-me.txt/);
+  await js(
+    `Array.from(document.querySelectorAll('#changes-files button')).find(button => button.dataset.path === 'notes.txt').click()`,
+  );
+  assert.match(
+    await text("#changes-diff"),
+    /\+Write a short note about this repository/,
+  );
+  assert.match(await text("#changes-status"), /not tested/);
+  await capture("local-changes");
+  await js(
+    `Array.from(document.querySelectorAll('#changes-files button')).find(button => button.dataset.path === 'binary.bin').click()`,
+  );
+  assert.match(await text("#changes-diff"), /Binary or non-UTF-8/);
+  await js(
+    `Array.from(document.querySelectorAll('#changes-files button')).find(button => button.dataset.path === ${JSON.stringify(hostilePath)}).click()`,
+  );
+  assert.match(
+    await text("#changes-diff"),
+    /<script>window.untrustedChanges = true<\/script>/,
+  );
+  assert.equal(
+    await js(
+      `!!window.untrustedChanges || !!document.querySelector('#changes-files img, #changes-diff script')`,
+    ),
+    false,
+  );
+  for (const width of [900, 1380]) {
+    window.setSize(width, 700);
+    await delay(100);
+    assert.equal(
+      await js(
+        `document.documentElement.scrollWidth <= innerWidth && document.querySelector('#changes-dialog').getBoundingClientRect().right <= innerWidth`,
+      ),
+      true,
+    );
+  }
+  writeFileSync(join(worktree, "notes.txt"), "Updated by smoke fixture\n");
+  await js(`document.querySelector('#changes-refresh').click()`);
+  await until(
+    () => js(`!document.querySelector('#changes-refresh').disabled`),
+    "manual refresh settles",
+  );
+  await js(
+    `Array.from(document.querySelectorAll('#changes-files button')).find(button => button.dataset.path === 'notes.txt').click()`,
+  );
+  assert.match(await text("#changes-diff"), /Updated by smoke fixture/);
+  window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
+  window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
+  await until(
+    () => js(`!document.querySelector('#changes-dialog').open`),
+    "Escape closes changes",
+  );
+  assert.equal(await js(`document.activeElement.id`), "workspace-changes");
+  assert.deepEqual(await call("artifact", [localRun.id]), beforeInspection);
+  assert.deepEqual(await call("listRuns", [local.id]), beforeRuns);
 
   await js(`document.querySelector('#workspace-menu-button').click()`);
   await capture("workspace-menu");
@@ -504,6 +605,8 @@ export async function runDesktopSmoke(
       uncertaintyRecovery: true,
       localWorkspace: true,
       honestRecord: true,
+      liveChanges: true,
+      changesKeyboardClose: true,
       parallelWorkspace: true,
       workspaceId: workspace.id,
       verifiedRun: first.id,

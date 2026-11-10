@@ -20,7 +20,7 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
   },
   {
     title: "Local MVP",
-    body: "Claude Code already runs in the app, each task in its own branch and worktree with a live session. Still to come: the diff, checks Argent runs itself against the exact commit, and a draft pull request that carries the proof.",
+    body: "Claude Code already runs in the app, each task in its own branch and worktree with a live session. The changes panel is in development. Next: checks Argent runs itself against the exact commit, then a draft pull request that carries the proof.",
     state: "now",
   },
   {
@@ -54,7 +54,7 @@ const TODAY = [
 ];
 
 const NOT_YET = [
-  "Diff review, tests and pull requests in the app (in development)",
+  "Changes panel (in development); trusted tests and pull requests (planned)",
   "Codex and the model picker (the first update after release)",
   "Work that continues with your laptop closed, and the iPhone companion",
   "Signed downloads: today you build from source",

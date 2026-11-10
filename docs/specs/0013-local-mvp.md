@@ -212,8 +212,9 @@ notice; real-agent labels replace simulation labels only for real workspaces.
 ### L1.3 changes panel
 
 The workspace's changed files and unified diff against its base, bounded in size,
-read through the service. The desktop panel remains planned; the first service
-slice below is in development and does not complete L1.3.
+read through the service. The service slice is implemented in main `1b9e4dd`,
+11 November 2026. Desktop integration is in development and does not yet complete
+the L1.3 acceptance gate.
 
 #### Read-only changes service acceptance (in development)
 
@@ -267,11 +268,52 @@ Limits and next steps: this is a live observation, not an immutable snapshot.
 Per-file identity checks and repeated branch/listing checks detect some concurrent
 changes, but cannot fence a host owner rewriting directories or configuration
 between filesystem operations. There is no staged-versus-unstaged split, rename
-similarity search, pagination or partial oversized-file view. The next slice
-connects a narrow desktop bridge and changes panel, renders untrusted text safely,
-and verifies the desktop journey; its client timeout must accommodate or cancel
-the service deadline. Trusted checks remain L1.4, and the L1.3 exit gate remains
+similarity search, pagination or partial oversized-file view. The desktop integration below connects the narrow bridge and changes panel;
+its acceptance must verify the complete native journey. Trusted checks remain L1.4, and the L1.3 exit gate remains
 open until the desktop panel and its evidence exist.
+
+#### Desktop changes acceptance (in development)
+
+Acceptance recorded 11 November 2026 against main `1b9e4dd`:
+
+1. A Changes button opens an accessible dialog for the selected workspace. Local
+   workspaces show current changed files and a selected unified diff against the
+   recorded base, including untracked, renamed, deleted, binary and mode changes.
+   A demo explicitly says that no repository is checked out and no real diff is
+   available. Empty, loading, request-error, oversized and missing-worktree states
+   never show a partial successful result.
+2. Only opening the dialog or pressing Refresh reads changes. Transcript polling,
+   reconnecting and selecting a file never trigger a repository scan. Refresh
+   clears old content while loading and preserves the selected filename if it
+   still exists. Closing, changing workspace or observing a disconnect clears
+   content and invalidates pending success and error responses; reconnect requires
+   explicit refresh. A queued close event cannot invalidate a reopened dialog.
+3. The sandboxed preload exposes only `workspaceChanges(workspaceId)`. The main
+   process rejects extra arguments and non-UUID identifiers, performs an
+   authenticated GET with a twenty-second timeout, and validates workspace
+   identity, SHA-1/SHA-256 hash format, flags, file shapes and byte/count bounds.
+   The renderer additionally checks the selected workspace's recorded base.
+   No paths, Git options, revisions, credentials or command capabilities are
+   accepted from the renderer.
+4. Every path and diff is rendered through `textContent`. Filename labels are
+   quoted, with escaped backslashes, newlines, tabs and invisible controls;
+   control and bidi-format characters in diff content are displayed as escapes.
+   Binary or invalid-UTF-8 files show metadata without a text preview. The file
+   list, selected diff and close/refresh controls are keyboard accessible; Escape
+   closes the modal and returns focus. Long paths and diffs scroll within the
+   existing dark desktop layout.
+5. The view labels all reads as live observations, not tested or immutable
+   snapshots. Inspection never creates a run, launches an agent, modifies source
+   content or replaces a verification record. It inherits the service's whole-file
+   hunks, exact-only rename detection and complete-request overflow limits.
+
+Focused regressions are in `tests/desktop-changes.test.ts` and
+`tests/renderer-changes.test.ts`. Native smoke coverage uses the fake CLI and real
+throwaway Git repositories, checks empty and mixed changes, manual refresh,
+quoted hostile content, binary previews, keyboard close/focus and unchanged run
+and artifact records. These fixtures call no model. Full repository checks,
+website checks and independent native acceptance remain required before marking
+L1.3 complete. Trusted checks remain L1.4; this panel does not meet that gate.
 
 ### L1.4 setup, run and test actions
 

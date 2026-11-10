@@ -1,5 +1,6 @@
 // Orchestrates refresh and rendering. Execution stays with the local service;
 // this window only reads state and sends explicit, idempotent requests.
+import { renderChanges, wireChanges } from "./changes.js";
 import { actions, api, hasBridge } from "./actions.js";
 import { renderComposer, wireComposer } from "./composer.js";
 import { byId, enable, setClass, setText, show } from "./dom.js";
@@ -110,6 +111,7 @@ function render(): void {
   enable("welcome-demo", state.connected && !state.mutationBusy);
   renderSidebar();
   renderHeader();
+  renderChanges();
   show("detail-empty", !!workspace && state.runs.length === 0);
   if (workspace) {
     const local = isLocal(workspace);
@@ -337,6 +339,7 @@ Object.assign(actions, {
   focusComposer: () => byId("composer-input").focus(),
 });
 
+wireChanges();
 wireComposer();
 wirePalette();
 

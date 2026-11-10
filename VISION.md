@@ -44,3 +44,8 @@ and existing subscriptions, portable files and history, and a mobile companion,
 with native iOS as its own delivery track. Team handoff and dependent tasks follow.
 A full IDE, agent swarms and advanced enterprise controls remain later. See the
 [roadmap](ROADMAP.md) and the [desktop shell contract](docs/specs/0008-desktop-workspace-shell.md).
+
+Today Claude Code runs in local worktrees. Read-only changes inspection is
+implemented in the service; its desktop panel is in development. Live diffs are
+observations of current files, not checks or immutable evidence. Trusted test
+execution and draft pull requests remain the next local MVP slices.

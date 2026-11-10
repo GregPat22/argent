@@ -451,3 +451,19 @@ The desktop service has two worker slots, sharing atomic store claims and a
 single-run-per-workspace constraint. Shutdown drains all slots before closing
 the store. The renderer retains the selected run's bounded event history and
 paginates it without changing execution ownership.
+
+### Read-only local changes
+
+The authenticated changes service is implemented in main `1b9e4dd`, 11 November 2026. Its desktop integration is in development: a narrow `workspaceChanges(id)`
+bridge accepts only a workspace UUID and validates response identity, hash format,
+file metadata and content bounds. The changes request has a twenty-second client
+timeout to accommodate the service's ten-second inspection deadline and cleanup;
+other client requests keep their existing timeout.
+
+The planned desktop acceptance uses a modal changed-file list and selected
+unified diff, read on open or explicit refresh. Transcript polling never scans
+repository content. Closing, changing workspace or observing a service disconnect
+invalidates pending results. All content is literal text, with quoted filenames
+and visible control-character escapes. Inspection never dispatches work or
+replaces a verification record. See the
+[acceptance criteria](docs/specs/0013-local-mvp.md#desktop-changes-acceptance-in-development).
