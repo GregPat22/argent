@@ -2,9 +2,10 @@
 
 Recorded 7 November 2026, based on main `ffbeef2`.
 Status: L1.1 (engine), L1.2 (desktop) and the local execution hardening are
-implemented; L1.3 onward is planned. Integration of the real-CLI walkthrough
-correction is still pending; [development walkthrough evidence](#development-walkthrough-evidence)
-is recorded below. Automated tests use a fake CLI. The order of the remaining work
+implemented; L1.3 onward is planned. The real-CLI walkthrough gate is complete,
+with its cancellation correction integrated in main `707ae8b`;
+[development walkthrough evidence](#development-walkthrough-evidence) is recorded
+below. Automated tests use a fake CLI. The order of the remaining work
 is in the [roadmap's work queue](../../ROADMAP.md#work-queue).
 
 ## Product decision
@@ -322,7 +323,8 @@ a transcript longer than one page.
 
 ### Cancellation regression acceptance
 
-In development, based on main `a9bc431`, 10 November 2026. Repeated local
+Implemented in main `707ae8b`; acceptance recorded against main `a9bc431` on
+10 November 2026. Repeated local
 process fixtures on macOS reproduced a transient `EPERM` from a process-group
 liveness probe during termination, followed by `ESRCH` on a fresh probe. The
 baseline treats the transient error as unconfirmed cleanup and blocks the
@@ -355,7 +357,12 @@ plus the cancellation implementation committed as
 `87011a2cd774fd4cb06482246cd361818a6ea0a2`. The manual run exercised that
 supervisor implementation before the unrelated failure-summary correction from
 main `4767a29` was integrated for automated checks. The cancellation correction
-still awaits integration into main; work-queue item 1 is not marked complete.
+is integrated in main `707ae8b64151fb2098025fd1d33a76e3d0b5ec20`. Integration
+review on 10 November 2026 confirmed that `src/process-group.ts` and
+`tests/process-group.test.ts` match the recorded implementation at `87011a2`
+exactly. The recorded cases below and the integrated defect corrections satisfy
+work-queue item 1. This is an integration review of existing walkthrough evidence,
+not a new manual run against the combined revision.
 
 The manual desktop walkthrough used the signed-in official Claude Code CLI
 2.1.322 on macOS. Saved execution events and a separate read-only inspection of
@@ -390,8 +397,7 @@ Defects and limits:
   is unchanged.
 - This exercise does not verify durable process reconciliation, trusted checks,
   draft pull requests, archiving, signed distribution or the complete L1 exit.
-  The next step is to integrate the cancellation correction before proceeding
-  through the work queue.
+  The next step is L1.3, the changes panel, as ordered in the work queue.
 
 ### Hardening evidence
 

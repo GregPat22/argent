@@ -435,7 +435,7 @@ database leases and operator notes do not prove an old process has stopped.
 Durable process reconciliation after a service crash remains unimplemented.
 
 A [cancellation follow-up](docs/specs/0013-local-mvp.md#cancellation-regression-acceptance)
-is in development for transient process-group permission errors during exit.
+is implemented in main `707ae8b` for transient process-group permission errors during exit.
 It bounds retries within the live supervisor and still requires independent
 quiescence checks. It does not unlock historical uncertain runs or add recovery
 after a service restart.
