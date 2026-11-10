@@ -86,7 +86,8 @@ On the final content, 10 November 2026:
 
 - Website: type check and production build pass; 47 of 47 browser tests pass
   (38 from before this work, 9 new). The suite runs on software WebGL.
-- Repository: `npm run check` passes, 427 of 427.
+- Repository: `npm run check` passes, 461 of 461, after merging main
+  `1b9e4dd` into the branch on 11 November.
 - The first full run of the new suite failed 8 tests. Five came from real
   defects this work had introduced: removing the comparison's clipping let its
   divider widen the page at every width, and the statement's glow and the
@@ -102,6 +103,11 @@ On the final content, 10 November 2026:
   are now a separate test on a fresh page with motion reduced, and the
   behaviour test allows longer for each step; each passed 4 runs out of 4
   under that load.
+- On one slow hosted run an earlier test (the atom's) reached its 30 second
+  limit. Timed step by step under the same processor load, that test takes as
+  long on main `1b9e4dd` as on this branch (20 to 26 seconds against 22 to 24
+  from a cold start), so the restyle did not slow the software-rendered page.
+  The test is close to its limit on a slow runner either way.
 - Looked at in headless Chromium at 1440, 768 and 390 px, every section, and
   compared with the page before the change.
 - Motion: the new animations were classified by hand against Motion's
