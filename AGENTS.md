@@ -59,8 +59,12 @@ address, never a personal one.
   GitHub repository description and the `package.json` description.
 - Keep shared facts identical everywhere. Today: the first release is the local
   MVP (L1), real agents in isolated Git worktrees on the developer's computer,
-  before cloud workspaces; the first real agent is Claude Code through its
-  official CLI, then Codex (both in the local MVP), then Cursor and OpenCode;
+  before any remote or cloud workspace; it ships with Claude Code through its
+  official CLI, Codex and the model picker are the first update after it, then
+  Cursor and OpenCode; work that continues with the laptop closed comes first on
+  a remote host the developer owns, then in an optional managed cloud; what sets
+  Argent apart is evidence it collects itself, and checks are planned, not
+  working, until L1.4 lands;
   each workspace chooses its agent and each run a model that agent offers, and
   Argent never routes or proxies models; in local mode the agent uses
   its own official sign-in and never receives provider API-key variables; local

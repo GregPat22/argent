@@ -33,14 +33,14 @@ const STEPS: {
 }[] = [
   {
     title: "Hand it off at your desk.",
-    body: "Choose a repository, an agent and a model, and describe the task. Claude Code or Codex starts in its own branch and worktree, so several tasks run side by side without overwriting each other.",
+    body: "Choose a repository and describe the task. Your agent starts in its own branch and worktree, so several tasks run side by side without overwriting each other.",
     subject: "Local MVP",
     status: "next",
   },
   {
     title: "Close the lid. It keeps going.",
-    body: "Cloud workspaces keep the repository, dependencies and history alive while you are away, on the same open-source engine.",
-    subject: "Cloud workspaces",
+    body: "A remote workspace keeps the repository, dependencies and history alive while you are away, on the same open-source engine: first on a machine you own that stays on, later in an optional managed cloud.",
+    subject: "Remote workspaces",
     status: "planned",
   },
   {
@@ -114,7 +114,7 @@ function CloudIngot({ stage }: { stage: number }) {
       data-on={stage >= 1}
     >
       <div className="journey-cloud-face">
-        <p className="journey-cloud-label">Cloud workspace</p>
+        <p className="journey-cloud-label">Remote workspace</p>
         <p className="journey-cloud-state">
           <i className="journey-pulse" /> still running
         </p>
@@ -279,8 +279,8 @@ export function Journey() {
         </div>
         <p className="max-w-[34rem] text-sterling md:col-span-5">
           One task, three places, one record. The desktop app is where work
-          begins, the cloud is where it keeps going, and your phone is where you
-          hear it is done.
+          begins, a machine that stays on is where it keeps going, and your
+          phone is where you hear it is done.
         </p>
       </div>
 
@@ -320,7 +320,7 @@ export function Journey() {
       <p className="pb-24 text-sm text-sterling-dim md:pb-32">
         An illustration of the planned experience, not a live system. Today, the
         desktop app runs Claude Code in local worktrees (early, and not a
-        sandbox); Codex, cloud workspaces and the iPhone companion are still
+        sandbox); Codex, remote workspaces and the iPhone companion are still
         ahead.
       </p>
     </section>

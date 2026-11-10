@@ -23,7 +23,7 @@ const jetbrains = JetBrains_Mono({
 
 const TITLE = "Argent: AI coding agents you can verify";
 const DESCRIPTION =
-  "Argent is an open-source desktop app for running AI coding agents in persistent workspaces. A local desktop prototype that runs Claude Code in Git worktrees today. Persistent cloud execution and independently verified code are the roadmap.";
+  "Argent is an open-source desktop app for handing coding tasks to AI agents and reviewing results you can verify. An early prototype that runs Claude Code in local Git worktrees today, built from source. Checks Argent runs itself, Codex and work that continues with your laptop closed are on the roadmap.";
 
 export const metadata: Metadata = {
   title: TITLE,

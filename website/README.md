@@ -70,7 +70,7 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
   ([NIST data](https://physics.nist.gov/PhysRefData/Handbook/Tables/silvertable1.htm)).
   It stops offscreen and renders a still frame under reduced motion.
 - **Sections.** Below the hero: the conductor statement (with the atom), the
-  journey (desktop → cloud → phone), how it works, the agents, proof
+  journey (desktop → remote workspace → phone), how it works, the agents, proof
   (hallmarks), the open-source manifesto, the roadmap (the one place that lists
   what works today and what doesn't), the FAQ, try it (`#run`) and the final
   call to action (`#join`).

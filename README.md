@@ -52,18 +52,21 @@ In order:
 
 1. **Local MVP (in development).** Real coding agents on your own computer:
    each workspace is a new branch in its own Git worktree of a local repository,
-   so tasks run side by side without overwriting each other. It ships with Claude
-   Code first, then Codex, each through its official CLI and your own sign-in;
-   every workspace chooses its agent and every run its model (Claude models or
-   GPT models). You follow the session live, review the diff and test results,
-   and open a draft pull request.
+   so tasks run side by side without overwriting each other. It runs Claude
+   Code through its official CLI and your own sign-in. You follow the session
+   live, review the diff, see the result of checks Argent ran itself against the
+   exact commit, and open a draft pull request that carries that evidence.
    Local execution is not a sandbox: the agent has the same access as running it
    in your terminal. See [spec 0013](docs/specs/0013-local-mvp.md).
-2. **Cursor and OpenCode**, through their official interfaces.
-3. **Signed public downloads** from the website.
-4. **Cloud workspaces.** Hand off a task, close your laptop, and come back to a
-   tested draft pull request.
-5. **A mobile companion** (native iOS) to check progress and steer from your
+2. **Signed public downloads** from the website: the first public release, with
+   Claude Code.
+3. **Codex and a model picker**, the first update: every workspace chooses its
+   agent and every run its model (Claude models or GPT models).
+4. **Cursor and OpenCode**, through their official interfaces.
+5. **A remote host you own.** The same engine on a machine of yours that stays
+   on, so a task keeps going when you close your laptop.
+6. **Managed cloud workspaces**, as an optional service on the same core.
+7. **A mobile companion** (native iOS) to check progress and steer from your
    phone.
 
 After that: team handoff, then dependent tasks. A full IDE, agent swarms and

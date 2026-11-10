@@ -3,8 +3,8 @@
 Start with the [README](../README.md) for what works today, then the
 [architecture](../ARCHITECTURE.md) and [roadmap](../ROADMAP.md). The desktop app
 runs Claude Code in local worktrees as the first part of the local MVP
-([spec 0013](specs/0013-local-mvp.md)), which is in development; cloud execution
-and signed public distribution follow.
+([spec 0013](specs/0013-local-mvp.md)), which is in development; a signed public
+release, then remote and cloud execution, follow.
 
 The [local hardening contract](specs/0013-local-mvp.md#local-execution-hardening)
 and [delivery regression gates](specs/0004-desktop-prototype.md#delivery-regression-gates)

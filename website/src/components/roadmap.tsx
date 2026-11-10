@@ -20,22 +20,22 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
   },
   {
     title: "Local MVP",
-    body: "Claude Code already runs in the app, each task in its own branch and worktree with a live session. Still to come: diffs, tests, a draft pull request, Codex and the model picker.",
+    body: "Claude Code already runs in the app, each task in its own branch and worktree with a live session. Still to come: the diff, checks Argent runs itself against the exact commit, and a draft pull request that carries the proof.",
     state: "now",
   },
   {
-    title: "More agents",
-    body: "Cursor and OpenCode, through their official tools.",
-    state: "next",
-  },
-  {
     title: "Public downloads",
-    body: "Signed, versioned builds with checksums, downloadable from this site.",
+    body: "The first release: a signed build for Macs with Apple silicon, with Claude Code and a checksum, downloadable from this site.",
     state: "next",
   },
   {
-    title: "Cloud workspaces",
-    body: "Hand off a task, close your laptop, and come back to a tested draft pull request.",
+    title: "More agents",
+    body: "Codex and a model picker as the first update, then Cursor and OpenCode, each through its official tool.",
+    state: "next",
+  },
+  {
+    title: "Remote workspaces",
+    body: "Hand off a task, close your laptop, and come back to a tested draft pull request. First on a machine you own that stays on, later in an optional managed cloud.",
     state: "next",
   },
   {
@@ -55,8 +55,8 @@ const TODAY = [
 
 const NOT_YET = [
   "Diff review, tests and pull requests in the app (in development)",
-  "Codex and the model picker (in development)",
-  "Cloud workspaces and the iPhone companion",
+  "Codex and the model picker (the first update after release)",
+  "Work that continues with your laptop closed, and the iPhone companion",
   "Signed downloads: today you build from source",
 ];
 

@@ -10,8 +10,9 @@ and launches the desktop app, which is the primary working interface. The websit
 is the entry point for the product, downloads and documentation. Browser access
 may complement the desktop later.
 
-Desktop delivery and cloud execution are independent choices. The desktop client
-controls local or persistent cloud workspaces through the same headless engine.
+Desktop delivery and remote execution are independent choices. The desktop client
+controls local workspaces, workspaces on a remote host the developer owns, or
+persistent cloud workspaces through the same headless engine.
 Closing the desktop app must not cancel a remote run. Local work can continue only
 while its host computer and worker remain available.
 
@@ -34,8 +35,10 @@ same core rather than making self-hosting a second-class or limited mode.
 
 The first usable release runs real agents locally: one repository, a branch and
 worktree per workspace, Claude Code through its official CLI, a reviewable diff,
-checks Argent runs itself and a human-controlled draft pull request. Cloud
-workspaces then add disconnect and reconnect on the same engine. The personal
+checks Argent runs itself and a human-controlled draft pull request. Codex and a
+per-run model picker are its first update. A remote host the developer owns,
+and after it an optional managed cloud, then add disconnect and reconnect on the
+same engine. The personal
 release adds a familiar daily workflow, support for several agents
 and existing subscriptions, portable files and history, and a mobile companion,
 with native iOS as its own delivery track. Team handoff and dependent tasks follow.

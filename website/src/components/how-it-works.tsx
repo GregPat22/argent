@@ -149,8 +149,8 @@ export function HowItWorks() {
         <p className="max-w-[34rem] text-sterling md:col-span-5">
           This is the workflow of the local MVP, the first release. It runs real
           agents on your own computer through their official command-line tools
-          and your own sign-in: Claude Code first, then Codex, with the model of
-          your choice.
+          and your own sign-in: Claude Code first, then Codex in the first
+          update, with the model of your choice.
         </p>
       </div>
 

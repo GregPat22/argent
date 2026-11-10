@@ -20,13 +20,17 @@ usable product, and it exercises the agent, transcript, cancellation, diff,
 check and pull-request contracts that [M1](0002-cloud-mvp.md) reuses later. The
 cloud lifecycle, custody and GitHub pilot work stays as implemented.
 
-The local MVP ships two agents, both through their official CLIs: Claude Code
-first, then Codex. Each workspace chooses its agent, and each run can choose a
-model that the agent offers under the developer's own sign-in, so the same
-desktop runs Claude models through Claude Code and GPT models through Codex.
-Cursor and OpenCode remain later targets.
+The first public release of the local MVP runs Claude Code through its official
+CLI. Codex and the per-run model picker (L1.6) are the first update after that
+release, decided on 10 November 2026: each workspace then chooses its agent, and
+each run can choose a model that the agent offers under the developer's own
+sign-in, so the same desktop runs Claude models through Claude Code and GPT
+models through Codex. Cursor and OpenCode remain later targets.
 
 ## User journey
+
+Choosing the agent (step 2) and the model (step 3) arrives with L1.6; until
+then every workspace runs Claude Code with its default model.
 
 1. Add a local repository by choosing its folder.
 2. Create a workspace and choose its agent: Argent creates branch
@@ -188,18 +192,29 @@ read through the service.
 
 Commands read from a reviewed per-repository configuration file, run with the
 same process rules, bounded output and deadlines. A test result is recorded as
-evidence for the exact commit.
+evidence for the exact commit. This slice is the centre of the remaining local
+work, because it is where a run can first end as verified instead of recorded.
+The agent must not be able to change the checks that judge it: the
+configuration is read from the workspace's base commit, never from the
+worktree, the developer approves its commands once per repository, and a
+changed configuration needs a fresh approval. A result counts only while its
+recorded commit is the workspace's current commit and the worktree is clean;
+any later change shows it as stale. This is the first time Argent itself
+launches repository code, so it needs its own security review.
 
 ### L1.5 draft pull request and archive
 
 Commit and push the workspace branch and open a draft pull request through `gh`,
-recording the pull request URL. Archive removes the worktree only when it has no
+recording the pull request URL. The pull request description carries Argent's
+evidence record (commit, checks and their results, diff hash, agent, model and
+permission mode), so the proof travels with the code. Archive removes the worktree only when it has no
 uncommitted changes, unless the developer explicitly discards them; the branch is
 kept.
 
 ### L1.6 Codex and model choice
 
-The same controls through Codex's official CLI. The create-workspace dialog
+The first update after the first public release, not a condition of it. The same
+controls through Codex's official CLI. The create-workspace dialog
 offers both agents, and the task dialog a per-run model choice for either agent,
 following [agent and model choice](#agent-and-model-choice). A developer can then
 run Claude and GPT models side by side in separate workspaces.
@@ -208,9 +223,10 @@ run Claude and GPT models side by side in separate workspaces.
 
 Automated tests for every slice, a recorded desktop walkthrough, and maintainers
 completing real tasks on this repository through Argent: two workspaces running in
-parallel without interference, at least one task completed with each of Claude
-Code and Codex, and at least one pull request created through Argent and merged
-by a person.
+parallel without interference, and at least one pull request created through
+Argent and merged by a person. This gates the first public release, which ships
+with Claude Code. L1.6 has its own evidence: at least one real task completed
+with each of Claude Code and Codex.
 
 ## Out of scope for L1
 

@@ -189,10 +189,10 @@ export function Agents() {
         </h2>
         <p className="max-w-[34rem] text-sterling md:col-span-5">
           Claude Code runs in the desktop app today, and Codex joins it in the
-          local MVP, so you can run Claude models and GPT models side by side,
-          each in its own workspace, on the subscriptions you already have. Pick
-          the agent for each workspace and the model for each task, or keep the
-          agent’s default.
+          first update after release, so you can run Claude models and GPT
+          models side by side, each in its own workspace, on the subscriptions
+          you already have. Pick the agent for each workspace and the model for
+          each task, or keep the agent’s default.
         </p>
       </div>
 

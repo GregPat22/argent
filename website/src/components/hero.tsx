@@ -35,7 +35,7 @@ export function Hero() {
               We’re building the open-source desktop app for your coding agents:
               every task in its own branch, and nothing merged until you’ve seen
               the proof. Claude Code runs on your Mac today, from source. Codex,
-              the cloud and your phone come next.
+              remote workspaces and your phone come next.
             </p>
             <div
               className="hero-actions mt-8 flex flex-wrap items-center justify-center gap-3"
