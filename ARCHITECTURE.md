@@ -434,6 +434,12 @@ early transcript rejection. Unconfirmed termination blocks the workspace;
 database leases and operator notes do not prove an old process has stopped.
 Durable process reconciliation after a service crash remains unimplemented.
 
+A [cancellation follow-up](docs/specs/0013-local-mvp.md#cancellation-regression-acceptance)
+is in development for transient process-group permission errors during exit.
+It bounds retries within the live supervisor and still requires independent
+quiescence checks. It does not unlock historical uncertain runs or add recovery
+after a service restart.
+
 Trusted Git commands use bounded asynchronous child processes and neutralize
 configured filters. Repositories containing submodules are unsupported: their
 nested configuration and contents cannot be safely covered by parent-only

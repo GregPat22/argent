@@ -242,6 +242,17 @@ cancellation and early reader failure. Unconfirmed cleanup remains uncertain.
 See [spec 0013](specs/0013-local-mvp.md#local-execution-hardening)
 for acceptance criteria and remaining recovery limits.
 
+Cancellation follow-up in development, 10 November 2026: native fixtures at
+main `a9bc431` exposed transient process-group `EPERM` during exit. Bounded
+retries require a fresh successful signal/probe or confirmed absence; permission
+denial alone never proves termination. Persistent failures retain the accepted
+uncertainty policy, and existing blocked runs are not relabelled. See the
+[regression acceptance criteria](specs/0013-local-mvp.md#cancellation-regression-acceptance).
+The [development walkthrough](specs/0013-local-mvp.md#development-walkthrough-evidence)
+records real cancellation and parallel-workspace results with that correction;
+the implementation is recorded at `87011a2`, with integration into main pending.
+This does not change the accepted recovery policy or milestone order.
+
 Keep the modular monolith, single-host SQLite and official CLI adapters. Extract
 process supervision, safe Git and evidence hashing into small shared modules;
 do not replace the durable engine to address local execution defects. Submodules
