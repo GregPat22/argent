@@ -2,8 +2,9 @@
 
 Recorded 7 November 2026, based on main `ffbeef2`.
 Status: L1.1 (engine), L1.2 (desktop) and the local execution hardening are
-implemented; L1.3 onward is planned. A recorded run against the real CLI is
-still pending; automated tests use a fake CLI. The order of the remaining work
+implemented; L1.3 onward is planned. Integration of the real-CLI walkthrough
+correction is still pending; [development walkthrough evidence](#development-walkthrough-evidence)
+is recorded below. Automated tests use a fake CLI. The order of the remaining work
 is in the [roadmap's work queue](../../ROADMAP.md#work-queue).
 
 ## Product decision
@@ -140,8 +141,9 @@ What Argent guarantees in local mode:
   resume, permission modes), failure without evidence, process-group
   cancellation, the disabled path, API gating and the migration, using a fake CLI
   and real temporary repositories.
-- Not yet verified: a recorded run against the real CLI. Limits: no diff view, no
-  test command, no archive; a conversation whose CLI process died before
+- Real-CLI evidence: see the [development walkthrough](#development-walkthrough-evidence)
+  and its integration limits. No diff view, test command or archive; a
+  conversation whose CLI process died before
   announcing its session is not recovered automatically.
 
 #### Failure-summary regression (in development)
@@ -164,8 +166,8 @@ Regression coverage uses fake CLI processes in `tests/local-worktree.test.ts`
 and the compiled renderer in `tests/renderer-safety.test.ts`. These fixtures
 exercise contradictory result fields, stderr fallback, hostile subtype/text,
 retained history and explicit follow-up permissions. They call no model and do
-not replace the pending real-CLI cancellation and parallel-workspace walkthrough
-or complete the roadmap's first gate.
+not replace the [real-CLI walkthrough](#development-walkthrough-evidence)
+or complete the roadmap's first gate on their own.
 
 ### L1.2 desktop on real execution
 
@@ -317,6 +319,79 @@ older page until the user returns to the latest events. Workspace creation share
 the existing mutation lock, including native-dialog cancellation and refresh.
 Renderer regressions cover duplicate synthetic clicks and access to both ends of
 a transcript longer than one page.
+
+### Cancellation regression acceptance
+
+In development, based on main `a9bc431`, 10 November 2026. Repeated local
+process fixtures on macOS reproduced a transient `EPERM` from a process-group
+liveness probe during termination, followed by `ESRCH` on a fresh probe. The
+baseline treats the transient error as unconfirmed cleanup and blocks the
+workspace. This can affect cancellation before the CLI emits its first event.
+Apple's [process-group signal implementation](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_sig.c)
+can return `EPERM` when a group exists but has no eligible signal recipients.
+
+Acceptance for the follow-up:
+
+1. The live supervisor retries a group probe or termination signal after
+   `EPERM` at most three times, with a 25 ms delay between attempts. No other
+   error is retried. `ESRCH` still confirms that the group is absent.
+2. A successful signal is not itself proof of quiescence. Cancellation still
+   inspects the whole group, distinguishes zombies and escalates for surviving
+   descendants. Persistent permission denial or failed inspection remains
+   `needs_attention`; no failure is silently treated as a stopped process.
+3. Deterministic regressions cover transient denial while a process remains
+   live, denial of a termination signal, and denial followed by confirmed
+   absence. The existing persistent-denial and resistant-descendant cases must
+   continue passing. Native fixture repetition exercises the actual exit race
+   without calling a model.
+4. This does not reconcile previously blocked runs or recover ownership after a
+   service restart. Real-CLI cancellation requires separate walkthrough evidence;
+   automated fixtures alone do not meet it.
+
+### Development walkthrough evidence
+
+Recorded 10 November 2026, based on main `a9bc43122b6cce37d4c09bf1f891449403b24436`
+plus the cancellation implementation committed as
+`87011a2cd774fd4cb06482246cd361818a6ea0a2`. The manual run exercised that
+supervisor implementation before the unrelated failure-summary correction from
+main `4767a29` was integrated for automated checks. The cancellation correction
+still awaits integration into main; work-queue item 1 is not marked complete.
+
+The manual desktop walkthrough used the signed-in official Claude Code CLI
+2.1.322 on macOS. Saved execution events and a separate read-only inspection of
+the worktrees establish the following:
+
+| Case                      | Observed result                                                                                                                                                                                                                                                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Edits only                | A real task added a linked-worktree regression test. Argent recorded one changed file and no test evidence.                                                                                                                                                                                                                                  |
+| Full access and follow-up | The same conversation resumed, ran commands and completed with the same diff hash. The agent reported passing repository checks; Argent correctly retained `tested: false`, because those are not trusted checks run by Argent.                                                                                                              |
+| Permission denial         | A command requiring approval was denied in edits-only mode. The transcript identified the denial; the agent's successful conversational exit did not turn it into test evidence.                                                                                                                                                             |
+| Cancellation              | With the supervisor correction, a foreground command was dispatched, cancellation was requested, and the persisted outcome became `cancelled` about 1.2 seconds later. No completion record was created. A subsequent task resumed the conversation successfully.                                                                            |
+| Parallel workspaces       | Two full-access runs overlapped for approximately 126 seconds and both completed. Separate worktrees contained the same marker filename with distinct contents, `A` and `B`; each had exactly one untracked file and no tracked changes. Their independent version-2 worktree records had distinct diff hashes and remained `tested: false`. |
+
+The cancellation and parallel cases used Haiku with low effort through a local
+CLI launch override. This is test configuration, not an implemented model picker;
+Argent's normal agent-selection and model-selection scope is unchanged.
+
+Defects and limits:
+
+- Early cancellation exposed transient process-group permission errors. The
+  correction passed the real cancellation case above, deterministic regression
+  tests, repeated native fixtures and the native smoke test. The original
+  uncertain run remains blocked; no historical state was cleared.
+- Provider quota failures surfaced a contradictory failure summary containing
+  both an unsuccessful exit and the word "success". This defect was corrected
+  separately in main `4767a29`.
+  That correction has automated coverage, but was not part of the manual runs
+  recorded here; quota refusal is not itself evidence of an Argent execution retry.
+- Selecting a directory containing repositories, rather than a Git checkout,
+  correctly failed validation. Model/effort controls and repository/workspace
+  removal were unavailable during the walkthrough; the existing milestone scope
+  is unchanged.
+- This exercise does not verify durable process reconciliation, trusted checks,
+  draft pull requests, archiving, signed distribution or the complete L1 exit.
+  The next step is to integrate the cancellation correction before proceeding
+  through the work queue.
 
 ### Hardening evidence
 

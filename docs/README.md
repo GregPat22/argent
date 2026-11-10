@@ -9,7 +9,10 @@ release, then remote and cloud execution, follow.
 The [local hardening contract](specs/0013-local-mvp.md#local-execution-hardening)
 and [delivery regression gates](specs/0004-desktop-prototype.md#delivery-regression-gates)
 record the implemented safety and validation work, including the limits of
-process recovery, repository inspection and native packaging evidence.
+process recovery, repository inspection and native packaging evidence. The
+[development walkthrough](specs/0013-local-mvp.md#development-walkthrough-evidence)
+records real-CLI permission, cancellation and parallel-workspace evidence and
+the cancellation correction awaiting integration.
 
 Working on Argent? The [roadmap's work queue](../ROADMAP.md#work-queue) lists
 what to do next, in order, with what each step depends on and what counts as
