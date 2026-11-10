@@ -13,7 +13,9 @@ process recovery, repository inspection and native packaging evidence. The
 [development walkthrough](specs/0013-local-mvp.md#development-walkthrough-evidence)
 records real-CLI permission, cancellation and parallel-workspace evidence. The
 cancellation correction is integrated in main `707ae8b`, completing work-queue
-item 1; L1.3, the changes panel, is next. The complete local MVP remains open.
+item 1; L1.3, the changes panel, is next. The complete local MVP remains open. Its
+[first read-only service slice](specs/0013-local-mvp.md#read-only-changes-service-acceptance-in-development)
+is in development; desktop integration remains planned.
 
 Working on Argent? The [roadmap's work queue](../ROADMAP.md#work-queue) lists
 what to do next, in order, with what each step depends on and what counts as

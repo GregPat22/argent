@@ -143,3 +143,25 @@ export function requireInteger(
   }
   return value;
 }
+
+/** Untrusted live display data; not persisted execution or test evidence. */
+export interface WorkspaceChange {
+  path: string;
+  previousPath: string | null;
+  status: "added" | "modified" | "deleted" | "renamed" | "typechanged";
+  oldMode: string | null;
+  newMode: string | null;
+  binary: boolean;
+  diff: string;
+}
+
+export interface WorkspaceChanges {
+  kind: "workspace-changes";
+  workspaceId: string;
+  baseSha: string;
+  headSha: string;
+  simulation: false;
+  tested: false;
+  consistency: "live";
+  files: WorkspaceChange[];
+}

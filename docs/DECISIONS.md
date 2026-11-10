@@ -280,3 +280,15 @@ actions, change permissions or automatically retry from provider text. The
 [regression acceptance criteria](specs/0013-local-mvp.md#failure-summary-regression-in-development)
 require fake-CLI and renderer coverage; real walkthrough evidence remains a
 separate pending gate.
+
+### Bounded local changes inspection — 11 November 2026
+
+Engineering implementation in development against main `f4f2999`, within the
+accepted L1.3 scope. A read-only service operation compares the recorded base
+with safely read current bytes, without delegating working-tree reads to Git
+conversions. Whole-file replacement hunks and exact-content rename detection
+keep the first implementation bounded and dependency-free. Oversized inputs
+fail the complete request; live display data is never stored as verification.
+The [service acceptance contract](specs/0013-local-mvp.md#read-only-changes-service-acceptance-in-development)
+records limits and automated regression coverage. Desktop integration and the
+L1.3 exit remain planned; no product, milestone or local security decision changes.

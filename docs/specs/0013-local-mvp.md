@@ -212,7 +212,66 @@ notice; real-agent labels replace simulation labels only for real workspaces.
 ### L1.3 changes panel
 
 The workspace's changed files and unified diff against its base, bounded in size,
-read through the service.
+read through the service. The desktop panel remains planned; the first service
+slice below is in development and does not complete L1.3.
+
+#### Read-only changes service acceptance (in development)
+
+Acceptance recorded 11 November 2026 against main `f4f2999`:
+
+1. `GET /workspaces/{id}/changes` requires the existing operator bearer token,
+   rejects browser origins and is enabled only by the local service's configured
+   worktree root. No query parameters, paths, revisions or Git options are
+   accepted. Simulation workspaces and unowned, replaced or misplaced worktrees
+   are refused. The recorded branch, base commit and repository identity determine
+   the read.
+2. The response is typed `workspace-changes`, with `simulation: false`,
+   `tested: false` and `consistency: live`. Its files describe the current content
+   against the recorded base, combining committed, staged, unstaged and untracked
+   changes. Ignored untracked files are excluded. Reading never changes the
+   index, worktree, runs or verification history.
+3. Added, modified, deleted, exact-content renamed, binary, empty, executable-mode
+   and symlink changes are represented. Renames require identical bytes and mode;
+   an edited rename is an addition and a deletion. Text uses bounded whole-file
+   replacement hunks, including missing-final-newline markers, rather than a
+   minimal line edit algorithm. Binary or invalid-UTF-8 content has metadata and
+   `binary: true`, with no text diff. Symlinks show their target bytes, never the
+   target file's contents. All returned text remains untrusted display data.
+4. Trusted Git enumerates tree and index paths and reads base blobs by object ID.
+   Replacement refs are disabled, alongside hooks, fsmonitor and command-producing
+   filters. Git never computes a working-tree diff or runs textconv/external diff.
+   Current content is read with bounded file descriptors, rejecting observed
+   parent symlinks, final-link swaps, hardlinks and special files. Submodules,
+   unsafe paths and invalid-UTF-8 path names fail closed.
+5. Each request permits at most 1,000 enumerated paths, 4 MiB per input file,
+   32 MiB of inspected current/base content and 1 MiB of diff text. Metadata
+   commands also have bounded capture. Content/file-count/diff overflow returns
+   HTTP 413 with no partial success. This first slice reads all tracked and
+   nonignored untracked files: an unchanged oversized file or a large repository
+   can therefore prevent inspection. Large binary files within the input limit
+   do not consume the text-diff allowance. Diff size is checked before constructing
+   line bodies, including newline-heavy input.
+6. A single ten-second deadline covers ownership checks, enumeration and content
+   reads; expiry returns HTTP 408. Cancellation and HTTP disconnect abort the
+   operation and await supervised Git cleanup. The service does not start an
+   agent, test command or other repository code.
+
+Regression coverage in `tests/workspace-changes.test.ts` uses real temporary Git
+repositories and authenticated foreground HTTP servers. It exercises mixed Git
+states, literal unusual filenames, replacement refs, hostile command settings,
+symlink/hardlink/FIFO refusal, unsupported submodules, input/output limits,
+cancellation, disconnect and the global deadline. These fixtures call no model
+and supply no desktop or trusted-test evidence.
+
+Limits and next steps: this is a live observation, not an immutable snapshot.
+Per-file identity checks and repeated branch/listing checks detect some concurrent
+changes, but cannot fence a host owner rewriting directories or configuration
+between filesystem operations. There is no staged-versus-unstaged split, rename
+similarity search, pagination or partial oversized-file view. The next slice
+connects a narrow desktop bridge and changes panel, renders untrusted text safely,
+and verifies the desktop journey; its client timeout must accommodate or cancel
+the service deadline. Trusted checks remain L1.4, and the L1.3 exit gate remains
+open until the desktop panel and its evidence exist.
 
 ### L1.4 setup, run and test actions
 
