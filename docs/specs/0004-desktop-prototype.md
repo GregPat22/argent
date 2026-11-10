@@ -127,5 +127,8 @@ The governor now treats a run of slow frames as the signal to lower the
 resolution, starts lower when the renderer reports software rendering, and holds
 a still frame if even the lowest resolution cannot animate. Measured locally
 with the same software renderer: the median frame went from about 300 ms to
-about 17 ms at 1440 by 900. A browser test covers it. Whether this is enough on
-the hosted runner is not yet established: it needs a hosted run of this change.
+about 17 ms at 1440 by 900. A browser test covers it.
+
+Confirmed on 10 November 2026: the hosted run for the pull request carrying
+this change passed all three jobs, including every browser test in the website
+job.
