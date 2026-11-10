@@ -9,6 +9,7 @@ import { DomainError, type Run } from "./domain.js";
 import { Store } from "./store.js";
 import { inspectArtifact } from "./artifacts.js";
 import { createLocalWorkspace } from "./local-worktree.js";
+import { inspectWorkspaceChanges } from "./workspace-changes.js";
 
 function publicRun(run: Run): Omit<Run, "leaseToken"> {
   const { leaseToken: _token, ...result } = run;
@@ -120,6 +121,39 @@ export function makeServer(
           );
         } else {
           send(response, 201, store.createWorkspace(body.repository));
+        }
+      } else if (
+        parts[0] === "workspaces" &&
+        parts.length === 3 &&
+        parts[2] === "changes" &&
+        method === "GET"
+      ) {
+        if (!options.worktreeRoot)
+          throw new DomainError(
+            409,
+            "Local execution is not enabled in this service",
+          );
+        if (url.searchParams.size)
+          throw new DomainError(
+            400,
+            "Workspace changes accept no query parameters",
+          );
+        const controller = new AbortController();
+        const abort = () =>
+          controller.abort(
+            new DomainError(408, "Changes request disconnected"),
+          );
+        response.once("close", abort);
+        try {
+          const changes = await inspectWorkspaceChanges(
+            store,
+            options.worktreeRoot,
+            parts[1]!,
+            controller.signal,
+          );
+          send(response, 200, changes);
+        } finally {
+          response.off("close", abort);
         }
       } else if (
         parts[0] === "workspaces" &&
