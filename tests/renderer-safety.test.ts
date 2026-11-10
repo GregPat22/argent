@@ -251,3 +251,41 @@ test("polling and synthetic duplicate clicks cannot unlock pending repository cr
   await settle();
   assert.equal(app.element("new-workspace").disabled, false);
 });
+
+test("failed provider output stays literal text beside a clear failure summary", async () => {
+  const app = await launch();
+  const explanation =
+    "Usage limit reached. Try again after the limit resets. <img src=x onerror=alert(1)>";
+  app.append(1);
+  app.history.push(
+    {
+      cursor: 2,
+      runId: app.run.id,
+      type: "agent.log",
+      data: { kind: "tool_error", message: explanation },
+      createdAt: 2,
+    },
+    {
+      cursor: 3,
+      runId: app.run.id,
+      type: "run.failed",
+      data: { reason: "Claude Code failed (exit 1)." },
+      createdAt: 3,
+    },
+  );
+  app.run.status = "failed";
+  await app.poll();
+  const transcript = app.element("transcript");
+  const detail = transcript.find((item) => item.textContent === explanation);
+  assert.ok(detail, "provider explanation is retained as textContent");
+  assert.equal(detail.children.length, 0);
+  assert.match(transcript.text, /Message 1/);
+  assert.match(transcript.text, /Failed\. Claude Code failed \(exit 1\)\./);
+  assert.doesNotMatch(transcript.text, /exit 1, success|Argent recorded/);
+  assert.ok(
+    transcript.find((item) => item.className === "status status-failed"),
+  );
+  const beforePoll = transcript.text;
+  await app.poll();
+  assert.equal(app.element("transcript").text, beforePoll);
+});

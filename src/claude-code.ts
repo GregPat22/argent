@@ -191,9 +191,11 @@ export class ClaudeCodeAgent implements AgentAdapter {
             ? result.result
             : (stderr.trim().split("\n").at(-1) ?? "");
         if (detail) yield { kind: "tool_error", text: detail };
+        // The CLI can report subtype "success" on an error result. Keep its
+        // untrusted metadata out of Argent's failure summary.
         throw new DomainError(
           409,
-          `Claude Code did not finish successfully (exit ${outcome.code ?? "unknown"}${result?.subtype ? `, ${result.subtype}` : ""})`,
+          `Claude Code failed (exit ${outcome.code ?? "unknown"}).`,
         );
       }
       yield {

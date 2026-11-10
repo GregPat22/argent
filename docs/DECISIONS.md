@@ -254,3 +254,15 @@ and packaged smoke checks to CI. Packaging dependency overrides are narrow and
 temporary: remove them when the upstream dependency ranges include patched
 releases, with package compatibility and advisory checks repeated. See
 [spec 0004](specs/0004-desktop-prototype.md#delivery-regression-gates).
+
+### Claude Code failure summaries — 10 November 2026
+
+Usability correction in development, based on main `a9bc431`; the accepted
+execution and security contracts are unchanged. A CLI result subtype is untrusted
+protocol metadata, not a user-facing outcome: `success` can accompany an error
+flag and nonzero exit. Keep the provider explanation in the bounded transcript
+and use "Claude Code failed (exit N)." as Argent's summary. Do not infer recovery
+actions, change permissions or automatically retry from provider text. The
+[regression acceptance criteria](specs/0013-local-mvp.md#failure-summary-regression-in-development)
+require fake-CLI and renderer coverage; real walkthrough evidence remains a
+separate pending gate.
