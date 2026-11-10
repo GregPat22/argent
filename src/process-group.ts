@@ -12,13 +12,7 @@ const exec = promisify(execFile);
 // Only inspect groups created by this live supervisor. Never signal a PID read
 // from an old database record: it may have been reused after a restart.
 async function groupIsLive(pid: number | undefined): Promise<boolean> {
-  if (!pid) return false;
-  try {
-    process.kill(-pid, 0);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ESRCH") return false;
-    throw new UncertainExecutionError();
-  }
+  if (!(await signalGroup(pid, 0))) return false;
   // An orphaned zombie can remain until init reaps it, but cannot execute or
   // write files. ps is used only for this distinction; no command text is read.
   try {
@@ -36,13 +30,24 @@ async function groupIsLive(pid: number | undefined): Promise<boolean> {
   }
 }
 
-function signalGroup(pid: number | undefined, signal: NodeJS.Signals): void {
-  if (!pid) return;
-  try {
-    process.kill(-pid, signal);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ESRCH")
-      throw new UncertainExecutionError();
+async function signalGroup(
+  pid: number | undefined,
+  signal: NodeJS.Signals | 0,
+): Promise<boolean> {
+  if (!pid) return false;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      process.kill(-pid, signal);
+      return true;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === "ESRCH") return false;
+      // macOS can return EPERM while an exiting group is being reaped.
+      // Retry briefly, but never treat permission denial as proof of exit.
+      // Persistent denial and every other error still leave cleanup uncertain.
+      if (code !== "EPERM" || attempt >= 3) throw new UncertainExecutionError();
+      await delay(25);
+    }
   }
 }
 
@@ -79,14 +84,14 @@ export function launchProcess(
     stopping ??= (async () => {
       try {
         if (!(await groupIsLive(child.pid))) return;
-        signalGroup(child.pid, "SIGTERM");
+        await signalGroup(child.pid, "SIGTERM");
         const deadline = Date.now() + graceMs;
         while (Date.now() < deadline) {
           if (!(await groupIsLive(child.pid))) return;
           await delay(Math.min(25, Math.max(1, deadline - Date.now())));
         }
         // Do not cancel escalation merely because the leader has exited.
-        signalGroup(child.pid, "SIGKILL");
+        await signalGroup(child.pid, "SIGKILL");
         const killedBy = Date.now() + 2000;
         while (await groupIsLive(child.pid)) {
           if (Date.now() >= killedBy) throw new UncertainExecutionError();
@@ -98,11 +103,11 @@ export function launchProcess(
         child.stdout.destroy();
         child.stderr.destroy();
       }
-    })().catch((error: unknown) => {
+    })().catch(async (error: unknown) => {
       // A failed liveness inspection must not leave capture waiting forever for
       // a close event from the very process whose termination is uncertain.
       try {
-        signalGroup(child.pid, "SIGKILL");
+        await signalGroup(child.pid, "SIGKILL");
       } catch {
         /* still uncertain */
       }
