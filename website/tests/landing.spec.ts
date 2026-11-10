@@ -1415,16 +1415,19 @@ test("hero states the promise once and today's facts under the actions", async (
 test("the compact pill keeps the main action in reach and rests where the page already offers it", async ({
   page,
 }) => {
+  // Each step waits for the page to notice a scroll, and a software renderer
+  // draws few frames while the hero is on screen.
+  test.slow();
   await visit(page, "/");
   const pill = page.locator(".nav-pill a");
   // Over the hero the full navigation and the hero's own button do the job.
-  await expect(pill).toHaveCount(0);
+  await expect(pill).toHaveCount(0, { timeout: 15_000 });
   await page
     .locator("#lifecycle")
     .evaluate((el) =>
       el.scrollIntoView({ block: "start", behavior: "instant" }),
     );
-  await expect(pill).toBeVisible();
+  await expect(pill).toBeVisible({ timeout: 15_000 });
   await expect(pill).toHaveText(/Try it locally/);
   const box = (await pill.boundingBox())!;
   expect(box.height).toBeGreaterThanOrEqual(44);
@@ -1432,61 +1435,64 @@ test("the compact pill keeps the main action in reach and rests where the page a
   // Opening the menu shows the same action there, so the pill leaves.
   const logo = page.getByRole("button", { name: "Open navigation" });
   await logo.click();
-  await expect(pill).toHaveCount(0);
+  await expect(pill).toHaveCount(0, { timeout: 15_000 });
   await page.keyboard.press("Escape");
-  await expect(pill).toBeVisible();
+  await expect(pill).toBeVisible({ timeout: 15_000 });
   // It lands on the try-it section and then rests there and on the last band.
   await pill.click();
-  await expect(page).toHaveURL(/#run$/);
-  await expect(
-    page.getByRole("heading", { name: /Run it on/ }),
-  ).toBeInViewport();
-  await expect(pill).toHaveCount(0);
+  await expect(page).toHaveURL(/#run$/, { timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: /Run it on/ })).toBeInViewport(
+    { timeout: 15_000 },
+  );
+  await expect(pill).toHaveCount(0, { timeout: 15_000 });
   await page
     .locator("#join")
     .evaluate((el) =>
       el.scrollIntoView({ block: "center", behavior: "instant" }),
     );
-  await expect(pill).toHaveCount(0);
+  await expect(pill).toHaveCount(0, { timeout: 15_000 });
   // Content fades under the compact header instead of colliding with the logo.
   await expect
-    .poll(() =>
-      page
-        .locator("header")
-        .evaluate((el) => getComputedStyle(el, "::before").opacity),
+    .poll(
+      () =>
+        page
+          .locator("header")
+          .evaluate((el) => getComputedStyle(el, "::before").opacity),
+      { timeout: 15_000 },
     )
     .toBe("1");
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await expect
-    .poll(() =>
-      page
-        .locator("header")
-        .evaluate((el) => getComputedStyle(el, "::before").opacity),
+    .poll(
+      () =>
+        page
+          .locator("header")
+          .evaluate((el) => getComputedStyle(el, "::before").opacity),
+      { timeout: 15_000 },
     )
     .toBe("0");
-  // Leave the hero before resizing: on a software renderer its canvas takes
-  // seconds to redraw at a new size, and nothing here is about the hero.
-  const toLifecycle = () =>
-    page
+});
+
+test("the pill and the compact logo rest apart at phone and tablet widths", async ({
+  page,
+}) => {
+  // This is about where the two come to rest, not how they travel there, so
+  // the travel is switched off and each width gets a fresh page.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const width of [360, 768]) {
+    await page.setViewportSize({ width, height: 800 });
+    await visit(page, "/");
+    await page
       .locator("#lifecycle")
       .evaluate((el) =>
         el.scrollIntoView({ block: "start", behavior: "instant" }),
       );
-  await toLifecycle();
-  await expect(pill).toBeVisible();
-  for (const width of [360, 768]) {
-    await page.setViewportSize({ width, height: 800 });
-    await toLifecycle();
+    const pill = page.locator(".nav-pill a");
     await expect(pill).toBeVisible({ timeout: 15_000 });
-    // Resizing animates the logo to its new place; measure once it has settled.
     await expect(pill).toHaveCSS("opacity", "1");
     const narrow = (await pill.boundingBox())!;
-    await expect
-      .poll(async () => {
-        const dock = (await page.locator(".nav-logo-dock").boundingBox())!;
-        return dock.x + dock.width;
-      })
-      .toBeLessThan(narrow.x);
+    const dock = (await page.locator(".nav-logo-dock").boundingBox())!;
+    expect(dock.x + dock.width).toBeLessThan(narrow.x);
     expect(narrow.x + narrow.width).toBeLessThanOrEqual(width);
   }
 });

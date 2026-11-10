@@ -84,8 +84,8 @@ says.
 
 On the final content, 10 November 2026:
 
-- Website: type check and production build pass; 46 of 46 browser tests pass
-  (38 from before this work, 8 new). The suite runs on software WebGL.
+- Website: type check and production build pass; 47 of 47 browser tests pass
+  (38 from before this work, 9 new). The suite runs on software WebGL.
 - Repository: `npm run check` passes, 427 of 427.
 - The first full run of the new suite failed 8 tests. Five came from real
   defects this work had introduced: removing the comparison's clipping let its
@@ -95,6 +95,13 @@ On the final content, 10 November 2026:
   was still moving. The defects were fixed in the page and the tests now wait
   for rest. The 38 earlier tests changed only where behaviour changed on
   purpose (navigation order and the action pill).
+- On the hosted runner the action-pill test failed twice on the slower of two
+  parallel runs. A software renderer draws very few frames after a window
+  resize, and the test waited on a transition to finish. It reproduced locally
+  under heavy processor load. The resting positions at phone and tablet width
+  are now a separate test on a fresh page with motion reduced, and the
+  behaviour test allows longer for each step; both pass 8 times out of 8 under
+  that load.
 - Looked at in headless Chromium at 1440, 768 and 390 px, every section, and
   compared with the page before the change.
 - Motion: the new animations were classified by hand against Motion's
