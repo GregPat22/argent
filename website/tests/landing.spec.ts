@@ -1464,14 +1464,20 @@ test("the compact pill keeps the main action in reach and rests where the page a
         .evaluate((el) => getComputedStyle(el, "::before").opacity),
     )
     .toBe("0");
-  for (const width of [360, 768]) {
-    await page.setViewportSize({ width, height: 800 });
-    await page
+  // Leave the hero before resizing: on a software renderer its canvas takes
+  // seconds to redraw at a new size, and nothing here is about the hero.
+  const toLifecycle = () =>
+    page
       .locator("#lifecycle")
       .evaluate((el) =>
         el.scrollIntoView({ block: "start", behavior: "instant" }),
       );
-    await expect(pill).toBeVisible();
+  await toLifecycle();
+  await expect(pill).toBeVisible();
+  for (const width of [360, 768]) {
+    await page.setViewportSize({ width, height: 800 });
+    await toLifecycle();
+    await expect(pill).toBeVisible({ timeout: 15_000 });
     // Resizing animates the logo to its new place; measure once it has settled.
     await expect(pill).toHaveCSS("opacity", "1");
     const narrow = (await pill.boundingBox())!;
