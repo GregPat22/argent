@@ -242,6 +242,20 @@ cancellation and early reader failure. Unconfirmed cleanup remains uncertain.
 See [spec 0013](specs/0013-local-mvp.md#local-execution-hardening)
 for acceptance criteria and remaining recovery limits.
 
+Cancellation follow-up implemented in main `707ae8b`, 10 November 2026: native fixtures at
+main `a9bc431` exposed transient process-group `EPERM` during exit. Bounded
+retries require a fresh successful signal/probe or confirmed absence; permission
+denial alone never proves termination. Persistent failures retain the accepted
+uncertainty policy, and existing blocked runs are not relabelled. See the
+[regression acceptance criteria](specs/0013-local-mvp.md#cancellation-regression-acceptance).
+The [development walkthrough](specs/0013-local-mvp.md#development-walkthrough-evidence)
+records real cancellation and parallel-workspace results with that correction;
+the implementation recorded at `87011a2` is integrated in main `707ae8b`.
+Integration review confirmed identical supervisor code and regression tests,
+closing work-queue item 1 using the recorded walkthrough evidence. L1.3 is next.
+This does not change the accepted recovery policy or milestone order, and does
+not establish the complete L1 exit.
+
 Keep the modular monolith, single-host SQLite and official CLI adapters. Extract
 process supervision, safe Git and evidence hashing into small shared modules;
 do not replace the durable engine to address local execution defects. Submodules
@@ -254,3 +268,27 @@ and packaged smoke checks to CI. Packaging dependency overrides are narrow and
 temporary: remove them when the upstream dependency ranges include patched
 releases, with package compatibility and advisory checks repeated. See
 [spec 0004](specs/0004-desktop-prototype.md#delivery-regression-gates).
+
+### Claude Code failure summaries — 10 November 2026
+
+Usability correction in development, based on main `a9bc431`; the accepted
+execution and security contracts are unchanged. A CLI result subtype is untrusted
+protocol metadata, not a user-facing outcome: `success` can accompany an error
+flag and nonzero exit. Keep the provider explanation in the bounded transcript
+and use "Claude Code failed (exit N)." as Argent's summary. Do not infer recovery
+actions, change permissions or automatically retry from provider text. The
+[regression acceptance criteria](specs/0013-local-mvp.md#failure-summary-regression-in-development)
+require fake-CLI and renderer coverage; real walkthrough evidence remains a
+separate pending gate.
+
+### Bounded local changes inspection — 11 November 2026
+
+Engineering implementation in development against main `f4f2999`, within the
+accepted L1.3 scope. A read-only service operation compares the recorded base
+with safely read current bytes, without delegating working-tree reads to Git
+conversions. Whole-file replacement hunks and exact-content rename detection
+keep the first implementation bounded and dependency-free. Oversized inputs
+fail the complete request; live display data is never stored as verification.
+The [service acceptance contract](specs/0013-local-mvp.md#read-only-changes-service-acceptance-in-development)
+records limits and automated regression coverage. Desktop integration and the
+L1.3 exit remain planned; no product, milestone or local security decision changes.

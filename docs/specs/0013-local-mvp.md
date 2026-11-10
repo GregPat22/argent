@@ -2,8 +2,10 @@
 
 Recorded 7 November 2026, based on main `ffbeef2`.
 Status: L1.1 (engine), L1.2 (desktop) and the local execution hardening are
-implemented; L1.3 onward is planned. A recorded run against the real CLI is
-still pending; automated tests use a fake CLI. The order of the remaining work
+implemented; L1.3 onward is planned. The real-CLI walkthrough gate is complete,
+with its cancellation correction integrated in main `707ae8b`;
+[development walkthrough evidence](#development-walkthrough-evidence) is recorded
+below. Automated tests use a fake CLI. The order of the remaining work
 is in the [roadmap's work queue](../../ROADMAP.md#work-queue).
 
 ## Product decision
@@ -140,9 +142,33 @@ What Argent guarantees in local mode:
   resume, permission modes), failure without evidence, process-group
   cancellation, the disabled path, API gating and the migration, using a fake CLI
   and real temporary repositories.
-- Not yet verified: a recorded run against the real CLI. Limits: no diff view, no
-  test command, no archive; a conversation whose CLI process died before
+- Real-CLI evidence: see the [development walkthrough](#development-walkthrough-evidence)
+  and its integration limits. No diff view, test command or archive; a
+  conversation whose CLI process died before
   announcing its session is not recovered automatically.
+
+#### Failure-summary regression (in development)
+
+Acceptance criteria, 10 November 2026, based on main `a9bc431`:
+
+1. A usage-limit result with subtype `success`, `is_error: true` and exit code
+   1 must remain `failed`, with no verification record. The summary must read
+   "Claude Code failed (exit 1)." without repeating the CLI's internal subtype.
+2. The provider explanation and earlier conversation remain bounded, untrusted
+   transcript text. Provider markup must not become executable UI content or
+   part of Argent's failure summary.
+3. A nonzero exit, an error result, a non-success subtype or a missing result
+   must still fail. A successful run still requires independent worktree evidence.
+4. Reading history or ticking the worker must not retry a failed run. An explicit
+   follow-up resumes the same initialized session and keeps the earlier turn;
+   edits-only defaults and explicit full-access permissions remain unchanged.
+
+Regression coverage uses fake CLI processes in `tests/local-worktree.test.ts`
+and the compiled renderer in `tests/renderer-safety.test.ts`. These fixtures
+exercise contradictory result fields, stderr fallback, hostile subtype/text,
+retained history and explicit follow-up permissions. They call no model and do
+not replace the [real-CLI walkthrough](#development-walkthrough-evidence)
+or complete the roadmap's first gate on their own.
 
 ### L1.2 desktop on real execution
 
@@ -186,7 +212,66 @@ notice; real-agent labels replace simulation labels only for real workspaces.
 ### L1.3 changes panel
 
 The workspace's changed files and unified diff against its base, bounded in size,
-read through the service.
+read through the service. The desktop panel remains planned; the first service
+slice below is in development and does not complete L1.3.
+
+#### Read-only changes service acceptance (in development)
+
+Acceptance recorded 11 November 2026 against main `f4f2999`:
+
+1. `GET /workspaces/{id}/changes` requires the existing operator bearer token,
+   rejects browser origins and is enabled only by the local service's configured
+   worktree root. No query parameters, paths, revisions or Git options are
+   accepted. Simulation workspaces and unowned, replaced or misplaced worktrees
+   are refused. The recorded branch, base commit and repository identity determine
+   the read.
+2. The response is typed `workspace-changes`, with `simulation: false`,
+   `tested: false` and `consistency: live`. Its files describe the current content
+   against the recorded base, combining committed, staged, unstaged and untracked
+   changes. Ignored untracked files are excluded. Reading never changes the
+   index, worktree, runs or verification history.
+3. Added, modified, deleted, exact-content renamed, binary, empty, executable-mode
+   and symlink changes are represented. Renames require identical bytes and mode;
+   an edited rename is an addition and a deletion. Text uses bounded whole-file
+   replacement hunks, including missing-final-newline markers, rather than a
+   minimal line edit algorithm. Binary or invalid-UTF-8 content has metadata and
+   `binary: true`, with no text diff. Symlinks show their target bytes, never the
+   target file's contents. All returned text remains untrusted display data.
+4. Trusted Git enumerates tree and index paths and reads base blobs by object ID.
+   Replacement refs are disabled, alongside hooks, fsmonitor and command-producing
+   filters. Git never computes a working-tree diff or runs textconv/external diff.
+   Current content is read with bounded file descriptors, rejecting observed
+   parent symlinks, final-link swaps, hardlinks and special files. Submodules,
+   unsafe paths and invalid-UTF-8 path names fail closed.
+5. Each request permits at most 1,000 enumerated paths, 4 MiB per input file,
+   32 MiB of inspected current/base content and 1 MiB of diff text. Metadata
+   commands also have bounded capture. Content/file-count/diff overflow returns
+   HTTP 413 with no partial success. This first slice reads all tracked and
+   nonignored untracked files: an unchanged oversized file or a large repository
+   can therefore prevent inspection. Large binary files within the input limit
+   do not consume the text-diff allowance. Diff size is checked before constructing
+   line bodies, including newline-heavy input.
+6. A single ten-second deadline covers ownership checks, enumeration and content
+   reads; expiry returns HTTP 408. Cancellation and HTTP disconnect abort the
+   operation and await supervised Git cleanup. The service does not start an
+   agent, test command or other repository code.
+
+Regression coverage in `tests/workspace-changes.test.ts` uses real temporary Git
+repositories and authenticated foreground HTTP servers. It exercises mixed Git
+states, literal unusual filenames, replacement refs, hostile command settings,
+symlink/hardlink/FIFO refusal, unsupported submodules, input/output limits,
+cancellation, disconnect and the global deadline. These fixtures call no model
+and supply no desktop or trusted-test evidence.
+
+Limits and next steps: this is a live observation, not an immutable snapshot.
+Per-file identity checks and repeated branch/listing checks detect some concurrent
+changes, but cannot fence a host owner rewriting directories or configuration
+between filesystem operations. There is no staged-versus-unstaged split, rename
+similarity search, pagination or partial oversized-file view. The next slice
+connects a narrow desktop bridge and changes panel, renders untrusted text safely,
+and verifies the desktop journey; its client timeout must accommodate or cancel
+the service deadline. Trusted checks remain L1.4, and the L1.3 exit gate remains
+open until the desktop panel and its evidence exist.
 
 ### L1.4 setup, run and test actions
 
@@ -294,6 +379,84 @@ older page until the user returns to the latest events. Workspace creation share
 the existing mutation lock, including native-dialog cancellation and refresh.
 Renderer regressions cover duplicate synthetic clicks and access to both ends of
 a transcript longer than one page.
+
+### Cancellation regression acceptance
+
+Implemented in main `707ae8b`; acceptance recorded against main `a9bc431` on
+10 November 2026. Repeated local
+process fixtures on macOS reproduced a transient `EPERM` from a process-group
+liveness probe during termination, followed by `ESRCH` on a fresh probe. The
+baseline treats the transient error as unconfirmed cleanup and blocks the
+workspace. This can affect cancellation before the CLI emits its first event.
+Apple's [process-group signal implementation](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_sig.c)
+can return `EPERM` when a group exists but has no eligible signal recipients.
+
+Acceptance for the follow-up:
+
+1. The live supervisor retries a group probe or termination signal after
+   `EPERM` at most three times, with a 25 ms delay between attempts. No other
+   error is retried. `ESRCH` still confirms that the group is absent.
+2. A successful signal is not itself proof of quiescence. Cancellation still
+   inspects the whole group, distinguishes zombies and escalates for surviving
+   descendants. Persistent permission denial or failed inspection remains
+   `needs_attention`; no failure is silently treated as a stopped process.
+3. Deterministic regressions cover transient denial while a process remains
+   live, denial of a termination signal, and denial followed by confirmed
+   absence. The existing persistent-denial and resistant-descendant cases must
+   continue passing. Native fixture repetition exercises the actual exit race
+   without calling a model.
+4. This does not reconcile previously blocked runs or recover ownership after a
+   service restart. Real-CLI cancellation requires separate walkthrough evidence;
+   automated fixtures alone do not meet it.
+
+### Development walkthrough evidence
+
+Recorded 10 November 2026, based on main `a9bc43122b6cce37d4c09bf1f891449403b24436`
+plus the cancellation implementation committed as
+`87011a2cd774fd4cb06482246cd361818a6ea0a2`. The manual run exercised that
+supervisor implementation before the unrelated failure-summary correction from
+main `4767a29` was integrated for automated checks. The cancellation correction
+is integrated in main `707ae8b64151fb2098025fd1d33a76e3d0b5ec20`. Integration
+review on 10 November 2026 confirmed that `src/process-group.ts` and
+`tests/process-group.test.ts` match the recorded implementation at `87011a2`
+exactly. The recorded cases below and the integrated defect corrections satisfy
+work-queue item 1. This is an integration review of existing walkthrough evidence,
+not a new manual run against the combined revision.
+
+The manual desktop walkthrough used the signed-in official Claude Code CLI
+2.1.322 on macOS. Saved execution events and a separate read-only inspection of
+the worktrees establish the following:
+
+| Case                      | Observed result                                                                                                                                                                                                                                                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Edits only                | A real task added a linked-worktree regression test. Argent recorded one changed file and no test evidence.                                                                                                                                                                                                                                  |
+| Full access and follow-up | The same conversation resumed, ran commands and completed with the same diff hash. The agent reported passing repository checks; Argent correctly retained `tested: false`, because those are not trusted checks run by Argent.                                                                                                              |
+| Permission denial         | A command requiring approval was denied in edits-only mode. The transcript identified the denial; the agent's successful conversational exit did not turn it into test evidence.                                                                                                                                                             |
+| Cancellation              | With the supervisor correction, a foreground command was dispatched, cancellation was requested, and the persisted outcome became `cancelled` about 1.2 seconds later. No completion record was created. A subsequent task resumed the conversation successfully.                                                                            |
+| Parallel workspaces       | Two full-access runs overlapped for approximately 126 seconds and both completed. Separate worktrees contained the same marker filename with distinct contents, `A` and `B`; each had exactly one untracked file and no tracked changes. Their independent version-2 worktree records had distinct diff hashes and remained `tested: false`. |
+
+The cancellation and parallel cases used Haiku with low effort through a local
+CLI launch override. This is test configuration, not an implemented model picker;
+Argent's normal agent-selection and model-selection scope is unchanged.
+
+Defects and limits:
+
+- Early cancellation exposed transient process-group permission errors. The
+  correction passed the real cancellation case above, deterministic regression
+  tests, repeated native fixtures and the native smoke test. The original
+  uncertain run remains blocked; no historical state was cleared.
+- Provider quota failures surfaced a contradictory failure summary containing
+  both an unsuccessful exit and the word "success". This defect was corrected
+  separately in main `4767a29`.
+  That correction has automated coverage, but was not part of the manual runs
+  recorded here; quota refusal is not itself evidence of an Argent execution retry.
+- Selecting a directory containing repositories, rather than a Git checkout,
+  correctly failed validation. Model/effort controls and repository/workspace
+  removal were unavailable during the walkthrough; the existing milestone scope
+  is unchanged.
+- This exercise does not verify durable process reconciliation, trusted checks,
+  draft pull requests, archiving, signed distribution or the complete L1 exit.
+  The next step is L1.3, the changes panel, as ordered in the work queue.
 
 ### Hardening evidence
 

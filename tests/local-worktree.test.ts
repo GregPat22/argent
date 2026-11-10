@@ -58,14 +58,53 @@ function repository(root: string, name = "repo"): string {
   return realpathSync(path);
 }
 
+const failureFixtures = {
+  "usage-limit": {
+    code: 1,
+    result: {
+      subtype: "success",
+      is_error: true,
+      result: "Usage limit reached. Try again after the limit resets.",
+    },
+  },
+  "nonzero-success": {
+    code: 1,
+    result: {
+      subtype: "success",
+      is_error: false,
+      result: "Claimed success despite a failed process.",
+    },
+  },
+  "error-result": {
+    code: 0,
+    result: {
+      subtype: "success",
+      is_error: true,
+      result: "The provider could not complete this request.",
+    },
+  },
+  "untrusted-subtype": {
+    code: 0,
+    result: {
+      subtype: "<img src=x onerror=alert(1)>success",
+      is_error: false,
+      result: "<script>alert('provider output')</script>",
+    },
+  },
+  "missing-result": {
+    code: 0,
+    result: null,
+    stderr: "Provider connection failed.",
+  },
+};
+type FakeMode =
+  "success" | "fail" | "hang" | "resistant" | keyof typeof failureFixtures;
+
 /**
  * Writes a fake `claude` CLI. It records its argv, stdin, cwd and environment
  * next to itself, then behaves according to `mode`.
  */
-function fakeClaude(
-  root: string,
-  mode: "success" | "fail" | "hang" | "resistant",
-): string {
+function fakeClaude(root: string, mode: FakeMode): string {
   const path = join(root, `claude-${mode}`);
   const record = join(root, `record-${mode}.json`);
   const pidFile = join(root, `grandchild-${mode}.pid`);
@@ -101,6 +140,13 @@ process.stdin.on("end", () => {
     { type: "tool_use", name: "Write", input: { file_path: process.cwd() + "/hello.txt" } },
   ] } });
   out({ type: "user", message: { content: [{ type: "tool_result", is_error: true, content: "denied once" }] } });
+  const failure = ${JSON.stringify(failureFixtures)}[${JSON.stringify(mode)}];
+  if (failure) {
+    if (failure.result) out({ type: "result", ...failure.result });
+    if (failure.stderr) process.stderr.write(failure.stderr + "\\n");
+    process.exitCode = failure.code;
+    return;
+  }
   if (${JSON.stringify(mode)} === "fail") {
     out({ type: "result", subtype: "error_during_execution", is_error: true, result: "Something broke" });
     process.exit(1);
@@ -126,10 +172,7 @@ function records(root: string, mode: string) {
   }[];
 }
 
-function fixture(
-  t: TestContext,
-  mode: "success" | "fail" | "hang" | "resistant" = "success",
-) {
+function fixture(t: TestContext, mode: FakeMode = "success") {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "argent-local-")));
   const store = new Store(join(root, "db.sqlite"));
   t.after(() => {
@@ -371,9 +414,83 @@ test("an unsuccessful agent run fails without a verification record", async (t) 
   assert.ok(events.some((event) => event.data.message === "Something broke"));
   assert.match(
     String(events.at(-1)!.data.reason),
-    /did not finish successfully \(exit 1, error_during_execution\)/,
+    /^Claude Code failed \(exit 1\)\.$/,
   );
 });
+
+for (const mode of Object.keys(
+  failureFixtures,
+) as (keyof typeof failureFixtures)[]) {
+  test(`${mode}: failure keeps provider detail and never trusts the result subtype`, async (t) => {
+    const f = fixture(t, mode);
+    const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+    const run = f.store.createRun(workspace.id, "Task", "failure");
+    await f.worker.tick();
+    const events = f.store.events(run.id);
+    const failure = failureFixtures[mode];
+    assert.equal(f.store.getRun(run.id).status, "failed");
+    assert.equal(events.at(-1)!.type, "run.failed");
+    assert.equal(
+      events.at(-1)!.data.reason,
+      `Claude Code failed (exit ${failure.code}).`,
+    );
+    assert.ok(
+      events.some(
+        (event) =>
+          event.type === "agent.log" &&
+          event.data.kind === "tool_error" &&
+          event.data.message ===
+            (failure.result?.result ??
+              failureFixtures["missing-result"].stderr),
+      ),
+    );
+    assert.ok(
+      events.some((event) => event.data.message === "I will add a file."),
+    );
+    assert.equal(
+      events.some(
+        (event) =>
+          event.type === "verification.recorded" ||
+          event.type === "run.completed",
+      ),
+      false,
+    );
+    assert.equal(await f.worker.tick(), false, "a failed run is not retried");
+    assert.equal(records(f.root, mode).length, 1);
+    assert.deepEqual(
+      f.store.events(run.id),
+      events,
+      "reads and idle ticks preserve history",
+    );
+
+    if (mode === "usage-limit") {
+      const session = f.store.agentSession(workspace.id);
+      assert.equal(session.started, true);
+      const second = f.store.createRun(
+        workspace.id,
+        "Explicit follow-up",
+        "follow-up",
+        undefined,
+        undefined,
+        "full",
+      );
+      await f.worker.tick();
+      assert.equal(f.store.getRun(second.id).status, "failed");
+      const calls = records(f.root, mode);
+      assert.deepEqual(calls[0]!.args.slice(-2), ["--session-id", session.id]);
+      assert.deepEqual(calls[1]!.args.slice(-2), ["--resume", session.id]);
+      assert.equal(calls[0]!.args[5], "acceptEdits");
+      assert.equal(calls[1]!.args[5], "bypassPermissions");
+      assert.equal(calls[1]!.args[7], "none");
+      assert.equal(f.store.getRun(second.id).permissionMode, "full");
+      assert.deepEqual(
+        f.store.events(run.id),
+        events,
+        "follow-up keeps the failed turn intact",
+      );
+    }
+  });
+}
 
 test("cancel stops the agent's whole process group", async (t) => {
   const f = fixture(t, "hang");
