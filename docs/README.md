@@ -18,7 +18,9 @@ item 1. L1.3 now supplies a read-only changes panel; its
 records service/renderer regression tests and the native desktop flow at
 `37ea780`. Trusted checks (L1.4) are next, and the complete local MVP remains open.
 The internal [base-commit command-configuration reader](specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance)
-is in development; it adds no command execution, approval storage or tested result.
+is implemented at `914323d`; its [validation evidence](specs/0013-local-mvp.md#internal-reader-implementation-evidence)
+is recorded on 11 November 2026. It adds no command execution, approval storage or
+tested result, and L1.4 remains incomplete.
 
 Working on Argent? The [roadmap's work queue](../ROADMAP.md#work-queue) lists
 what to do next, in order, with what each step depends on and what counts as

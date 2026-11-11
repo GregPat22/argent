@@ -49,7 +49,8 @@ Record the reason and evidence here when a choice is resolved.
 
 ### Base-bound command configuration groundwork — 11 November 2026
 
-In development against main `9ddf9d7`, within the accepted L1.4 contract. Read
+Implemented at `914323d962b031f4e44e9c0047c626c5800e6643`, with validation
+recorded on 11 November 2026, within the accepted L1.4 contract. Read
 only root `argent.json` at the workspace's recorded base, validate a bounded
 versioned argv schema and return immutable source metadata. Bind the future
 review candidate to exact bytes, interpretation policy and canonical repository
@@ -59,7 +60,10 @@ IDs so unchanged configuration can share one repository approval later.
 The candidate is not a grant and stores no approval. Real-Git regression
 coverage is specified in the
 [reader acceptance contract](specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance);
-it does not establish command execution or the L1.4 exit. Execution, approval
+the [implementation evidence](specs/0013-local-mvp.md#internal-reader-implementation-evidence)
+records passing checks and an earlier unresolved full-suite failure with two
+passing unchanged-main focused comparisons. This does not establish command
+execution or the L1.4 exit, which remains in development. Execution, approval
 persistence and evidence remain planned. The accepted requirement to review
 command-defining and test changes against the trusted base is unchanged: a
 frozen command can still invoke a candidate-modified script. Local execution

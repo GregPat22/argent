@@ -358,9 +358,10 @@ launches repository code, so it needs its own security review.
 
 #### Internal command-configuration reader acceptance
 
-Acceptance recorded 11 November 2026 against main `9ddf9d7`. This is internal
-groundwork for L1.4, in development; it does not execute commands, store approvals
-or test evidence, or expose an API or desktop control. L1.4 remains incomplete.
+Acceptance recorded 11 November 2026 against main `9ddf9d7`; the internal reader
+is implemented at `914323d962b031f4e44e9c0047c626c5800e6643`. This groundwork does
+not execute commands, store approvals or test evidence, or expose an API or
+desktop control. L1.4 remains incomplete and in development.
 
 1. The reader accepts a stored workspace identifier and the service's worktree
    root. It derives the repository, owned worktree, branch and exact base commit
@@ -403,6 +404,32 @@ base and surface them for human review, as required by the
 Freezing an `npm test` argument array alone does not prevent candidate code from
 changing what that command tests. Approval persistence, process execution,
 exact-commit results and stale-result UI remain separate work.
+
+#### Internal reader implementation evidence
+
+Recorded 11 November 2026 for implementation commit
+`914323d962b031f4e44e9c0047c626c5800e6643`. `npm run check` passed strict types,
+formatting, build and all 484 automated tests. The fifteen reader regressions in
+`tests/local-command-config.test.ts` cover the acceptance criteria above with
+real temporary Git repositories, including linked source worktrees, ordinary
+common-directory replacement and cancellation of an active supervised Git read.
+The cancellation fixture publishes its PID by atomic rename before requesting
+cancellation. Scoped diff, public-content and documentation link checks passed.
+
+An earlier full-suite check passed 483 of 484 tests and failed the existing
+slow-Git verification test: it observed `running` where `completed` was expected.
+Two independent focused comparisons on unchanged main `9ddf9d7` passed that test.
+The full-suite failure was not reproduced on main, and its cause remains
+unconfirmed; the existing worker and test were not changed. The final full check
+passed, but these results do not prove that the failure also occurs on main.
+
+This evidence establishes the internal reader and its refusal boundaries only.
+It establishes no real-account agent run, command execution, persisted approval,
+trusted test result, desktop control or completed L1.4 exit. The approval candidate
+remains a descriptor rather than a grant, and local host-owner tampering remains
+outside the protection claimed. Approval persistence, reviewed command/test
+changes, bounded execution and exact-commit evidence with stale-result handling
+are still required.
 
 ### L1.5 draft pull request and archive
 
