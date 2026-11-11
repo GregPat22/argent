@@ -132,3 +132,47 @@ about 17 ms at 1440 by 900. A browser test covers it.
 Confirmed on 10 November 2026: the hosted run for the pull request carrying
 this change passed all three jobs, including every browser test in the website
 job.
+
+## Startup ownership regression acceptance
+
+Lifecycle correction in development, based on main `951f101`, 11 November 2026.
+A controlled contention fixture reproduces a losing startup process remaining
+alive after both callers receive the winning connection. Stopping that winner
+releases the SQLite lock and lets the contender publish a replacement service.
+This violates the explicit-stop contract even though ordinary startup and
+reconnection tests pass.
+
+Acceptance criteria:
+
+1. A launcher retains its actual child-process handle until its own authenticated,
+   healthy service is selected or that child has exited. Only selection of its
+   own daemon transfers lifetime ownership and unreferences the child.
+2. Before returning a different healthy owner, the launcher terminates and reaps
+   its own contender, then revalidates that owner's health. This also applies to
+   a contender delayed before it attempts the ownership lock. No process ID read
+   from a connection file authorizes a signal.
+3. Startup errors, timeouts and early read failures clean up the launched handle.
+   Cleanup sends bounded termination and kill signals and requires an observed
+   exit. The graceful interval accommodates the existing agent shutdown budget;
+   leader exit alone does not prove descendant quiescence. A signal error is not
+   proof of exit; an unconfirmed cleanup is an explicit
+   failure. Startup does not retry by spawning another process automatically.
+4. Automated cases cover ordinary and delayed concurrent launches, preservation
+   of the selected owner, explicit stop without resurrection, launch/read errors,
+   timeout escalation and unconfirmed cleanup. Existing restart, persisted-history
+   and active-stop assertions remain intact. Native smoke must still show service
+   survival after the desktop window exits.
+
+### Startup ownership validation
+
+Focused validation passes all eighteen startup and existing desktop lifecycle
+cases. Full repository and native smoke validation remain pending. The baseline
+reproduction used only an owned temporary profile and simulated service, with all
+launched handles reaped. A separate unchanged baseline at `60b30bb` passes the
+existing concurrent-start test. An intermediate change to nonwaiting SQLite
+acquisition failed that test with a startup timeout; the final correction keeps
+the original lock policy and passes the focused suite. No SQLite initialization
+root cause is inferred from that timeout.
+It establishes the startup lifecycle defect, not a failure of SQLite's exclusive
+ownership or a change to local execution permissions. Public release, signing,
+real-account execution and the remaining L1.4 checks are outside this correction.

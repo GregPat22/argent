@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -105,6 +105,72 @@ function pick(names: string[]): Record<string, string> {
   return result;
 }
 
+// Keep ownership of the actual launch handle until it is either the selected
+// daemon or confirmed exited. A connection record never authorizes a signal.
+function ownStartup(child: ChildProcess) {
+  let exited = false;
+  let startupError: Error | null = null;
+  let resolveExit!: () => void;
+  const exit = new Promise<void>((resolve) => {
+    resolveExit = resolve;
+  });
+  child.once("exit", () => {
+    exited = true;
+    resolveExit();
+  });
+  child.on("error", (error) => {
+    startupError = error;
+    // Failed spawn has no process to reap. A later signaling error does not
+    // establish that a successfully spawned process has terminated.
+    if (child.pid === undefined) {
+      exited = true;
+      resolveExit();
+    }
+  });
+  async function waitForExit(milliseconds: number): Promise<void> {
+    if (exited) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        exit,
+        new Promise<void>((resolve) => {
+          timer = setTimeout(resolve, milliseconds);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  let disposal: Promise<void> | undefined;
+  return {
+    get exited() {
+      return exited;
+    },
+    get error() {
+      return startupError;
+    },
+    dispose(): Promise<void> {
+      return (disposal ??= (async () => {
+        for (const signal of ["SIGTERM", "SIGKILL"] as const) {
+          if (exited) return;
+          try {
+            child.kill(signal);
+          } catch {
+            // Only the observed exit confirms cleanup, including signal errors.
+          }
+          // Allow the service to finish agent termination (three-second grace
+          // plus two-second confirmation) before escalating the leader.
+          await waitForExit(signal === "SIGTERM" ? 6000 : 2000);
+        }
+        if (!exited)
+          throw new Error(
+            "Local service startup cleanup could not be confirmed",
+          );
+      })());
+    },
+  };
+}
+
 export async function ensureService(
   directory: string,
 ): Promise<ServiceConnection> {
@@ -137,20 +203,32 @@ export async function ensureService(
       PLATFORM_DATA_DIR: directory,
     },
   });
-  let startupError: Error | null = null;
-  child.once("error", (error) => {
-    startupError = error;
-  });
-  child.unref();
-  const until = Date.now() + 12000;
-  while (Date.now() < until) {
-    if (startupError)
-      throw new Error("Could not launch the local execution service");
-    const connection = readConnection(directory);
-    if (connection && (await isServiceAlive(connection))) return connection;
-    await delay(100);
+  const startup = ownStartup(child);
+  let transferred = false;
+  try {
+    const until = Date.now() + 12000;
+    while (Date.now() < until) {
+      if (startup.error)
+        throw new Error("Could not launch the local execution service");
+      const connection = readConnection(directory);
+      if (connection && (await isServiceAlive(connection))) {
+        if (connection.pid === child.pid && !startup.exited) {
+          transferred = true;
+          child.unref();
+          return connection;
+        }
+        // A concurrent launcher won. Dispose our own contender even if it has
+        // not reached SQLite yet, then ensure the selected owner is still live.
+        await startup.dispose();
+        if (await isServiceAlive(connection)) return connection;
+        throw new Error("The local service stopped during startup");
+      }
+      await delay(100);
+    }
+    throw new Error(
+      "The local service did not start. Another service may hold its data directory.",
+    );
+  } finally {
+    if (!transferred) await startup.dispose();
   }
-  throw new Error(
-    "The local service did not start. Another service may hold its data directory.",
-  );
 }
