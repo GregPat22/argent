@@ -141,6 +141,44 @@ and all 484 automated tests after the correction. Independent final review and
 integration checks remain required. No reader or other production code changes
 are part of the correction.
 
+## Cleanup crash checkpoint and child message handling
+
+Acceptance recorded 11 November 2026 against main `9ddf9d7`. CI validation of
+`0168c50` cancelled the cleanup crash test while awaiting a child message, then
+cancelled the five following cases. The pull request check for the same commit passed.
+The unchanged-main focused case passed locally. A controlled 150 ms synchronous
+stall in the child inspection reproduced the cancellation: the 100 ms cleanup
+deadline expired in `inspecting`, cleanup correctly returned `needs_attention`
+with reason `timeout`, and the child exited without a dispatch notification.
+The parent awaited only the missing message, with neither exit rejection nor
+a timeout. This reproduces the failure mechanism, not the original CI stall.
+
+Acceptance for the test-only correction:
+
+1. Control the crash child's clock and cleanup timer through its durable
+   `revoke_intent` checkpoint, retaining the 100 ms persisted deadline. Keep a
+   real child alive until the parent sends `SIGKILL`; test both zero delay and
+   a 150 ms synchronous inspection stall. Assert the durable phase before killing.
+2. After confirmed child exit, reopen just before the persisted deadline with
+   a controlled parent clock. A duplicate request must not dispatch, and even
+   settled-effect evidence cannot resolve an active cleanup. At exact expiry,
+   late acknowledgment is refused and redispatch remains forbidden. Independent
+   fresh settled-effect evidence is still required to resolve and erase custody.
+3. Bound readiness, response and exit waits, reject child exit or error before its
+   message, and await child teardown before removing fixture data. A separate
+   uncontrolled-timeout case must reject promptly rather than cancel the suite.
+4. Keep real-time hung-cleanup, lock-contention, timeout and expiry tests and all
+   production behavior unchanged. Run focused crash/handshake cases, the complete
+   repository-cleanup file and `npm run check` before integration.
+
+The correction is in development. Focused crash, reservation and missing-response
+cases passed, including both synchronous-stall variants. The complete cleanup
+file passed all 41 cases after readiness, response and exit waits were bounded.
+`npm run check` passed types, formatting, build and all 486 automated tests.
+These results preserve real process death and exact-deadline refusal; they do
+not establish the precise scheduling conditions of the earlier CI failure.
+Independent final review and hosted integration checks remain required.
+
 ## Hallmark layout assertion synchronization
 
 Acceptance recorded 11 November 2026 against main `9ddf9d7`. At `fea3941`, one

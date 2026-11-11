@@ -19,6 +19,7 @@ import {
   type SimulatedRepositoryRecovery,
 } from "../src/repository-recovery.js";
 import { Store } from "../src/store.js";
+import { stopService } from "../scripts/harness.js";
 
 const secret = "simulation_cleanup_canary_1234567890";
 const key = Buffer.alloc(32, 7);
@@ -550,63 +551,178 @@ async function child(t: TestContext, path: string, mode: string, op: string) {
       env: { PATH: globalThis.process.env.PATH },
     },
   );
-  t.after(() => {
-    if (process.exitCode === null) process.kill("SIGKILL");
-  });
+  const stop = () => stopService(process, "SIGKILL");
+  t.after(stop);
   const exited = once(process, "exit");
-  await once(process, "message");
+  // Observe startup errors even before the first message wait is installed.
+  void exited.catch(() => {});
+  async function message(stage: string) {
+    if (process.exitCode !== null || process.signalCode !== null)
+      throw new Error(`Simulation cleanup child exited before ${stage}`);
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        once(process, "message", { signal: controller.signal }),
+        exited.then(() => {
+          throw new Error(`Simulation cleanup child exited before ${stage}`);
+        }),
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(
+            () =>
+              reject(
+                new Error(`Simulation cleanup child timed out before ${stage}`),
+              ),
+            5000,
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+      controller.abort();
+    }
+  }
+  try {
+    assert.equal((await message("ready"))[0], "ready");
+  } catch (error) {
+    await stop();
+    throw error;
+  }
+  async function waitForExit() {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        exited,
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("Simulation cleanup child did not exit")),
+            5000,
+          );
+        }),
+      ]);
+    } catch (error) {
+      await stop();
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
   return {
     process,
-    exited,
-    go() {
-      const next = once(process, "message");
-      process.send("go");
-      return next;
+    waitForExit,
+    stop,
+    async go(input: { stallMs?: number } = {}) {
+      const next = message("response");
+      // Sending can fail synchronously before the response is awaited.
+      void next.catch(() => {});
+      try {
+        process.send(input);
+        return await next;
+      } catch (error) {
+        await stop();
+        throw error;
+      }
     },
   };
 }
 
 test("simulated independent processes reserve cleanup exactly once", async (t) => {
   const f = fixture(t);
-  const children = await Promise.all([
-    child(t, f.path, "reserve", f.op.id),
-    child(t, f.path, "reserve", f.op.id),
-  ]);
-  const results = await Promise.all(children.map((c) => c.go()));
-  assert.equal(results.filter(([r]) => r.created).length, 1);
-  await Promise.all(children.map((c) => c.exited));
-  assert.equal(
-    f.store.repositories
-      .events(f.op.id)
-      .filter((e) => e.type === "repository.cleanup_requested").length,
-    1,
-  );
+  const children: Awaited<ReturnType<typeof child>>[] = [];
+  try {
+    children.push(await child(t, f.path, "reserve", f.op.id));
+    children.push(await child(t, f.path, "reserve", f.op.id));
+    const results = await Promise.all(children.map((c) => c.go()));
+    assert.equal(results.filter(([r]) => r.created).length, 1);
+    await Promise.all(children.map((c) => c.waitForExit()));
+    assert.equal(
+      f.store.repositories
+        .events(f.op.id)
+        .filter((e) => e.type === "repository.cleanup_requested").length,
+      1,
+    );
+  } finally {
+    await Promise.all(children.map((c) => c.stop()));
+  }
 });
 
-test("simulated process death after cleanup dispatch never repeats the effect on restart", async (t) => {
-  const f = fixture(t);
-  const worker = await child(t, f.path, "crash", f.op.id);
-  const [message] = await worker.go();
-  assert.equal(message.dispatched, "revoke");
-  worker.process.kill("SIGKILL");
-  await worker.exited;
-  await delay(120);
-  f.reopen();
-  const before = f.store.repositories.recoveryCleanup(f.op.id, "operator")!;
-  assert.equal(before.phase, "revoke_intent");
-  assert.deepEqual(await f.cleanup("cleanup", 100), before);
-  assert.deepEqual(f.calls, []);
-  assert.equal(f.vault().recover(f.op.id, "operator"), secret);
-  Object.assign(f.state, {
-    credential: "revoked",
-    channel: "cleared",
-    checkout: "absent",
-    cleanupEffectsSettled: false,
+for (const stallMs of [0, 150]) {
+  test(`simulated process death after cleanup dispatch never repeats the effect on restart (${stallMs} ms stall)`, async (t) => {
+    const f = fixture(t);
+    const worker = await child(t, f.path, "crash", f.op.id);
+    try {
+      const [message] = await worker.go({ stallMs });
+      assert.equal(message.dispatched, "revoke");
+      const checkpoint = f.store.repositories.recoveryCleanup(
+        f.op.id,
+        "operator",
+      )!;
+      assert.equal(checkpoint.id, message.cleanupId);
+      assert.equal(checkpoint.status, "running");
+      assert.equal(checkpoint.phase, "revoke_intent");
+      assert.equal(checkpoint.deadlineAt, checkpoint.createdAt + 100);
+      assert.equal(
+        f.store.repositories.events(f.op.id).at(-1)!.type,
+        "repository.cleanup_revoke_intent",
+      );
+      worker.process.kill("SIGKILL");
+      await worker.waitForExit();
+      t.mock.timers.enable({ apis: ["Date"], now: checkpoint.deadlineAt - 1 });
+      f.reopen();
+      const before = f.store.repositories.recoveryCleanup(f.op.id, "operator")!;
+      assert.deepEqual(before, checkpoint);
+      assert.deepEqual(await f.cleanup("cleanup", 100), before);
+      assert.deepEqual(f.calls, []);
+      assert.equal(f.vault().recover(f.op.id, "operator"), secret);
+      Object.assign(f.state, {
+        credential: "revoked",
+        channel: "cleared",
+        checkout: "absent",
+        cleanupEffectsSettled: true,
+      });
+      assert.equal((await f.resolve("active")).status, "rejected");
+      t.mock.timers.tick(1);
+      const calls = [...f.calls];
+      assert.deepEqual(await f.cleanup("cleanup", 100), before);
+      assert.deepEqual(f.calls, calls);
+      assert.throws(
+        () =>
+          f.store.repositories.acknowledgeRecoveryCleanup(
+            f.op.id,
+            before.id,
+            "revoke",
+          ),
+        /ownership lost/,
+      );
+      assert.equal(f.vault().recover(f.op.id, "operator"), secret);
+      f.state.cleanupEffectsSettled = false;
+      assert.equal((await f.resolve("unsettled")).status, "rejected");
+      f.state.cleanupEffectsSettled = true;
+      assert.equal((await f.resolve("settled")).status, "resolved");
+      assert.throws(
+        () => f.vault().recover(f.op.id, "operator"),
+        /unavailable/,
+      );
+    } finally {
+      await worker.stop();
+    }
   });
-  assert.equal((await f.resolve("unsettled")).status, "rejected");
-  f.state.cleanupEffectsSettled = true;
-  assert.equal((await f.resolve("settled")).status, "resolved");
-  assert.throws(() => f.vault().recover(f.op.id, "operator"), /unavailable/);
+}
+
+test("simulated cleanup child timeout before dispatch rejects its message wait instead of hanging", async (t) => {
+  const f = fixture(t);
+  const worker = await child(t, f.path, "timeout", f.op.id);
+  try {
+    await assert.rejects(worker.go({ stallMs: 150 }), /exited before response/);
+    await worker.waitForExit();
+    const attempt = f.store.repositories.recoveryCleanup(f.op.id, "operator")!;
+    assert.equal(attempt.status, "needs_attention");
+    assert.equal(attempt.phase, "inspecting");
+    assert.equal(attempt.reason, "timeout");
+    assert.equal(f.vault().recover(f.op.id, "operator"), secret);
+  } finally {
+    await worker.stop();
+  }
 });
 
 test("simulated cleanup rechecks its deadline after acquiring a contended database lock", async (t) => {
