@@ -289,12 +289,13 @@ with safely read current bytes, without delegating working-tree reads to Git
 conversions. Whole-file replacement hunks and exact-content rename detection
 keep the first implementation bounded and dependency-free. Oversized inputs
 fail the complete request; live display data is never stored as verification.
-The [service acceptance contract](specs/0013-local-mvp.md#read-only-changes-service-acceptance-in-development)
-records limits and automated regression coverage. Desktop integration is in
-development against that revision: an on-demand dialog preserves the existing
-shell and prevents repository scans on transcript polling. A generation guard
+The [service acceptance contract](specs/0013-local-mvp.md#read-only-changes-service-acceptance)
+records limits and automated regression coverage. Desktop integration is
+implemented at `37ea7804b1c024e6324b766951ab98329c7037b0`: an on-demand dialog
+preserves the existing shell and prevents repository scans on transcript polling. A generation guard
 discards stale reads; quoted filenames, visible control characters and literal
 text preserve the untrusted-display boundary. The bridge validates one UUID and
 the bounded response, with a dedicated twenty-second request timeout.
-The [desktop acceptance](specs/0013-local-mvp.md#desktop-changes-acceptance-in-development)
-and L1.3 exit remain pending; no product, milestone or local security decision changes.
+The [implementation evidence](specs/0013-local-mvp.md#l13-implementation-evidence)
+records passing repository checks and native acceptance on 11 November 2026.
+Trusted checks remain L1.4; no product, milestone or local security decision changes.

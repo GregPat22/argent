@@ -16,10 +16,11 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         </a>
         . It runs Claude Code on your local repositories, each task in its own
         branch and Git worktree, with your own sign-in. It is early and not a
-        sandbox. The changes panel is in development; trusted tests and pull
-        requests are planned. Today it runs on Macs with Apple silicon; Windows,
-        Linux and Intel Mac builds have not been made or tested. Star and watch
-        the repository to hear when signed downloads land.
+        sandbox. Its changes panel shows current files and a bounded diff;
+        trusted tests and pull requests are planned. Today it runs on Macs with
+        Apple silicon; Windows, Linux and Intel Mac builds have not been made or
+        tested. Star and watch the repository to hear when signed downloads
+        land.
       </>
     ),
   },
@@ -98,11 +99,12 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
       <>
         Argent doesn’t replace your agent; it conducts it. Today it gives every
         task its own branch and worktree, keeps a durable record of every run
-        and records what changed itself instead of trusting the agent. The rest
-        of the local MVP adds a changes panel, now in development, then trusted
-        tests for the exact commit and a draft pull request you merge yourself.
-        It is open source, built for more than one agent, and designed to
-        continue on a machine that stays on and on your phone.
+        and records what changed itself instead of trusting the agent. The
+        changes panel shows current files and a bounded diff; it is not test
+        evidence. Next are trusted tests for the exact commit and a draft pull
+        request you merge yourself. It is open source, built for more than one
+        agent, and designed to continue on a machine that stays on and on your
+        phone.
       </>
     ),
   },

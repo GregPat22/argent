@@ -1,8 +1,10 @@
 # L1: local MVP with real agents in isolated worktrees
 
 Recorded 7 November 2026, based on main `ffbeef2`.
-Status: L1.1 (engine), L1.2 (desktop) and the local execution hardening are
-implemented; L1.3 onward is planned. The real-CLI walkthrough gate is complete,
+Status: L1.1 (engine), L1.2 (desktop), L1.3 (changes panel) and the local
+execution hardening are implemented; trusted checks (L1.4) and later slices are
+planned. L1.3 implementation evidence is recorded below. The real-CLI walkthrough
+gate is complete,
 with its cancellation correction integrated in main `707ae8b`;
 [development walkthrough evidence](#development-walkthrough-evidence) is recorded
 below. Automated tests use a fake CLI. The order of the remaining work
@@ -143,8 +145,8 @@ What Argent guarantees in local mode:
   cancellation, the disabled path, API gating and the migration, using a fake CLI
   and real temporary repositories.
 - Real-CLI evidence: see the [development walkthrough](#development-walkthrough-evidence)
-  and its integration limits. No diff view, test command or archive; a
-  conversation whose CLI process died before
+  and its integration limits. L1.3 now provides the diff view; test commands
+  and archiving remain planned. A conversation whose CLI process died before
   announcing its session is not recovered automatically.
 
 #### Failure-summary regression (in development)
@@ -213,10 +215,11 @@ notice; real-agent labels replace simulation labels only for real workspaces.
 
 The workspace's changed files and unified diff against its base, bounded in size,
 read through the service. The service slice is implemented in main `1b9e4dd`,
-11 November 2026. Desktop integration is in development and does not yet complete
-the L1.3 acceptance gate.
+11 November 2026. The desktop panel is implemented and independently exercised
+at `37ea7804b1c024e6324b766951ab98329c7037b0`; see the
+[implementation evidence](#l13-implementation-evidence).
 
-#### Read-only changes service acceptance (in development)
+#### Read-only changes service acceptance
 
 Acceptance recorded 11 November 2026 against main `f4f2999`:
 
@@ -268,11 +271,11 @@ Limits and next steps: this is a live observation, not an immutable snapshot.
 Per-file identity checks and repeated branch/listing checks detect some concurrent
 changes, but cannot fence a host owner rewriting directories or configuration
 between filesystem operations. There is no staged-versus-unstaged split, rename
-similarity search, pagination or partial oversized-file view. The desktop integration below connects the narrow bridge and changes panel;
-its acceptance must verify the complete native journey. Trusted checks remain L1.4, and the L1.3 exit gate remains
-open until the desktop panel and its evidence exist.
+similarity search, pagination or partial oversized-file view. The desktop
+integration below connects the narrow bridge and changes panel. Native
+acceptance is recorded below; trusted checks remain L1.4.
 
-#### Desktop changes acceptance (in development)
+#### Desktop changes acceptance
 
 Acceptance recorded 11 November 2026 against main `1b9e4dd`:
 
@@ -311,9 +314,33 @@ Focused regressions are in `tests/desktop-changes.test.ts` and
 `tests/renderer-changes.test.ts`. Native smoke coverage uses the fake CLI and real
 throwaway Git repositories, checks empty and mixed changes, manual refresh,
 quoted hostile content, binary previews, keyboard close/focus and unchanged run
-and artifact records. These fixtures call no model. Full repository checks,
-website checks and independent native acceptance remain required before marking
-L1.3 complete. Trusted checks remain L1.4; this panel does not meet that gate.
+and artifact records. These fixtures call no model. Trusted checks remain L1.4;
+this panel does not meet that gate.
+
+#### L1.3 implementation evidence
+
+Recorded 11 November 2026 against implementation commit
+`37ea7804b1c024e6324b766951ab98329c7037b0`. An independent validation run passed
+`npm run check`, including strict types, formatting and all 467 automated tests.
+Service regressions cover path traversal, unsafe filesystem inputs and oversized
+inspection/diff refusal; bridge and renderer regressions cover response validation,
+stale selection, close/reopen, disconnect, literal untrusted text and explicit
+refresh.
+
+The native Electron smoke passed with a fake CLI and real temporary Git
+repositories. It displayed empty and mixed changed-file lists, untracked text,
+exact-content renames, deletion and binary metadata; selected diffs and manual
+refresh showed the expected current bytes. Escape closed the dialog and returned
+focus. Hostile markup remained literal text, and inspection left run and
+verification records unchanged. Screenshot review confirmed the usable file list,
+selected diff and existing dark desktop layout. This proves the inspection flow
+with real Git, not a new model-backed run or trusted test execution.
+
+Website typecheck and build passed at that revision; this evidence does not
+claim a completed browser suite at that commit. Integration additionally requires
+the complete website browser suite and the delivery regression gates. No new
+real-account walkthrough, trusted checks, pull-request flow or cloud execution
+is established by this evidence.
 
 ### L1.4 setup, run and test actions
 
