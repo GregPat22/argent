@@ -108,7 +108,8 @@ path. An unsigned local build must not be represented as a public-ready installe
 The website must describe available builds truthfully and never offer fabricated
 download links. No publication or paid signing account is implied by development.
 
-Startup lifecycle correction is in development against main `951f101`: a launcher
+Startup lifecycle correction is implemented at `d2ef4e5`, with validation
+recorded on 11 November 2026: a launcher
 retains its spawned handle until selection of its own healthy daemon or confirmed
 exit. Before returning another owner it reaps only its own contender and checks
 that owner's health again. Handle cleanup covers queued and late contenders,

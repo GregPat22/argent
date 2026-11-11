@@ -38,7 +38,9 @@ index/working-byte equality with HEAD, explicitly excluding ignored content and
 collecting no human review. It adds no command execution or desktop capability.
 
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
-is in development against main `951f101`. It addresses a losing launcher that
+is implemented at `d2ef4e5`, with
+[validation evidence](specs/0004-desktop-prototype.md#startup-ownership-validation).
+It addresses a losing launcher that
 could restart the service after an explicit stop, while preserving detached
 operation after the desktop closes.
 

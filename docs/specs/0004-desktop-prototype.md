@@ -135,7 +135,8 @@ job.
 
 ## Startup ownership regression acceptance
 
-Lifecycle correction in development, based on main `951f101`, 11 November 2026.
+Implemented at `d2ef4e562a9f809524026af228eb8a2c8a39844e`, validated on 11 November
+2026 against main `951f101`.
 A controlled contention fixture reproduces a losing startup process remaining
 alive after both callers receive the winning connection. Stopping that winner
 releases the SQLite lock and lets the contender publish a replacement service.
@@ -165,14 +166,28 @@ Acceptance criteria:
 
 ### Startup ownership validation
 
-Focused validation passes all eighteen startup and existing desktop lifecycle
-cases. Full repository and native smoke validation remain pending. The baseline
-reproduction used only an owned temporary profile and simulated service, with all
+Implementation `d2ef4e562a9f809524026af228eb8a2c8a39844e` passes all eighteen focused
+startup and existing desktop lifecycle cases. `npm run check` passes type
+checking, formatting, build and all 541 tests without failures, cancellations or
+skips. Native desktop smoke passes, including window reopening, service restart
+and continued service health after the app exits. The source/tests diff received
+an independent lifecycle review.
+
+The two new real-process concurrency regressions were also run against unchanged
+implementation `60b30bb`, whose tree matches main `951f101`: both fail specifically
+because the unselected child is still alive when startup returns. Their captured
+child handles are reaped even on assertion failure. The same assertions pass
+with the fix. A post-check process audit found no new detached test service;
+these observations do not claim durable descendant reconciliation after a hard
+service crash.
+
+The baseline reproduction used only an owned temporary profile and simulated service, with all
 launched handles reaped. A separate unchanged baseline at `60b30bb` passes the
 existing concurrent-start test. An intermediate change to nonwaiting SQLite
 acquisition failed that test with a startup timeout; the final correction keeps
 the original lock policy and passes the focused suite. No SQLite initialization
 root cause is inferred from that timeout.
-It establishes the startup lifecycle defect, not a failure of SQLite's exclusive
+The controlled reproduction establishes the startup lifecycle defect, not a failure
+of SQLite's exclusive
 ownership or a change to local execution permissions. Public release, signing,
 real-account execution and the remaining L1.4 checks are outside this correction.
