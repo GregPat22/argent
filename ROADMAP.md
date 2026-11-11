@@ -106,7 +106,8 @@ The internal [bounded base-commit command-configuration reader](docs/specs/0013-
 is implemented at `914323d`, with [validation recorded](docs/specs/0013-local-mvp.md#internal-reader-implementation-evidence)
 on 11 November 2026. It supplies source and review-candidate identities only.
 L1.4 remains in development. Internal [durable approval storage](docs/specs/0013-local-mvp.md#internal-durable-command-approval-acceptance)
-is in development; it adds no command execution or desktop controls. Approval
+is implemented at `268ed61`; it adds no command execution or desktop controls.
+Approval
 controls, execution, exact-commit results and stale-result display remain unimplemented;
 work-queue item 3 is not complete.
 

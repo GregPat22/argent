@@ -402,8 +402,10 @@ Later execution must compare command-defining and test changes against the trust
 base and surface them for human review, as required by the
 [verification architecture](../../ARCHITECTURE.md#evidence-and-external-actions).
 Freezing an `npm test` argument array alone does not prevent candidate code from
-changing what that command tests. Approval persistence, process execution,
-exact-commit results and stale-result UI remain separate work.
+changing what that command tests. Approval persistence is covered by the
+[internal durable approval contract](#internal-durable-command-approval-acceptance)
+below. Process execution, exact-commit results and stale-result UI remain
+separate work.
 
 #### Internal reader implementation evidence
 
@@ -437,13 +439,14 @@ This evidence establishes the internal reader and its refusal boundaries only.
 It establishes no real-account agent run, command execution, persisted approval,
 trusted test result, desktop control or completed L1.4 exit. The approval candidate
 remains a descriptor rather than a grant, and local host-owner tampering remains
-outside the protection claimed. Approval persistence, reviewed command/test
-changes, bounded execution and exact-commit evidence with stale-result handling
-are still required.
+outside the protection claimed. The durable approval implementation below adds
+persistence separately. Reviewed command/test changes, bounded execution and
+exact-commit evidence with stale-result handling are still required.
 
 #### Internal durable command-approval acceptance
 
-In development, based on main `f9a85f32e5444079b738980e28a2d0971429a331`.
+Implemented at `268ed61759d50285d5a89d3319542caff6027ac4`, based on main
+`f9a85f32e5444079b738980e28a2d0971429a331`.
 This implements internal storage within the accepted L1.4 contract. It does not
 expose approval controls, create a command job or execute configured code. The
 complete L1.4 exit remains open.
@@ -479,6 +482,8 @@ complete L1.4 exit remains open.
    compares its identity, current policy, source content/blob hashes and parsed
    command snapshot with the stored approval. Missing approval returns no match;
    unsafe reads and malformed or inconsistent stored snapshots fail closed.
+   Every snapshot read, including historical receipt reads, verifies its stored
+   checksum. This detects accidental corruption; the host owner can replace it.
    Returned records are deeply immutable. This is only a point-in-time match.
    Future execution must independently revalidate under its own ownership rules;
    no database transaction makes the filesystem immutable. Local host-owner
@@ -495,8 +500,13 @@ complete L1.4 exit remains open.
    restart and portable-history exclusion. Configured marker commands remain
    unexecuted, and the normal worker has no job to claim.
 
-Validation and implementation commit evidence are pending. These fixtures use
-local temporary Git repositories and no actual agent account. Command execution,
+Validation recorded on 11 November 2026 for implementation
+`268ed61759d50285d5a89d3319542caff6027ac4`: all thirteen focused approval tests
+passed, as did `npm run check` with strict types, formatting, build and all 499
+automated tests. Diff review found no remaining blockers. Independent final
+checkout verification and hosted integration checks remain required.
+These fixtures use local temporary Git repositories and no actual agent account.
+Command execution,
 review of candidate changes to command-defining files and tests, exact-commit
 results, stale-result display and the complete L1.4 exit remain separate work.
 Configuration approval alone does not approve later changes to a test script.

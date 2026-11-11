@@ -20,9 +20,10 @@ records service/renderer regression tests and the native desktop flow at
 The internal [base-commit command-configuration reader](specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance)
 is implemented at `914323d`; its [validation evidence](specs/0013-local-mvp.md#internal-reader-implementation-evidence)
 is recorded on 11 November 2026. It adds no command execution, approval storage or
-tested result, and L1.4 remains incomplete. The next internal
+tested result, and L1.4 remains incomplete. Internal
 [durable approval slice](specs/0013-local-mvp.md#internal-durable-command-approval-acceptance)
-is in development: atomic snapshots, attributed events and historical receipts,
+is implemented at `268ed61`: atomic snapshots, attributed events and historical
+receipts,
 with fresh source validation for reuse. It adds no command dispatch or desktop
 controls.
 

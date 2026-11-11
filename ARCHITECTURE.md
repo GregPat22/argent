@@ -493,12 +493,16 @@ The [implementation evidence](docs/specs/0013-local-mvp.md#internal-reader-imple
 records passing reader and repository checks, plus full-suite test failures,
 unchanged-main comparisons and a controlled reproduction of the short test
 lease's sensitivity. The test-only correction preserves production expiry rules.
-Internal approval storage is in development under the
+Internal approval storage is implemented at
+`268ed61759d50285d5a89d3319542caff6027ac4` under the
 [durable approval acceptance contract](docs/specs/0013-local-mvp.md#internal-durable-command-approval-acceptance).
 `Store.localCommandApprovals` shares the existing SQLite connection. Fresh
 server-side reads bind immutable per-operator snapshots to repository identity,
 exact bytes and policy; snapshot, attributed event and idempotency receipt commit
-atomically. A duplicate request returns only historical audit data. Reuse lookup
+atomically. Every snapshot read verifies its stored checksum, including historical
+receipts; the checksum detects accidental corruption and can be replaced by the
+host owner. A duplicate
+request returns only historical audit data. Reuse lookup
 freshly reads and compares the candidate and stored snapshot, including across
 sibling workspaces and newer bases. It supplies a point-in-time match, not a
 portable grant or permission to dispatch. Approval has no public API, desktop or
