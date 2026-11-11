@@ -47,6 +47,33 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Pinned candidate review before consent — 11 November 2026
+
+Implemented at `042a169f7267adf1b4d2806ba802de04b81d3b83`, with validation recorded
+on 11 November 2026, within the accepted L1.4 requirement to compare command and
+test changes with the trusted base and surface them for human review. Keep the
+review separate from consent and execution. Build it on a fresh exact-commit
+observation and read the change set from Git objects pinned by the base and the
+observed commit, never from the worktree or index. Verify each blob against its
+listed size and object ID: Git served a forged loose object without error in
+the regression fixture.
+
+Do not classify files as test machinery. A frozen command can run any file the
+candidate changed, so a heuristic would suggest an assurance Argent cannot
+give. The complete change set is the review; only the fixed configuration path
+is marked, because commands come from the approved base regardless of the
+candidate's copy. Binary content keeps an identity and is labelled as not
+displayed instead of counting as reviewed. Overflow fails the whole review:
+partial display with later consent is a product choice and stays open.
+
+Share the rename and whole-file hunk logic with the live changes inspector
+without changing its contract. See the
+[acceptance contract](specs/0013-local-mvp.md#internal-pinned-candidate-review-acceptance)
+and [implementation evidence](specs/0013-local-mvp.md#internal-pinned-review-evidence).
+The complete repository check passed with 554 tests. This changes no accepted
+product or security decision and does not complete L1.4: consent, a fresh owned
+checkout, bounded execution and exact-commit results remain planned.
+
 ### Exact-commit observation before reviewed execution — 11 November 2026
 
 Implemented at `b7c426b26e4ab126a292aee8d7e58b49ac9c7235`, with validation recorded

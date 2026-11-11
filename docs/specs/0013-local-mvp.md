@@ -666,7 +666,8 @@ explicit consent, fresh-checkout execution and exact-commit result handling.
 
 #### Internal pinned candidate review acceptance
 
-Acceptance recorded 11 November 2026 against main `8027d0b`. This read-only
+Acceptance recorded 11 November 2026 against main `8027d0b`; implemented at
+`042a169f7267adf1b4d2806ba802de04b81d3b83`. This read-only
 groundwork produces what a person would have to read before consenting to run
 the approved base commands against one exact commit. It collects no consent,
 persists nothing, enqueues no work and runs no command. L1.4 remains incomplete.
@@ -727,6 +728,46 @@ persists nothing, enqueues no work and runs no command. L1.4 remains incomplete.
 Explicit consent bound to a review identity, a fresh owned checkout, bounded
 command execution and exact-commit results remain separate work. A reviewed
 change set is not evidence that a command passed.
+
+#### Internal pinned review evidence
+
+Recorded 11 November 2026 for implementation commit
+`042a169f7267adf1b4d2806ba802de04b81d3b83`, on macOS with Git 2.42.0. `npm run check`
+passed strict types, formatting, build and all 554 automated tests without
+failures, cancellations or skips; unchanged main `8027d0b` passed its 541 tests
+in the same environment. The thirteen focused cases in
+`tests/local-command-review.test.ts` use real temporary Git repositories and
+cover the acceptance criteria above. The existing changes, candidate and
+approval suites pass unchanged against the shared comparison helper.
+
+Each check was also disabled in turn in a built copy: blob size and object-ID
+verification, the per-blob, total and path-count limits, the observation
+binding in the identity, the configuration state and the final abort check.
+Every omission made a focused case fail. That probe found the first
+total-bytes fixture passing through the diff-text limit instead; the fixture
+now uses NUL-filled content so that only the input allowance applies.
+
+The forged-object case replaces a base blob's loose object with different
+bytes of the same length. Git 2.42.0 served those bytes under the original ID
+without error; the review refused them through its own object-ID check and
+produced a result again once the object was restored. The live changes panel
+does not verify base blobs this way: its diff remains unverified, untrusted
+display data, as its contract states.
+
+The diff was checked by its author against the
+[security model](#security-model): explicit argument arrays, object IDs taken
+only from validated listings, no caller-supplied path or revision, no worktree
+or index read after the observation and no process other than trusted Git.
+Independent review, a clean-checkout run of the final revision and hosted
+integration checks remain required.
+
+Limits: every trusted Git read starts two processes, and a review reads up to
+two blobs per changed file, so a change set of several hundred files can reach
+the deadline before the size limits. The observation it depends on reads every
+tracked file and refuses a commit with more than 1,000 of them, which excludes
+larger repositories from trusted checks until that bound is revisited.
+These fixtures establish bounded read-only review. They establish no consent,
+fresh checkout, command execution or test result, and L1.4 remains incomplete.
 
 ### L1.5 draft pull request and archive
 

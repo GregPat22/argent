@@ -571,3 +571,28 @@ Trusted Git transport denial uses an empty `GIT_ALLOW_PROTOCOL` allowlist, which
 transport. Optional index refresh remains disabled. Local marker-only fixtures
 exercise explicit protocol overrides and missing promisor objects without a
 network or account. No minimum Git version is raised.
+
+### Internal pinned candidate review
+
+Implemented at `042a169` under the
+[acceptance contract](docs/specs/0013-local-mvp.md#internal-pinned-candidate-review-acceptance),
+with [validation evidence](docs/specs/0013-local-mvp.md#internal-pinned-review-evidence)
+recorded on 11 November 2026. The read-only `local-command-review.ts` module
+first requires a fresh exact-commit observation, then compares the recorded
+base tree with the observed commit's tree. Trusted Git reads only objects named
+by those two commits; each blob is checked against its listed size and its own
+object ID. The live changes inspector and the review share one comparison
+helper for exact renames and bounded whole-file hunks; the inspector's public
+contract is unchanged.
+
+The immutable result lists every changed path with modes, blob IDs and sizes.
+Binary content has identity only and is labelled as never displayed. Commands
+always come from the approved base; the candidate's own configuration file is
+reported as unchanged, changed or removed. Argent does not guess which changed
+files a command executes, so the complete change set is the review. The review
+identity binds the observation and every changed entry.
+
+It is not consent, a receipt, a job or a runnable plan, and it has no API,
+desktop or worker entry point. Any failure, overflow, cancellation or deadline
+yields no review. Consent bound to a review identity, a fresh owned checkout,
+bounded execution and exact-commit results remain planned.

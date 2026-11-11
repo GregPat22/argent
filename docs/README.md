@@ -36,6 +36,12 @@ is implemented at `b7c426b`, with
 It binds a fresh configuration approval to bounded raw
 index/working-byte equality with HEAD, explicitly excluding ignored content and
 collecting no human review. It adds no command execution or desktop capability.
+The internal [pinned candidate review](specs/0013-local-mvp.md#internal-pinned-candidate-review-acceptance)
+is implemented at `042a169`, with
+[validation evidence](specs/0013-local-mvp.md#internal-pinned-review-evidence).
+It lists the complete change set between the base and that exact commit from
+verified Git objects, labels binary content as not displayed and collects no
+consent. L1.4 remains incomplete.
 
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
 is implemented at `d2ef4e5`, with
