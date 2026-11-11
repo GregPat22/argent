@@ -48,6 +48,7 @@ export async function serviceRequest(
   method = "GET",
   body?: unknown,
   key?: string,
+  timeoutMs = 7000,
 ): Promise<unknown> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${connection.token}`,
@@ -60,7 +61,7 @@ export async function serviceRequest(
       method,
       headers,
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-      signal: AbortSignal.timeout(7000),
+      signal: AbortSignal.timeout(timeoutMs),
       redirect: "error",
     });
   } catch {

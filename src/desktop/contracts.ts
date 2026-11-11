@@ -5,6 +5,7 @@ import type {
   RunEvent,
   RunView,
   Workspace,
+  WorkspaceChanges,
 } from "../domain.js";
 
 export interface ServiceStatus {
@@ -24,6 +25,7 @@ export interface DesktopBridge {
   stopService(): Promise<void>;
   listWorkspaces(before?: string): Promise<Page<Workspace>>;
   getWorkspace(id: string): Promise<Workspace>;
+  workspaceChanges(id: string): Promise<WorkspaceChanges>;
   createWorkspace(repository: string): Promise<Workspace>;
   /**
    * Creates a worktree workspace. The repository folder is chosen by the person

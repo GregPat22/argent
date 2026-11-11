@@ -716,14 +716,18 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
   });
 }
 
-test("FAQ answers remain readable without JavaScript", async ({ browser }) => {
+test("FAQ answers remain readable without JavaScript", async ({
+  browser,
+  baseURL,
+}) => {
   const context = await browser.newContext({
+    baseURL,
     javaScriptEnabled: false,
     reducedMotion: "reduce",
   });
   const page = await context.newPage();
   try {
-    await page.goto("http://127.0.0.1:3100/#faq");
+    await page.goto("/#faq");
     const question = page.locator("#faq details").nth(2);
     await question.locator("summary").click();
     await expect(question.locator("p")).toBeVisible();
@@ -1397,6 +1401,9 @@ test("hero states the promise once and today's facts under the actions", async (
     );
     await expect(status).toContainText("Free and MIT");
     await expect(status).toContainText("built from source, no download yet");
+    await expect(status).toContainText(
+      "Live changes panel · trusted checks planned",
+    );
     // The liquid keeps clear of it, and it fits the first screen.
     await expect(status).toHaveAttribute("data-liquid-avoid");
     // The live dot never animates a painted property, with or without motion.
@@ -1548,6 +1555,7 @@ test("proof separates today's record from planned checks and strikes four hallma
 test("problem glyphs draw themselves once and stay visible without scripts", async ({
   page,
   browser,
+  baseURL,
 }) => {
   await visit(page, "/");
   const list = page.locator("#statement .problem-list");
@@ -1563,10 +1571,13 @@ test("problem glyphs draw themselves once and stay visible without scripts", asy
       timeout: 10_000,
     });
 
-  const context = await browser.newContext({ javaScriptEnabled: false });
+  const context = await browser.newContext({
+    baseURL,
+    javaScriptEnabled: false,
+  });
   const plain = await context.newPage();
   try {
-    await plain.goto("http://127.0.0.1:3100/");
+    await plain.goto("/");
     await expect(
       plain.locator("#statement .problem-glyph > :not(.problem-dash)").first(),
     ).toHaveCSS("stroke-dashoffset", "0px");

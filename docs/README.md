@@ -13,9 +13,10 @@ process recovery, repository inspection and native packaging evidence. The
 [development walkthrough](specs/0013-local-mvp.md#development-walkthrough-evidence)
 records real-CLI permission, cancellation and parallel-workspace evidence. The
 cancellation correction is integrated in main `707ae8b`, completing work-queue
-item 1; L1.3, the changes panel, is next. The complete local MVP remains open. Its
-[first read-only service slice](specs/0013-local-mvp.md#read-only-changes-service-acceptance-in-development)
-is in development; desktop integration remains planned.
+item 1. L1.3 now supplies a read-only changes panel; its
+[implementation evidence](specs/0013-local-mvp.md#l13-implementation-evidence)
+records service/renderer regression tests and the native desktop flow at
+`37ea780`. Trusted checks (L1.4) are next, and the complete local MVP remains open.
 
 Working on Argent? The [roadmap's work queue](../ROADMAP.md#work-queue) lists
 what to do next, in order, with what each step depends on and what counts as
@@ -51,7 +52,7 @@ recorded revision.
 | [0010 Live repository pilot gates](specs/0010-live-repository-pilot-gates.md)             | The credential, authorization and isolation gates before live repository access.    |
 | [0011 GitHub device sign-in pilot](specs/0011-github-device-pilot.md)                     | Implemented opt-in read-only pilot, not connected to the desktop.                   |
 | [0012 Portable history](specs/0012-portable-history.md)                                   | Implemented offline export and read-only restore, with commands.                    |
-| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | Critical path: L1.1 engine and L1.2 desktop implemented; later slices planned.      |
+| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | Critical path: L1.1–L1.3 implemented; trusted checks and later slices planned.      |
 | [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.      |
 | [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks. |
 

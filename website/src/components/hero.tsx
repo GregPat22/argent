@@ -72,6 +72,9 @@ export function Hero() {
                 </span>
                 built from source, no download yet
               </span>
+              <span className="hero-status-line hero-status-line--dim">
+                Live changes panel · trusted checks planned
+              </span>
             </p>
           </div>
         </div>

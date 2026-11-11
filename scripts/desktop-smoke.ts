@@ -35,7 +35,8 @@ const git = (...args: string[]) =>
   );
 git("init", "--quiet", "--initial-branch=main");
 writeFileSync(join(repository, "README.md"), "# smoke\n");
-git("add", "README.md");
+writeFileSync(join(repository, "delete-me.txt"), "to delete\n");
+git("add", "README.md", "delete-me.txt");
 git("commit", "--quiet", "-m", "initial");
 const claude = join(directory, "claude");
 writeFileSync(

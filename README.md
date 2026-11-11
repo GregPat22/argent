@@ -8,9 +8,10 @@ check says so. You decide what gets merged.
 > **Status: early prototype.** The durable engine and the macOS desktop app work
 > today. The desktop app can run **Claude Code on a local repository**, each
 > workspace on its own branch and Git worktree, using your own `claude` sign-in.
-> Local execution is **not a sandbox**: the agent runs as you. There is no diff
-> view, test runner, pull-request flow or cloud workspace yet, and the GitHub-URL
-> workspaces remain a scripted simulation. Everything below says which parts are
+> Local execution is **not a sandbox**: the agent runs as you. The Changes panel
+> shows current files and a bounded diff against the workspace base. Trusted test
+> execution, pull requests and cloud workspaces are planned; GitHub-URL workspaces
+> remain a scripted simulation. Everything below says which parts are
 > real and which are planned.
 
 Follow the build on X: [@Argent_build](https://x.com/Argent_build).
@@ -44,6 +45,11 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   [spec 0013](docs/specs/0013-local-mvp.md).
 - **An opt-in, read-only GitHub sign-in pilot** using GitHub's device flow. It
   is not connected to the desktop app or to task execution.
+- **A changes panel** (L1.3): inspect current changed files and a bounded unified
+  diff against the workspace base, including untracked, renamed, deleted and
+  binary files. Open Changes or press Refresh to read again. Live changes are
+  not test evidence. See the
+  [acceptance contract](docs/specs/0013-local-mvp.md#desktop-changes-acceptance).
 
 ## Where it is going
 

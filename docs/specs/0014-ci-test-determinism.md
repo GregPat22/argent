@@ -58,3 +58,35 @@ reviewed for preserved safety assertions and public-content restrictions.
 No website, native GUI, packaged desktop or live-provider behavior is changed or
 certified. Hosted CI must verify the proposed fix before integration; a passing
 run cannot guarantee that all possible intermittent failures have been found.
+
+## Repository custody crash fixture follow-up
+
+Recorded 11 November 2026 against main `3836760`. CI exposed a failure before
+the custody crash test's intended checkpoint: its child claimed a 100 ms lease,
+then synchronous authorization and encrypted credential capture could outlast
+that lease. The child reported a conflict instead of acknowledging the operation
+ID. An unchanged-main focused run passed; a controlled 150 ms stall immediately
+after claim reproduced the failure. This is a fixture timing race, not evidence
+that production should accept writes after lease expiry.
+
+Acceptance for this correction:
+
+1. Freeze the child fixture's clock only across claim, authorization and custody
+   capture in its two crash modes. Restore it after the critical section. Keep
+   the 100 ms persisted lease and every production ownership check unchanged.
+2. Exercise both zero-delay and synchronous 150 ms stall cases. Acknowledge only
+   after the intended mint intent or credential-stored checkpoint is durable;
+   assert that checkpoint before sending a real `SIGKILL` and awaiting child exit.
+3. Reopen the store with a controlled parent clock one millisecond before the
+   persisted lease expires. Reconciliation must leave the operation running.
+   Advance exactly to expiry: the worker must preserve `needs_attention`, retain
+   unknown credentials and never dispatch again. For custody, the encrypted
+   credential must remain recoverable after restart.
+4. Keep the separate real-time lease, lock-contention and process tests. No
+   production timer, deadline, transition or authorization behavior changes.
+
+Focused validation passes all four crash cases, including both controlled
+stalls, and the complete repository test file. Full checks and hosted CI are
+required for integration.
+This establishes deterministic crash-checkpoint coverage with real child death;
+it does not certify real-provider recovery or remove production expiry checks.

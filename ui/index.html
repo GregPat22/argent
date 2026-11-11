@@ -88,6 +88,14 @@
             <span id="workspace-state" class="pill" role="status" hidden></span>
           </div>
           <button
+            id="workspace-changes"
+            class="button small"
+            aria-haspopup="dialog"
+            hidden
+          >
+            Changes
+          </button>
+          <button
             id="workspace-menu-button"
             class="icon-button header-menu"
             popovertarget="workspace-menu"
@@ -321,6 +329,52 @@
         </div>
       </main>
     </div>
+
+    <dialog
+      id="changes-dialog"
+      class="changes-panel"
+      aria-labelledby="changes-title"
+      aria-describedby="changes-notice"
+    >
+      <header class="sheet-head">
+        <h2 id="changes-title">Workspace changes</h2>
+        <button id="changes-refresh" class="button small">Refresh</button>
+        <button
+          id="changes-close"
+          class="icon-button"
+          aria-label="Close changes"
+        >
+          <span class="icon icon-x" aria-hidden="true"></span>
+        </button>
+      </header>
+      <p id="changes-notice" class="changes-notice">
+        Current files against the workspace base, including uncommitted work.
+        This is a live observation, not a test result or an immutable snapshot.
+      </p>
+      <p id="changes-base" class="changes-notice mono"></p>
+      <p
+        id="changes-status"
+        class="changes-notice"
+        role="status"
+        aria-live="polite"
+      ></p>
+      <div id="changes-content" class="changes-content" hidden>
+        <nav
+          id="changes-files"
+          class="changes-files"
+          aria-label="Changed files"
+        ></nav>
+        <section class="changes-preview" aria-labelledby="changes-file-title">
+          <h3 id="changes-file-title"></h3>
+          <p id="changes-meta" class="mono"></p>
+          <pre
+            id="changes-diff"
+            tabindex="0"
+            aria-label="Selected file unified diff"
+          ></pre>
+        </section>
+      </div>
+    </dialog>
 
     <dialog
       id="navigation-dialog"

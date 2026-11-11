@@ -13,7 +13,8 @@ says.
    of the three problems is the unproven claim, which the next section answers.
 2. **The hero says one thing.** The paragraph states the promise once. Today's
    facts move to a status line under the actions: Claude Code runs today on
-   Apple-silicon Macs; free and MIT; built from source, no download yet.
+   Apple-silicon Macs; free and MIT; built from source, no download yet; the
+   changes panel is live and trusted checks are planned.
 3. **The main action stays in reach.** It is named "Try it locally" everywhere,
    with a down arrow because it scrolls. Compact navigation shows it as a pill
    at the top right, except where the page already offers it (hero, try it,
@@ -56,7 +57,7 @@ says.
 
 1. `main > section` ids are, in order: `intro`, `statement`, `hallmark`,
    `lifecycle`, `agents`, `open`, `reconnect`, `roadmap`, `faq`, `run`, `join`.
-2. The hero paragraph is the promise only; the status line carries the three
+2. The hero paragraph is the promise only; the status line carries the
    facts above, is a liquid keep-out zone and fits the first screen at 360 × 800.
 3. Compact navigation has one button and one link. The pill links to `#run`, is
    at least 44 px tall, is absent over the hero, `#run` and `#join` and while

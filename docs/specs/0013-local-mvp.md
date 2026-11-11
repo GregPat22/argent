@@ -1,8 +1,10 @@
 # L1: local MVP with real agents in isolated worktrees
 
 Recorded 7 November 2026, based on main `ffbeef2`.
-Status: L1.1 (engine), L1.2 (desktop) and the local execution hardening are
-implemented; L1.3 onward is planned. The real-CLI walkthrough gate is complete,
+Status: L1.1 (engine), L1.2 (desktop), L1.3 (changes panel) and the local
+execution hardening are implemented; trusted checks (L1.4) and later slices are
+planned. L1.3 implementation evidence is recorded below. The real-CLI walkthrough
+gate is complete,
 with its cancellation correction integrated in main `707ae8b`;
 [development walkthrough evidence](#development-walkthrough-evidence) is recorded
 below. Automated tests use a fake CLI. The order of the remaining work
@@ -143,8 +145,8 @@ What Argent guarantees in local mode:
   cancellation, the disabled path, API gating and the migration, using a fake CLI
   and real temporary repositories.
 - Real-CLI evidence: see the [development walkthrough](#development-walkthrough-evidence)
-  and its integration limits. No diff view, test command or archive; a
-  conversation whose CLI process died before
+  and its integration limits. L1.3 now provides the diff view; test commands
+  and archiving remain planned. A conversation whose CLI process died before
   announcing its session is not recovered automatically.
 
 #### Failure-summary regression (in development)
@@ -212,10 +214,12 @@ notice; real-agent labels replace simulation labels only for real workspaces.
 ### L1.3 changes panel
 
 The workspace's changed files and unified diff against its base, bounded in size,
-read through the service. The desktop panel remains planned; the first service
-slice below is in development and does not complete L1.3.
+read through the service. The service slice is implemented in main `1b9e4dd`,
+11 November 2026. The desktop panel is implemented and independently exercised
+at `37ea7804b1c024e6324b766951ab98329c7037b0`; see the
+[implementation evidence](#l13-implementation-evidence).
 
-#### Read-only changes service acceptance (in development)
+#### Read-only changes service acceptance
 
 Acceptance recorded 11 November 2026 against main `f4f2999`:
 
@@ -267,11 +271,76 @@ Limits and next steps: this is a live observation, not an immutable snapshot.
 Per-file identity checks and repeated branch/listing checks detect some concurrent
 changes, but cannot fence a host owner rewriting directories or configuration
 between filesystem operations. There is no staged-versus-unstaged split, rename
-similarity search, pagination or partial oversized-file view. The next slice
-connects a narrow desktop bridge and changes panel, renders untrusted text safely,
-and verifies the desktop journey; its client timeout must accommodate or cancel
-the service deadline. Trusted checks remain L1.4, and the L1.3 exit gate remains
-open until the desktop panel and its evidence exist.
+similarity search, pagination or partial oversized-file view. The desktop
+integration below connects the narrow bridge and changes panel. Native
+acceptance is recorded below; trusted checks remain L1.4.
+
+#### Desktop changes acceptance
+
+Acceptance recorded 11 November 2026 against main `1b9e4dd`:
+
+1. A Changes button opens an accessible dialog for the selected workspace. Local
+   workspaces show current changed files and a selected unified diff against the
+   recorded base, including untracked, renamed, deleted, binary and mode changes.
+   A demo explicitly says that no repository is checked out and no real diff is
+   available. Empty, loading, request-error, oversized and missing-worktree states
+   never show a partial successful result.
+2. Only opening the dialog or pressing Refresh reads changes. Transcript polling,
+   reconnecting and selecting a file never trigger a repository scan. Refresh
+   clears old content while loading and preserves the selected filename if it
+   still exists. Closing, changing workspace or observing a disconnect clears
+   content and invalidates pending success and error responses; reconnect requires
+   explicit refresh. A queued close event cannot invalidate a reopened dialog.
+3. The sandboxed preload exposes only `workspaceChanges(workspaceId)`. The main
+   process rejects extra arguments and non-UUID identifiers, performs an
+   authenticated GET with a twenty-second timeout, and validates workspace
+   identity, SHA-1/SHA-256 hash format, flags, file shapes and byte/count bounds.
+   The renderer additionally checks the selected workspace's recorded base.
+   No paths, Git options, revisions, credentials or command capabilities are
+   accepted from the renderer.
+4. Every path and diff is rendered through `textContent`. Filename labels are
+   quoted, with escaped backslashes, newlines, tabs and invisible controls;
+   control and bidi-format characters in diff content are displayed as escapes.
+   Binary or invalid-UTF-8 files show metadata without a text preview. The file
+   list, selected diff and close/refresh controls are keyboard accessible; Escape
+   closes the modal and returns focus. Long paths and diffs scroll within the
+   existing dark desktop layout.
+5. The view labels all reads as live observations, not tested or immutable
+   snapshots. Inspection never creates a run, launches an agent, modifies source
+   content or replaces a verification record. It inherits the service's whole-file
+   hunks, exact-only rename detection and complete-request overflow limits.
+
+Focused regressions are in `tests/desktop-changes.test.ts` and
+`tests/renderer-changes.test.ts`. Native smoke coverage uses the fake CLI and real
+throwaway Git repositories, checks empty and mixed changes, manual refresh,
+quoted hostile content, binary previews, keyboard close/focus and unchanged run
+and artifact records. These fixtures call no model. Trusted checks remain L1.4;
+this panel does not meet that gate.
+
+#### L1.3 implementation evidence
+
+Recorded 11 November 2026 against implementation commit
+`37ea7804b1c024e6324b766951ab98329c7037b0`. An independent validation run passed
+`npm run check`, including strict types, formatting and all 467 automated tests.
+Service regressions cover path traversal, unsafe filesystem inputs and oversized
+inspection/diff refusal; bridge and renderer regressions cover response validation,
+stale selection, close/reopen, disconnect, literal untrusted text and explicit
+refresh.
+
+The native Electron smoke passed with a fake CLI and real temporary Git
+repositories. It displayed empty and mixed changed-file lists, untracked text,
+exact-content renames, deletion and binary metadata; selected diffs and manual
+refresh showed the expected current bytes. Escape closed the dialog and returned
+focus. Hostile markup remained literal text, and inspection left run and
+verification records unchanged. Screenshot review confirmed the usable file list,
+selected diff and existing dark desktop layout. This proves the inspection flow
+with real Git, not a new model-backed run or trusted test execution.
+
+Website typecheck and build passed at that revision; this evidence does not
+claim a completed browser suite at that commit. Integration additionally requires
+the complete website browser suite and the delivery regression gates. No new
+real-account walkthrough, trusted checks, pull-request flow or cloud execution
+is established by this evidence.
 
 ### L1.4 setup, run and test actions
 

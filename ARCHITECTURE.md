@@ -2,8 +2,8 @@
 
 Status: the M0 engine, the P1 local desktop prototype and the P2 desktop shell are
 implemented. The desktop app runs Claude Code in local worktrees
-([spec 0013](docs/specs/0013-local-mvp.md), slices L1.1 and L1.2); GitHub-URL
-workspaces and the cloud work remain simulated. The managed architecture below is
+([spec 0013](docs/specs/0013-local-mvp.md), slices L1.1 and L1.2), with a read-only
+changes panel (L1.3). GitHub-URL workspaces and cloud work remain simulated. The managed architecture below is
 the proposed later target.
 No upstream fork, cloud deployment or paid resource is configured.
 
@@ -376,8 +376,8 @@ into workspace/session navigation, central activity/composer and a right inspect
 terminal shell. `ui/shell.ts` contains presentation-only navigation; its packaged
 script is explicitly allowlisted. The existing app/bridge owns validated service
 commands. The composer opens the existing task/runtime review and preserves any
-read-only uncertain submission. Settings collects no credentials. Planned terminal,
-file/diff, migration and mobile surfaces invoke no external effects. The headless
+read-only uncertain submission. Settings collects no credentials. The historical
+terminal, file/diff, migration and mobile previews invoked no external effects; L1.3 now supplies the real local changes panel. The headless
 engine, loopback boundary and execution ownership are unchanged.
 
 P2.1 bundles licensed Lucide SVG masks and uses an exact local protocol asset
@@ -451,3 +451,21 @@ The desktop service has two worker slots, sharing atomic store claims and a
 single-run-per-workspace constraint. Shutdown drains all slots before closing
 the store. The renderer retains the selected run's bounded event history and
 paginates it without changing execution ownership.
+
+### Read-only local changes
+
+The authenticated changes service and desktop panel are implemented. Evidence
+recorded on 11 November 2026 at `37ea7804b1c024e6324b766951ab98329c7037b0`
+covers the complete native inspection flow. A narrow `workspaceChanges(id)`
+bridge accepts only a workspace UUID and validates response identity, hash format,
+file metadata and content bounds. The changes request has a twenty-second client
+timeout to accommodate the service's ten-second inspection deadline and cleanup;
+other client requests keep their existing timeout.
+
+The desktop uses a modal changed-file list and selected
+unified diff, read on open or explicit refresh. Transcript polling never scans
+repository content. Closing, changing workspace or observing a service disconnect
+invalidates pending results. All content is literal text, with quoted filenames
+and visible control-character escapes. Inspection never dispatches work or
+replaces a verification record. See the
+[acceptance criteria](docs/specs/0013-local-mvp.md#desktop-changes-acceptance).
