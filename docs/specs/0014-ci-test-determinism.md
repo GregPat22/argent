@@ -171,8 +171,8 @@ Acceptance for the test-only correction:
    production behavior unchanged. Run focused crash/handshake cases, the complete
    repository-cleanup file and `npm run check` before integration.
 
-The correction is in development. Focused crash, reservation and missing-response
-cases passed, including both synchronous-stall variants. The complete cleanup
+Implemented at `3b4eafe84ae1c1ec7c3d1eee58e4e9a2d168cba6`, with validation recorded
+on 11 November 2026. Focused crash, reservation and missing-response cases passed, including both synchronous-stall variants. The complete cleanup
 file passed all 41 cases after readiness, response and exit waits were bounded.
 `npm run check` passed types, formatting, build and all 486 automated tests.
 These results preserve real process death and exact-deadline refusal; they do
