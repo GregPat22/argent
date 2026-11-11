@@ -32,7 +32,7 @@ const limit = () =>
 const decode = (bytes: Buffer) =>
   new TextDecoder("utf8", { fatal: true, ignoreBOM: true }).decode(bytes);
 
-interface Entry {
+export interface Entry {
   mode: string;
   oid: string;
   bytes?: Buffer;
@@ -54,7 +54,7 @@ function fileIdentity(stat: FileIdentity): FileIdentity {
   };
 }
 
-function pathName(name: string): string {
+export function pathName(name: string): string {
   if (
     isAbsolute(name) ||
     name.includes("\0") ||
@@ -480,6 +480,91 @@ function patch(
   return { diff, binary: false };
 }
 
+export interface ComparedChange<E extends Entry> {
+  change: WorkspaceChange;
+  old: E | undefined;
+  next: E | undefined;
+}
+
+/**
+ * Pairs exact-content renames and renders bounded whole-file patches. An entry
+ * without bytes is loaded on demand; the caller owns input-size accounting.
+ */
+export async function compareEntries<E extends Entry>(
+  names: readonly string[],
+  base: ReadonlyMap<string, E>,
+  current: ReadonlyMap<string, E>,
+  load: (entry: E) => Promise<Buffer>,
+  signal: AbortSignal,
+): Promise<ComparedChange<E>[]> {
+  const compared: ComparedChange<E>[] = [];
+  const deleted = names.filter((name) => base.has(name) && !current.has(name));
+  const renamed = new Set<string>();
+  let diffBytes = 0;
+  const append = async (
+    name: string,
+    previousPath: string | null,
+    old: E | undefined,
+    next: E | undefined,
+  ) => {
+    if (old && old.bytes === undefined) old.bytes = await load(old);
+    if (next && next.bytes === undefined)
+      // An exact rename or a mode-only change has one blob: read it once.
+      next.bytes = old?.oid === next.oid ? old.bytes! : await load(next);
+    const rendered = patch(
+      name,
+      previousPath,
+      old,
+      next,
+      CHANGES_LIMITS.diffBytes - diffBytes,
+    );
+    diffBytes += Buffer.byteLength(rendered.diff);
+    if (diffBytes > CHANGES_LIMITS.diffBytes) throw limit();
+    compared.push({
+      change: {
+        path: name,
+        previousPath,
+        status: previousPath
+          ? "renamed"
+          : !old
+            ? "added"
+            : !next
+              ? "deleted"
+              : (old.mode === "120000") !== (next.mode === "120000")
+                ? "typechanged"
+                : "modified",
+        oldMode: old?.mode ?? null,
+        newMode: next?.mode ?? null,
+        ...rendered,
+      },
+      old,
+      next,
+    });
+  };
+  for (const name of names) {
+    signal.throwIfAborted();
+    let old = base.get(name);
+    const next = current.get(name);
+    if (!next || (old?.oid === next.oid && old.mode === next.mode)) continue;
+    const previousPath = !old
+      ? (deleted.find(
+          (candidate) =>
+            !renamed.has(candidate) &&
+            base.get(candidate)!.oid === next.oid &&
+            base.get(candidate)!.mode === next.mode,
+        ) ?? null)
+      : null;
+    if (previousPath) {
+      old = base.get(previousPath);
+      renamed.add(previousPath);
+    }
+    await append(name, previousPath, old, next);
+  }
+  for (const name of deleted)
+    if (!renamed.has(name)) await append(name, null, base.get(name), undefined);
+  return compared;
+}
+
 /** Live read-only observation, never a verification record or an immutable snapshot. */
 export async function inspectWorkspaceChanges(
   store: Store,
@@ -581,84 +666,35 @@ export async function inspectWorkspaceChanges(
         .digest("hex");
       current.set(name, { ...file, oid });
     }
-    const changes: WorkspaceChange[] = [];
-    const deleted = names.filter(
-      (name) => base.has(name) && !current.has(name),
-    );
-    const renamed = new Set<string>();
-    let diffBytes = 0;
-    for (const name of names) {
-      signal.throwIfAborted();
-      let old = base.get(name);
-      const next = current.get(name);
-      if (!next || (old?.oid === next.oid && old.mode === next.mode)) continue;
-      const previousPath = !old
-        ? (deleted.find(
-            (candidate) =>
-              !renamed.has(candidate) &&
-              base.get(candidate)!.oid === next.oid &&
-              base.get(candidate)!.mode === next.mode,
-          ) ?? null)
-        : null;
-      if (previousPath) {
-        old = base.get(previousPath);
-        renamed.add(previousPath);
-      }
-      await append(name, previousPath, old, next);
-    }
-    for (const name of deleted)
-      if (!renamed.has(name))
-        await append(name, null, base.get(name), undefined);
-    async function append(
-      name: string,
-      previousPath: string | null,
-      old: Entry | undefined,
-      next: Entry | undefined,
-    ) {
-      if (old) {
-        // Object IDs come only from the recorded base tree, never from callers.
-        const size = Number(await text(directory, ["cat-file", "-s", old.oid]));
-        if (
-          !Number.isSafeInteger(size) ||
-          size < 0 ||
-          size > CHANGES_LIMITS.fileBytes ||
-          total + size > CHANGES_LIMITS.totalBytes
-        )
-          throw limit();
-        old.bytes = await git(
-          directory,
-          ["cat-file", "blob", old.oid],
-          CHANGES_LIMITS.fileBytes,
-          signal,
-        );
-        total += old.bytes.length;
-      }
-      const rendered = patch(
-        name,
-        previousPath,
-        old,
-        next,
-        CHANGES_LIMITS.diffBytes - diffBytes,
-      );
-      diffBytes += Buffer.byteLength(rendered.diff);
-      if (diffBytes > CHANGES_LIMITS.diffBytes) throw limit();
-      changes.push({
-        path: name,
-        previousPath,
-        status: previousPath
-          ? "renamed"
-          : !old
-            ? "added"
-            : !next
-              ? "deleted"
-              : (old.mode === "120000") !== (next.mode === "120000")
-                ? "typechanged"
-                : "modified",
-        oldMode: old?.mode ?? null,
-        newMode: next?.mode ?? null,
-        ...rendered,
-      });
-    }
+    const changes = (
+      await compareEntries(
+        names,
+        base,
+        current,
+        async (entry) => {
+          // Object IDs come only from the recorded base tree, never from callers.
+          const size = Number(
+            await text(directory, ["cat-file", "-s", entry.oid]),
+          );
+          if (
+            !Number.isSafeInteger(size) ||
+            size < 0 ||
+            size > CHANGES_LIMITS.fileBytes ||
+            total + size > CHANGES_LIMITS.totalBytes
+          )
+            throw limit();
+          const bytes = await git(
+            directory,
+            ["cat-file", "blob", entry.oid],
+            CHANGES_LIMITS.fileBytes,
+            signal,
+          );
+          total += bytes.length;
+          return bytes;
+        },
+        signal,
+      )
+    ).map((compared) => compared.change);
     if ((await realpath(directory)) !== directory) throw unsafe();
     await adapter.prepare(workspace, signal);
     if (

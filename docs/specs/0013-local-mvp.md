@@ -664,6 +664,70 @@ L1.4 or establish human consent, fresh-checkout isolation, command execution or
 trusted test evidence. The next work remains complete pinned candidate review,
 explicit consent, fresh-checkout execution and exact-commit result handling.
 
+#### Internal pinned candidate review acceptance
+
+Acceptance recorded 11 November 2026 against main `8027d0b`. This read-only
+groundwork produces what a person would have to read before consenting to run
+the approved base commands against one exact commit. It collects no consent,
+persists nothing, enqueues no work and runs no command. L1.4 remains incomplete.
+
+1. The service supplies its worktree root, a stored workspace ID and the trusted
+   operator identity. The review first requires a fresh
+   [exact-commit observation](#internal-exact-commit-candidate-observation-acceptance):
+   the operator's matching configuration approval and a worktree whose index
+   and Git-visible bytes equal one commit. It accepts no caller path, revision,
+   argv, diff or purported observation. A dirty, unapproved, simulated or
+   unknown workspace has no review.
+2. The change set compares the recorded base commit with the observed commit,
+   tree to tree. Trusted Git reads only objects named by those two commits:
+   never the worktree, the index, replacement refs, filters, textconv or an
+   external diff. Every blob read is checked against the size in the pinned
+   tree listing and against its own Git object ID, so content Git would serve
+   under a mismatched ID is refused. A missing object, a gitlink, an unsafe
+   path, an invalid-UTF-8 path name or a malformed listing fails the whole
+   review.
+3. Each changed file records its status, both modes, both blob IDs and both
+   sizes. Added, modified, deleted, exact-content renamed, mode-only and
+   symlink changes are represented with the same bounded whole-file text hunks
+   as the changes panel. Binary or invalid-UTF-8 content has identity and size
+   only, and the review says so: it is counted as binary and never described
+   as displayed or reviewed. All paths and text remain untrusted display data.
+4. Commands always come from the approved base configuration. The review
+   reports whether the candidate's own `argent.json` is unchanged, changed or
+   removed relative to the base, and marks that file in the change set. It
+   states that Argent cannot identify which changed files a command will
+   execute: the complete change set is the review, and no heuristic narrows it.
+5. The versioned review identity hashes the observation identity (workspace,
+   operator, approval, configuration, base, commit and tree), the configuration
+   state and every changed path with its status, modes, blob IDs and binary
+   flag. Another commit with the same tree, another operator and any content
+   change produce another identity. The immutable result explicitly has no
+   consent, forbids execution and is untested.
+6. The changes limits apply: 1,000 paths across both trees, 4 MiB per blob,
+   32 MiB of inspected blobs and 1 MiB of diff text; binary content does not
+   consume the diff allowance. Overflow fails the complete review with a limit
+   error and no partial result, so a candidate that cannot be reviewed in full
+   cannot later be consented to. One twenty-second deadline covers the
+   observation and every object read; cancellation awaits supervised Git
+   cleanup. Errors never disclose file contents or raw process output.
+7. The review has no idempotency receipt and no durable state. Its content is
+   pinned to immutable objects; the cleanliness of the worktree is only the
+   observation's point-in-time statement. Restart performs a new read, and an
+   old review cannot authorize execution. Ignored content stays excluded, and
+   host-owner tampering with the object database remains outside the
+   protection claimed.
+8. Real temporary Git fixtures cover every change kind, identity stability and
+   change, candidate configuration changes, refusal without a clean approved
+   commit, replacement refs and hostile command settings, literal unusual
+   names, a missing and a forged object, each bound, cancellation and the
+   deadline. Reviews leave store records, the index and working files
+   unchanged; no configured marker runs and no dormant job becomes runnable.
+   The existing changes inspection keeps its behavior and tests.
+
+Explicit consent bound to a review identity, a fresh owned checkout, bounded
+command execution and exact-commit results remain separate work. A reviewed
+change set is not evidence that a command passed.
+
 ### L1.5 draft pull request and archive
 
 Commit and push the workspace branch and open a draft pull request through `gh`,
