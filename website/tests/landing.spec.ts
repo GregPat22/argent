@@ -1555,6 +1555,7 @@ test("proof separates today's record from planned checks and strikes four hallma
 test("problem glyphs draw themselves once and stay visible without scripts", async ({
   page,
   browser,
+  baseURL,
 }) => {
   await visit(page, "/");
   const list = page.locator("#statement .problem-list");
@@ -1570,10 +1571,13 @@ test("problem glyphs draw themselves once and stay visible without scripts", asy
       timeout: 10_000,
     });
 
-  const context = await browser.newContext({ javaScriptEnabled: false });
+  const context = await browser.newContext({
+    baseURL,
+    javaScriptEnabled: false,
+  });
   const plain = await context.newPage();
   try {
-    await plain.goto("http://127.0.0.1:3100/");
+    await plain.goto("/");
     await expect(
       plain.locator("#statement .problem-glyph > :not(.problem-dash)").first(),
     ).toHaveCSS("stroke-dashoffset", "0px");

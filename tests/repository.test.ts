@@ -789,7 +789,8 @@ async function child(
     process,
     exit,
     async go(
-      message: string | { id: string; fence: string } = "go",
+      message:
+        string | { id: string; fence: string } | { stallMs: number } = "go",
     ): Promise<{ id?: string | null; conflict?: true }> {
       const response = Promise.race([
         once(process, "message"),
@@ -836,21 +837,36 @@ test("simulated bootstrap enrollment and pause race in separate processes", asyn
   await Promise.all(children.map((entry) => entry.exit));
 });
 
-test("simulated process death after mint intent preserves unknown credential without redispatch", async (t) => {
-  const f = fixture(t);
-  const op = f.request();
-  const worker = await child(t, f.path, "crash", f.workspace.id);
-  assert.equal((await worker.go()).id, op.id);
-  worker.process.kill("SIGKILL");
-  await worker.exit;
-  await delay(120);
-  f.reopen();
-  assert.equal(await f.work(), false);
-  const result = f.store.repositories.operation(op.id);
-  assert.equal(result.status, "needs_attention");
-  assert.equal(result.credential, "unknown");
-  assert.deepEqual(f.adapter.calls, []);
-});
+for (const stallMs of [0, 150]) {
+  test(`simulated process death after mint intent preserves unknown credential without redispatch (${stallMs} ms stall)`, async (t) => {
+    const f = fixture(t);
+    const op = f.request();
+    const worker = await child(t, f.path, "crash", f.workspace.id);
+    assert.equal((await worker.go({ stallMs })).id, op.id);
+    const claimed = f.store.repositories.operation(op.id);
+    assert.equal(claimed.status, "running");
+    assert.equal(claimed.phase, "minting");
+    assert.ok(claimed.leaseExpiresAt);
+    assert.equal(
+      claimed.leaseExpiresAt,
+      f.store.repositories
+        .events(op.id)
+        .find((event) => event.type === "repository.claimed")!.createdAt + 100,
+    );
+    worker.process.kill("SIGKILL");
+    await worker.exit;
+    t.mock.timers.enable({ apis: ["Date"], now: claimed.leaseExpiresAt - 1 });
+    f.reopen();
+    assert.equal(f.store.repositories.reconcileExpired(), 0);
+    assert.equal(f.store.repositories.operation(op.id).status, "running");
+    t.mock.timers.tick(1);
+    assert.equal(await f.work(), false);
+    const result = f.store.repositories.operation(op.id);
+    assert.equal(result.status, "needs_attention");
+    assert.equal(result.credential, "unknown");
+    assert.deepEqual(f.adapter.calls, []);
+  });
+}
 
 test("simulated late checkout acknowledgment never promotes timed-out bootstrap", async (t) => {
   const f = fixture(t);
@@ -1617,21 +1633,43 @@ test("simulated encrypted custody survives restart without replay or plaintext i
   }
 });
 
-test("simulated process death after custody commit retains a recoverable token and blocks dispatch", async (t) => {
-  const f = fixture(t);
-  const op = f.request();
-  const worker = await child(t, f.path, "custody-crash", f.workspace.id);
-  assert.equal((await worker.go()).id, op.id);
-  worker.process.kill("SIGKILL");
-  await worker.exit;
-  await delay(120);
-  f.reopen();
-  assert.equal(await f.work(), false);
-  assert.equal(f.store.repositories.operation(op.id).status, "needs_attention");
-  assert.equal(f.store.repositories.operation(op.id).credential, "unknown");
-  assert.equal(vault(f.store).recover(op.id, "operator"), secret);
-  assert.deepEqual(f.adapter.calls, []);
-});
+for (const stallMs of [0, 150]) {
+  test(`simulated process death after custody commit retains a recoverable token and blocks dispatch (${stallMs} ms stall)`, async (t) => {
+    const f = fixture(t);
+    const op = f.request();
+    const worker = await child(t, f.path, "custody-crash", f.workspace.id);
+    assert.equal((await worker.go({ stallMs })).id, op.id);
+    const claimed = f.store.repositories.operation(op.id);
+    assert.equal(claimed.status, "running");
+    assert.ok(claimed.leaseExpiresAt);
+    assert.equal(
+      claimed.leaseExpiresAt,
+      f.store.repositories
+        .events(op.id)
+        .find((event) => event.type === "repository.claimed")!.createdAt + 100,
+    );
+    assert.ok(
+      f.store.repositories
+        .events(op.id)
+        .some((event) => event.type === "repository.credential_stored"),
+    );
+    worker.process.kill("SIGKILL");
+    await worker.exit;
+    t.mock.timers.enable({ apis: ["Date"], now: claimed.leaseExpiresAt - 1 });
+    f.reopen();
+    assert.equal(f.store.repositories.reconcileExpired(), 0);
+    assert.equal(f.store.repositories.operation(op.id).status, "running");
+    t.mock.timers.tick(1);
+    assert.equal(await f.work(), false);
+    assert.equal(
+      f.store.repositories.operation(op.id).status,
+      "needs_attention",
+    );
+    assert.equal(f.store.repositories.operation(op.id).credential, "unknown");
+    assert.equal(vault(f.store).recover(op.id, "operator"), secret);
+    assert.deepEqual(f.adapter.calls, []);
+  });
+}
 
 for (const denial of ["actor", "key", "key-id"] as const) {
   test(`simulated credential recovery rejects wrong ${denial}`, (t) => {
