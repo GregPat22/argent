@@ -188,15 +188,15 @@ export function Agents() {
           Your models.
         </h2>
         <p className="max-w-[34rem] text-sterling md:col-span-5">
-          Claude Code runs in the desktop app today, and Codex joins it in the
-          first update after release, so you can run Claude models and GPT
-          models side by side, each in its own workspace, on the subscriptions
-          you already have. Pick the agent for each workspace and the model for
-          each task, or keep the agent’s default.
+          Claude Code runs in the desktop app today. Codex joins it in the first
+          update after release, so Claude models and GPT models can work side by
+          side, each in its own workspace, on the subscriptions you already
+          have. You pick the agent for each workspace and the model for each
+          task, or keep the agent’s default.
         </p>
       </div>
 
-      <div ref={root} className="agents-stage silver-surface">
+      <div ref={root} className="agents-stage silver-surface" data-light>
         <div className="agents-picker">
           <div
             role="group"
@@ -249,7 +249,7 @@ export function Agents() {
         <Composer agent={agent} />
       </div>
 
-      <div className="mt-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <p className="max-w-[46rem] text-[0.8125rem] leading-relaxed text-sterling-dim">
           An illustration of the planned picker. Each agent runs through its
           official command-line tool under your own sign-in; which models you
@@ -259,7 +259,7 @@ export function Agents() {
           appear only to identify the agents Argent works with; Argent is not
           affiliated with either company.
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           <StatusTag status="live" subject="Claude Code" />
           <StatusTag status="planned" subject="Codex" />
         </div>

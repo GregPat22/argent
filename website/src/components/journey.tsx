@@ -220,8 +220,9 @@ function Stage({
 export function Journey() {
   const track = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
-  // Wide screens pin the stage while the tall track scrolls past; narrow
-  // screens stack it, so the hand-off plays while it crosses the viewport.
+  // Wide screens pin the whole stage while the tall track scrolls past. Narrow
+  // screens keep the stage stuck under the header while the steps scroll
+  // beneath it, so the hand-off plays between the pin and its release.
   const [wide, setWide] = useState(false);
   useEffect(() => {
     const query = window.matchMedia("(min-width: 900px)");
@@ -232,7 +233,7 @@ export function Journey() {
   }, []);
   const { scrollYProgress } = useScroll({
     target: track,
-    offset: wide ? ["start start", "end end"] : ["start 0.7", "end 0.85"],
+    offset: wide ? ["start start", "end end"] : ["start 0.1", "end 0.75"],
   });
   const eased = useSpring(scrollYProgress, {
     stiffness: 120,

@@ -8,6 +8,7 @@ import { HowItWorks } from "@/components/how-it-works";
 import { Journey } from "@/components/journey";
 import { Manifesto } from "@/components/manifesto";
 import { Nav } from "@/components/nav";
+import { PointerLight } from "@/components/pointer-light";
 import { Roadmap } from "@/components/roadmap";
 import { RunIt } from "@/components/run-it";
 import { SectionActivity } from "@/components/section-activity";
@@ -26,11 +27,11 @@ export default function Home() {
       <main id="top" tabIndex={-1}>
         <Hero />
         <Statement />
-        <Journey />
+        <Hallmark />
         <HowItWorks />
         <Agents />
-        <Hallmark />
         <Manifesto />
+        <Journey />
         <Roadmap />
         <FAQ />
         <RunIt />
@@ -38,6 +39,7 @@ export default function Home() {
       <Footer />
       <Entrance />
       <SectionActivity />
+      <PointerLight />
     </>
   );
 }

@@ -164,9 +164,22 @@
   }
 }
 
+/* A plate of dark metal. Its edge is a gradient, so the two corners facing
+   the light read brighter than the rest, as a polished rim would. */
 .silver-surface {
+  border: 1px solid transparent;
   background:
-    linear-gradient(135deg, rgb(238 241 245 / 0.06), transparent 45%), #0e1015;
+    linear-gradient(135deg, rgb(238 241 245 / 0.06), transparent 45%)
+      padding-box,
+    linear-gradient(#0e1015, #0e1015) padding-box,
+    linear-gradient(
+        145deg,
+        rgb(238 241 245 / 0.44),
+        rgb(238 241 245 / 0.12) 24%,
+        rgb(238 241 245 / 0.07) 62%,
+        rgb(238 241 245 / 0.28)
+      )
+      border-box;
   box-shadow:
     inset 0 1px 0 rgb(238 241 245 / 0.07),
     0 24px 64px -40px #000;
@@ -427,60 +440,41 @@
 .liquid-fallback-drop {
   position: absolute;
   aspect-ratio: 1;
-  border-radius: 48% 52% 45% 55% / 54% 46% 54% 46%;
-  background:
-    radial-gradient(
-      circle at 34% 28%,
-      #fff 0 3%,
-      rgb(236 241 248 / 0.85) 8%,
-      transparent 22%
-    ),
-    radial-gradient(
-      circle at 62% 74%,
-      rgb(190 205 230 / 0.55),
-      transparent 32%
-    ),
-    radial-gradient(
-      circle at 45% 42%,
-      #c9d1dc 0,
-      #6f7987 34%,
-      #262b33 62%,
-      #0d0f13 80%
-    );
-  box-shadow:
-    inset -10px -14px 30px rgb(0 0 0 / 0.55),
-    inset 8px 10px 22px rgb(255 255 255 / 0.12),
-    0 30px 60px -30px #000;
+  background: center / contain no-repeat url("/liquid/drop-small.webp");
 }
 .liquid-fallback-drop:nth-child(1) {
-  left: -7%;
-  bottom: 6%;
-  width: min(34vw, 22rem);
+  left: -12%;
+  bottom: -4%;
+  width: min(46vw, 34rem);
+  background-image: url("/liquid/drop-large.webp");
 }
 .liquid-fallback-drop:nth-child(2) {
-  right: -6%;
-  top: 9%;
-  width: min(28vw, 18rem);
+  right: -10%;
+  top: 2%;
+  width: min(38vw, 27rem);
+  background-image: url("/liquid/drop-medium.webp");
+  scale: -1 1;
 }
 .liquid-fallback-drop:nth-child(3) {
   left: 13%;
   top: 18%;
-  width: min(5vw, 2.6rem);
+  width: min(6vw, 3.4rem);
 }
 .liquid-fallback-drop:nth-child(4) {
   right: 13%;
   bottom: 20%;
-  width: min(4.5vw, 2.3rem);
+  width: min(6vw, 3.6rem);
+  background-image: url("/liquid/drop-pair.webp");
 }
 .liquid-fallback-drop:nth-child(5) {
   left: 30%;
   bottom: 7%;
-  width: min(3vw, 1.6rem);
+  width: min(3.6vw, 2rem);
 }
 .liquid-fallback-drop:nth-child(6) {
   right: 30%;
   top: 11%;
-  width: min(2.6vw, 1.4rem);
+  width: min(3.2vw, 1.8rem);
 }
 @media (prefers-reduced-motion: reduce) {
   .liquid-canvas {
@@ -898,20 +892,91 @@ html[data-entrance="pending"] .site-footer {
 
 /* Looping decorations rest while their section is off screen. */
 main > section:not([data-onscreen="true"]) .cta-drops i,
+main > section:not([data-onscreen="true"]) .problem-dash,
 main > section:not([data-onscreen="true"]) .hiw-pulse,
 main > section:not([data-onscreen="true"]) .roadmap-node,
 main > section:not([data-onscreen="true"]) .journey-pulse {
   animation-play-state: paused;
 }
 
-/* Statement: the three problems. */
+/* Statement: the three problems, each on its own plate. The glyph draws
+   itself once when the row arrives. */
+.statement-atom {
+  position: relative;
+}
+.statement-atom::before {
+  content: "";
+  position: absolute;
+  inset: -12% -6%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    closest-side,
+    rgb(196 210 232 / 0.09),
+    transparent 72%
+  );
+}
+.problem-card {
+  position: relative;
+  border: 1px solid var(--color-hairline);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  background: linear-gradient(
+    160deg,
+    rgb(238 241 245 / 0.035),
+    rgb(238 241 245 / 0) 55%
+  );
+  transition: border-color 300ms;
+}
+@media (min-width: 768px) {
+  .problem-card {
+    padding: 1.75rem;
+  }
+}
 .problem-glyph {
   color: var(--color-sterling);
   transition:
     color 300ms,
     transform 500ms var(--ease-liquid);
 }
+/* Drawn by default, so the glyphs survive without scripts; the list only
+   holds them back once it knows it can play them. */
+.problem-glyph > :not(.problem-dash) {
+  stroke-dasharray: 1;
+}
+.problem-dash {
+  stroke-dasharray: 3 4;
+}
+.problem-list[data-drawn="false"] .problem-glyph > :not(.problem-dash) {
+  stroke-dashoffset: 1;
+}
+.problem-list[data-drawn="true"] .problem-glyph > :not(.problem-dash) {
+  animation: problem-draw 1100ms var(--ease-out-quint) var(--glyph-delay, 0ms)
+    both;
+}
+.problem-list[data-drawn="true"] .problem-dash {
+  animation: problem-claim 2.6s calc(var(--glyph-delay, 0ms) + 900ms)
+    ease-in-out infinite;
+}
+@keyframes problem-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+/* The claim keeps repeating itself; nothing ever backs it up. */
+@keyframes problem-claim {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
 @media (hover: hover) {
+  .problem-card:hover {
+    border-color: var(--color-hairline-strong);
+  }
   .problem-card:hover .problem-glyph {
     color: var(--color-polished);
     transform: translateY(-3px);
@@ -1228,7 +1293,6 @@ main > section:not([data-onscreen="true"]) .journey-pulse {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--color-hairline-strong);
   border-radius: 1.75rem;
   padding: 1.5rem;
 }
@@ -1594,6 +1658,8 @@ main > section:not([data-onscreen="true"]) .journey-pulse {
 .cta-drops {
   position: absolute;
   inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
   pointer-events: none;
 }
 /* The outer span holds the position and follows the pointer; the inner one
@@ -1605,83 +1671,74 @@ main > section:not([data-onscreen="true"]) .journey-pulse {
 .cta-drops i {
   position: absolute;
   inset: 0;
-  border-radius: 48% 52% 45% 55% / 54% 46% 54% 46%;
-  background:
-    /* key light: a soft studio window */
-    radial-gradient(
-      ellipse 34% 20% at 34% 24%,
-      rgb(255 255 255 / 0.96) 0 38%,
-      rgb(255 255 255 / 0) 72%
-    ),
-    /* bounce light from below */
-    radial-gradient(
-        ellipse 58% 24% at 60% 84%,
-        rgb(206 216 232 / 0.5),
-        rgb(206 216 232 / 0) 72%
-      ),
-    /* rim: the edge of a sphere catches the room */
-    radial-gradient(
-        circle at 50% 50%,
-        rgb(0 0 0 / 0) 56%,
-        rgb(214 224 240 / 0.22) 66%,
-        rgb(8 9 12 / 0.85) 71%
-      ),
-    /* the horizon band every polished sphere reflects */
-    linear-gradient(
-        172deg,
-        #e3e8f0 0%,
-        #9aa4b3 22%,
-        #2a2f38 44%,
-        #0b0d11 52%,
-        #454d5a 68%,
-        #b3bcc9 100%
-      );
-  box-shadow:
-    inset -10px -14px 30px rgb(0 0 0 / 0.5),
-    inset 8px 10px 22px rgb(255 255 255 / 0.14),
-    0 30px 60px -24px rgb(0 0 0 / 0.75);
+  background: center / contain no-repeat;
   animation: cta-drift 14s ease-in-out infinite alternate;
 }
+/* Stills rendered from the hero's own shader (scripts/render-liquid-drops.cjs),
+   so the closing band is made of the same metal as the opening. */
 .cta-drops > span:nth-child(1) {
-  left: -6%;
-  bottom: -18%;
-  width: min(30vw, 18rem);
+  left: -11%;
+  /* Set from its own size, so the same share shows at every band height. */
+  bottom: calc(min(42vw, 28rem) * -0.55);
+  width: min(42vw, 28rem);
+}
+.cta-drops > span:nth-child(1) i {
+  background-image: url("/liquid/drop-large.webp");
 }
 .cta-drops > span:nth-child(2) {
-  right: -5%;
-  top: -20%;
-  width: min(24vw, 15rem);
+  right: -9%;
+  top: 4%;
+  width: min(30vw, 20rem);
 }
 .cta-drops > span:nth-child(2) i {
+  background-image: url("/liquid/drop-medium.webp");
+  scale: -1 1;
   animation-delay: -5s;
 }
 .cta-drops > span:nth-child(3) {
-  left: 14%;
-  top: 14%;
-  width: 2.2rem;
+  left: 15%;
+  top: 13%;
+  width: 3rem;
 }
 .cta-drops > span:nth-child(3) i {
+  background-image: url("/liquid/drop-small.webp");
   animation-delay: -9s;
 }
 .cta-drops > span:nth-child(4) {
-  right: 16%;
-  bottom: 16%;
-  width: 1.6rem;
+  right: 19%;
+  bottom: 12%;
+  width: 3.4rem;
 }
 .cta-drops > span:nth-child(4) i {
+  background-image: url("/liquid/drop-pair.webp");
   animation-delay: -2s;
 }
-/* Transform only: the squash stands in for a changing outline without
-   repainting the gradients every frame. */
+/* Transform only, and gentle: the reflections are baked into the stills, so
+   a large turn would show the studio spinning with the drop. */
 @keyframes cta-drift {
   to {
-    transform: translate(12px, -16px) rotate(14deg) scale(1.035, 0.97);
+    transform: translate(10px, -14px) rotate(3deg) scale(1.03, 0.975);
   }
 }
+@media (max-width: 899px) {
+  .cta-drops > span:nth-child(4) {
+    display: none;
+  }
+}
+/* On a phone the copy fills the band, so the metal keeps to two corners. */
 @media (max-width: 639px) {
-  .cta-drops > span:nth-child(1),
+  .cta-drops > span:nth-child(1) {
+    left: -5.5rem;
+    bottom: -9.5rem;
+    width: 15rem;
+  }
   .cta-drops > span:nth-child(2) {
-    opacity: 0.45;
+    right: -4rem;
+    top: -4.25rem;
+    width: 10.5rem;
+  }
+  .cta-drops > span:nth-child(3) {
+    display: none;
   }
 }
 
@@ -1755,7 +1812,6 @@ main > section:not([data-onscreen="true"]) .journey-pulse {
   margin-top: 3.5rem;
   display: grid;
   gap: 2.5rem;
-  border: 1px solid var(--color-hairline-strong);
   border-radius: 2rem;
   padding: 1.5rem;
 }
@@ -1967,4 +2023,428 @@ main > section:not([data-onscreen="true"]) .journey-pulse {
 .agents-transcript {
   font-size: 0.8125rem;
   color: var(--color-sterling);
+}
+
+/* ---------------------------------------------------------------------------
+ * Restyle: one metal from the hero to the footer. Plates answer the pointer,
+ * the proof is struck into silver, and the page's main action stays in reach.
+ * ------------------------------------------------------------------------- */
+
+/* Hero: today's facts under the actions, and a horizon the metal sinks into
+   instead of a hard edge at the bottom of the section. */
+.hero-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem 1.25rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 1.5rem auto 0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-sterling);
+}
+.hero-status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.hero-status-line--dim {
+  color: var(--color-sterling-dim);
+}
+.hero-status-dot {
+  position: relative;
+  flex: none;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--color-verified);
+}
+/* The pulse is a ring that only scales and fades, so it never repaints. */
+.hero-status-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--color-verified);
+  animation: status-pulse 2.8s ease-out infinite;
+}
+#intro:has(canvas[data-state="paused"]) .hero-status-dot::after {
+  animation-play-state: paused;
+}
+.hero-status-sep {
+  margin-inline: 0.15rem;
+  color: var(--color-sterling-dim);
+}
+@keyframes status-pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(3.5);
+  }
+}
+.hero-horizon {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 0;
+  height: 9rem;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgb(8 9 12 / 0),
+    rgb(8 9 12 / 0.6) 62%,
+    var(--color-oxide)
+  );
+}
+
+/* Compact navigation: content fades out under the header instead of sliding
+   beneath the logo, and the main action waits at the top right. */
+.site-header::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: -1;
+  height: 6.5rem;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgb(8 9 12 / 0.94),
+    rgb(8 9 12 / 0.8) 34%,
+    rgb(8 9 12 / 0.42) 68%,
+    rgb(8 9 12 / 0)
+  );
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+.site-header.is-compact::before {
+  opacity: 1;
+}
+.nav-pill {
+  position: absolute;
+  top: 22px;
+  right: 20px;
+  pointer-events: auto;
+  transform-origin: right top;
+}
+.nav-cta--pill {
+  min-height: 48px;
+  padding-inline: 18px;
+  border-radius: 16px;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    inset 0 -2px 5px rgb(54 67 84 / 0.14),
+    0 10px 30px rgb(0 0 0 / 0.5);
+}
+@media (max-width: 639px) {
+  .nav-pill {
+    top: 18px;
+    right: 16px;
+  }
+  .nav-cta--pill {
+    padding-inline: 14px;
+    font-size: 0.8125rem;
+  }
+  .nav-cta--pill .button-arrow {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-header::before {
+    transition: none;
+  }
+}
+
+/* Pointer light: an edge highlight and a faint face light that follow the
+   cursor across any plate marked data-light. */
+@property --lx {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 50%;
+}
+@property --ly {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+[data-light] {
+  position: relative;
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-light]::before,
+  [data-light]::after {
+    content: "";
+    position: absolute;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 500ms var(--ease-out-quint);
+    /* Registered as non-inheriting, so a move restyles the plate and these
+       two lights, never the content inside it. */
+    --lx: inherit;
+    --ly: inherit;
+  }
+  [data-light]::before {
+    inset: -1px;
+    z-index: 2;
+    padding: 1px;
+    background: radial-gradient(
+      15rem circle at var(--lx) var(--ly),
+      rgb(255 255 255 / 0.85),
+      rgb(214 226 245 / 0.2) 42%,
+      rgb(214 226 245 / 0) 72%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+  }
+  [data-light]::after {
+    inset: 0;
+    z-index: 1;
+    background: radial-gradient(
+      26rem circle at var(--lx) var(--ly),
+      rgb(214 226 245 / 0.07),
+      rgb(214 226 245 / 0) 65%
+    );
+  }
+  [data-light]:hover::before,
+  [data-light]:hover::after {
+    opacity: 1;
+  }
+}
+
+/* Proof: the agent's claim on plain pewter, Argent's record on an engraved
+   plate, and a seam of liquid silver between them. */
+.proof-stage {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#0d0f13, #0d0f13) padding-box,
+    linear-gradient(
+        145deg,
+        rgb(238 241 245 / 0.44),
+        rgb(238 241 245 / 0.12) 24%,
+        rgb(238 241 245 / 0.07) 62%,
+        rgb(238 241 245 / 0.28)
+      )
+      border-box;
+  box-shadow: 0 50px 120px -60px #000;
+}
+.proof-claim,
+.proof-record {
+  overflow: hidden;
+  border-radius: inherit;
+}
+.proof-claim {
+  background:
+    radial-gradient(
+      70% 90% at 0% 0%,
+      rgb(238 241 245 / 0.05),
+      rgb(238 241 245 / 0) 70%
+    ),
+    var(--color-pewter);
+}
+.proof-unverified {
+  padding-left: 0.9rem;
+  border-left: 1px dashed var(--color-hairline-strong);
+}
+.proof-record {
+  background-color: #0b0d11;
+}
+.proof-record::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    60% 90% at 100% 0%,
+    rgb(196 210 232 / 0.12),
+    rgb(196 210 232 / 0) 70%
+  );
+}
+.proof-record > div {
+  position: relative;
+}
+.proof-sheet {
+  border: 1px solid var(--color-hairline-strong);
+  background: rgb(8 9 12 / 0.78);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    0 24px 50px -30px #000;
+}
+.proof-seam {
+  background: linear-gradient(
+    to bottom,
+    rgb(245 248 252 / 0),
+    #f5f8fc 16%,
+    #8e99a8 50%,
+    #f5f8fc 84%,
+    rgb(245 248 252 / 0)
+  );
+  box-shadow: 0 0 22px rgb(190 210 255 / 0.4);
+}
+.proof-handle {
+  background: conic-gradient(
+    from 35deg,
+    #727d8b,
+    #fff 12%,
+    #8e99a8 28%,
+    #3a424e 48%,
+    #e4eaf2 67%,
+    #798695 82%,
+    #e7edf5
+  );
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.55),
+    inset 0 -6px 10px rgb(40 48 60 / 0.3),
+    0 0 0 6px rgb(238 241 245 / 0.07),
+    0 12px 34px rgb(0 0 0 / 0.6);
+}
+.proof-handle svg {
+  filter: drop-shadow(0 1px 0 rgb(255 255 255 / 0.6));
+}
+.proof-ledger > div {
+  padding-block: 1.75rem;
+  border-top: 1px solid var(--color-hairline);
+}
+
+/* Hallmarks: each mark is punched into its own plate of silver. */
+.mark-plate {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 8.5rem;
+  max-width: 100%;
+  aspect-ratio: 10 / 7;
+  overflow: hidden;
+  border-radius: 1.1rem;
+  background: linear-gradient(
+    160deg,
+    #eef2f7 0%,
+    #a9b3c1 30%,
+    #e3e8ef 52%,
+    #7d8796 78%,
+    #c7cfda
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgb(255 255 255 / 0.9),
+    inset 0 -5px 10px rgb(40 48 60 / 0.45),
+    inset 0 0 0 1px rgb(255 255 255 / 0.4),
+    0 26px 44px -24px #000;
+}
+.mark-plate svg {
+  width: 72%;
+  height: auto;
+  overflow: visible;
+}
+.mark-punch {
+  fill: #252a32;
+  filter: drop-shadow(0 1px 0 rgb(255 255 255 / 0.85))
+    drop-shadow(0 -1px 0.5px rgb(20 24 32 / 0.65));
+}
+.mark-relief {
+  fill: #e6ebf2;
+  font-weight: 600;
+  text-anchor: middle;
+}
+.mark-relief-line {
+  fill: none;
+  stroke: #e6ebf2;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+/* A blank plate: the mark is only scribed where the punch will land. */
+.mark-plate[data-state="blank"] {
+  background: linear-gradient(
+    160deg,
+    #b9c1cc 0%,
+    #7f8997 32%,
+    #a9b2bf 54%,
+    #5d6673 80%,
+    #8f99a7
+  );
+  box-shadow:
+    inset 0 1.5px 0 rgb(255 255 255 / 0.5),
+    inset 0 -5px 10px rgb(40 48 60 / 0.45),
+    inset 0 0 0 1px rgb(255 255 255 / 0.22),
+    0 26px 44px -24px #000;
+}
+.mark-plate[data-state="blank"] .mark-punch {
+  fill: none;
+  stroke: rgb(28 34 44 / 0.6);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3.5;
+  filter: none;
+}
+.mark-plate[data-state="blank"] .mark-relief,
+.mark-plate[data-state="blank"] .mark-relief-line {
+  display: none;
+}
+.mark-plate[data-state="blank"]::after {
+  display: none;
+}
+/* The flash of light off the plate as the punch lands. */
+.mark-plate::after {
+  content: "";
+  position: absolute;
+  inset: -20% -40%;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    rgb(255 255 255 / 0) 40%,
+    rgb(255 255 255 / 0.8) 50%,
+    rgb(255 255 255 / 0) 60%
+  );
+  transform: translateX(-110%);
+}
+.mark-list[data-struck="true"] .mark-plate::after {
+  animation: mark-flash 950ms var(--ease-out-quint)
+    calc(var(--strike, 0ms) + 240ms) both;
+}
+@keyframes mark-flash {
+  to {
+    transform: translateX(110%);
+  }
+}
+
+/* Journey on narrow screens: the stage stays in view while the three steps
+   scroll beneath it, so the hand-off is seen as it is read. */
+@media (max-width: 899px) {
+  .journey-sticky {
+    gap: 2.25rem;
+    padding-block: 0 2rem;
+  }
+  .journey-stage {
+    order: -1;
+    position: sticky;
+    top: 5rem;
+    z-index: 2;
+    background: var(--color-oxide);
+  }
+  .journey-stage::before,
+  .journey-stage::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    pointer-events: none;
+  }
+  .journey-stage::before {
+    bottom: 100%;
+    height: 5rem;
+    background: var(--color-oxide);
+  }
+  .journey-stage::after {
+    top: 100%;
+    height: 2.25rem;
+    background: linear-gradient(var(--color-oxide), rgb(8 9 12 / 0));
+  }
 }

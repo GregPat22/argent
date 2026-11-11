@@ -291,7 +291,7 @@ test("hero centers the copy inside a field of interactive liquid silver", async 
     timeout: 15_000,
   });
   await expect(
-    page.getByRole("link", { name: "Try it locally" }),
+    page.locator("#intro").getByRole("link", { name: "Try it locally" }),
   ).toBeVisible();
 });
 
@@ -664,7 +664,7 @@ test("navigation follows the current section and local entry reaches the termina
     .click();
   await page
     .locator("#mobile-navigation")
-    .getByRole("link", { name: "Try locally" })
+    .getByRole("link", { name: "Try it locally" })
     .click();
   await expect(page).toHaveURL(/#run$/);
   await expect(
@@ -820,7 +820,11 @@ test("borderless navigation compacts to one logo and preserves keyboard access",
     ".nav-logo-control[aria-controls=mobile-navigation]",
   );
   await expect(logo).toBeInViewport();
-  await expect(header.getByRole("link")).toHaveCount(0);
+  // Compact: one logo control, plus the pill that keeps the main action in reach.
+  await expect(header.getByRole("link")).toHaveCount(1);
+  await expect(
+    header.getByRole("link", { name: "Try it locally" }),
+  ).toHaveAttribute("href", "#run");
   await expect(header.getByRole("button")).toHaveCount(1);
   await expect
     .poll(async () => (await logo.boundingBox())!.x)
@@ -837,10 +841,10 @@ test("borderless navigation compacts to one logo and preserves keyboard access",
   await expect(logo).toHaveAttribute("aria-expanded", "true");
   await page.keyboard.press("Tab");
   await expect(
-    page
-      .locator("#mobile-navigation")
-      .getByRole("link", { name: "How it works" }),
+    page.locator("#mobile-navigation").getByRole("link", { name: "Proof" }),
   ).toBeFocused();
+  // The open menu already offers the action, so the pill steps aside.
+  await expect(page.locator(".nav-pill")).toHaveCount(0);
   for (const target of await page.locator("#mobile-navigation a").all()) {
     const rect = (await target.boundingBox())!;
     expect(rect.height).toBeGreaterThanOrEqual(48);
@@ -1074,7 +1078,7 @@ test("scrolling transfers keyboard focus when navigation controls are replaced",
   await page.keyboard.press("Enter");
   await page.keyboard.press("Tab");
   await expect(
-    menu.getByRole("link", { name: "How it works", exact: true }),
+    menu.getByRole("link", { name: "Proof", exact: true }),
   ).toBeFocused();
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
   await expect(home).toBeFocused();
@@ -1338,4 +1342,340 @@ test("the compact logo keeps a feathered halo and the final band follows the poi
   await expect
     .poll(async () => Math.abs((await drop.boundingBox())!.x - before.x))
     .toBeLessThanOrEqual(2);
+});
+
+test("sections lead with proof and leave the planned journey for later", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await visit(page, "/");
+  const ids = await page
+    .locator("main > section")
+    .evaluateAll((sections) => sections.map((section) => section.id));
+  expect(ids).toEqual([
+    "intro",
+    "statement",
+    "hallmark",
+    "lifecycle",
+    "agents",
+    "open",
+    "reconnect",
+    "roadmap",
+    "faq",
+    "run",
+    "join",
+  ]);
+  // The navigation lists its links in the same order as the page.
+  expect(
+    await page
+      .locator(".nav-links a")
+      .evaluateAll((links) => links.map((link) => link.getAttribute("href"))),
+  ).toEqual(["#hallmark", "#lifecycle", "#roadmap", "#faq"]);
+  // The first problem is the one the next section answers.
+  await expect(page.locator("#statement .problem-card h3").first()).toHaveText(
+    "“Done” is only a claim",
+  );
+});
+
+test("hero states the promise once and today's facts under the actions", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const [width, height] of [
+    [360, 800],
+    [1440, 900],
+  ]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    await visit(page, "/");
+    const hero = page.locator("#intro");
+    await expect(hero.locator(".hero-description")).toHaveText(
+      "We’re building the open-source desktop app for your coding agents. Every task runs in its own branch, and nothing merges until you’ve seen the proof.",
+    );
+    const status = hero.locator(".hero-status");
+    await expect(status).toContainText(
+      "Claude Code runs today on Apple-silicon Macs",
+    );
+    await expect(status).toContainText("Free and MIT");
+    await expect(status).toContainText("built from source, no download yet");
+    // The liquid keeps clear of it, and it fits the first screen.
+    await expect(status).toHaveAttribute("data-liquid-avoid");
+    // The live dot never animates a painted property, with or without motion.
+    expect(
+      await status
+        .locator(".hero-status-dot")
+        .evaluate((el) => getComputedStyle(el).animationName),
+    ).toBe("none");
+    const box = (await status.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(height!);
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width!);
+  }
+});
+
+test("the compact pill keeps the main action in reach and rests where the page already offers it", async ({
+  page,
+}) => {
+  // Each step waits for the page to notice a scroll, and a software renderer
+  // draws few frames while the hero is on screen.
+  test.slow();
+  await visit(page, "/");
+  const pill = page.locator(".nav-pill a");
+  // Over the hero the full navigation and the hero's own button do the job.
+  await expect(pill).toHaveCount(0, { timeout: 15_000 });
+  await page
+    .locator("#lifecycle")
+    .evaluate((el) =>
+      el.scrollIntoView({ block: "start", behavior: "instant" }),
+    );
+  await expect(pill).toBeVisible({ timeout: 15_000 });
+  await expect(pill).toHaveText(/Try it locally/);
+  const box = (await pill.boundingBox())!;
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  // Opening the menu shows the same action there, so the pill leaves.
+  const logo = page.getByRole("button", { name: "Open navigation" });
+  await logo.click();
+  await expect(pill).toHaveCount(0, { timeout: 15_000 });
+  await page.keyboard.press("Escape");
+  await expect(pill).toBeVisible({ timeout: 15_000 });
+  // It lands on the try-it section and then rests there and on the last band.
+  await pill.click();
+  await expect(page).toHaveURL(/#run$/, { timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: /Run it on/ })).toBeInViewport(
+    { timeout: 15_000 },
+  );
+  await expect(pill).toHaveCount(0, { timeout: 15_000 });
+  await page
+    .locator("#join")
+    .evaluate((el) =>
+      el.scrollIntoView({ block: "center", behavior: "instant" }),
+    );
+  await expect(pill).toHaveCount(0, { timeout: 15_000 });
+  // Content fades under the compact header instead of colliding with the logo.
+  await expect
+    .poll(
+      () =>
+        page
+          .locator("header")
+          .evaluate((el) => getComputedStyle(el, "::before").opacity),
+      { timeout: 15_000 },
+    )
+    .toBe("1");
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await expect
+    .poll(
+      () =>
+        page
+          .locator("header")
+          .evaluate((el) => getComputedStyle(el, "::before").opacity),
+      { timeout: 15_000 },
+    )
+    .toBe("0");
+});
+
+test("the pill and the compact logo rest apart at phone and tablet widths", async ({
+  page,
+}) => {
+  // This is about where the two come to rest, not how they travel there, so
+  // the travel is switched off and each width gets a fresh page.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const width of [360, 768]) {
+    await page.setViewportSize({ width, height: 800 });
+    await visit(page, "/");
+    await page
+      .locator("#lifecycle")
+      .evaluate((el) =>
+        el.scrollIntoView({ block: "start", behavior: "instant" }),
+      );
+    const pill = page.locator(".nav-pill a");
+    await expect(pill).toBeVisible({ timeout: 15_000 });
+    await expect(pill).toHaveCSS("opacity", "1");
+    const narrow = (await pill.boundingBox())!;
+    const dock = (await page.locator(".nav-logo-dock").boundingBox())!;
+    expect(dock.x + dock.width).toBeLessThan(narrow.x);
+    expect(narrow.x + narrow.width).toBeLessThanOrEqual(width);
+  }
+});
+
+test("proof separates today's record from planned checks and strikes four hallmarks", async ({
+  page,
+}) => {
+  await visit(page, "/");
+  const section = page.locator("#hallmark");
+  const ledger = section.locator(".proof-ledger > div");
+  await expect(ledger).toHaveCount(2);
+  await expect(ledger.nth(0)).toContainText("Works today");
+  await expect(ledger.nth(0)).toContainText("not a test result");
+  await expect(ledger.nth(1)).toContainText("Planned");
+  await expect(ledger.nth(1)).toContainText("arrive with the local MVP");
+  await expect(section).toContainText("The app strikes two of them today");
+  const list = section.locator(".mark-list");
+  const plates = list.locator(".mark-plate");
+  await expect(plates).toHaveCount(4);
+  await expect(list).toHaveAttribute("data-struck", "false");
+  await list.evaluate((el) =>
+    el.scrollIntoView({ block: "center", behavior: "instant" }),
+  );
+  await expect(list).toHaveAttribute("data-struck", "true");
+  for (const plate of await plates.all()) {
+    await expect(plate).toHaveCSS("opacity", "1", { timeout: 10_000 });
+    await expect(plate).toHaveAttribute("aria-hidden", "true");
+  }
+  // As in the desktop app's record: the maker's mark and the date letter are
+  // struck today, the standard and assay marks are still blank plates.
+  expect(
+    await plates.evaluateAll((all) =>
+      all.map((plate) => (plate as HTMLElement).dataset.state),
+    ),
+  ).toEqual(["struck", "blank", "blank", "struck"]);
+  const items = list.locator("li");
+  await expect(items.nth(0)).toContainText("Works today");
+  await expect(items.nth(1)).toContainText("Not struck");
+  await expect(items.nth(1)).toContainText("Planned");
+  await expect(items.nth(2)).toContainText("Planned");
+  await expect(items.nth(3)).toContainText("Works today");
+  await expect(plates.nth(1).locator(".mark-relief-line")).toBeHidden();
+  // The marks are decoration; their meaning is in the headings beside them.
+  await expect(list.getByRole("heading", { level: 3 })).toHaveCount(4);
+  // The plates stand two abreast on a phone instead of four in a column.
+  await page.setViewportSize({ width: 360, height: 800 });
+  const first = (await plates.nth(0).boundingBox())!;
+  const second = (await plates.nth(1).boundingBox())!;
+  expect(Math.abs(first.y - second.y)).toBeLessThan(2);
+  expect(second.x + second.width).toBeLessThanOrEqual(360);
+});
+
+test("problem glyphs draw themselves once and stay visible without scripts", async ({
+  page,
+  browser,
+}) => {
+  await visit(page, "/");
+  const list = page.locator("#statement .problem-list");
+  await list.evaluate((el) =>
+    el.scrollIntoView({ block: "center", behavior: "instant" }),
+  );
+  await expect(list).toHaveAttribute("data-drawn", "true");
+  const strokes = list.locator(".problem-glyph > :not(.problem-dash)");
+  expect(await strokes.count()).toBeGreaterThanOrEqual(6);
+  // Every stroke ends fully drawn: an attribute selector once left them hidden.
+  for (const stroke of await strokes.all())
+    await expect(stroke).toHaveCSS("stroke-dashoffset", "0px", {
+      timeout: 10_000,
+    });
+
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const plain = await context.newPage();
+  try {
+    await plain.goto("http://127.0.0.1:3100/");
+    await expect(
+      plain.locator("#statement .problem-glyph > :not(.problem-dash)").first(),
+    ).toHaveCSS("stroke-dashoffset", "0px");
+  } finally {
+    await context.close();
+  }
+});
+
+test("how it works says which steps work today", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await visit(page, "/");
+  const plates = page.locator("#lifecycle .hiw-plate");
+  await expect(plates.nth(0)).toContainText("Works today");
+  await expect(plates.nth(1)).toContainText("Works today");
+  await expect(plates.nth(2)).toContainText("In development");
+  await expect(plates.nth(2)).not.toContainText("Works today");
+  await expect(page.locator("#lifecycle")).toContainText(
+    "The first two steps work today; the third is being built.",
+  );
+});
+
+test("the journey stage stays in view on a phone while its steps scroll beneath it", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await visit(page, "/");
+  const journey = page.locator("#reconnect");
+  const stage = journey.locator(".journey-stage");
+  const steps = journey.locator(".journey-step");
+  const scrollBy = (offset: number) =>
+    page.locator(".journey-track").evaluate((track, by) => {
+      const top = track.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({ top: top + by, behavior: "instant" });
+    }, offset);
+
+  await scrollBy(-60);
+  await expect(steps.nth(0)).toHaveAttribute("aria-current", "step");
+  await scrollBy(160);
+  await expect(steps.nth(1)).toHaveAttribute("aria-current", "step");
+  // The stage is pinned under the header, above the step being read.
+  const pinned = (await stage.boundingBox())!;
+  expect(pinned.y).toBeGreaterThanOrEqual(70);
+  expect(pinned.y).toBeLessThanOrEqual(90);
+  const reading = (await steps.nth(1).boundingBox())!;
+  expect(reading.y).toBeGreaterThanOrEqual(pinned.y + pinned.height - 4);
+  expect(reading.y).toBeLessThan(844);
+  await scrollBy(400);
+  await expect(steps.nth(2)).toHaveAttribute("aria-current", "step");
+  await expect(journey.locator(".journey-notice")).toHaveAttribute(
+    "data-shown",
+    "true",
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBeTruthy();
+});
+
+test("plates catch the pointer's light and the closing band uses the hero's metal", async ({
+  page,
+  request,
+}) => {
+  await visit(page, "/");
+  const plate = page.locator("#lifecycle .hiw-plate").first();
+  await plate.evaluate((el) =>
+    el.scrollIntoView({ block: "center", behavior: "instant" }),
+  );
+  // The section's entrance lifts the plate into place; measure once it rests.
+  await expect(plate).toHaveCSS("opacity", "1");
+  await expect(plate).toHaveCSS("transform", "none");
+  const box = (await plate.boundingBox())!;
+  await page.mouse.move(box.x + 40, box.y + 60);
+  await page.mouse.move(box.x + 120, box.y + 90, { steps: 4 });
+  await expect
+    .poll(() => plate.evaluate((el) => el.style.getPropertyValue("--lx")))
+    .toBe("120px");
+  expect(await plate.evaluate((el) => el.style.getPropertyValue("--ly"))).toBe(
+    "90px",
+  );
+  await expect
+    .poll(() =>
+      plate.evaluate((el) => getComputedStyle(el, "::before").opacity),
+    )
+    .toBe("1");
+  // The position stays on the plate and its two lights: content inside the
+  // plate is not restyled as the pointer moves.
+  expect(
+    await plate.evaluate((el) =>
+      getComputedStyle(el.firstElementChild!).getPropertyValue("--lx"),
+    ),
+  ).toBe("50%");
+  expect(
+    await plate.evaluate((el) =>
+      getComputedStyle(el, "::before").getPropertyValue("--lx"),
+    ),
+  ).toBe("120px");
+  // The light never takes clicks or text selection away from the content.
+  expect(
+    await plate.evaluate((el) => getComputedStyle(el, "::after").pointerEvents),
+  ).toBe("none");
+
+  for (const name of ["drop-large", "drop-medium", "drop-small", "drop-pair"]) {
+    const response = await request.get(`/liquid/${name}.webp`);
+    expect(response.ok()).toBeTruthy();
+    expect(response.headers()["content-type"]).toMatch(/image\/webp/);
+  }
+  const drop = page.locator("#join .cta-drops i").first();
+  expect(
+    await drop.evaluate((el) => getComputedStyle(el).backgroundImage),
+  ).toContain("/liquid/drop-large.webp");
 });
