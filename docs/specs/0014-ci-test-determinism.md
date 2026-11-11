@@ -140,3 +140,24 @@ of the earlier failures. `npm run check` passed strict types, formatting, build
 and all 484 automated tests after the correction. Independent final review and
 integration checks remain required. No reader or other production code changes
 are part of the correction.
+
+## Hallmark layout assertion synchronization
+
+Acceptance recorded 11 November 2026 against main `9ddf9d7`. At `fea3941`, one
+hosted website run passed while another measured a 6.14 px difference between the
+first two hallmark plates, exceeding the existing 2 px alignment limit. Website
+source and tests were unchanged from main. Three focused baseline runs passed
+with the initial local browser settings. Repeating the unchanged-main test three
+times with the configured software renderer and one worker reproduced the same
+alignment failure once.
+
+The test waited for full opacity, although the struck plates also animate scale,
+rotation and vertical position with a spring. Opacity alone does not establish
+resting geometry. The test must wait for the final transform as well, then read
+both phone-layout rectangles in one browser evaluation. Keep the same alignment
+and right-edge limits, all animation/state/accessibility assertions, and the
+production animation. No fixed sleep or wider tolerance substitutes for rest.
+
+The corrected focused test passed three software-rendered runs with one worker.
+Website typecheck/build/full browser tests, repository checks and review are
+required before integration.
