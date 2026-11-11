@@ -716,14 +716,18 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
   });
 }
 
-test("FAQ answers remain readable without JavaScript", async ({ browser }) => {
+test("FAQ answers remain readable without JavaScript", async ({
+  browser,
+  baseURL,
+}) => {
   const context = await browser.newContext({
+    baseURL,
     javaScriptEnabled: false,
     reducedMotion: "reduce",
   });
   const page = await context.newPage();
   try {
-    await page.goto("http://127.0.0.1:3100/#faq");
+    await page.goto("/#faq");
     const question = page.locator("#faq details").nth(2);
     await question.locator("summary").click();
     await expect(question.locator("p")).toBeVisible();
