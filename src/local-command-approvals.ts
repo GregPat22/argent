@@ -281,6 +281,16 @@ export class LocalCommandApprovalStore {
     return approved;
   }
 
+  /** Validated historical snapshot only; this does not authorize dispatch. */
+  get(id: string): LocalCommandApproval {
+    identity(id, UUID, "approval");
+    const row = this.db
+      .prepare("SELECT * FROM local_command_approvals WHERE id = ?")
+      .get(id);
+    if (!row) throw new DomainError(404, "Command approval not found");
+    return approval(row);
+  }
+
   /** operatorId and worktreeRoot come from the trusted service, never request JSON. */
   async approve(
     worktreeRoot: string,

@@ -511,3 +511,29 @@ exclude its authority. Bounded action execution, exact-commit test evidence and
 stale result display remain planned. Before a result qualifies as verification,
 command-defining and test changes must be compared to the trusted base and
 surfaced for human review; freezing argv alone is insufficient.
+
+### Dormant command ownership
+
+Internal command ownership is implemented at
+`f70dbf3240daa14e4a8240ba5aaf16694015e3dc` under the
+[acceptance contract](docs/specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance).
+It shares the runs table, active-workspace exclusion, request-key
+namespace, leases, deadlines and uncertainty handling with agent runs. A command
+detail binds an action to a freshly matched operator approval and the workspace's
+base configuration. Its version-1 payload is explicitly dormant and execution
+is forbidden: it is not a complete reviewed execution plan.
+
+The database claim protocol requires a command-specific version marker in the
+same update as the lease. An older claim statement omitting that marker must
+fail atomically, even when prepared before migration. Older workers may stop
+with an error; graceful downgrade and older-client interpretation are not
+supported. This marker never authorizes execution. The existing worker must
+claim only agents and guard the kind before selecting an adapter. Public agent
+lists and routes, artifacts and portable simulation history must exclude command
+jobs. No dispatcher, enqueue endpoint, desktop action, completion result or
+verification evidence is included. Future execution still needs fresh approval
+validation under ownership and the separately reviewed candidate/verification
+contract; it must not silently activate dormant version-1 records.
+Persisted deadlines are ownership metadata only: no command runner exists to
+enforce runtime or abort configured processes. Lease-expiry reconciliation
+retains its existing uncertainty semantics.

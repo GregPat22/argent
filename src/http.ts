@@ -80,6 +80,9 @@ export function makeServer(
       const url = new URL(request.url ?? "/", "http://127.0.0.1");
       const parts = url.pathname.split("/").filter(Boolean);
       const method = request.method;
+      // Internal command ownership has no public projection or mutation route.
+      if (parts[0] === "runs" && parts.length >= 2)
+        store.requireAgentRun(parts[1]!);
       if (method === "GET" && url.pathname === "/health") {
         send(response, 200, {
           status: "ok",
