@@ -10,6 +10,7 @@ import {
   rmSync,
   symlinkSync,
   unlinkSync,
+  watch,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -186,7 +187,8 @@ function fixture(t: TestContext, mode: FakeMode = "success") {
     store,
     new LocalWorkspace(join(root, "sim")),
     new ScriptedAgent(1),
-    200,
+    // These are real-process contract tests, not short-lease timing tests.
+    undefined,
     {
       workspace: new LocalWorktreeWorkspace(store, worktrees),
       agent: new ClaudeCodeAgent(store, {
@@ -515,7 +517,6 @@ test("without configured local adapters a real run fails safely", async (t) => {
     f.store,
     new LocalWorkspace(join(f.root, "sim")),
     new ScriptedAgent(1),
-    200,
   );
   await worker.tick();
   assert.equal(f.store.getRun(run.id).status, "failed");
@@ -889,44 +890,121 @@ test("slow Git verification keeps the service responsive and the lease alive", a
     encoding: "utf8",
   }).trim();
   const bin = join(f.root, "bin");
+  const entered = join(f.root, "git-entered");
+  const release = join(f.root, "git-release");
   mkdirSync(bin);
   writeFileSync(
     join(bin, "git"),
     `#!${process.execPath}
 const { spawnSync } = require('node:child_process');
+const { existsSync, writeFileSync, renameSync } = require('node:fs');
 const args = process.argv.slice(2);
-setTimeout(() => { const r = spawnSync(${JSON.stringify(executable)}, args, { stdio: 'inherit' }); process.exit(r.status ?? 1); }, args.includes('diff') ? 700 : 0);
+const run = () => { const r = spawnSync(${JSON.stringify(executable)}, args, { stdio: 'inherit' }); process.exit(r.status ?? 1); };
+if (args.includes('diff') && !existsSync(${JSON.stringify(release)})) {
+  writeFileSync(${JSON.stringify(entered + ".tmp")}, 'ready');
+  renameSync(${JSON.stringify(entered + ".tmp")}, ${JSON.stringify(entered)});
+  const timer = setInterval(() => {
+    if (existsSync(${JSON.stringify(release)})) { clearInterval(timer); run(); }
+  }, 20);
+} else run();
 `,
     { mode: 0o755 },
   );
   const oldPath = process.env.PATH;
   process.env.PATH = bin + ":" + oldPath;
   t.after(() => {
-    process.env.PATH = oldPath;
+    if (oldPath === undefined) delete process.env.PATH;
+    else process.env.PATH = oldPath;
   });
   const server = makeServer(f.store, TOKEN);
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  t.after(() => server.close());
+  const shutdown = new AbortController();
+  let reachedGate!: () => void;
+  const ready = new Promise<void>((resolve) => {
+    reachedGate = resolve;
+  });
+  const watcher = watch(f.root, (_event, file) => {
+    if (file === "git-entered") reachedGate();
+  });
+  // Real process, network and cleanup timeouts remain active. Only this case's
+  // ownership clock and heartbeat scheduling are advanced deliberately.
+  t.mock.timers.enable({ apis: ["Date", "setInterval"], now: Date.now() });
+  const heartbeat = t.mock.method(f.store, "heartbeat");
   const run = f.store.createRun(workspace.id, "Task", "slow");
   let completed = false;
-  const tick = f.worker.tick().then(() => {
+  const tick = f.worker.tick(shutdown.signal).finally(() => {
     completed = true;
   });
-  await delay(500);
-  const response = await fetch(
-    `http://127.0.0.1:${(server.address() as { port: number }).port}/health`,
-    { headers: { Authorization: `Bearer ${TOKEN}` } },
-  );
-  assert.equal(response.status, 200);
-  assert.equal(
-    completed,
-    false,
-    "health responds while slow Git is still in flight",
-  );
-  assert.equal(f.store.getRun(run.id).status, "running");
-  assert.ok(f.store.getRun(run.id).leaseExpiresAt! > Date.now());
-  await tick;
-  assert.equal(f.store.getRun(run.id).status, "completed");
+  const initialExpiry = f.store.getRun(run.id).leaseExpiresAt!;
+  const leaseMs = initialExpiry - Date.now();
+  async function bounded<T>(pending: Promise<T>, label: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        pending,
+        new Promise<never>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new Error(label)), 10000);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  try {
+    await bounded(
+      Promise.race([
+        ready,
+        tick.then(() => {
+          throw new Error("Worker settled before reaching Git gate");
+        }),
+      ]),
+      "Git gate was not reached",
+    );
+    for (let i = 0; i < 5; i++) {
+      t.mock.timers.tick(leaseMs / 4);
+      const current = f.store.getRun(run.id);
+      assert.equal(current.status, "running");
+      assert.ok(current.leaseExpiresAt! > Date.now());
+    }
+    assert.ok(
+      Date.now() > initialExpiry,
+      "verification crosses the original lease",
+    );
+    assert.ok(f.store.getRun(run.id).leaseExpiresAt! > initialExpiry);
+    assert.ok(heartbeat.mock.callCount() > 0);
+    const response = await fetch(
+      `http://127.0.0.1:${(server.address() as { port: number }).port}/health`,
+      {
+        headers: { Authorization: `Bearer ${TOKEN}` },
+        signal: AbortSignal.timeout(5000),
+      },
+    );
+    await response.arrayBuffer();
+    assert.equal(response.status, 200);
+    assert.equal(completed, false, "health responds while Git is gated");
+    writeFileSync(release, "release");
+    await bounded(tick, "Worker did not complete after releasing Git");
+    assert.equal(f.store.getRun(run.id).status, "completed");
+    const settledHeartbeats = heartbeat.mock.callCount();
+    t.mock.timers.tick(leaseMs);
+    assert.equal(
+      heartbeat.mock.callCount(),
+      settledHeartbeats,
+      "settlement clears the heartbeat",
+    );
+  } finally {
+    writeFileSync(release, "release");
+    // Process-group cleanup uses a real clock for graceful/escalated shutdown.
+    t.mock.timers.reset();
+    if (!completed) shutdown.abort();
+    try {
+      await bounded(tick, "Worker cleanup did not finish");
+    } finally {
+      watcher.close();
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  }
 });
 
 test("unsupported CLI versions fail before starting a task", async (t) => {

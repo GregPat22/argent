@@ -419,9 +419,19 @@ cancellation. Scoped diff, public-content and documentation link checks passed.
 An earlier full-suite check passed 483 of 484 tests and failed the existing
 slow-Git verification test: it observed `running` where `completed` was expected.
 Two independent focused comparisons on unchanged main `9ddf9d7` passed that test.
-The full-suite failure was not reproduced on main, and its cause remains
-unconfirmed; the existing worker and test were not changed. The final full check
-passed, but these results do not prove that the failure also occurs on main.
+A later independent full check at `00de4a7` also passed 483 of 484 tests, failing
+the unchanged ordinary CLI-completion case with the same unexpected state.
+A full unchanged-main check passed all 469 baseline tests. A controlled 250 ms
+scheduler stall after claim reproduced the ordinary failure in an instrumented
+build of main, retaining
+the token with expired ownership and `lease_lost`. This demonstrates the shared
+200 ms test lease's sensitivity and the safe refusal to settle expired ownership;
+it does not establish the precise cause of either uninstrumented failure.
+The [test-only fixture correction](0014-ci-test-determinism.md#local-worktree-process-fixture-lease-correction)
+uses the production lease for ordinary process cases and explicitly controlled
+heartbeat timing for the real-Git responsiveness case. With the same main runtime
+and controlled stall, ordinary completion passed using the corrected fixture.
+Production execution and reader code remain unchanged.
 
 This evidence establishes the internal reader and its refusal boundaries only.
 It establishes no real-account agent run, command execution, persisted approval,

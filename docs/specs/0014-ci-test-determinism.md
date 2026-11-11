@@ -90,3 +90,51 @@ stalls, and the complete repository test file. Full checks and hosted CI are
 required for integration.
 This establishes deterministic crash-checkpoint coverage with real child death;
 it does not certify real-provider recovery or remove production expiry checks.
+
+## Local worktree process-fixture lease correction
+
+Acceptance recorded 11 November 2026 against main `9ddf9d7`. Two full validation
+runs of the internal command-reader work each passed 483 of 484 tests but failed
+different unchanged local-worktree cases: slow Git verification, then ordinary
+CLI completion. Both observed `running` after the worker tick instead of
+`completed`. Two focused slow-Git comparisons and a complete `npm run check`
+on unchanged main passed, including all 469 tests in that full baseline run.
+
+A diagnostic build of main `9ddf9d7` inserted a 250 ms synchronous
+scheduler stall immediately after claim and before preparation. The ordinary
+completion case failed with the same token, an expired lease and `lease_lost`;
+the worker correctly refused to settle expired ownership. The shared fixture's
+200 ms lease, unlike the production 5,000 ms lease, is sensitive to this stall.
+This establishes a test-harness failure mechanism, not the precise cause of the
+earlier uninstrumented failures. No production limit or expiry rule changes.
+
+Acceptance for the test-only correction:
+
+1. Ordinary local-worktree process fixtures use the worker's production-default
+   lease. Keep real Git, fake CLI processes, cancellation, resistant-descendant
+   cleanup and the existing process termination grace periods.
+2. The slow-Git case holds a real Git process at an explicit gate, published
+   atomically. Control only the parent clock and heartbeat intervals in this
+   case. Cross the original persisted expiry in heartbeat-sized steps and assert
+   each renewed lease remains valid. A real authenticated health request must
+   respond while Git remains gated and the worker remains unsettled.
+3. Release Git, await successful completion and advance the clock again to prove
+   settlement cleared the heartbeat. On assertion failure, release the gate and
+   cancel and await the owned worker with bounded waits before fixture teardown.
+   Restore real time for process cleanup; do not freeze all process fixtures.
+4. Preserve store expiry/fencing, real lock-contention and process-crash tests.
+   Run focused completion, heartbeat and cancellation cases, the complete
+   local-worktree file and `npm run check`. Repeat the controlled stall against
+   the corrected fixture before integration.
+
+The correction is in development. Focused completion, heartbeat and both
+cancellation cases passed, as did the complete 35-case local-worktree file.
+An independent controlled comparison retained the main `9ddf9d7` runtime and
+the same 250 ms post-claim stall, replacing only the compiled test fixture:
+ordinary completion passed with the corrected fixture, while the original
+200 ms fixture failed with expired ownership. This bounds the comparison to
+the fixture lease choice; it does not identify the host scheduling conditions
+of the earlier failures. `npm run check` passed strict types, formatting, build
+and all 484 automated tests after the correction. Independent final review and
+integration checks remain required. No reader or other production code changes
+are part of the correction.

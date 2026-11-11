@@ -490,8 +490,9 @@ replacement, not arbitrary concurrent tampering by the host owner.
 
 See the [reader acceptance contract](docs/specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance).
 The [implementation evidence](docs/specs/0013-local-mvp.md#internal-reader-implementation-evidence)
-records passing reader and repository checks, plus an earlier unresolved
-full-suite test failure and unchanged-main comparisons.
+records passing reader and repository checks, plus full-suite test failures,
+unchanged-main comparisons and a controlled reproduction of the short test
+lease's sensitivity. The test-only correction preserves production expiry rules.
 Approval storage, bounded action execution, exact-commit test evidence and stale
 result display remain planned. Before a result qualifies as verification,
 command-defining and test changes must be compared to the trusted base and
