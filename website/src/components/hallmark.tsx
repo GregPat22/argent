@@ -72,12 +72,14 @@ function Comparison() {
     setPercent(Math.round(value * 100)),
   );
 
-  // One hint on arrival: the divider glides to the middle.
+  // One hint on arrival: the divider glides to the middle. On a phone both
+  // panels span the full width, so it glides on to show the whole record.
   useEffect(() => {
     if (!inView || interacted.current) return;
-    if (reduceMotion) position.set(0.5);
+    const rest = window.matchMedia("(max-width: 639px)").matches ? 0.12 : 0.5;
+    if (reduceMotion) position.set(rest);
     else {
-      const animation = animate(position, 0.5, {
+      const animation = animate(position, rest, {
         type: "spring",
         visualDuration: 1.2,
         bounce: 0.15,
@@ -121,7 +123,8 @@ function Comparison() {
   return (
     <div
       ref={ref}
-      className="relative h-[30rem] cursor-ew-resize touch-pan-y overflow-hidden rounded-2xl border border-hairline-strong select-none sm:h-[22rem]"
+      data-light
+      className="proof-stage relative h-[30rem] cursor-ew-resize touch-pan-y rounded-3xl select-none sm:h-[24rem]"
       onPointerDown={(event) => {
         takeControl();
         dragging.current = true;
@@ -133,13 +136,13 @@ function Comparison() {
       onPointerCancel={() => (dragging.current = false)}
     >
       {/* What the agent says */}
-      <div className="absolute inset-0 bg-pewter p-6 sm:p-8">
+      <div className="proof-claim absolute inset-0 p-6 sm:p-9">
         <p className="text-[0.875rem] text-sterling-dim">What the agent says</p>
-        <div className="mt-6 max-w-[22rem] rounded-2xl rounded-tl-md bg-pewter-2 px-4 py-3.5 text-[1.0625rem] leading-snug text-polished">
+        <div className="mt-6 max-w-[23rem] rounded-2xl rounded-tl-md bg-pewter-2 px-4 py-3.5 text-[1.0625rem] leading-snug text-polished shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] sm:text-[1.1875rem]">
           Done. I added rate limiting to the login endpoint and all tests pass.
           Ready to merge.
         </div>
-        <p className="mt-4 max-w-[22rem] text-[0.875rem] text-sterling-dim">
+        <p className="proof-unverified mt-5 max-w-[23rem] text-[0.875rem] text-sterling">
           Self-reported. No commit, no check results, no review attached.
         </p>
       </div>
@@ -147,13 +150,13 @@ function Comparison() {
       {/* What Argent records */}
       <motion.div
         style={{ clipPath }}
-        className="guilloche absolute inset-0 bg-[#101217] p-6 sm:p-8"
+        className="proof-record guilloche absolute inset-0 p-6 sm:p-9"
       >
-        <div className="ml-auto max-w-[24rem]">
+        <div className="ml-auto max-w-[25rem]">
           <p className="text-right text-[0.875rem] text-sterling-dim">
             What Argent records
           </p>
-          <dl className="mt-5 divide-y divide-hairline rounded-xl border border-hairline bg-oxide/60 backdrop-blur-sm">
+          <dl className="proof-sheet mt-5 divide-y divide-hairline rounded-xl">
             {RECORD.map(([label, value]) => (
               <div
                 key={label}
@@ -167,50 +170,63 @@ function Comparison() {
         </div>
       </motion.div>
 
-      {/* Divider */}
-      <motion.div
-        style={{ x: travel }}
-        className="pointer-events-none absolute inset-0"
-      >
-        <div className="absolute inset-y-0 -left-px w-0.5 bg-gradient-to-b from-transparent via-polished to-transparent" />
-        <motion.div
-          style={{ x: handleOffset }}
-          role="slider"
-          tabIndex={0}
-          aria-label="Compare the agent’s claim with Argent’s record"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={percent}
-          aria-valuetext={`${percent}% shows the agent’s claim, ${100 - percent}% shows Argent’s record`}
-          onKeyDown={onKeyDown}
-          className="pointer-events-auto absolute top-1/2 left-0 flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-polished text-oxide shadow-[0_10px_30px_rgb(0_0_0/0.5)]"
-        >
-          <svg
-            viewBox="0 0 20 20"
-            className="size-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            aria-hidden
+      {/* Divider. The layer travels its own width, so it is clipped here
+          rather than on the stage, whose edge light sits just outside it. */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
+        <motion.div style={{ x: travel }} className="absolute inset-0">
+          <div className="proof-seam absolute inset-y-0 -left-px w-0.5" />
+          <motion.div
+            style={{ x: handleOffset }}
+            role="slider"
+            tabIndex={0}
+            aria-label="Compare the agent’s claim with Argent’s record"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={percent}
+            aria-valuetext={`${percent}% shows the agent’s claim, ${100 - percent}% shows Argent’s record`}
+            onKeyDown={onKeyDown}
+            className="proof-handle pointer-events-auto absolute top-1/2 left-0 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-oxide"
           >
-            <path d="M7 5 2 10l5 5M13 5l5 5-5 5" />
-          </svg>
+            <svg
+              viewBox="0 0 20 20"
+              className="size-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              aria-hidden
+            >
+              <path d="M7 5 2 10l5 5M13 5l5 5-5 5" />
+            </svg>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
     </div>
   );
 }
 
-type Mark = { name: string; body: string; glyph: ReactNode };
+type Mark = {
+  name: string;
+  body: string;
+  /** Struck in the app's record today, or still a blank plate. */
+  struck: boolean;
+  glyph: ReactNode;
+};
 
+/*
+ * Each mark is punched into its own plate, the way hallmarks sit on silver:
+ * the shape is the recess the punch leaves, the symbol stands proud inside it.
+ * The desktop app strikes the maker's mark and the date letter today; the
+ * standard and assay marks wait for checks, so their plates are only scribed.
+ */
 const MARKS: Mark[] = [
   {
     name: "Who did the work",
     body: "The maker’s mark: which agent ran, and the limits it ran under.",
+    struck: true,
     glyph: (
       <>
-        <path d="M10 14h60l6 12-6 12H10l-6-12z" />
-        <text x="40" y="31.5" textAnchor="middle" fontSize="15">
+        <path className="mark-punch" d="M10 14h60l6 12-6 12H10l-6-12z" />
+        <text className="mark-relief" x="40" y="31.5" fontSize="15">
           AI
         </text>
       </>
@@ -219,20 +235,25 @@ const MARKS: Mark[] = [
   {
     name: "What it had to pass",
     body: "The standard mark: checks from your project’s policy, which the agent can’t change.",
+    struck: false,
     glyph: (
       <>
-        <ellipse cx="40" cy="26" rx="32" ry="17" />
-        <path d="m29 26 7 7 15-15" strokeWidth="3.2" />
+        <ellipse className="mark-punch" cx="40" cy="26" rx="32" ry="17" />
+        <path className="mark-relief-line" d="m29 26 7 7 15-15" />
       </>
     ),
   },
   {
     name: "Who checked it",
     body: "The assay mark: an independent verifier, never the agent that produced the work.",
+    struck: false,
     glyph: (
       <>
-        <path d="M14 8h52v18c0 12-12 20-26 24-14-4-26-12-26-24z" />
-        <text x="40" y="34" textAnchor="middle" fontSize="18">
+        <path
+          className="mark-punch"
+          d="M14 6h52v18c0 12-12 20-26 24-14-4-26-12-26-24z"
+        />
+        <text className="mark-relief" x="40" y="31" fontSize="18">
           Ag
         </text>
       </>
@@ -240,11 +261,12 @@ const MARKS: Mark[] = [
   },
   {
     name: "Which commit",
-    body: "The date letter: the exact commit those checks ran against.",
+    body: "The date letter: the exact commit the record is tied to.",
+    struck: true,
     glyph: (
       <>
-        <path d="M18 8h44l8 8v20l-8 8H18l-8-8V16z" />
-        <text x="40" y="31.5" textAnchor="middle" fontSize="14">
+        <path className="mark-punch" d="M18 8h44l8 8v20l-8 8H18l-8-8V16z" />
+        <text className="mark-relief" x="40" y="31.5" fontSize="14">
           9b1e
         </text>
       </>
@@ -254,54 +276,80 @@ const MARKS: Mark[] = [
 
 function Hallmarks() {
   const ref = useRef<HTMLOListElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.6 });
+  const inView = useInView(ref, { once: true, amount: 0.5 });
+  let strikes = 0;
 
+  // On a phone a plate starts its strike wider than the column, so the list
+  // reaches the screen edge and clips there instead of widening the page.
   return (
     <ol
       ref={ref}
-      className="mt-20 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4"
+      data-struck={inView}
+      className="mark-list mt-10 grid grid-cols-2 gap-x-6 gap-y-12 max-sm:-mx-6 max-sm:overflow-x-clip max-sm:px-6 lg:grid-cols-4 lg:gap-x-8"
     >
-      {MARKS.map((mark, index) => (
-        <li key={mark.name}>
-          <motion.svg
-            viewBox="0 0 80 52"
-            className="h-16 w-auto text-polished"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            fontFamily="var(--font-display)"
-            aria-hidden
-            initial={{
-              opacity: 0,
-              scale: 1.7,
-              rotate: -8,
-              filter: "blur(4px)",
-            }}
-            animate={
-              inView
-                ? { opacity: 1, scale: 1, rotate: 0, filter: "blur(0px)" }
-                : undefined
-            }
-            transition={{
-              type: "spring",
-              visualDuration: 0.35,
-              bounce: 0.35,
-              delay: 0.2 + index * 0.22,
-            }}
-            style={{ originX: 0 }}
-          >
-            <g className="[&_text]:fill-current [&_text]:stroke-none">
-              {mark.glyph}
-            </g>
-          </motion.svg>
-          <h3 className="mt-5 text-[1.0625rem] font-medium text-polished">
-            {mark.name}
-          </h3>
-          <p className="mt-2 max-w-[17rem] text-[0.9375rem] text-sterling">
-            {mark.body}
-          </p>
-        </li>
-      ))}
+      {MARKS.map((mark) => {
+        // Only real punches land with a blow; blank plates are simply there.
+        const order = mark.struck ? strikes++ : 0;
+        return (
+          <li key={mark.name} className="flex flex-col">
+            <motion.div
+              className="mark-plate"
+              data-state={mark.struck ? "struck" : "blank"}
+              aria-hidden
+              style={{ ["--strike" as string]: `${200 + order * 260}ms` }}
+              initial={
+                mark.struck
+                  ? {
+                      opacity: 0,
+                      scale: 1.45,
+                      rotate: -7,
+                      y: -16,
+                      filter: "blur(5px)",
+                    }
+                  : { opacity: 0 }
+              }
+              animate={
+                !inView
+                  ? undefined
+                  : mark.struck
+                    ? {
+                        opacity: 1,
+                        scale: 1,
+                        rotate: 0,
+                        y: 0,
+                        filter: "blur(0px)",
+                      }
+                    : { opacity: 1 }
+              }
+              transition={
+                mark.struck
+                  ? {
+                      type: "spring",
+                      visualDuration: 0.32,
+                      bounce: 0.38,
+                      delay: 0.2 + order * 0.26,
+                    }
+                  : { duration: 0.6, delay: 0.1 }
+              }
+            >
+              <svg viewBox="0 0 80 52" fontFamily="var(--font-display)">
+                {mark.glyph}
+              </svg>
+            </motion.div>
+            <h3 className="mt-6 text-[1.0625rem] font-medium text-polished">
+              {mark.name}
+            </h3>
+            <p className="mt-2 mb-4 max-w-[17rem] text-[0.9375rem] text-sterling">
+              {mark.body}
+            </p>
+            <StatusTag
+              status={mark.struck ? "live" : "planned"}
+              subject={mark.struck ? "Struck" : "Not struck"}
+              className="mt-auto self-start"
+            />
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -323,33 +371,46 @@ export function Hallmark() {
         <div className="md:col-span-5 md:pt-3">
           <p className="max-w-[34rem] leading-[1.75] text-sterling">
             Silversmiths have stamped hallmarks on their work for centuries, so
-            anyone can check what it is without taking the maker’s word for it.
-            Argent does the same for code: trusted checks run against the exact
-            commit, and the record is kept apart from what the agent says.
+            anyone can check a piece without taking the maker’s word for it.
+            Argent brings that idea to code: the record of a run is collected by
+            Argent itself, tied to the exact commit and kept apart from what the
+            agent says.
           </p>
         </div>
       </div>
 
       <div className="mt-14">
-        <p className="mb-4 text-sm text-sterling-dim">
+        <Comparison />
+        <p className="mt-4 text-sm text-sterling-dim">
           Illustrative example · drag the divider or use the arrow keys.
         </p>
-        <Comparison />
       </div>
 
-      <Hallmarks />
-
-      <div className="mt-14 flex flex-col gap-4 border-t border-hairline pt-6 md:flex-row md:items-center md:justify-between">
-        <p className="max-w-[40rem] text-[0.9375rem] text-sterling-dim">
-          Today, a Claude Code run completes only after Argent records the
-          branch, commit, changed files and a checksum of the diff itself
-          (recorded, not tested). Tests run against the exact commit arrive with
-          the local MVP.
-        </p>
-        <div className="flex flex-wrap gap-2">
+      <div className="proof-ledger mt-14 grid gap-x-12 md:grid-cols-2">
+        <div>
           <StatusTag status="live" subject="Commit record" />
-          <StatusTag status="planned" subject="Test results" />
+          <p className="mt-4 max-w-[34rem] text-[0.9375rem] leading-relaxed text-sterling">
+            Today, a Claude Code run completes only after Argent records the
+            branch, the commit, the changed files and a checksum of the diff
+            itself. That is a record of what changed, not a test result.
+          </p>
         </div>
+        <div>
+          <StatusTag status="planned" subject="Test results" />
+          <p className="mt-4 max-w-[34rem] text-[0.9375rem] leading-relaxed text-sterling">
+            Checks that Argent runs itself against that exact commit, and a
+            draft pull request that carries the result, arrive with the local
+            MVP.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-20 md:mt-24">
+        <p className="text-sm text-sterling-dim">
+          The four marks of a complete record. The app strikes two of them
+          today:
+        </p>
+        <Hallmarks />
       </div>
     </section>
   );

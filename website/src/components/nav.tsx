@@ -11,8 +11,8 @@ import { ArgentMark, LiquidLink } from "@/components/ui";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 const LINKS = [
-  { href: "#lifecycle", label: "How it works" },
   { href: "#hallmark", label: "Proof" },
+  { href: "#lifecycle", label: "How it works" },
   { href: "#roadmap", label: "Roadmap" },
   { href: "#faq", label: "FAQ" },
 ];
@@ -47,6 +47,8 @@ const FADE = {
   hidden: { opacity: 0 },
   shown: { opacity: 1 },
 };
+/** Where the page already offers the action, so the pill steps aside. */
+const ACTION_SECTIONS = "#intro, #run, #join";
 
 export function Nav() {
   const { scrollY } = useScroll();
@@ -54,6 +56,7 @@ export function Nav() {
   const [compact, setCompact] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [active, setActive] = useState<string | null>(null);
+  const [atAction, setAtAction] = useState(true);
   const compactButton = useRef<HTMLButtonElement>(null);
   const mobileButton = useRef<HTMLButtonElement>(null);
   const homeLink = useRef<HTMLAnchorElement>(null);
@@ -80,7 +83,26 @@ export function Nav() {
       { rootMargin: "-15% 0px -65% 0px" },
     );
     sections.forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
+    // The compact pill repeats the page's main action; it rests while the
+    // hero, the try-it section or the closing band is already on screen.
+    const actions = new Set<Element>();
+    const actionObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) actions.add(entry.target);
+          else actions.delete(entry.target);
+        }
+        setAtAction(actions.size > 0);
+      },
+      { rootMargin: "-20% 0px -20% 0px" },
+    );
+    document
+      .querySelectorAll(ACTION_SECTIONS)
+      .forEach((section) => actionObserver.observe(section));
+    return () => {
+      observer.disconnect();
+      actionObserver.disconnect();
+    };
   }, []);
 
   useMotionValueEvent(scrollY, "change", (value) => {
@@ -232,7 +254,7 @@ export function Nav() {
                       onClick={() => setMenuOpen(false)}
                       className="nav-cta"
                     >
-                      Try locally <span aria-hidden>↗</span>
+                      Try it locally <span aria-hidden>↓</span>
                     </LiquidLink>
                   </motion.li>
                 </motion.ul>
@@ -271,9 +293,9 @@ export function Nav() {
             ))}
           </ul>
           <LiquidLink href="#run" className="nav-cta">
-            Try locally{" "}
-            <span aria-hidden className="button-arrow">
-              ↗
+            Try it locally{" "}
+            <span aria-hidden className="button-arrow button-arrow--down">
+              ↓
             </span>
           </LiquidLink>
           {!compact && (
@@ -290,6 +312,37 @@ export function Nav() {
             </button>
           )}
         </motion.div>
+        <AnimatePresence>
+          {compact && !atAction && !menuOpen && (
+            <motion.div
+              key="pill"
+              className="nav-pill"
+              initial={
+                reduce
+                  ? { opacity: 0 }
+                  : { opacity: 0, y: -14, scale: 0.92, filter: "blur(6px)" }
+              }
+              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              exit={
+                reduce
+                  ? { opacity: 0 }
+                  : { opacity: 0, y: -10, scale: 0.94, filter: "blur(4px)" }
+              }
+              transition={
+                reduce
+                  ? { duration: 0 }
+                  : { type: "spring", visualDuration: 0.4, bounce: 0.22 }
+              }
+            >
+              <LiquidLink href="#run" className="nav-cta nav-cta--pill">
+                Try it locally{" "}
+                <span aria-hidden className="button-arrow button-arrow--down">
+                  ↓
+                </span>
+              </LiquidLink>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
     </motion.header>
   );

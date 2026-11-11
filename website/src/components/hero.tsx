@@ -12,6 +12,7 @@ export function Hero() {
   return (
     <section id="intro" aria-labelledby="hero-title" className="hero-section">
       <LiquidSilver />
+      <div aria-hidden className="hero-horizon" />
       <div className="hero-layout mx-auto w-full max-w-[1320px] px-6 md:px-10">
         <div className="hero-copy">
           <h1 id="hero-title" className="display hero-title" data-liquid-avoid>
@@ -32,11 +33,9 @@ export function Hero() {
               className="hero-description mt-6 text-base leading-relaxed text-sterling md:mt-7 md:text-lg"
               data-liquid-avoid
             >
-              We’re building the open-source desktop app for your coding agents:
-              every task in its own branch, and nothing merged until you’ve seen
-              the proof. Claude Code runs on your Mac today, from source, with a
-              changes panel. Trusted checks, Codex, remote workspaces and your
-              phone are planned.
+              We’re building the open-source desktop app for your coding agents.
+              Every task runs in its own branch, and nothing merges until you’ve
+              seen the proof.
             </p>
             <div
               className="hero-actions mt-8 flex flex-wrap items-center justify-center gap-3"
@@ -61,6 +60,22 @@ export function Hero() {
                 </span>
               </LiquidLink>
             </div>
+            <p className="hero-status" data-liquid-avoid>
+              <span className="hero-status-line">
+                <span aria-hidden className="hero-status-dot" />
+                Claude Code runs today on Apple-silicon Macs
+              </span>
+              <span className="hero-status-line hero-status-line--dim">
+                Free and MIT
+                <span aria-hidden className="hero-status-sep">
+                  ·
+                </span>
+                built from source, no download yet
+              </span>
+              <span className="hero-status-line hero-status-line--dim">
+                Live changes panel · trusted checks planned
+              </span>
+            </p>
           </div>
         </div>
       </div>

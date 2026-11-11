@@ -1,31 +1,37 @@
 "use client";
 
+import { useInView } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { SilverAtom } from "@/components/silver-atom";
 
 /*
  * Answers the hero's provocation. Silver (Ag, 47) conducts electricity better
  * than any other metal; a conductor also turns many players into one piece.
- * The three problems below are what agents sound like without one.
+ * The three problems below are what agents sound like without one. The claim
+ * comes first because the next section answers it.
  */
 const PROBLEMS = [
-  {
-    title: "A terminal per task",
-    body: "Each agent wants its own window, its own branch and your attention. Run three and you spend the afternoon switching tabs.",
-    glyph: (
-      <>
-        <rect x="6" y="12" width="40" height="28" rx="4" />
-        <rect x="14" y="6" width="40" height="28" rx="4" />
-        <path d="M21 16l4 4-4 4M29 24h8" />
-      </>
-    ),
-  },
   {
     title: "“Done” is only a claim",
     body: "“All tests pass, ready to merge” is a sentence the agent wrote. Nothing attached to it shows which commit was tested, or whether anything was.",
     glyph: (
       <>
-        <path d="M8 10h44a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H22l-10 8v-8H8a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4Z" />
-        <path d="M18 23h24" strokeDasharray="3 4" />
+        <path
+          pathLength={1}
+          d="M8 10h44a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H22l-10 8v-8H8a4 4 0 0 1-4-4V14a4 4 0 0 1 4-4Z"
+        />
+        <path className="problem-dash" d="M18 23h24" />
+      </>
+    ),
+  },
+  {
+    title: "A terminal per task",
+    body: "Each agent wants its own window, its own branch and your attention. Run three and you spend the afternoon switching tabs.",
+    glyph: (
+      <>
+        <rect pathLength={1} x="6" y="12" width="40" height="28" rx="4" />
+        <rect pathLength={1} x="14" y="6" width="40" height="28" rx="4" />
+        <path pathLength={1} d="M21 16l4 4-4 4M29 24h8" />
       </>
     ),
   },
@@ -34,15 +40,21 @@ const PROBLEMS = [
     body: "Close the lid and the work stops. Step away from your desk and you lose sight of what your agents are doing.",
     glyph: (
       <>
-        <path d="M12 36V14a3 3 0 0 1 3-3h30a3 3 0 0 1 3 3v22" />
-        <path d="M6 36h48l-3 6H9z" />
-        <path d="M24 22l12 0" />
+        <path pathLength={1} d="M12 36V14a3 3 0 0 1 3-3h30a3 3 0 0 1 3 3v22" />
+        <path pathLength={1} d="M6 36h48l-3 6H9z" />
+        <path pathLength={1} d="M24 22l12 0" />
       </>
     ),
   },
 ];
 
 export function Statement() {
+  const list = useRef<HTMLUListElement>(null);
+  const drawn = useInView(list, { once: true, amount: 0.4 });
+  // Only hold the glyphs back once scripts are running to draw them.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => setArmed(true), []);
+
   return (
     <section
       id="statement"
@@ -64,34 +76,47 @@ export function Statement() {
             you hold the baton when it’s time to merge.
           </p>
         </div>
-        <div className="min-w-0 md:col-span-5">
+        <div className="statement-atom min-w-0 md:col-span-5">
           <SilverAtom />
         </div>
       </div>
 
-      <div className="mt-20 border-t border-hairline pt-12 md:mt-28">
+      <div className="mt-20 md:mt-28">
         <p className="text-sm text-sterling-dim">
           Without a conductor, agents are just noise:
         </p>
-        <ul className="mt-8 grid gap-10 md:grid-cols-3 md:gap-8">
-          {PROBLEMS.map((problem) => (
-            <li key={problem.title} className="problem-card">
-              <svg
-                viewBox="0 0 60 48"
-                className="problem-glyph h-12 w-auto"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                {problem.glyph}
-              </svg>
-              <h3 className="mt-6 text-xl font-medium text-polished">
+        <ul
+          ref={list}
+          data-drawn={armed ? drawn : undefined}
+          className="problem-list mt-8 grid gap-4 md:grid-cols-3"
+        >
+          {PROBLEMS.map((problem, index) => (
+            <li key={problem.title} className="problem-card" data-light>
+              <div className="flex items-start justify-between">
+                <svg
+                  viewBox="0 0 60 48"
+                  className="problem-glyph h-12 w-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                  style={{ ["--glyph-delay" as string]: `${index * 160}ms` }}
+                >
+                  {problem.glyph}
+                </svg>
+                <span
+                  aria-hidden
+                  className="font-mono text-xs text-sterling-dim"
+                >
+                  0{index + 1}
+                </span>
+              </div>
+              <h3 className="mt-8 text-xl font-medium text-polished">
                 {problem.title}
               </h3>
-              <p className="mt-3 max-w-[22rem] text-[0.9375rem] leading-relaxed text-sterling">
+              <p className="mt-3 text-[0.9375rem] leading-relaxed text-sterling">
                 {problem.body}
               </p>
             </li>

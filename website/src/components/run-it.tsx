@@ -462,7 +462,8 @@ function JoinTheBuild() {
       className="mx-auto max-w-[1320px] scroll-mt-24 px-6 pb-24 md:px-10 md:pb-32"
     >
       <div
-        className="cta-band silver-surface relative overflow-hidden rounded-[2rem] border border-hairline-strong px-6 py-20 text-center md:px-12 md:py-28"
+        data-light
+        className="cta-band silver-surface rounded-[2rem] px-6 py-20 text-center md:px-12 md:py-28"
         onPointerMove={(event) => {
           if (reduce || event.pointerType !== "mouse") return;
           const rect = event.currentTarget.getBoundingClientRect();

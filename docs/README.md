@@ -54,6 +54,7 @@ recorded revision.
 | [0012 Portable history](specs/0012-portable-history.md)                                   | Implemented offline export and read-only restore, with commands.                    |
 | [0013 Local MVP](specs/0013-local-mvp.md)                                                 | Critical path: L1.1–L1.3 implemented; trusted checks and later slices planned.      |
 | [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.      |
+| [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks. |
 
 Spec 0005 (the landing-page draft) is maintained privately with the website's
 design history.

@@ -111,7 +111,10 @@ export function Roadmap() {
         </p>
       </div>
 
-      <div className="silver-surface relative mt-12 overflow-hidden rounded-3xl border border-hairline-strong px-6 py-10 md:px-10">
+      <div
+        data-light
+        className="silver-surface mt-12 rounded-3xl px-6 py-10 md:px-10"
+      >
         <ol
           ref={rail}
           data-lit={lit}
