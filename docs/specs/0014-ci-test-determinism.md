@@ -127,8 +127,10 @@ Acceptance for the test-only correction:
    local-worktree file and `npm run check`. Repeat the controlled stall against
    the corrected fixture before integration.
 
-The correction is in development. Focused completion, heartbeat and both
-cancellation cases passed, as did the complete 35-case local-worktree file.
+Implemented at `c6dd1281a3bf62cfebe61a0971fd27a9705a6db5`, with validation recorded
+on 11 November 2026. Focused completion, heartbeat and both cancellation cases
+passed, as did the complete 35-case local-worktree file and `npm run check`
+(484 tests, strict types, formatting and build).
 An independent controlled comparison retained the main `9ddf9d7` runtime and
 the same 250 ms post-claim stall, replacing only the compiled test fixture:
 ordinary completion passed with the corrected fixture, while the original
