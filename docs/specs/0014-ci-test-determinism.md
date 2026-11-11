@@ -239,10 +239,11 @@ Acceptance for the test-only correction:
 4. Run the focused variants, complete worker test file and `npm run check`.
    Review the test/specification diff and preserve the unchanged-main comparison.
 
+Implemented at `eb1c99c61e1386f3562242a83f111b53e00b1570`.
 On 11 November 2026, both corrected focused variants and the complete 11-case
 worker test file passed. Full `npm run check` passed strict types, formatting,
-build and all 500 tests with no failures, cancellations or skips. Implementation
-commit evidence and independent final review remain pending. No approval
+build and all 500 tests with no failures, cancellations or skips. Independent
+final review and integration checks remain required. No approval
 implementation or other production code changes are part of this correction.
 This isolated clock-controlled proof does not certify real-provider scheduling
 or establish that every possible intermittent test failure has been found.
