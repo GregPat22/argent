@@ -49,7 +49,8 @@ Record the reason and evidence here when a choice is resolved.
 
 ### Exact-commit observation before reviewed execution — 11 November 2026
 
-In development against main `3feb50e`, within the accepted L1.4 security contract.
+Implemented at `b7c426b26e4ab126a292aee8d7e58b49ac9c7235`, with validation recorded
+on 11 November 2026, within the accepted L1.4 security contract.
 Keep exact-commit observation separate from consent and execution. Reuse the
 bounded no-follow file reader to require raw index and tracked bytes/modes to
 match the observed HEAD. Bind the workspace/base and the operator's freshly
@@ -69,7 +70,11 @@ Local owned helper fixtures reproduced the override and its refusal on Git
 2.42.0 and 2.54.0 without network access. Optional index refresh remains disabled.
 This preserves the existing no-helper/no-network boundary, raises no minimum
 Git version and changes no product or accepted security requirement.
-Implementation and validation evidence are pending.
+The complete repository check passed with 531 tests; focused candidate/changes
+and local-worktree regressions also passed. See the
+[implementation evidence](specs/0013-local-mvp.md#internal-candidate-observation-evidence).
+These fixtures establish bounded inspection behavior, not human review or
+trusted command execution; L1.4 remains incomplete.
 
 ### Dormant command ownership — 11 November 2026
 

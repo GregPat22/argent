@@ -540,8 +540,10 @@ retains its existing uncertainty semantics.
 
 ### Internal exact-commit candidate observation
 
-In development under the
-[acceptance contract](docs/specs/0013-local-mvp.md#internal-exact-commit-candidate-observation-acceptance).
+Implemented at `b7c426b` under the
+[acceptance contract](docs/specs/0013-local-mvp.md#internal-exact-commit-candidate-observation-acceptance),
+with [validation evidence](docs/specs/0013-local-mvp.md#internal-candidate-observation-evidence)
+recorded on 11 November 2026.
 A read-only inspector binds the stored workspace/base, observed HEAD/tree and a
 fresh operator configuration approval. It compares the raw index and safely read
 tracked bytes/modes to HEAD, rejecting nonignored untracked changes. Final

@@ -584,7 +584,8 @@ Ownership and configuration approval alone establish none of those facts.
 
 #### Internal exact-commit candidate observation acceptance
 
-In development against main `3feb50ef870d3ad2fe17d4784ef2b4cdaa9553a9`.
+Implemented at `b7c426b26e4ab126a292aee8d7e58b49ac9c7235`, with validation recorded
+on 11 November 2026.
 This read-only groundwork binds an operator's approved base configuration to an
 exact observed commit. It does not collect human review, produce a complete
 review diff or execution plan, persist consent, enqueue work or run commands.
@@ -639,8 +640,29 @@ worktree manifest. Group-only execute permission must neither masquerade as Git
 mode `100755` nor hide removal of owner execute. Existing historical records are
 not rewritten; the records remain untested.
 
-Implementation and validation evidence are pending. This does not complete L1.4
-or establish human consent, fresh-checkout isolation or trusted test evidence.
+#### Internal candidate observation evidence
+
+Implementation `b7c426b26e4ab126a292aee8d7e58b49ac9c7235`, validated on 11 November
+2026: the focused Git/candidate/changes suite passed 45 tests, the local-worktree
+suite passed 36 tests, and `npm run check` passed type checking, formatting,
+build and all 531 repository tests without failures, cancellations or skips.
+The actual source/tests diff received a separate security review. Local owned
+fixtures exercised the transport denial on Git 2.42.0 and 2.54.0; guarded reads
+of missing promisor objects did not launch the marker helper or mutate Git
+files in the older-Git probe.
+
+The executable-mode regression first reproduced Git treating group-only execute
+as `100644` and removal of owner execute as a change from `100755`. Candidate
+inspection, live changes and untracked manifests now use the same interpretation.
+The fixtures also cover concealed dirtiness, final file mutation, approval and
+workspace binding, raw binary/symlink identity, bounds and cancellation. No
+configured command marker is executed, and observations create no receipt or
+job. Existing historical evidence is not rewritten.
+
+This is automated fixture evidence for read-only inspection. It does not complete
+L1.4 or establish human consent, fresh-checkout isolation, command execution or
+trusted test evidence. The next work remains complete pinned candidate review,
+explicit consent, fresh-checkout execution and exact-commit result handling.
 
 ### L1.5 draft pull request and archive
 
