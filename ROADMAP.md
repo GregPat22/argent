@@ -55,7 +55,7 @@ The desktop says so plainly. See [spec 0013](docs/specs/0013-local-mvp.md).
 | L1.1 worktree workspaces + Claude Code | Implemented.                                                                                                                                 | Create a branch/worktree from a local repository; run Claude Code in it with a live transcript, follow-up turns and acknowledged cancel; record the resulting commit and diff as evidence.                                                                 |
 | L1.2 desktop on real execution         | Implemented; real-CLI walkthrough recorded in spec 0013.                                                                                     | Choose a local repository, create/select workspaces, see the agent's transcript, send follow-ups, choose the permission mode and cancel, in the desktop app.                                                                                               |
 | L1.3 changes panel                     | Implemented. Read-only changed-file list and bounded unified diff; live, not tested.                                                         | Real changed-file list and diff for the workspace against its base.                                                                                                                                                                                        |
-| L1.4 setup, run and test actions       | Planned. The centre of the remaining local work.                                                                                             | Per-repository reviewed commands with bounded output, read from a configuration the agent cannot change; a test result recorded for the exact commit as evidence, separate from what the agent says.                                                       |
+| L1.4 setup, run and test actions       | In development. Internal configuration reader implemented; actions and results remain planned.                                               | Per-repository reviewed commands with bounded output, read from a configuration the agent cannot change; a test result recorded for the exact commit as evidence, separate from what the agent says.                                                       |
 | L1.5 draft pull request and archive    | Planned.                                                                                                                                     | Commit, push and open a draft pull request through the developer's own `gh`, with Argent's evidence record in its description; merge stays a human action. Archive removes the worktree only when it is safe.                                              |
 | Customer/auth compatibility            | Alongside L1.                                                                                                                                | Dated provider/auth/deployment matrix. No demand assumed.                                                                                                                                                                                                  |
 | Desktop distribution                   | After L1. The first public release, with Claude Code.                                                                                        | Signed/notarized versioned artifacts, checksums and verified updates. Publication separately authorized.                                                                                                                                                   |
@@ -101,6 +101,13 @@ are fixed or listed. Item 2 is implemented and verified at `37ea780`: the
 [changes-panel evidence](docs/specs/0013-local-mvp.md#l13-implementation-evidence)
 records automated service/renderer tests and the native desktop flow. Trusted
 checks (L1.4) are next; the complete L1 exit remains open.
+
+The internal [bounded base-commit command-configuration reader](docs/specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance)
+is implemented at `914323d`, with [validation recorded](docs/specs/0013-local-mvp.md#internal-reader-implementation-evidence)
+on 11 November 2026. It supplies source and review-candidate identities only.
+L1.4 remains in development. Command approval,
+execution, exact-commit results and stale-result display remain unimplemented;
+work-queue item 3 is not complete.
 
 Already implemented: L1.1, L1.2, L1.3, the
 [local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening) and

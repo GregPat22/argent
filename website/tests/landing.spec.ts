@@ -1526,6 +1526,8 @@ test("proof separates today's record from planned checks and strikes four hallma
   await expect(list).toHaveAttribute("data-struck", "true");
   for (const plate of await plates.all()) {
     await expect(plate).toHaveCSS("opacity", "1", { timeout: 10_000 });
+    // Opacity can reach one while the spring transform is still moving.
+    await expect(plate).toHaveCSS("transform", "none", { timeout: 10_000 });
     await expect(plate).toHaveAttribute("aria-hidden", "true");
   }
   // As in the desktop app's record: the maker's mark and the date letter are
@@ -1546,10 +1548,13 @@ test("proof separates today's record from planned checks and strikes four hallma
   await expect(list.getByRole("heading", { level: 3 })).toHaveCount(4);
   // The plates stand two abreast on a phone instead of four in a column.
   await page.setViewportSize({ width: 360, height: 800 });
-  const first = (await plates.nth(0).boundingBox())!;
-  const second = (await plates.nth(1).boundingBox())!;
-  expect(Math.abs(first.y - second.y)).toBeLessThan(2);
-  expect(second.x + second.width).toBeLessThanOrEqual(360);
+  const geometry = await plates.evaluateAll((all) => {
+    const first = all[0]!.getBoundingClientRect();
+    const second = all[1]!.getBoundingClientRect();
+    return { difference: Math.abs(first.y - second.y), right: second.right };
+  });
+  expect(geometry.difference).toBeLessThan(2);
+  expect(geometry.right).toBeLessThanOrEqual(360);
 });
 
 test("problem glyphs draw themselves once and stay visible without scripts", async ({

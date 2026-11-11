@@ -469,3 +469,31 @@ invalidates pending results. All content is literal text, with quoted filenames
 and visible control-character escapes. Inspection never dispatches work or
 replaces a verification record. See the
 [acceptance criteria](docs/specs/0013-local-mvp.md#desktop-changes-acceptance).
+
+### Internal local command configuration
+
+The internal, read-only `local-command-config.ts` module is implemented at
+`914323d962b031f4e44e9c0047c626c5800e6643`, with validation recorded on
+11 November 2026. L1.4 remains incomplete. The reader derives owned workspace
+identity from the store and reads the fixed
+`argent.json` blob at the exact stored base through trusted Git. It validates a
+bounded versioned schema of argument arrays and returns immutable commands,
+source hashes and an approval-candidate identity. It has no API, desktop or
+worker entry point and launches no configured command.
+
+The candidate hashes the canonical common Git directory, its device and inode,
+the exact configuration bytes' SHA-256 and the interpretation-policy version.
+Sibling workspaces and later bases with identical bytes share the candidate;
+changed content or an ordinarily replaced repository does not. This identity
+is not a persisted approval. Rechecked filesystem identities detect observed
+replacement, not arbitrary concurrent tampering by the host owner.
+
+See the [reader acceptance contract](docs/specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance).
+The [implementation evidence](docs/specs/0013-local-mvp.md#internal-reader-implementation-evidence)
+records passing reader and repository checks, plus full-suite test failures,
+unchanged-main comparisons and a controlled reproduction of the short test
+lease's sensitivity. The test-only correction preserves production expiry rules.
+Approval storage, bounded action execution, exact-commit test evidence and stale
+result display remain planned. Before a result qualifies as verification,
+command-defining and test changes must be compared to the trusted base and
+surfaced for human review; freezing argv alone is insufficient.

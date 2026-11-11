@@ -90,3 +90,113 @@ stalls, and the complete repository test file. Full checks and hosted CI are
 required for integration.
 This establishes deterministic crash-checkpoint coverage with real child death;
 it does not certify real-provider recovery or remove production expiry checks.
+
+## Local worktree process-fixture lease correction
+
+Acceptance recorded 11 November 2026 against main `9ddf9d7`. Two full validation
+runs of the internal command-reader work each passed 483 of 484 tests but failed
+different unchanged local-worktree cases: slow Git verification, then ordinary
+CLI completion. Both observed `running` after the worker tick instead of
+`completed`. Two focused slow-Git comparisons and a complete `npm run check`
+on unchanged main passed, including all 469 tests in that full baseline run.
+
+A diagnostic build of main `9ddf9d7` inserted a 250 ms synchronous
+scheduler stall immediately after claim and before preparation. The ordinary
+completion case failed with the same token, an expired lease and `lease_lost`;
+the worker correctly refused to settle expired ownership. The shared fixture's
+200 ms lease, unlike the production 5,000 ms lease, is sensitive to this stall.
+This establishes a test-harness failure mechanism, not the precise cause of the
+earlier uninstrumented failures. No production limit or expiry rule changes.
+
+Acceptance for the test-only correction:
+
+1. Ordinary local-worktree process fixtures use the worker's production-default
+   lease. Keep real Git, fake CLI processes, cancellation, resistant-descendant
+   cleanup and the existing process termination grace periods.
+2. The slow-Git case holds a real Git process at an explicit gate, published
+   atomically. Control only the parent clock and heartbeat intervals in this
+   case. Cross the original persisted expiry in heartbeat-sized steps and assert
+   each renewed lease remains valid. A real authenticated health request must
+   respond while Git remains gated and the worker remains unsettled.
+3. Release Git, await successful completion and advance the clock again to prove
+   settlement cleared the heartbeat. On assertion failure, release the gate and
+   cancel and await the owned worker with bounded waits before fixture teardown.
+   Restore real time for process cleanup; do not freeze all process fixtures.
+4. Preserve store expiry/fencing, real lock-contention and process-crash tests.
+   Run focused completion, heartbeat and cancellation cases, the complete
+   local-worktree file and `npm run check`. Repeat the controlled stall against
+   the corrected fixture before integration.
+
+Implemented at `c6dd1281a3bf62cfebe61a0971fd27a9705a6db5`, with validation recorded
+on 11 November 2026. Focused completion, heartbeat and both cancellation cases
+passed, as did the complete 35-case local-worktree file and `npm run check`
+(484 tests, strict types, formatting and build).
+An independent controlled comparison retained the main `9ddf9d7` runtime and
+the same 250 ms post-claim stall, replacing only the compiled test fixture:
+ordinary completion passed with the corrected fixture, while the original
+200 ms fixture failed with expired ownership. This bounds the comparison to
+the fixture lease choice; it does not identify the host scheduling conditions
+of the earlier failures. `npm run check` passed strict types, formatting, build
+and all 484 automated tests after the correction. Independent final review and
+integration checks remain required. No reader or other production code changes
+are part of the correction.
+
+## Cleanup crash checkpoint and child message handling
+
+Acceptance recorded 11 November 2026 against main `9ddf9d7`. CI validation of
+`0168c50` cancelled the cleanup crash test while awaiting a child message, then
+cancelled the five following cases. The pull request check for the same commit passed.
+The unchanged-main focused case passed locally. A controlled 150 ms synchronous
+stall in the child inspection reproduced the cancellation: the 100 ms cleanup
+deadline expired in `inspecting`, cleanup correctly returned `needs_attention`
+with reason `timeout`, and the child exited without a dispatch notification.
+The parent awaited only the missing message, with neither exit rejection nor
+a timeout. This reproduces the failure mechanism, not the original CI stall.
+
+Acceptance for the test-only correction:
+
+1. Control the crash child's clock and cleanup timer through its durable
+   `revoke_intent` checkpoint, retaining the 100 ms persisted deadline. Keep a
+   real child alive until the parent sends `SIGKILL`; test both zero delay and
+   a 150 ms synchronous inspection stall. Assert the durable phase before killing.
+2. After confirmed child exit, reopen just before the persisted deadline with
+   a controlled parent clock. A duplicate request must not dispatch, and even
+   settled-effect evidence cannot resolve an active cleanup. At exact expiry,
+   late acknowledgment is refused and redispatch remains forbidden. Independent
+   fresh settled-effect evidence is still required to resolve and erase custody.
+3. Bound readiness, response and exit waits, reject child exit or error before its
+   message, and await child teardown before removing fixture data. A separate
+   uncontrolled-timeout case must reject promptly rather than cancel the suite.
+4. Keep real-time hung-cleanup, lock-contention, timeout and expiry tests and all
+   production behavior unchanged. Run focused crash/handshake cases, the complete
+   repository-cleanup file and `npm run check` before integration.
+
+Implemented at `3b4eafe84ae1c1ec7c3d1eee58e4e9a2d168cba6`, with validation recorded
+on 11 November 2026. Focused crash, reservation and missing-response cases passed, including both synchronous-stall variants. The complete cleanup
+file passed all 41 cases after readiness, response and exit waits were bounded.
+`npm run check` passed types, formatting, build and all 486 automated tests.
+These results preserve real process death and exact-deadline refusal; they do
+not establish the precise scheduling conditions of the earlier CI failure.
+Independent final review and hosted integration checks remain required.
+
+## Hallmark layout assertion synchronization
+
+Acceptance recorded 11 November 2026 against main `9ddf9d7`. At `fea3941`, one
+hosted website run passed while another measured a 6.14 px difference between the
+first two hallmark plates, exceeding the existing 2 px alignment limit. Website
+source and tests were unchanged from main. Three focused baseline runs passed
+with the initial local browser settings. Repeating the unchanged-main test three
+times with the configured software renderer and one worker reproduced the same
+alignment failure once.
+
+The test waited for full opacity, although the struck plates also animate scale,
+rotation and vertical position with a spring. Opacity alone does not establish
+resting geometry. The test must wait for the final transform as well, then read
+both phone-layout rectangles in one browser evaluation. Keep the same alignment
+and right-edge limits, all animation/state/accessibility assertions, and the
+production animation. No fixed sleep or wider tolerance substitutes for rest.
+
+The correction at `5e59216c5ed604512430a6fada11710a7d5668ca` passed three
+focused software-rendered runs with one worker on 11 November 2026.
+Website typecheck/build/full browser tests, repository checks and review are
+required before integration.

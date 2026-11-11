@@ -47,6 +47,31 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Base-bound command configuration groundwork — 11 November 2026
+
+Implemented at `914323d962b031f4e44e9c0047c626c5800e6643`, with validation
+recorded on 11 November 2026, within the accepted L1.4 contract. Read
+only root `argent.json` at the workspace's recorded base, validate a bounded
+versioned argv schema and return immutable source metadata. Bind the future
+review candidate to exact bytes, interpretation policy and canonical repository
+common-directory identity, including device and inode; omit workspace and base
+IDs so unchanged configuration can share one repository approval later.
+
+The candidate is not a grant and stores no approval. Real-Git regression
+coverage is specified in the
+[reader acceptance contract](specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance);
+the [implementation evidence](specs/0013-local-mvp.md#internal-reader-implementation-evidence)
+records passing checks, two full-suite failures, passing unchanged-main focused
+and full comparisons, and a controlled reproduction of the short test lease's
+sensitivity. The [fixture correction](specs/0014-ci-test-determinism.md#local-worktree-process-fixture-lease-correction)
+preserves production expiry rules; the original failures' precise cause remains
+unconfirmed. This does not establish command
+execution or the L1.4 exit, which remains in development. Execution, approval
+persistence and evidence remain planned. The accepted requirement to review
+command-defining and test changes against the trusted base is unchanged: a
+frozen command can still invoke a candidate-modified script. Local execution
+remains unsandboxed and cannot resist arbitrary host-owner tampering.
+
 ### Proof first, one agent at release, and your own remote host — 10 November 2026
 
 Three product decisions, taken together after a review of the project.
