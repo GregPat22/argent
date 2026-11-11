@@ -27,7 +27,7 @@ receipts,
 with fresh source validation for reuse. It adds no command dispatch or desktop
 controls. The internal
 [dormant command-ownership contract](specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance)
-is in development; shared queue ownership supplies neither execution permission
+is implemented at `f70dbf3`; shared queue ownership supplies neither execution permission
 nor test evidence. L1.4 remains incomplete.
 
 Working on Argent? The [roadmap's work queue](../ROADMAP.md#work-queue) lists

@@ -49,7 +49,8 @@ Record the reason and evidence here when a choice is resolved.
 
 ### Dormant command ownership — 11 November 2026
 
-In development against main `0ad0cafc82290165eef0243115e444f99aed5f7f`, within the
+Implemented at `f70dbf3240daa14e4a8240ba5aaf16694015e3dc`, with validation recorded
+on 11 November 2026, within the
 accepted L1.4 ownership and security contract. Keep internal command ownership in
 the existing runs table so agent and command work share one workspace exclusion,
 idempotency namespace and fenced lease transition. Store immutable approved
@@ -67,6 +68,11 @@ and portable history also need explicit kind guards. Preserve cross-kind
 uncertainty, cancellation acknowledgement and exact-expiry fencing. Completed
 command results and agent evidence remain forbidden in this slice. See the
 [acceptance contract](specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance).
+Focused integration tests and the full repository check passed. A separate probe
+loaded the prior Store and Worker code alongside the new store: agent claims
+still worked, while SQLite refused the older worker's command claim before
+workspace preparation or adapter dispatch. It left the queued record and events
+unchanged. This establishes claim refusal, not complete downgrade compatibility.
 No accepted product decision, milestone scope or local security requirement
 changes; command execution, candidate review and test evidence remain planned.
 

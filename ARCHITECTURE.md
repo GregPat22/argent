@@ -514,9 +514,10 @@ surfaced for human review; freezing argv alone is insufficient.
 
 ### Dormant command ownership
 
-An internal command-ownership slice is in development under the
+Internal command ownership is implemented at
+`f70dbf3240daa14e4a8240ba5aaf16694015e3dc` under the
 [acceptance contract](docs/specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance).
-It is designed to share the runs table, active-workspace exclusion, request-key
+It shares the runs table, active-workspace exclusion, request-key
 namespace, leases, deadlines and uncertainty handling with agent runs. A command
 detail binds an action to a freshly matched operator approval and the workspace's
 base configuration. Its version-1 payload is explicitly dormant and execution

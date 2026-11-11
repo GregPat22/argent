@@ -513,8 +513,9 @@ Configuration approval alone does not approve later changes to a test script.
 
 #### Dormant command-job ownership acceptance
 
-Acceptance recorded 11 November 2026 against main `0ad0caf`. This internal
-ownership slice is in development. It adds no command runner, public enqueue
+Acceptance recorded 11 November 2026 against main `0ad0caf`. Internal ownership
+is implemented at `f70dbf3240daa14e4a8240ba5aaf16694015e3dc`.
+It adds no command runner, public enqueue
 operation, desktop control, command completion or test evidence. L1.4 remains
 incomplete.
 
@@ -559,6 +560,23 @@ incomplete.
    rollback, independent-process contention, exact-expiry fencing, cancellation,
    worker dispatch refusal and public/history compatibility. Fixtures execute no
    configured command and use no real agent account.
+
+Validation recorded on 11 November 2026 for implementation
+`f70dbf3240daa14e4a8240ba5aaf16694015e3dc`: all ten focused integration cases
+passed, including independent-process enqueue and claim contention, prepared
+legacy SQL across migration, rollback, exact-expiry refusal, cancellation and
+public/history guards. `npm run check` passed strict types, formatting, build
+and all 510 automated tests. Public-content and documentation-link checks passed.
+
+A separate probe loaded the prior Store and Worker code from the tree merged as
+`0ad0caf` alongside the new store. It opened the older Store before migration:
+an ordinary agent claim still succeeded, but the older worker's command claim
+failed at SQLite before workspace preparation or adapter invocation. The command
+remained queued without a lease or extra event; the new internal command claim
+then acquired ownership, and the configured marker remained unexecuted. This
+checks the claim boundary, not a packaged-app downgrade or older-client support.
+Independent final review, clean-checkout verification and hosted integration
+checks remain required.
 
 Execution still requires a separate reviewed candidate and command plan, clean
 verification checkout, bounded process supervision and exact-commit evidence.
