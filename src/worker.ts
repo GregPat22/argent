@@ -44,6 +44,7 @@ export class Worker {
     );
 
     try {
+      this.store.requireAgentRun(run.id);
       const workspace = this.store.getWorkspace(run.workspaceId);
       const real = workspace.provider === "local-worktree";
       if (real && !this.local)

@@ -83,6 +83,21 @@ export function exportHistory(
       )
       .get(workspaceId);
     if (!workspace) throw new DomainError(404, "History workspace not found");
+    if (
+      db
+        .prepare("PRAGMA table_info(runs)")
+        .all()
+        .some((column) => column.name === "kind") &&
+      db
+        .prepare(
+          "SELECT 1 FROM runs WHERE workspace_id = ? AND kind <> 'agent' LIMIT 1",
+        )
+        .get(workspaceId)
+    )
+      throw new DomainError(
+        409,
+        "Command jobs are not portable simulation history",
+      );
     // Never present a partial cloud/cleanup export as portable execution state.
     // Real local runs are not simulated history either.
     for (const table of [

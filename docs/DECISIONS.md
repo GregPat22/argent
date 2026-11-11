@@ -47,6 +47,29 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Dormant command ownership — 11 November 2026
+
+In development against main `0ad0cafc82290165eef0243115e444f99aed5f7f`, within the
+accepted L1.4 ownership and security contract. Keep internal command ownership in
+the existing runs table so agent and command work share one workspace exclusion,
+idempotency namespace and fenced lease transition. Store immutable approved
+configuration detail separately. Explicitly label its version-1 payload dormant,
+with execution forbidden; it lacks the reviewed execution plan needed by a
+future runner. Duplicate requests return historical ownership, not renewed
+permission.
+
+Use a database CHECK requiring an explicit command claim version when entering
+running or cancelling states. This prevents old claim SQL from dispatching
+command rows through agent adapters, including statements prepared before
+migration. Do not repurpose an unrelated schema component or claim graceful
+downgrade: an older worker may fail closed with an error. New agent projections
+and portable history also need explicit kind guards. Preserve cross-kind
+uncertainty, cancellation acknowledgement and exact-expiry fencing. Completed
+command results and agent evidence remain forbidden in this slice. See the
+[acceptance contract](specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance).
+No accepted product decision, milestone scope or local security requirement
+changes; command execution, candidate review and test evidence remain planned.
+
 ### Internal durable command approvals — 11 November 2026
 
 Implemented at `268ed61759d50285d5a89d3319542caff6027ac4`, with validation recorded

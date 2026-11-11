@@ -1,8 +1,15 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { LifecycleStore } from "./lifecycle-store.js";
 import { RepositoryStore } from "./repository-store.js";
 import { LocalCommandApprovalStore } from "./local-command-approvals.js";
+import {
+  commandRequest,
+  commandFingerprint,
+  readCommandPlan,
+  type CommandJob,
+  type CommandJobRequest,
+} from "./local-command-jobs.js";
 import {
   DomainError,
   requireInteger,
@@ -163,6 +170,43 @@ export class Store {
       this.lifecycle = new LifecycleStore(this.db);
       this.repositories = new RepositoryStore(this.db);
       this.localCommandApprovals = new LocalCommandApprovalStore(this.db, this);
+      this.transaction(() => {
+        const version = this.db
+          .prepare(
+            "SELECT version FROM schema_versions WHERE component = 'command-jobs'",
+          )
+          .get();
+        if (version && version.version !== 1)
+          throw new Error("Unsupported command job schema");
+        addColumn(
+          this.db,
+          "runs",
+          "kind TEXT NOT NULL DEFAULT 'agent' CHECK(kind IN ('agent','command'))",
+        );
+        // Enforced even for an older worker's already-prepared claim statement.
+        // An ownership protocol marker is not permission to execute a command.
+        addColumn(
+          this.db,
+          "runs",
+          `command_claim_version INTEGER NOT NULL DEFAULT 0
+          CHECK(command_claim_version IN (0,1)
+          AND (kind = 'command' OR command_claim_version = 0)
+          AND (kind <> 'command' OR (simulation = 0 AND permission_mode = 'edits'
+            AND status <> 'completed'
+            AND (status <> 'queued' OR command_claim_version = 0)
+            AND (status NOT IN ('running','cancelling','needs_attention') OR command_claim_version = 1))))`,
+        );
+        this.db.exec(`CREATE TABLE IF NOT EXISTS command_jobs (
+          run_id TEXT PRIMARY KEY REFERENCES runs(id),
+          approval_id TEXT NOT NULL REFERENCES local_command_approvals(id),
+          fingerprint TEXT NOT NULL, payload TEXT NOT NULL, payload_sha256 TEXT NOT NULL
+        ) STRICT;`);
+        this.db
+          .prepare(
+            "INSERT INTO schema_versions (component,version) VALUES ('command-jobs',1) ON CONFLICT(component) DO NOTHING",
+          )
+          .run();
+      });
     } catch (error) {
       // An open handle would keep the WAL database locked after a failed start.
       this.db.close();
@@ -350,6 +394,7 @@ export class Store {
       if (previous) {
         const run = readRun(previous);
         if (
+          previous.kind !== "agent" ||
           run.workspaceId !== workspaceId ||
           run.task !== text ||
           run.maxRuntimeMs !== runtime ||
@@ -411,6 +456,203 @@ export class Store {
     return readRun(row);
   }
 
+  runKind(id: string): "agent" | "command" {
+    const row = this.db.prepare("SELECT kind FROM runs WHERE id = ?").get(id);
+    if (!row) throw new DomainError(404, "Run not found");
+    if (row.kind !== "agent" && row.kind !== "command")
+      throw new DomainError(409, "Invalid run kind");
+    return row.kind;
+  }
+
+  /** Existing public/agent operations must never interpret command ownership. */
+  requireAgentRun(id: string): Run {
+    if (this.runKind(id) !== "agent")
+      throw new DomainError(
+        409,
+        "Command jobs are internal and cannot execute",
+      );
+    return this.getRun(id);
+  }
+
+  getCommandJob(id: string): CommandJob {
+    if (this.runKind(id) !== "command")
+      throw new DomainError(409, "Run is not a command job");
+    const row = this.db
+      .prepare("SELECT * FROM command_jobs WHERE run_id = ?")
+      .get(id);
+    const invalid = () => new DomainError(409, "Invalid dormant command job");
+    if (
+      !row ||
+      typeof row.payload !== "string" ||
+      createHash("sha256").update(row.payload).digest("hex") !==
+        row.payload_sha256
+    )
+      throw invalid();
+    const plan = readCommandPlan(row.payload);
+    const run = this.getRun(id);
+    const workspace = this.getWorkspace(run.workspaceId);
+    const approved = this.localCommandApprovals.get(plan.approvalId);
+    const candidate = plan.candidate;
+    if (
+      row.approval_id !== approved.id ||
+      approved.operatorId !== plan.operatorId ||
+      approved.descriptor.approvalCandidate.identity !==
+        candidate.approvalCandidate.identity ||
+      approved.descriptor.source.blobId !== candidate.source.blobId ||
+      approved.descriptor.source.sha256 !== candidate.source.sha256 ||
+      JSON.stringify(approved.descriptor.config) !==
+        JSON.stringify(candidate.config) ||
+      workspace.provider !== "local-worktree" ||
+      workspace.local?.baseSha !== candidate.source.baseSha ||
+      run.simulation ||
+      run.permissionMode !== "edits" ||
+      run.task !== `Dormant ${plan.action} command` ||
+      row.fingerprint !==
+        commandFingerprint(
+          commandRequest({
+            workspaceId: run.workspaceId,
+            operatorId: plan.operatorId,
+            approvalId: plan.approvalId,
+            candidateIdentity: candidate.approvalCandidate.identity,
+            action: plan.action,
+            requestKey: "stored",
+            maxRuntimeMs: run.maxRuntimeMs,
+          }),
+        )
+    )
+      throw invalid();
+    return Object.freeze({
+      kind: "dormant-command-job",
+      run: Object.freeze(run),
+      plan,
+    });
+  }
+
+  private commandDuplicate(
+    key: string,
+    fingerprint: string,
+  ): CommandJob | null {
+    const row = this.db
+      .prepare(
+        `SELECT r.id,r.kind,c.fingerprint FROM runs r
+      LEFT JOIN command_jobs c ON c.run_id = r.id WHERE r.request_key = ?`,
+      )
+      .get(key);
+    if (!row) return null;
+    if (row.kind !== "command" || row.fingerprint !== fingerprint)
+      throw new DomainError(
+        409,
+        "Idempotency key already used with a different payload",
+      );
+    return this.getCommandJob(row.id as string);
+  }
+
+  /** Internal only. Fresh approval binding queues ownership, never execution. */
+  async createCommandJob(
+    worktreeRoot: string,
+    input: CommandJobRequest,
+    signal?: AbortSignal,
+  ): Promise<CommandJob> {
+    const request = commandRequest(input);
+    const fingerprint = commandFingerprint(request);
+    const previous = this.commandDuplicate(request.requestKey, fingerprint);
+    if (previous) return previous;
+    signal?.throwIfAborted();
+    const workspace = this.getWorkspace(request.workspaceId);
+    const match = await this.localCommandApprovals.lookup(
+      worktreeRoot,
+      request.workspaceId,
+      request.operatorId,
+      signal,
+    );
+    if (
+      !match ||
+      match.approval.id !== request.approvalId ||
+      match.candidate.approvalCandidate.identity !== request.candidateIdentity
+    )
+      throw new DomainError(
+        409,
+        "Command approval does not match the current configuration",
+      );
+    const plan = readCommandPlan(
+      JSON.stringify({
+        kind: "dormant-command-plan",
+        version: 1,
+        execution: "forbidden",
+        action: request.action,
+        approvalId: request.approvalId,
+        operatorId: request.operatorId,
+        candidate: match.candidate,
+      }),
+    );
+    return this.transaction(() => {
+      const duplicate = this.commandDuplicate(request.requestKey, fingerprint);
+      if (duplicate) return duplicate;
+      signal?.throwIfAborted();
+      const current = this.getWorkspace(request.workspaceId);
+      if (
+        JSON.stringify(current.local) !== JSON.stringify(workspace.local) ||
+        current.provider !== "local-worktree"
+      )
+        throw new DomainError(409, "Command workspace changed");
+      if (current.state !== "running")
+        throw new DomainError(409, "Workspace is stopped");
+      this.requireLocalWorkspace(current.id);
+      if (
+        this.db
+          .prepare(
+            `SELECT id FROM runs WHERE workspace_id = ? AND (status IN ${ACTIVE} OR status = 'needs_attention')`,
+          )
+          .get(current.id)
+      )
+        throw new DomainError(409, "Workspace has active or uncertain work");
+      if (
+        JSON.stringify(this.localCommandApprovals.get(request.approvalId)) !==
+        JSON.stringify(match.approval)
+      )
+        throw new DomainError(409, "Command approval changed");
+      const id = randomUUID(),
+        now = Date.now();
+      this.db
+        .prepare(
+          `INSERT INTO runs (id,workspace_id,task,request_key,status,max_runtime_ms,created_at,simulation,permission_mode,kind)
+        VALUES (?,?,?,?,'queued',?,?,0,'edits','command')`,
+        )
+        .run(
+          id,
+          current.id,
+          `Dormant ${request.action} command`,
+          request.requestKey,
+          request.maxRuntimeMs,
+          now,
+        );
+      const payload = JSON.stringify(plan);
+      this.db
+        .prepare(
+          "INSERT INTO command_jobs (run_id,approval_id,fingerprint,payload,payload_sha256) VALUES (?,?,?,?,?)",
+        )
+        .run(
+          id,
+          request.approvalId,
+          fingerprint,
+          payload,
+          createHash("sha256").update(payload).digest("hex"),
+        );
+      this.event(
+        id,
+        "command.queued",
+        {
+          simulation: false,
+          execution: "forbidden",
+          action: request.action,
+          approvalId: request.approvalId,
+        },
+        now,
+      );
+      return this.getCommandJob(id);
+    });
+  }
+
   private requireLocalWorkspace(id: string): void {
     if (
       this.db
@@ -428,13 +670,13 @@ export class Store {
   listRuns(workspaceId: string, limit = 50, before?: string): Page<Run> {
     requireInteger(limit, "limit", 1, 100);
     this.getWorkspace(workspaceId);
-    const cursor = before ? this.getRun(before) : null;
+    const cursor = before ? this.requireAgentRun(before) : null;
     if (cursor && cursor.workspaceId !== workspaceId)
       throw new DomainError(400, "Run cursor belongs to another workspace");
     const rows = cursor
       ? this.db
           .prepare(
-            `SELECT * FROM runs WHERE workspace_id = ? AND
+            `SELECT * FROM runs WHERE kind = 'agent' AND workspace_id = ? AND
           (created_at < ? OR (created_at = ? AND id < ?)) ORDER BY created_at DESC, id DESC LIMIT ?`,
           )
           .all(
@@ -446,7 +688,7 @@ export class Store {
           )
       : this.db
           .prepare(
-            "SELECT * FROM runs WHERE workspace_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
+            "SELECT * FROM runs WHERE kind = 'agent' AND workspace_id = ? ORDER BY created_at DESC, id DESC LIMIT ?",
           )
           .all(workspaceId, limit + 1);
     const items = rows.slice(0, limit).map(readRun);
@@ -454,6 +696,7 @@ export class Store {
   }
 
   evidence(id: string): Evidence {
+    this.requireAgentRun(id);
     if (this.getRun(id).status !== "completed")
       throw new DomainError(409, "Run has no completed verification");
     const row = this.db
@@ -466,6 +709,7 @@ export class Store {
   }
 
   resolveSimulation(id: string, note: unknown): Run {
+    this.requireAgentRun(id);
     const explanation = requireString(note, "Resolution note", 1000);
     return this.transaction(() => {
       const run = this.getRun(id);
@@ -523,26 +767,53 @@ export class Store {
   }
 
   claim(leaseMs: number, at?: number): Run | null {
+    return this.claimKind("agent", leaseMs, at);
+  }
+
+  /** Acquires dormant ownership only; there is no command dispatcher. */
+  claimCommandJob(leaseMs: number, at?: number): CommandJob | null {
+    const run = this.claimKind("command", leaseMs, at);
+    return run ? this.getCommandJob(run.id) : null;
+  }
+
+  private claimKind(
+    kind: "agent" | "command",
+    leaseMs: number,
+    at?: number,
+  ): Run | null {
     requireInteger(leaseMs, "leaseMs", 100, 60000);
     return this.transaction(() => {
       const now = at ?? Date.now();
       const row = this.db
         .prepare(
           `SELECT r.* FROM runs r JOIN workspaces w ON w.id = r.workspace_id
-        WHERE r.status = 'queued' AND w.state = 'running'
+        WHERE r.status = 'queued' AND r.kind = ? AND w.state = 'running'
+        AND NOT EXISTS (SELECT 1 FROM runs uncertain WHERE uncertain.workspace_id = r.workspace_id AND uncertain.status = 'needs_attention')
         AND NOT EXISTS (SELECT 1 FROM lifecycle_workspaces l WHERE l.workspace_id = r.workspace_id)
         ORDER BY r.created_at, r.id LIMIT 1`,
         )
-        .get();
+        .get(kind);
       if (!row) return null;
       const run = readRun(row);
+      if (kind === "command") this.getCommandJob(run.id);
       this.db
         .prepare(
           `UPDATE runs SET status = 'running', lease_token = ?, lease_expires_at = ?,
-        deadline_at = ? WHERE id = ?`,
+        deadline_at = ?, command_claim_version = ? WHERE id = ?`,
         )
-        .run(randomUUID(), now + leaseMs, now + run.maxRuntimeMs, run.id);
-      this.event(run.id, "run.started", { simulation: run.simulation }, now);
+        .run(
+          randomUUID(),
+          now + leaseMs,
+          now + run.maxRuntimeMs,
+          kind === "command" ? 1 : 0,
+          run.id,
+        );
+      this.event(
+        run.id,
+        kind === "command" ? "command.claimed" : "run.started",
+        { simulation: run.simulation },
+        now,
+      );
       return this.getRun(run.id);
     });
   }
@@ -580,6 +851,7 @@ export class Store {
     at?: number,
     kind: LogKind = "text",
   ): void {
+    this.requireAgentRun(id);
     requireString(message, "message", 2048);
     if (!LOG_KINDS.has(kind)) throw new DomainError(400, "Invalid log kind");
     this.transaction(() => {
@@ -618,7 +890,12 @@ export class Store {
         this.db
           .prepare("UPDATE runs SET status = ? WHERE id = ?")
           .run(state, id);
-        this.event(id, `run.${state}`, {}, now);
+        this.event(
+          id,
+          `${this.runKind(id) === "command" ? "command" : "run"}.${state}`,
+          {},
+          now,
+        );
       }
       return this.getRun(id);
     });
@@ -635,6 +912,14 @@ export class Store {
     return this.transaction(() => {
       const now = at ?? Date.now();
       const run = this.owned(id, token, now);
+      if (
+        this.runKind(id) === "command" &&
+        (status === "completed" || evidence !== undefined)
+      )
+        throw new DomainError(
+          409,
+          "Dormant command jobs cannot complete or record evidence",
+        );
       if (status === "completed") {
         if (
           run.status !== "running" ||
@@ -657,7 +942,7 @@ export class Store {
         .run(status, id);
       this.event(
         id,
-        `run.${status}`,
+        `${this.runKind(id) === "command" ? "command" : "run"}.${status}`,
         { ...detail, simulation: run.simulation },
         now,
       );
@@ -683,7 +968,7 @@ export class Store {
           .run(row.id as string);
         this.event(
           row.id as string,
-          "run.needs_attention",
+          `${this.runKind(row.id as string) === "command" ? "command" : "run"}.needs_attention`,
           { reason: "worker_lease_expired", replayed: false },
           now,
         );

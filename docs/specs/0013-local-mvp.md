@@ -511,6 +511,59 @@ review of candidate changes to command-defining files and tests, exact-commit
 results, stale-result display and the complete L1.4 exit remain separate work.
 Configuration approval alone does not approve later changes to a test script.
 
+#### Dormant command-job ownership acceptance
+
+Acceptance recorded 11 November 2026 against main `0ad0caf`. This internal
+ownership slice is in development. It adds no command runner, public enqueue
+operation, desktop control, command completion or test evidence. L1.4 remains
+incomplete.
+
+1. Command jobs share the existing `runs` table, active-work uniqueness,
+   idempotency keys, fencing tokens, deadlines and uncertainty exclusion with
+   agent runs. An additive kind defaults old rows to agent work. A command job
+   requires a running local workspace, no lifecycle enrollment and no active or
+   uncertain job of either kind. Its immutable detail and queue event commit
+   with the run in one transaction.
+2. Internal enqueue freshly looks up the approving operator's service-owned
+   configuration and binds the expected approval and candidate identity, action,
+   source base/blob/content/policy, command snapshot and bounded runtime. It
+   accepts no argv or caller descriptor. Identical request keys read the existing
+   job without source access or another event; changed requests and cross-kind
+   reuse conflict. Snapshots are checked and deeply frozen on reads and claims.
+3. The payload is explicitly versioned as dormant, ownership-only and forbidden
+   to execute. It is not a reviewed candidate or complete execution plan, and a
+   future runner must never silently dispatch it. The normal worker claims only
+   agents and additionally checks the kind before choosing any adapter. Internal
+   command claims acquire ownership only; malformed detail cannot become an
+   agent task, an agent log, command completion or verification evidence.
+4. SQLite requires an explicit command-claim protocol version in the same update
+   as the running state and fence. Legacy claim SQL, including a statement
+   prepared before migration, omits that version and must fail atomically before
+   dispatch. Existing agent claims continue working. Older workers may stop with
+   an error; transparent downgrade or old-client interpretation is not promised.
+5. Queued cancellation prevents claims; claimed cancellation, heartbeat expiry
+   and restart retain the existing acknowledgment and uncertainty rules. Late
+   writes fail at exact expiry. Uncertain command work blocks agent and command
+   jobs and cannot be resolved by a simulation note. No uncertain work is replayed.
+   Claims persist the bounded runtime deadline; with no command runner, this
+   slice performs no runtime abort or configured-command deadline enforcement.
+   Reconciliation handles lease expiry, preserving the existing store/worker
+   responsibility split.
+6. Existing run lists, cursors, direct run/event/artifact reads and mutations do
+   not expose or mutate internal command jobs as agent conversations. Existing
+   agent wire shapes remain unchanged. Portable export refuses command rows and
+   retains its existing local-history refusal; imports cannot install jobs or
+   approvals.
+7. Regressions cover fresh approval/source binding, immutable snapshots,
+   duplicate/conflicting requests, migration, legacy SQL refusal, transactional
+   rollback, independent-process contention, exact-expiry fencing, cancellation,
+   worker dispatch refusal and public/history compatibility. Fixtures execute no
+   configured command and use no real agent account.
+
+Execution still requires a separate reviewed candidate and command plan, clean
+verification checkout, bounded process supervision and exact-commit evidence.
+Ownership and configuration approval alone establish none of those facts.
+
 ### L1.5 draft pull request and archive
 
 Commit and push the workspace branch and open a draft pull request through `gh`,

@@ -107,8 +107,9 @@ is implemented at `914323d`, with [validation recorded](docs/specs/0013-local-mv
 on 11 November 2026. It supplies source and review-candidate identities only.
 L1.4 remains in development. Internal [durable approval storage](docs/specs/0013-local-mvp.md#internal-durable-command-approval-acceptance)
 is implemented at `268ed61`; it adds no command execution or desktop controls.
-Approval
-controls, execution, exact-commit results and stale-result display remain unimplemented;
+The internal [dormant command-ownership slice](docs/specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance)
+is in development. Its ownership-only payload cannot execute and adds no public
+actions or results. Approval controls, execution, exact-commit results and stale-result display remain unimplemented;
 work-queue item 3 is not complete.
 
 Already implemented: L1.1, L1.2, L1.3, the
