@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { LifecycleStore } from "./lifecycle-store.js";
 import { RepositoryStore } from "./repository-store.js";
+import { LocalCommandApprovalStore } from "./local-command-approvals.js";
 import {
   DomainError,
   requireInteger,
@@ -103,6 +104,7 @@ export class Store {
   private readonly db: DatabaseSync;
   readonly lifecycle: LifecycleStore;
   readonly repositories: RepositoryStore;
+  readonly localCommandApprovals: LocalCommandApprovalStore;
 
   constructor(path: string) {
     this.db = new DatabaseSync(path);
@@ -160,6 +162,7 @@ export class Store {
     `);
       this.lifecycle = new LifecycleStore(this.db);
       this.repositories = new RepositoryStore(this.db);
+      this.localCommandApprovals = new LocalCommandApprovalStore(this.db, this);
     } catch (error) {
       // An open handle would keep the WAL database locked after a failed start.
       this.db.close();

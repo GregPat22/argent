@@ -47,6 +47,28 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Internal durable command approvals — 11 November 2026
+
+Implementation in development against main `f9a85f3`, within the existing L1.4
+requirement for reviewed per-repository commands. Share the existing SQLite
+connection and keep approval snapshots, attributed events and idempotency
+receipts separate from execution runs. Fresh service-owned configuration reads
+supply authority; callers supply only the expected candidate identity. Scope
+reuse to the approving operator and the existing repository/content/policy
+identity, allowing unchanged configuration at sibling workspaces and newer bases.
+
+Completed duplicate requests read their historical receipt, even when source
+files are unavailable. A separate lookup must reread and compare the current
+candidate before reporting a reusable approval. Neither a receipt nor this
+point-in-time match starts work or fences later filesystem changes. Keep local
+approvals outside the existing portable-history format; restoration must never
+install execution authority. See the
+[acceptance contract](specs/0013-local-mvp.md#internal-durable-command-approval-acceptance)
+for transaction, corruption, concurrency and migration checks. Implementation
+and validation evidence are pending. This changes no accepted security or
+product decision, and does not complete L1.4. Future execution still requires
+independent ownership and review of command-defining and test changes.
+
 ### Base-bound command configuration groundwork — 11 November 2026
 
 Implemented at `914323d962b031f4e44e9c0047c626c5800e6643`, with validation
