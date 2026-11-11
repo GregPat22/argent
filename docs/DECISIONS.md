@@ -47,6 +47,30 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Exact-commit observation before reviewed execution — 11 November 2026
+
+In development against main `3feb50e`, within the accepted L1.4 security contract.
+Keep exact-commit observation separate from consent and execution. Reuse the
+bounded no-follow file reader to require raw index and tracked bytes/modes to
+match the observed HEAD. Bind the workspace/base and the operator's freshly
+matched configuration approval, and recheck previously read file identities at
+the end. This is a point-in-time observation with ignored content excluded,
+not a complete review diff, binary review policy, approval receipt or runnable
+plan. Git executable mode follows owner execute consistently in candidate
+inspection, live changes and untracked worktree manifests; group-only execute
+must not hide a mode change. Existing dormant jobs remain forbidden to execute. See the
+[acceptance contract](specs/0013-local-mvp.md#internal-exact-commit-candidate-observation-acceptance).
+
+The Git audit found that `protocol.allow=never` is only a default and can be
+superseded by [per-protocol configuration](https://git-scm.com/docs/git-config#Documentation/git-config.txt-protocolallow).
+Use an empty `GIT_ALLOW_PROTOCOL` allowlist to deny all transports independently
+of repository overrides, plus `GIT_NO_LAZY_FETCH=1` on versions supporting it.
+Local owned helper fixtures reproduced the override and its refusal on Git
+2.42.0 and 2.54.0 without network access. Optional index refresh remains disabled.
+This preserves the existing no-helper/no-network boundary, raises no minimum
+Git version and changes no product or accepted security requirement.
+Implementation and validation evidence are pending.
+
 ### Dormant command ownership — 11 November 2026
 
 Implemented at `f70dbf3240daa14e4a8240ba5aaf16694015e3dc`, with validation recorded

@@ -4,6 +4,8 @@ import { lstat, open, readlink, realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import {
   DomainError,
+  UncertainExecutionError,
+  requireString,
   type WorkspaceChanges,
   type WorkspaceChange,
 } from "./domain.js";
@@ -36,6 +38,22 @@ interface Entry {
   bytes?: Buffer;
 }
 
+type FileIdentity = Pick<
+  Awaited<ReturnType<typeof lstat>>,
+  "dev" | "ino" | "mode" | "size" | "nlink" | "mtimeMs" | "ctimeMs"
+>;
+function fileIdentity(stat: FileIdentity): FileIdentity {
+  return {
+    dev: stat.dev,
+    ino: stat.ino,
+    mode: stat.mode,
+    size: stat.size,
+    nlink: stat.nlink,
+    mtimeMs: stat.mtimeMs,
+    ctimeMs: stat.ctimeMs,
+  };
+}
+
 function pathName(name: string): string {
   if (
     isAbsolute(name) ||
@@ -59,7 +77,9 @@ async function readFile(
   directory: string,
   name: string,
   signal: AbortSignal,
-): Promise<{ mode: string; bytes: Buffer } | undefined> {
+): Promise<
+  { mode: string; bytes: Buffer; identity: FileIdentity } | undefined
+> {
   signal.throwIfAborted();
   const path = join(directory, pathName(name));
   // Inspect every parent before opening the leaf. A removed directory is a deletion;
@@ -130,7 +150,8 @@ async function readFile(
       )
         throw unsafe();
       bytes = bytes.subarray(0, count);
-      mode = before.mode & 0o111 ? "100755" : "100644";
+      // Git's executable mode follows the owner's execute bit, not any x bit.
+      mode = before.mode & 0o100 ? "100755" : "100644";
     } finally {
       await file.close();
     }
@@ -143,7 +164,245 @@ async function readFile(
     after.ctimeMs !== before.ctimeMs
   )
     throw unsafe();
-  return { mode, bytes };
+  return { mode, bytes, identity: fileIdentity(after) };
+}
+
+export type LocalCommandCandidateObservation = Readonly<{
+  kind: "local-command-candidate-observation";
+  version: 1;
+  identity: string;
+  policyVersion: "argent-local-command-candidate-v1";
+  workspaceId: string;
+  operatorId: string;
+  approvalId: string;
+  configurationIdentity: string;
+  configurationPolicyVersion: string;
+  baseSha: string;
+  headSha: string;
+  treeId: string;
+  files: number;
+  cleanliness: "index-and-git-visible-bytes-match";
+  ignoredContent: "excluded";
+  review: "not-collected";
+  execution: "forbidden";
+  consistency: "point-in-time";
+  simulation: false;
+  tested: false;
+}>;
+
+/** Internal observation only: neither human consent nor a reviewed execution plan. */
+export async function inspectLocalCommandCandidate(
+  store: Store,
+  worktreeRoot: string,
+  workspaceId: string,
+  operatorId: string,
+  requestedSignal?: AbortSignal,
+): Promise<LocalCommandCandidateObservation> {
+  const controller = new AbortController();
+  const signal = requestedSignal
+    ? AbortSignal.any([requestedSignal, controller.signal])
+    : controller.signal;
+  const timer = setTimeout(
+    () =>
+      controller.abort(new DomainError(408, "Candidate inspection timed out")),
+    CHANGES_LIMITS.timeoutMs,
+  );
+  const changed = () =>
+    new DomainError(409, "Workspace does not match an approved clean commit");
+  try {
+    signal.throwIfAborted();
+    if (
+      typeof workspaceId !== "string" ||
+      ID.exec(workspaceId)?.[0] !== workspaceId
+    )
+      throw changed();
+    requireString(operatorId, "operatorId", 128);
+    const workspace = store.getWorkspace(workspaceId);
+    const local = workspace.local;
+    if (workspace.provider !== "local-worktree" || !local) throw changed();
+    const root = await realpath(worktreeRoot);
+    const directory = join(root, workspaceId);
+    if (local.worktreePath !== directory) throw changed();
+    const directories = async () => {
+      if ((await realpath(worktreeRoot)) !== root) throw changed();
+      return Promise.all(
+        [root, directory].map(async (path) => {
+          if ((await realpath(path)) !== path) throw changed();
+          const stat = await lstat(path, { bigint: true });
+          if (!stat.isDirectory()) throw changed();
+          return { path, dev: String(stat.dev), ino: String(stat.ino) };
+        }),
+      );
+    };
+    const beforeDirectories = await directories();
+    const approved = await store.localCommandApprovals.lookup(
+      root,
+      workspaceId,
+      operatorId,
+      signal,
+    );
+    if (!approved) throw changed();
+    const adapter = new LocalWorktreeWorkspace(store, root);
+    await adapter.prepare(workspace, signal);
+    const text = async (args: string[]) => {
+      const value = decode(await git(directory, args, 1 << 20, signal));
+      if (!value.endsWith("\n")) throw changed();
+      return value.slice(0, -1);
+    };
+    const revision = async (value: string) => {
+      const sha = await text(["rev-parse", "--verify", value]);
+      if (SHA.exec(sha)?.[0] !== sha) throw changed();
+      return sha;
+    };
+    const headSha = await revision("HEAD^{commit}");
+    const treeId = await revision(`${headSha}^{tree}`);
+    const tree = new Map<string, Entry>();
+    const treeBytes = decode(
+      await git(
+        directory,
+        ["ls-tree", "-r", "-z", "--full-tree", headSha],
+        1 << 20,
+        signal,
+      ),
+    );
+    if (treeBytes && !treeBytes.endsWith("\0")) throw changed();
+    for (const record of treeBytes.split("\0").filter(Boolean)) {
+      const match =
+        /^(100644|100755|120000) blob ([a-f0-9]{40}|[a-f0-9]{64})\t([\s\S]+)$/.exec(
+          record,
+        );
+      if (!match) throw changed();
+      const name = pathName(match[3]!);
+      if (tree.has(name)) throw changed();
+      tree.set(name, { mode: match[1]!, oid: match[2]! });
+      if (tree.size > CHANGES_LIMITS.files) throw limit();
+    }
+    const index = () =>
+      git(directory, ["ls-files", "--stage", "-z"], 1 << 20, signal);
+    const beforeIndex = await index();
+    const indexText = decode(beforeIndex);
+    if (indexText && !indexText.endsWith("\0")) throw changed();
+    const indexed = new Set<string>();
+    for (const record of indexText.split("\0").filter(Boolean)) {
+      const match =
+        /^(100644|100755|120000) ([a-f0-9]{40}|[a-f0-9]{64}) 0\t([\s\S]+)$/.exec(
+          record,
+        );
+      if (!match) throw changed();
+      const name = pathName(match[3]!);
+      const entry = tree.get(name);
+      if (
+        indexed.has(name) ||
+        !entry ||
+        entry.mode !== match[1] ||
+        entry.oid !== match[2]
+      )
+        throw changed();
+      indexed.add(name);
+    }
+    if (indexed.size !== tree.size) throw changed();
+    const untracked = () =>
+      git(
+        directory,
+        ["ls-files", "--others", "--exclude-standard", "-z"],
+        1 << 20,
+        signal,
+      );
+    if ((await untracked()).length) throw changed();
+    const identities = new Map<string, FileIdentity>();
+    let total = 0;
+    for (const [name, entry] of tree) {
+      signal.throwIfAborted();
+      const file = await readFile(directory, name, signal);
+      if (!file || file.mode !== entry.mode) throw changed();
+      total += file.bytes.length;
+      if (total > CHANGES_LIMITS.totalBytes) throw limit();
+      const oid = createHash(headSha.length === 64 ? "sha256" : "sha1")
+        .update(`blob ${file.bytes.length}\0`)
+        .update(file.bytes)
+        .digest("hex");
+      if (oid !== entry.oid) throw changed();
+      identities.set(name, file.identity);
+    }
+    const currentApproval = await store.localCommandApprovals.lookup(
+      root,
+      workspaceId,
+      operatorId,
+      signal,
+    );
+    if (JSON.stringify(currentApproval) !== JSON.stringify(approved))
+      throw changed();
+    await adapter.prepare(workspace, signal);
+    if (
+      (await revision("HEAD^{commit}")) !== headSha ||
+      !(await index()).equals(beforeIndex) ||
+      (await untracked()).length ||
+      JSON.stringify(store.getWorkspace(workspaceId).local) !==
+        JSON.stringify(local) ||
+      JSON.stringify(await directories()) !== JSON.stringify(beforeDirectories)
+    )
+      throw changed();
+    // Recheck every previously read file after the complete traversal and Git
+    // reads. A change to an early file must not disappear behind a later read.
+    for (const [name, before] of identities) {
+      signal.throwIfAborted();
+      const path = join(directory, name);
+      if (
+        (await realpath(dirname(path))) !== dirname(path) ||
+        JSON.stringify(fileIdentity(await lstat(path))) !==
+          JSON.stringify(before)
+      )
+        throw changed();
+    }
+    signal.throwIfAborted();
+    const policyVersion = "argent-local-command-candidate-v1";
+    const configuration = approved.candidate.approvalCandidate;
+    const identity = createHash("sha256")
+      .update(
+        JSON.stringify([
+          policyVersion,
+          workspaceId,
+          operatorId,
+          approved.approval.id,
+          configuration.identity,
+          configuration.policyVersion,
+          local.baseSha,
+          headSha,
+          treeId,
+        ]),
+      )
+      .digest("hex");
+    return Object.freeze({
+      kind: "local-command-candidate-observation",
+      version: 1,
+      identity,
+      policyVersion,
+      workspaceId,
+      operatorId,
+      approvalId: approved.approval.id,
+      configurationIdentity: configuration.identity,
+      configurationPolicyVersion: configuration.policyVersion,
+      baseSha: local.baseSha,
+      headSha,
+      treeId,
+      files: tree.size,
+      cleanliness: "index-and-git-visible-bytes-match",
+      ignoredContent: "excluded",
+      review: "not-collected",
+      execution: "forbidden",
+      consistency: "point-in-time",
+      simulation: false,
+      tested: false,
+    });
+  } catch (error) {
+    if (error instanceof UncertainExecutionError) throw error;
+    if (signal.aborted) signal.throwIfAborted();
+    if (error instanceof DomainError && [400, 408, 413].includes(error.status))
+      throw error;
+    throw changed();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Git-style C quoting preserves every UTF-8 filename byte in display patches. */

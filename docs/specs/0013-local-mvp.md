@@ -582,6 +582,66 @@ Execution still requires a separate reviewed candidate and command plan, clean
 verification checkout, bounded process supervision and exact-commit evidence.
 Ownership and configuration approval alone establish none of those facts.
 
+#### Internal exact-commit candidate observation acceptance
+
+In development against main `3feb50ef870d3ad2fe17d4784ef2b4cdaa9553a9`.
+This read-only groundwork binds an operator's approved base configuration to an
+exact observed commit. It does not collect human review, produce a complete
+review diff or execution plan, persist consent, enqueue work or run commands.
+
+1. The service supplies its worktree root, stored workspace ID and trusted
+   operator identity. The inspector freshly looks up that operator's approved
+   configuration and derives HEAD, tree and base identities itself. It accepts
+   no caller path, revision, argv or purported review. The immutable versioned
+   observation binds workspace, operator, approval, configuration identity and
+   policy, base, HEAD and tree. It explicitly says review is not collected,
+   execution is forbidden, ignored content is excluded and no tests were run.
+2. Require the complete raw index to equal the pinned HEAD tree, including modes
+   and stage zero. Read every tracked file's actual bytes with the existing
+   bounded, no-follow changes reader and compare its Git blob identity and mode
+   with HEAD. Executable mode follows the owner execute bit, as Git does. Reject
+   staged, unstaged, index-only, missing and nonignored
+   untracked files, unresolved entries and submodules. Do not trust Git's stat
+   cache, assume-unchanged/skip-worktree flags, filters or normalization to prove
+   byte equality. A file Git considers clean after conversion may be refused.
+3. Recheck HEAD, index, nonignored untracked listing, stored workspace binding,
+   directory identity and fresh approval binding. After the complete traversal
+   and those Git reads, recheck every observed file's identity and metadata so
+   an early-read file changed later in the operation cannot silently pass.
+   These are point-in-time checks, not an atomic filesystem snapshot or protection
+   against arbitrary host-owner tampering.
+4. Reuse the changes limits: 1,000 files, 4 MiB per file, 32 MiB total file bytes
+   and one ten-second deadline over the complete operation. Bound Git listings,
+   reject unsafe types/paths and fail the whole operation on overflow, observed
+   change or cancellation. Binary bytes can be compared for identity but are not
+   thereby human-reviewed. Existing changes display and API shapes stay unchanged.
+5. Trusted Git keeps optional index refresh disabled. An empty
+   `GIT_ALLOW_PROTOCOL` allowlist denies transports despite per-protocol repository
+   configuration; `GIT_NO_LAZY_FETCH=1` adds a guard on Git versions that support
+   it. Missing promisor objects fail closed without transport/helper execution.
+   This requires no minimum Git version increase. Local marker-only helper
+   fixtures exercise the older-Git transport refusal without contacting a server.
+6. Observation has no idempotency receipt or durable approval state. Restart
+   performs a new read; an old object cannot authorize execution or prove current
+   cleanliness. Ignored dependencies, caches and build outputs remain excluded:
+   future verification still needs a fresh owned checkout. Complete pinned
+   base-to-candidate review, including changed command/test machinery and a
+   truthful treatment of binary content, remains separate work.
+7. Tests cover stable and changed commit identities, actor/configuration binding,
+   raw index and file changes, hidden dirtiness flags, final file mutation,
+   binary/symlink behavior, unsupported files/submodules, bounds, abort/deadline
+   and no store/index/job mutation. Existing changes and approval tests must pass,
+   followed by the complete repository check and security review. No configured
+   marker is executed and no dormant command job becomes runnable.
+
+The same owner-execute interpretation applies to live changes and the untracked
+worktree manifest. Group-only execute permission must neither masquerade as Git
+mode `100755` nor hide removal of owner execute. Existing historical records are
+not rewritten; the records remain untested.
+
+Implementation and validation evidence are pending. This does not complete L1.4
+or establish human consent, fresh-checkout isolation or trusted test evidence.
+
 ### L1.5 draft pull request and archive
 
 Commit and push the workspace branch and open a draft pull request through `gh`,
