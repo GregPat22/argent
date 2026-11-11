@@ -581,7 +581,7 @@ recorded on 11 November 2026. The read-only `local-command-review.ts` module
 first requires a fresh exact-commit observation, then compares the recorded
 base tree with the observed commit's tree. Trusted Git reads only objects named
 by those two commits; each blob is checked against its listed size and its own
-object ID. The live changes inspector and the review share one comparison
+object ID, while commit and tree objects are taken from Git as listed. The live changes inspector and the review share one comparison
 helper for exact renames and bounded whole-file hunks; the inspector's public
 contract is unchanged.
 

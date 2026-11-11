@@ -684,7 +684,8 @@ persists nothing, enqueues no work and runs no command. L1.4 remains incomplete.
    never the worktree, the index, replacement refs, filters, textconv or an
    external diff. Every blob read is checked against the size in the pinned
    tree listing and against its own Git object ID, so content Git would serve
-   under a mismatched ID is refused. A missing object, a gitlink, an unsafe
+   under a mismatched ID is refused. Commit and tree objects are taken from
+   Git as listed and are not independently hashed. A missing object, a gitlink, an unsafe
    path, an invalid-UTF-8 path name or a malformed listing fails the whole
    review.
 3. Each changed file records its status, both modes, both blob IDs and both
@@ -758,8 +759,10 @@ The diff was checked by its author against the
 [security model](#security-model): explicit argument arrays, object IDs taken
 only from validated listings, no caller-supplied path or revision, no worktree
 or index read after the observation and no process other than trusted Git.
-Independent review, a clean-checkout run of the final revision and hosted
-integration checks remain required.
+Blob content is the only thing the review hashes itself: a forged commit or
+tree object that Git serves could still misstate the change set, which stays
+within the host-owner tampering the local mode does not claim to resist.
+Independent review and hosted integration checks remain required.
 
 Limits: every trusted Git read starts two processes, and a review reads up to
 two blobs per changed file, so a change set of several hundred files can reach
