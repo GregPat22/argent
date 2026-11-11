@@ -132,3 +132,62 @@ about 17 ms at 1440 by 900. A browser test covers it.
 Confirmed on 10 November 2026: the hosted run for the pull request carrying
 this change passed all three jobs, including every browser test in the website
 job.
+
+## Startup ownership regression acceptance
+
+Implemented at `d2ef4e562a9f809524026af228eb8a2c8a39844e`, validated on 11 November
+2026 against main `951f101`.
+A controlled contention fixture reproduces a losing startup process remaining
+alive after both callers receive the winning connection. Stopping that winner
+releases the SQLite lock and lets the contender publish a replacement service.
+This violates the explicit-stop contract even though ordinary startup and
+reconnection tests pass.
+
+Acceptance criteria:
+
+1. A launcher retains its actual child-process handle until its own authenticated,
+   healthy service is selected or that child has exited. Only selection of its
+   own daemon transfers lifetime ownership and unreferences the child.
+2. Before returning a different healthy owner, the launcher terminates and reaps
+   its own contender, then revalidates that owner's health. This also applies to
+   a contender delayed before it attempts the ownership lock. No process ID read
+   from a connection file authorizes a signal.
+3. Startup errors, timeouts and early read failures clean up the launched handle.
+   Cleanup sends bounded termination and kill signals and requires an observed
+   exit. The graceful interval accommodates the existing agent shutdown budget;
+   leader exit alone does not prove descendant quiescence. A signal error is not
+   proof of exit; an unconfirmed cleanup is an explicit
+   failure. Startup does not retry by spawning another process automatically.
+4. Automated cases cover ordinary and delayed concurrent launches, preservation
+   of the selected owner, explicit stop without resurrection, launch/read errors,
+   timeout escalation and unconfirmed cleanup. Existing restart, persisted-history
+   and active-stop assertions remain intact. Native smoke must still show service
+   survival after the desktop window exits.
+
+### Startup ownership validation
+
+Implementation `d2ef4e562a9f809524026af228eb8a2c8a39844e` passes all eighteen focused
+startup and existing desktop lifecycle cases. `npm run check` passes type
+checking, formatting, build and all 541 tests without failures, cancellations or
+skips. Native desktop smoke passes, including window reopening, service restart
+and continued service health after the app exits. The source/tests diff received
+an independent lifecycle review.
+
+The two new real-process concurrency regressions were also run against unchanged
+implementation `60b30bb`, whose tree matches main `951f101`: both fail specifically
+because the unselected child is still alive when startup returns. Their captured
+child handles are reaped even on assertion failure. The same assertions pass
+with the fix. A post-check process audit found no new detached test service;
+these observations do not claim durable descendant reconciliation after a hard
+service crash.
+
+The baseline reproduction used only an owned temporary profile and simulated service, with all
+launched handles reaped. A separate unchanged baseline at `60b30bb` passes the
+existing concurrent-start test. An intermediate change to nonwaiting SQLite
+acquisition failed that test with a startup timeout; the final correction keeps
+the original lock policy and passes the focused suite. No SQLite initialization
+root cause is inferred from that timeout.
+The controlled reproduction establishes the startup lifecycle defect, not a failure
+of SQLite's exclusive
+ownership or a change to local execution permissions. Public release, signing,
+real-account execution and the remaining L1.4 checks are outside this correction.

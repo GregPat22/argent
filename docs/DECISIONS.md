@@ -409,3 +409,21 @@ the bounded response, with a dedicated twenty-second request timeout.
 The [implementation evidence](specs/0013-local-mvp.md#l13-implementation-evidence)
 records passing repository checks and native acceptance on 11 November 2026.
 Trusted checks remain L1.4; no product, milestone or local security decision changes.
+
+### Desktop startup ownership correction — 11 November 2026
+
+Implemented at `d2ef4e562a9f809524026af228eb8a2c8a39844e`, validated on 11 November
+2026, preserving the accepted detached-service and explicit-stop contract. A connection returned by another launcher does not
+release responsibility for a newly spawned contender. Retain the actual process
+handle until its own authenticated daemon is selected, or terminate it and
+observe exit before returning another owner. Never signal a PID supplied by a
+connection file. Preserve the existing SQLite ownership lock, with bounded
+launcher cleanup and explicit failure when termination cannot be confirmed; do not automatically
+spawn a replacement on failure. Window close still leaves the selected daemon
+running. The [regression contract](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
+records the controlled baseline defect and required lifecycle/native checks.
+Both new real-process regressions fail on unchanged main and pass with the fix;
+the complete repository check passes 541 tests and native smoke preserves service
+survival after desktop exit. See the
+[validation evidence](specs/0004-desktop-prototype.md#startup-ownership-validation).
+No product, milestone, execution-permission or recovery-policy decision changes.
