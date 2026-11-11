@@ -158,6 +158,7 @@ both phone-layout rectangles in one browser evaluation. Keep the same alignment
 and right-edge limits, all animation/state/accessibility assertions, and the
 production animation. No fixed sleep or wider tolerance substitutes for rest.
 
-The corrected focused test passed three software-rendered runs with one worker.
+The correction at `5e59216c5ed604512430a6fada11710a7d5668ca` passed three
+focused software-rendered runs with one worker on 11 November 2026.
 Website typecheck/build/full browser tests, repository checks and review are
 required before integration.
