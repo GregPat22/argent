@@ -356,6 +356,54 @@ recorded commit is the workspace's current commit and the worktree is clean;
 any later change shows it as stale. This is the first time Argent itself
 launches repository code, so it needs its own security review.
 
+#### Internal command-configuration reader acceptance
+
+Acceptance recorded 11 November 2026 against main `9ddf9d7`. This is internal
+groundwork for L1.4, in development; it does not execute commands, store approvals
+or test evidence, or expose an API or desktop control. L1.4 remains incomplete.
+
+1. The reader accepts a stored workspace identifier and the service's worktree
+   root. It derives the repository, owned worktree, branch and exact base commit
+   from the store, validates their canonical paths and common Git directory,
+   and rechecks filesystem identity before returning. Callers cannot select a
+   file or revision. Trusted Git reads only root `argent.json` at the stored
+   base, never the current worktree, index or `HEAD`. Missing configuration means
+   not configured; a directory, symlink, gitlink, malformed object or oversized
+   blob fails closed. No repository or execution state is mutated.
+2. The version-1 shape is, for example,
+   `{"version":1,"commands":{"test":{"argv":["npm","test"]}}}`. Only `version`
+   and `commands` are accepted at the root, with one or more optional `setup`,
+   `run` and `test` actions. Each action has only `argv`, a nonempty array of
+   strings. Unknown keys, unsupported versions,
+   shell strings, an empty executable, NUL, invalid UTF-8 and unpaired Unicode
+   surrogates are rejected. Environment, working-directory and runtime overrides
+   are not accepted. Parsed commands and returned metadata are immutable.
+3. Limits are 64 KiB of configuration bytes, 64 arguments per action and 4 KiB
+   per argument. Blob size is bounded before content is read. One ten-second
+   deadline and cancellation signal cover validation and every Git read;
+   cancellation awaits supervised Git cleanup. Errors never disclose file
+   contents or raw process output.
+4. The descriptor records the source base SHA, fixed path, blob ID and SHA-256 of
+   the exact bytes. Its approval-candidate identity hashes a versioned structured
+   encoding of the canonical repository common-directory path, device and inode,
+   content digest and interpretation-policy version. The same bytes in sibling
+   workspaces or at a newer base have the same candidate identity. Changed bytes,
+   repository identity or interpretation policy require a different identity.
+   This is not an approval grant, and local mode is not tamper-resistant against
+   the host owner.
+5. Real temporary Git fixtures cover base-versus-current content, identity
+   stability and changes, strict schema/byte bounds, unsafe blob modes,
+   replacement refs, hostile hooks/filters, cancellation and the shared deadline.
+   Reads leave store records, events, index and working files unchanged and never
+   execute a configured action. These fixtures call no model.
+
+Later execution must compare command-defining and test changes against the trusted
+base and surface them for human review, as required by the
+[verification architecture](../../ARCHITECTURE.md#evidence-and-external-actions).
+Freezing an `npm test` argument array alone does not prevent candidate code from
+changing what that command tests. Approval persistence, process execution,
+exact-commit results and stale-result UI remain separate work.
+
 ### L1.5 draft pull request and archive
 
 Commit and push the workspace branch and open a draft pull request through `gh`,

@@ -102,6 +102,12 @@ are fixed or listed. Item 2 is implemented and verified at `37ea780`: the
 records automated service/renderer tests and the native desktop flow. Trusted
 checks (L1.4) are next; the complete L1 exit remains open.
 
+L1.4 internal groundwork is in development: a
+[bounded base-commit command-configuration reader](docs/specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance).
+It supplies source and review-candidate identities only. Command approval,
+execution, exact-commit results and stale-result display remain unimplemented;
+work-queue item 3 is not complete.
+
 Already implemented: L1.1, L1.2, L1.3, the
 [local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening) and
 the [desktop restyle](docs/specs/0015-desktop-restyle.md).
