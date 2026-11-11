@@ -60,12 +60,100 @@ test("agent success claims cannot substitute for verification", async (t) => {
   );
 });
 
-test("heartbeats keep a longer task alive beyond its original lease", async (t) => {
-  const { store, workspace, worker } = fixture(t, new ScriptedAgent(150));
-  const run = store.createRun(workspace.id, "Task", "key");
-  await worker.tick();
-  assert.equal(store.getRun(run.id).status, "completed");
-});
+for (const stallMs of [0, 250]) {
+  test(`heartbeats keep a longer task alive beyond its original lease (stall ${stallMs} ms)`, async (t) => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let entered!: () => void;
+    const ready = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const agent: AgentAdapter = {
+      async *execute(run, directory, signal) {
+        // Exercise synchronous scheduling pressure without making wall-clock
+        // throughput a condition of this isolated heartbeat assertion.
+        if (stallMs)
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, stallMs);
+        entered();
+        await gate;
+        signal.throwIfAborted();
+        yield* new ScriptedAgent(0).execute(run, directory, signal);
+      },
+    };
+    // Keep real timeout/cancellation coverage in the separate cases below.
+    // Only this test's ownership clock and heartbeat interval are controlled.
+    t.mock.timers.enable({ apis: ["Date", "setInterval"], now: Date.now() });
+    const { store, workspace, worker } = fixture(t, agent);
+    const heartbeat = t.mock.method(store, "heartbeat");
+    const run = store.createRun(workspace.id, "Task", "key");
+    const shutdown = new AbortController();
+    let settled = false;
+    const running = worker.tick(shutdown.signal).finally(() => {
+      settled = true;
+    });
+    const initial = store.getRun(run.id);
+    const originalExpiry = initial.leaseExpiresAt!;
+    const leaseMs = originalExpiry - Date.now();
+    async function bounded<T>(pending: Promise<T>): Promise<T> {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          pending,
+          new Promise<never>((_resolve, reject) => {
+            timer = setTimeout(
+              () => reject(new Error("Heartbeat fixture did not settle")),
+              5000,
+            );
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+    try {
+      await bounded(
+        Promise.race([
+          ready,
+          running.then(() => {
+            throw new Error("Worker settled before agent gate");
+          }),
+        ]),
+      );
+      assert.equal(leaseMs, 200);
+      for (let step = 1; step <= 6; step++) {
+        t.mock.timers.tick(leaseMs / 4);
+        const current = store.getRun(run.id);
+        assert.equal(current.status, "running");
+        assert.equal(current.leaseToken, initial.leaseToken);
+        assert.equal(current.leaseExpiresAt, Date.now() + leaseMs);
+        assert.equal(heartbeat.mock.callCount(), step);
+        assert.equal(store.reconcile(), 0);
+        assert.equal(settled, false);
+      }
+      assert.ok(Date.now() > originalExpiry);
+      assert.equal(
+        store
+          .events(run.id)
+          .some((event) => event.type === "verification.recorded"),
+        false,
+      );
+      release();
+      await bounded(running);
+      assert.equal(store.getRun(run.id).status, "completed");
+      assert.equal(store.events(run.id).at(-2)?.type, "verification.recorded");
+      const calls = heartbeat.mock.callCount();
+      t.mock.timers.tick(leaseMs * 2);
+      assert.equal(heartbeat.mock.callCount(), calls);
+    } finally {
+      release();
+      shutdown.abort();
+      t.mock.timers.reset();
+      await bounded(running);
+    }
+  });
+}
 
 test("runtime limits abort the scripted task before it writes an artifact", async (t) => {
   const { root, store, workspace, worker } = fixture(t, new ScriptedAgent(150));

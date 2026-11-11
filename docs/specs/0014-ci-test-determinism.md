@@ -200,3 +200,50 @@ The correction at `5e59216c5ed604512430a6fada11710a7d5668ca` passed three
 focused software-rendered runs with one worker on 11 November 2026.
 Website typecheck/build/full browser tests, repository checks and review are
 required before integration.
+
+## Scripted worker heartbeat fixture correction
+
+Acceptance recorded 11 November 2026 against main `f9a85f3`. One hosted check
+at `a4eaeec` failed the unchanged scripted-worker heartbeat test with `running`
+instead of `completed`; another hosted check and the independent complete
+499-test validation passed. The test used a 200 ms lease and two real 150 ms
+agent delays, asserting only final completion. The unchanged-main focused case
+and full `npm run check` passed locally, including all 486 baseline tests.
+
+A controlled diagnostic using the unchanged-main runtime inserted a 250 ms
+synchronous stall before the first log write. The token remained unchanged but
+the lease expired before any heartbeat ran. The worker correctly refused the
+expired write and retained `running`; reconciliation then produced
+`needs_attention`, and no work could be claimed again. Without the stall, the
+same diagnostic completed after five heartbeats. This establishes a scheduling
+failure mechanism, not the precise cause of the uninstrumented hosted failure.
+Production lease, fencing, transition and deadline rules remain unchanged.
+
+Acceptance for the test-only correction:
+
+1. Keep the fixture's 200 ms lease. Gate the scripted agent explicitly and
+   control only this test's `Date` and heartbeat intervals; do not enlarge the
+   lease or rely on sleeps. Advance six 50 ms steps, passing the original expiry.
+   At each step assert exactly one heartbeat, unchanged ownership token,
+   persisted expiry one lease ahead of the clock, `running` status, no
+   reconciliation and an unsettled worker.
+2. While the gate remains closed, no verification event may exist. Release it,
+   run the normal simulation artifact producer and verifier, and require durable
+   completion with verification. Advance the clock after settlement and assert
+   no further heartbeat calls.
+3. Exercise both zero-delay and a synchronous 250 ms stall before the gate.
+   Bound gate and settlement waits with real timers; on failure release the
+   gate, cancel and await the owned worker before removing its temporary store.
+   Restore real time during cleanup. Keep the separate real-time runtime,
+   cancellation, lease-expiry, process-crash and contention tests unchanged.
+4. Run the focused variants, complete worker test file and `npm run check`.
+   Review the test/specification diff and preserve the unchanged-main comparison.
+
+Implemented at `eb1c99c61e1386f3562242a83f111b53e00b1570`.
+On 11 November 2026, both corrected focused variants and the complete 11-case
+worker test file passed. Full `npm run check` passed strict types, formatting,
+build and all 500 tests with no failures, cancellations or skips. Independent
+final review and integration checks remain required. No approval
+implementation or other production code changes are part of this correction.
+This isolated clock-controlled proof does not certify real-provider scheduling
+or establish that every possible intermittent test failure has been found.

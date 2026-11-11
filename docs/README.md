@@ -20,7 +20,12 @@ records service/renderer regression tests and the native desktop flow at
 The internal [base-commit command-configuration reader](specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance)
 is implemented at `914323d`; its [validation evidence](specs/0013-local-mvp.md#internal-reader-implementation-evidence)
 is recorded on 11 November 2026. It adds no command execution, approval storage or
-tested result, and L1.4 remains incomplete.
+tested result, and L1.4 remains incomplete. Internal
+[durable approval slice](specs/0013-local-mvp.md#internal-durable-command-approval-acceptance)
+is implemented at `268ed61`: atomic snapshots, attributed events and historical
+receipts,
+with fresh source validation for reuse. It adds no command dispatch or desktop
+controls.
 
 Working on Argent? The [roadmap's work queue](../ROADMAP.md#work-queue) lists
 what to do next, in order, with what each step depends on and what counts as

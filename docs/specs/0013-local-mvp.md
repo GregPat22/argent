@@ -402,8 +402,10 @@ Later execution must compare command-defining and test changes against the trust
 base and surface them for human review, as required by the
 [verification architecture](../../ARCHITECTURE.md#evidence-and-external-actions).
 Freezing an `npm test` argument array alone does not prevent candidate code from
-changing what that command tests. Approval persistence, process execution,
-exact-commit results and stale-result UI remain separate work.
+changing what that command tests. Approval persistence is covered by the
+[internal durable approval contract](#internal-durable-command-approval-acceptance)
+below. Process execution, exact-commit results and stale-result UI remain
+separate work.
 
 #### Internal reader implementation evidence
 
@@ -437,9 +439,77 @@ This evidence establishes the internal reader and its refusal boundaries only.
 It establishes no real-account agent run, command execution, persisted approval,
 trusted test result, desktop control or completed L1.4 exit. The approval candidate
 remains a descriptor rather than a grant, and local host-owner tampering remains
-outside the protection claimed. Approval persistence, reviewed command/test
-changes, bounded execution and exact-commit evidence with stale-result handling
-are still required.
+outside the protection claimed. The durable approval implementation below adds
+persistence separately. Reviewed command/test changes, bounded execution and
+exact-commit evidence with stale-result handling are still required.
+
+#### Internal durable command-approval acceptance
+
+Implemented at `268ed61759d50285d5a89d3319542caff6027ac4`, based on main
+`f9a85f32e5444079b738980e28a2d0971429a331`.
+This implements internal storage within the accepted L1.4 contract. It does not
+expose approval controls, create a command job or execute configured code. The
+complete L1.4 exit remains open.
+
+1. The internal approval operation accepts a stored workspace ID, expected
+   candidate identity and idempotency key. The service supplies its worktree root
+   and authenticated operator identity; neither comes from untrusted request
+   content. The operation freshly invokes the existing base-commit reader. It
+   never accepts caller-provided command arrays or configuration descriptors as
+   authority. Missing configuration or an unexpected candidate rejects without
+   recording approval. No public API or desktop bridge is added.
+2. One immutable approval snapshot per operator and candidate retains the parsed
+   commands, source base/blob/content hashes, policy, originating workspace and
+   approval timestamp. The candidate binds the canonical common Git directory's
+   path, device and inode as well as exact configuration bytes and interpretation
+   policy. A sibling workspace or later base with identical bytes can reuse the
+   same operator's approval. Another repository, changed bytes (including
+   whitespace), changed policy or another operator cannot reuse it.
+3. Approval, an attributed ordered event and the request receipt commit in one
+   `BEGIN IMMEDIATE` transaction on the existing SQLite connection. A new request
+   that reuses an approval records its own attributed reuse event and receipt;
+   it does not replace the original snapshot or timestamp. The transaction
+   rechecks duplicates and the stored workspace binding after the asynchronous
+   Git read. Concurrent writers serialize; any failed write rolls back the entire
+   request. Schema initialization is additive and rejects unsupported versions.
+4. The idempotency fingerprint binds workspace, operator and expected candidate.
+   An identical completed request returns its original historical receipt,
+   including after restart or loss of the workspace files, without reading Git
+   or adding an event. Changed request content with the same key conflicts.
+   A receipt is explicitly historical: it is never a current authorization,
+   command request or portable execution grant.
+5. Reusable-approval lookup always freshly reads the service-owned candidate and
+   compares its identity, current policy, source content/blob hashes and parsed
+   command snapshot with the stored approval. Missing approval returns no match;
+   unsafe reads and malformed or inconsistent stored snapshots fail closed.
+   Every snapshot read, including historical receipt reads, verifies its stored
+   checksum. This detects accidental corruption; the host owner can replace it.
+   Returned records are deeply immutable. This is only a point-in-time match.
+   Future execution must independently revalidate under its own ownership rules;
+   no database transaction makes the filesystem immutable. Local host-owner
+   tampering remains outside the protection claimed.
+6. Approval has no effect on workspace execution state, runs, leases or worker
+   dispatch. Portable history retains its existing version and field allowlist:
+   local worktree exports remain unsupported, approval records are excluded from
+   unrelated simulation exports, and restore creates only read-only history
+   tables. An imported bundle cannot install approvals or execution authority.
+7. Automated fixtures cover fresh-source binding, expected-digest rejection,
+   repository/operator separation, sibling and newer-base reuse, invalid inputs,
+   cancellation, snapshot corruption, rollback at event and receipt insertion,
+   migration, independent-process contention, duplicate/conflicting requests,
+   restart and portable-history exclusion. Configured marker commands remain
+   unexecuted, and the normal worker has no job to claim.
+
+Validation recorded on 11 November 2026 for implementation
+`268ed61759d50285d5a89d3319542caff6027ac4`: all thirteen focused approval tests
+passed, as did `npm run check` with strict types, formatting, build and all 499
+automated tests. Diff review found no remaining blockers. Independent final
+checkout verification and hosted integration checks remain required.
+These fixtures use local temporary Git repositories and no actual agent account.
+Command execution,
+review of candidate changes to command-defining files and tests, exact-commit
+results, stale-result display and the complete L1.4 exit remain separate work.
+Configuration approval alone does not approve later changes to a test script.
 
 ### L1.5 draft pull request and archive
 

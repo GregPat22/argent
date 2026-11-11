@@ -47,6 +47,32 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Internal durable command approvals — 11 November 2026
+
+Implemented at `268ed61759d50285d5a89d3319542caff6027ac4`, with validation recorded
+on 11 November 2026, within the existing L1.4
+requirement for reviewed per-repository commands. Share the existing SQLite
+connection and keep approval snapshots, attributed events and idempotency
+receipts separate from execution runs. Fresh service-owned configuration reads
+supply authority; callers supply only the expected candidate identity. Scope
+reuse to the approving operator and the existing repository/content/policy
+identity, allowing unchanged configuration at sibling workspaces and newer bases.
+
+Completed duplicate requests read their historical receipt, even when source
+files are unavailable. A separate lookup must reread and compare the current
+candidate before reporting a reusable approval. Neither a receipt nor this
+point-in-time match starts work or fences later filesystem changes. Keep local
+approvals outside the existing portable-history format; restoration must never
+install execution authority. See the
+[acceptance contract](specs/0013-local-mvp.md#internal-durable-command-approval-acceptance)
+for transaction, corruption, concurrency and migration checks. Focused approval
+tests and the complete repository check passed. Every snapshot read verifies a
+stored checksum, including historical receipts; this detects corruption and
+does not authenticate data against the local host owner. This changes no accepted
+security or
+product decision, and does not complete L1.4. Future execution still requires
+independent ownership and review of command-defining and test changes.
+
 ### Base-bound command configuration groundwork — 11 November 2026
 
 Implemented at `914323d962b031f4e44e9c0047c626c5800e6643`, with validation
@@ -66,8 +92,9 @@ and full comparisons, and a controlled reproduction of the short test lease's
 sensitivity. The [fixture correction](specs/0014-ci-test-determinism.md#local-worktree-process-fixture-lease-correction)
 preserves production expiry rules; the original failures' precise cause remains
 unconfirmed. This does not establish command
-execution or the L1.4 exit, which remains in development. Execution, approval
-persistence and evidence remain planned. The accepted requirement to review
+execution or the L1.4 exit, which remains in development. Approval persistence is
+covered by the internal durable approval implementation above; execution and
+test evidence remain planned. The accepted requirement to review
 command-defining and test changes against the trusted base is unchanged: a
 frozen command can still invoke a candidate-modified script. Local execution
 remains unsandboxed and cannot resist arbitrary host-owner tampering.
