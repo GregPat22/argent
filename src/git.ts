@@ -30,6 +30,11 @@ function environment(): NodeJS.ProcessEnv {
     GIT_CONFIG_NOSYSTEM: "1",
     GIT_CONFIG_GLOBAL: "/dev/null",
     GIT_OPTIONAL_LOCKS: "0",
+    // Unlike protocol.allow, this allowlist overrides per-protocol repository
+    // configuration. Empty means no transport, including lazy promisor fetches.
+    GIT_ALLOW_PROTOCOL: "",
+    // Newer Git also understands this guard; transport denial covers older Git.
+    GIT_NO_LAZY_FETCH: "1",
     GIT_NO_REPLACE_OBJECTS: "1",
     LANG: "C",
   };

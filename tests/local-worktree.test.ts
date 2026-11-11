@@ -883,6 +883,36 @@ test("oversized or special untracked files cannot become complete evidence", asy
   );
 });
 
+test("untracked evidence uses Git owner-execute semantics while group execute is retained", async (t) => {
+  const f = fixture(t);
+  const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const directory = workspace.local!.worktreePath;
+  const run = f.store.createRun(workspace.id, "verify modes", "modes");
+  const adapter = new LocalWorktreeWorkspace(f.store, f.worktrees);
+  const file = join(directory, "new.txt");
+  writeFileSync(file, "same bytes");
+  let nonExecutable: string | undefined;
+  let executable: string | undefined;
+  for (const mode of [0o644, 0o654, 0o754, 0o654]) {
+    chmodSync(file, mode);
+    const manifest = await untrackedManifest(
+      directory,
+      Buffer.from("new.txt\0"),
+    );
+    assert.equal(manifest[0]!.mode, mode & 0o100 ? "100755" : "100644");
+    const record = await adapter.verify(directory, run);
+    if (mode & 0o100) {
+      executable = record.diffSha256;
+      assert.notEqual(executable, nonExecutable);
+    } else {
+      nonExecutable ??= record.diffSha256;
+      assert.equal(record.diffSha256, nonExecutable);
+    }
+    assert.equal(record.tested, false);
+  }
+  assert.ok(executable);
+});
+
 test("slow Git verification keeps the service responsive and the lease alive", async (t) => {
   const f = fixture(t);
   const workspace = await createLocalWorkspace(f.store, f.worktrees, f.repo);

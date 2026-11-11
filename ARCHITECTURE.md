@@ -537,3 +537,29 @@ contract; it must not silently activate dormant version-1 records.
 Persisted deadlines are ownership metadata only: no command runner exists to
 enforce runtime or abort configured processes. Lease-expiry reconciliation
 retains its existing uncertainty semantics.
+
+### Internal exact-commit candidate observation
+
+Implemented at `b7c426b` under the
+[acceptance contract](docs/specs/0013-local-mvp.md#internal-exact-commit-candidate-observation-acceptance),
+with [validation evidence](docs/specs/0013-local-mvp.md#internal-candidate-observation-evidence)
+recorded on 11 November 2026.
+A read-only inspector binds the stored workspace/base, observed HEAD/tree and a
+fresh operator configuration approval. It compares the raw index and safely read
+tracked bytes/modes to HEAD, rejecting nonignored untracked changes. Final
+per-file identity/metadata checks detect observed edits after earlier reads.
+The existing changes reader supplies the no-follow filesystem logic; its public
+live display contract remains unchanged.
+
+The returned object explicitly has no human review, no tests and no permission
+to execute. It is a bounded point-in-time observation, not an atomic snapshot.
+Ignored dependencies and build outputs remain excluded; a future verification
+runner still needs a fresh owned checkout and complete candidate review. No
+receipt, job, endpoint, desktop control or runnable plan is created.
+
+Trusted Git transport denial uses an empty `GIT_ALLOW_PROTOCOL` allowlist, which
+[overrides protocol configuration](https://git-scm.com/docs/git#Documentation/git.txt-GITALLOWPROTOCOL).
+`GIT_NO_LAZY_FETCH=1` adds a guard where supported; older Git still denies
+transport. Optional index refresh remains disabled. Local marker-only fixtures
+exercise explicit protocol overrides and missing promisor objects without a
+network or account. No minimum Git version is raised.

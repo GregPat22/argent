@@ -84,7 +84,8 @@ export async function untrackedManifest(
         )
           throw unsafe();
         bytes = bytes.subarray(0, count);
-        mode = before.mode & 0o111 ? "100755" : "100644";
+        // Git records the owner's execute bit, not group/other execute bits.
+        mode = before.mode & 0o100 ? "100755" : "100644";
       } finally {
         await file.close();
       }

@@ -109,8 +109,9 @@ L1.4 remains in development. Internal [durable approval storage](docs/specs/0013
 is implemented at `268ed61`; it adds no command execution or desktop controls.
 The internal [dormant command-ownership slice](docs/specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance)
 is implemented at `f70dbf3`. Its ownership-only payload cannot execute and adds no
-public actions or results. Approval controls, execution, exact-commit results and
-stale-result display remain unimplemented;
+public actions or results. Internal [exact-commit observation](docs/specs/0013-local-mvp.md#internal-exact-commit-candidate-observation-acceptance)
+is implemented at `b7c426b`; it is not human review or an execution plan. Approval
+controls, execution, exact-commit results and stale-result display remain unimplemented;
 work-queue item 3 is not complete.
 
 Already implemented: L1.1, L1.2, L1.3, the

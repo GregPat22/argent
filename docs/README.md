@@ -30,6 +30,13 @@ controls. The internal
 is implemented at `f70dbf3`; shared queue ownership supplies neither execution permission
 nor test evidence. L1.4 remains incomplete.
 
+The internal [exact-commit observation](specs/0013-local-mvp.md#internal-exact-commit-candidate-observation-acceptance)
+is implemented at `b7c426b`, with
+[validation evidence](specs/0013-local-mvp.md#internal-candidate-observation-evidence).
+It binds a fresh configuration approval to bounded raw
+index/working-byte equality with HEAD, explicitly excluding ignored content and
+collecting no human review. It adds no command execution or desktop capability.
+
 Working on Argent? The [roadmap's work queue](../ROADMAP.md#work-queue) lists
 what to do next, in order, with what each step depends on and what counts as
 done. [AGENTS.md](../AGENTS.md#9-when-to-stop-and-ask) says which decisions
