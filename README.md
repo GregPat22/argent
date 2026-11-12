@@ -193,6 +193,11 @@ The demo uses its own disposable token; never reuse it for a real deployment.
 
 ## Local API
 
+Configuration review and approval endpoints for the desktop's local service are
+in development; see the
+[service acceptance contract](docs/specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development).
+Configuration approval alone does not run commands or verify an agent's changes.
+
 The API binds only to `127.0.0.1:4310`. Send `Authorization: Bearer <token>` on
 every request.
 

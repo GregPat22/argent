@@ -129,6 +129,12 @@ work-queue item 3 is not complete. The
 [security correction](docs/specs/0013-local-mvp.md#review-and-checkout-security-correction)
 covers conditional filters, verified review objects and interrupted-checkout cleanup.
 
+The [configuration approval service integration](docs/specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development)
+is in development: authenticated inspection of base commands and idempotent
+approval receipts, with no command dispatch. Its bounded acceptance step precedes
+desktop configuration review controls. Candidate-change consent, execution,
+exact-commit results and stale-result display remain open; item 3 stays **Next**.
+
 Already implemented: L1.1, L1.2, L1.3, the
 [local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening) and
 the [desktop restyle](docs/specs/0015-desktop-restyle.md).
