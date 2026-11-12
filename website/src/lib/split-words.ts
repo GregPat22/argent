@@ -43,9 +43,15 @@ function maskLine(words: HTMLElement[]) {
   const line = document.createElement("span");
   line.dataset.splitLine = "";
   line.style.display = "block";
-  line.style.overflow = "hidden";
-  line.style.paddingBlock = MASK_BREATHING;
-  line.style.marginBlock = `-${MASK_BREATHING}`;
+  // Expand the paint clip for ascenders/descenders without changing line
+  // geometry. Padding with negative margins collapses across these wrappers,
+  // making headings taller until restore() removes them.
+  line.style.clipPath = `inset(-${MASK_BREATHING} 0)`;
+  const last = words.at(-1);
+  if (last) {
+    last.textContent = last.textContent?.trimEnd() ?? "";
+    last.style.marginInlineEnd = "";
+  }
   words.forEach((word, index) => {
     if (index) line.append(" ");
     line.append(word);
@@ -64,11 +70,15 @@ export function splitWords(el: HTMLElement, options: Options = {}): SplitText {
     const block = document.createElement("span");
     block.style.display = "block";
     block.setAttribute("aria-hidden", "true");
-    segment.split(/\s+/).forEach((text, index) => {
+    const tokens = segment.split(/\s+/);
+    tokens.forEach((text, index) => {
       const word = document.createElement("span");
       word.dataset.splitWord = "";
       word.style.display = "inline-block";
-      word.textContent = text;
+      // Keep the following space in the shaping run: fonts can kern punctuation
+      // against it. The external space still owns the line-breaking opportunity.
+      word.style.whiteSpace = "pre";
+      word.textContent = text + (index < tokens.length - 1 ? " " : "");
       if (index) block.append(" ");
       block.append(word);
       words.push(word);
@@ -77,6 +87,21 @@ export function splitWords(el: HTMLElement, options: Options = {}): SplitText {
   });
   if (options.label) el.setAttribute("aria-label", segments.join(" "));
   el.replaceChildren(...blocks);
+
+  // Cancel only the retained space's advance, leaving normal wrapping between
+  // words. Read all advances before writing margins to avoid repeated layout.
+  const spaces = words.map((word) => {
+    const text = word.firstChild!;
+    const length = text.textContent!.length;
+    if (!text.textContent!.endsWith(" ")) return 0;
+    const range = document.createRange();
+    range.setStart(text, length - 1);
+    range.setEnd(text, length);
+    return range.getBoundingClientRect().width;
+  });
+  words.forEach((word, index) => {
+    if (spaces[index]) word.style.marginInlineEnd = `-${spaces[index]}px`;
+  });
 
   // Group words by their rendered line before wrapping each line in a mask.
   for (const block of blocks) {

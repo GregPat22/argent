@@ -29,6 +29,12 @@ npx playwright install chromium  # once per machine
 npm run test:e2e                 # browser regression tests against the built site
 ```
 
+The browser suite keeps one worker and separates interactive, reveal and SEO
+checks into projects, giving each group a fresh browser process. Run one group
+with `npm run test:e2e -- --project=seo`; the default command runs every group.
+The [browser-isolation correction](../docs/specs/0014-ci-test-determinism.md#website-browser-process-isolation-in-development)
+records the CI evidence and validation limits.
+
 The repository also keeps a static download preview in `website/index.html` and
 `website/styles.css`. The root `npm run site:preview` serves it on port 4320 once
 a local desktop package exists; Next.js neither serves nor overwrites those files.
@@ -58,7 +64,10 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
   and motion is allowed, with a 4 s failsafe. New sections are picked up
   automatically (`main > section`); mark a nested list with
   `data-reveal-children` to stagger its items. Don't add `whileInView` lifts to
-  section content: the orchestrator owns them.
+  section content: the orchestrator owns them. The
+  [reveal layout correction](../docs/specs/0016-website-restyle.md#reveal-layout-regression-in-development)
+  is in development: temporary line masks use a paint-only clip so restoring
+  original text does not change heading height or shift neighboring content.
 - **Liquid silver.** `src/components/liquid-silver.tsx` renders the hero field
   without a 3D library. Elements marked `data-liquid-avoid` are keep-out zones
   the metal never drifts behind. It pauses offscreen, holds a still frame under
