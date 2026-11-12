@@ -32,15 +32,15 @@ const PROMISES: {
   },
   {
     title: "Your agents, your sign-in.",
-    body: "Agents run through their official tools under your own account. Argent never reads or copies that sign-in, and keeps API keys away from agents so you are never silently billed.",
+    body: "Claude Code uses its official sign-in. Argent does not copy that sign-in, pass provider API-key environment variables or automatically fall back to API billing. Local agents still have your filesystem and credential access.",
     status: "live",
     subject: "Claude Code",
   },
   {
     title: "Your history leaves with you.",
-    body: "Export your Argent history and restore it on another machine. No lock-in to us, to one model or to one vendor.",
+    body: "Your code stays in ordinary Git worktrees. The CLI exports and restores simulation history only; export of real Claude Code history and Git changes is planned.",
     status: "live",
-    subject: "Export and restore",
+    subject: "Simulation history CLI",
   },
   {
     title: "Stops when it isn’t sure.",
@@ -177,7 +177,8 @@ export function Manifesto() {
           <p className="mt-3 text-[0.9375rem] leading-relaxed text-sterling">
             For people who would rather not run servers, we may offer hosted
             workspaces as a paid service. It would run the exact same core, and
-            your history would stay exportable. Nothing is for sale today.
+            portable history would be a release requirement. Nothing is for sale
+            today.
           </p>
         </div>
       </div>

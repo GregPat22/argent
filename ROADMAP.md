@@ -29,7 +29,8 @@ worktree, diff, check and pull-request contracts that cloud workspaces need
 later. Work that continues with the laptop closed follows on the same engine:
 first on a remote host the developer owns, then in an optional managed cloud.
 
-Each workspace chooses its agent, and each run can choose a model the agent
+The planned agent picker lets each workspace choose its agent, and each run
+choose a model the agent
 offers under the developer's sign-in: Claude models through Claude Code, GPT
 models through Codex. Argent never routes or proxies models itself.
 The first public release ships with Claude Code through its official CLI. Codex
@@ -38,8 +39,9 @@ OpenCode, all through official interfaces. Subscriptions are validated
 per provider and deployment: there is no universal "link every subscription"
 promise. In local mode the agent uses its own official sign-in on the developer's
 computer; Argent never reads or copies it, and removes provider API-key variables
-from the agent's environment so that work is never silently switched to billable
-API usage. Hosted workers never receive desktop subscription credentials.
+from the agent's environment. Argent does not automatically fall back to API
+billing; the unsandboxed agent still has the developer's filesystem and
+credential access. Hosted workers never receive desktop subscription credentials.
 
 Local execution is not a sandbox. The agent runs as the developer, with the same
 access as running it in a terminal; a worktree separates changes, not privileges.
@@ -64,7 +66,7 @@ The desktop says so plainly. See [spec 0013](docs/specs/0013-local-mvp.md).
 | Evidence that travels                  | Planned, after the release.                                                                                                                  | The evidence record on a pull request can be checked again without the Argent app; checks report when the tests that judge a change were themselves removed or skipped; a read-only review by a second agent is recorded as a review, never as proof.      |
 | Remote host you own                    | Planned, before any managed cloud.                                                                                                           | The same API and worker on a machine the developer owns; the desktop connects over an authenticated, encrypted channel and the service is never exposed raw. Needs its own spec and security review.                                                       |
 | M1: persistent cloud workspace         | After the remote host; an optional managed service. Lifecycle/bootstrap/custody/cleanup simulations and read-only GitHub device pilot exist. | One App-scoped repository, isolated pinned checkout, files/dependencies retained across suspend/resume, laptop-independent agent run, audited cleanup. [Spec 0002](docs/specs/0002-cloud-mvp.md) and [0007](docs/specs/0007-cloud-workspace-lifecycle.md). |
-| M1d: portable continuity and migration | First offline export/read-only restore slice implemented.                                                                                    | [Spec 0012](docs/specs/0012-portable-history.md). Desktop preview, real transcripts/Git manifests, a fresh-machine export-and-restore drill repeated with each release, and consented importers remain open.                                               |
+| M1d: portable continuity and migration | Offline simulation-history export/read-only restore implemented; real-agent history planned.                                                 | [Spec 0012](docs/specs/0012-portable-history.md). Desktop preview, real transcripts/Git manifests, a fresh-machine export-and-restore drill repeated with each release, and consented importers remain open.                                               |
 | P4: mobile companion / native iOS      | After remote execution and safe remote access.                                                                                               | Authenticated status/activity/diff/evidence, scoped input and acknowledged cancellation; desktop-offline/phone-reconnect tests. A web preview is not the app.                                                                                              |
 | Personal release                       | L1 + distribution + Codex + continuity; remote host, cloud and mobile per their own gates.                                                   | Unassisted adoption walkthroughs and actual tests for every advertised capability. No generic feature-parity claim.                                                                                                                                        |
 | Managed release                        | Complete M1, continuity, remote-client and security contracts.                                                                               | PostgreSQL before multiple control-plane hosts/tenants; remote authorization, isolation/credential review, enforced limits, cost/cleanup evidence, backup/restore and independent self-host operation.                                                     |

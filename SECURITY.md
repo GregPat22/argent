@@ -12,14 +12,21 @@ you expect. Never include real credentials or other people's data in a report.
 
 ## Scope and expectations
 
-Argent is an early prototype. Agent execution is simulated, and the local service
-is built for one trusted host on loopback (`127.0.0.1`). It is **not** hardened
-for remote exposure or multi-tenant use; running it beyond loopback is outside
-the supported configuration.
+Argent is an early prototype. The desktop app runs Claude Code in local Git
+worktrees as the developer: **local execution is not a sandbox**. The agent has
+the developer's filesystem, network and credential access. GitHub-URL workspaces
+and cloud execution remain simulated.
+
+The local service is built for one trusted host on loopback (`127.0.0.1`). It is
+**not** hardened for remote exposure or multi-tenant use; running it beyond
+loopback is outside the supported configuration. See the
+[local security model](docs/specs/0013-local-mvp.md#security-model) for process,
+environment and Git boundaries.
 
 Reports about the desktop bridge and renderer isolation, the local API's
-authentication, credential handling in the GitHub pilot, the encrypted simulation
-custody and the history export/restore format are especially welcome.
+authentication, local process supervision and worktree inspection, credential
+handling in the GitHub pilot, encrypted simulation custody and the
+simulation-history export/restore format are especially welcome.
 
 This is a volunteer-maintained project with no bug bounty and no guaranteed
 response time. We aim to acknowledge reports and to credit reporters who want

@@ -29,7 +29,9 @@ uncertain external action is reconciled before another action is authorized.
 
 Developers should own their workflow. The core stays usable independently of any
 hosted service, including ours, and of any one model or infrastructure vendor.
-History and evidence can be exported and restored elsewhere. A managed service may
+Portable history and evidence are a product goal. Today the CLI exports and
+restores simulation history only; real-agent transcript and Git-history export
+remain planned. A managed service may
 charge for easier operations, workspace compute and collaboration, but it runs the
 same core rather than making self-hosting a second-class or limited mode.
 

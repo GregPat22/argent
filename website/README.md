@@ -1,6 +1,7 @@
 # Argent website
 
-The Argent landing page. It is not deployed yet.
+The Argent landing page at [argent.build](https://argent.build/). Public desktop
+downloads are not available yet.
 
 This package is separate from the engine: it shares no code or dependencies with
 `src/`, and the root `npm run check` does not build it.
@@ -39,6 +40,13 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
   Shared links and status labels live in `src/lib/site.ts`.
 - When the roadmap or capabilities change, update the hero, the roadmap section
   and the FAQ together.
+- A branch and worktree belong to a workspace; follow-up tasks reuse it. Local
+  execution is not a sandbox. A finished local run is recorded, not tested.
+- History export and read-only restore currently cover simulation history only.
+  Export of real Claude Code transcripts and Git changes is planned.
+- Planned verification examples carry an explicit label inside the card so a
+  screenshot retains the limitation. Do not invent test totals or repair
+  findings. See the [copy acceptance criteria](../docs/specs/0016-website-restyle.md#capability-copy-acceptance--12-november-2026).
 
 ## Implementation notes
 
@@ -119,6 +127,10 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
   scrolling hides a focused control. While compact, content fades out under a
   short gradient at the top of the page (no panel, border or blur), so it never
   collides with the logo or the pill; the logo keeps its feathered halo.
+  The [reopen correction](../docs/specs/0016-website-restyle.md#navigation-reopen-regression-in-development)
+  is in development: interactive links must retire immediately on close, with
+  only the decorative scrim retaining its exit fade, so a rapid reopen cannot
+  reuse an invisible list.
 - **Journey on phones.** Below 900 px the stage sticks under the header while
   the three steps scroll beneath it, and the hand-off plays between the pin and
   its release. On wide screens the whole stage pins as before.
@@ -161,3 +173,40 @@ only an exit. The compact menu also provides a Back to top link. The regression
 suite checks this boundary reversal and seeks the actual CSS width transition to
 its midpoint before checking the final compact geometry; it does not depend on
 software rendering producing an intermediate frame inside a fixed time window.
+
+## Search and sharing
+
+Search metadata is defined in `src/lib/site.ts`: the production URL is
+`https://argent.build`, with one shared title and description. The home page
+owns its canonical; new pages must supply their own. Keep schema in
+`src/lib/seo.ts` aligned with visible capabilities. The technical SEO work is
+specified in [spec 0017](../docs/specs/0017-website-seo.md) and integrated at
+`864188a`. Check every production deployment independently.
+
+The production build generates `/robots.txt`, `/sitemap.xml`, and a 1200 × 630
+PNG at `/opengraph-image`. Next.js adds that image to both Open Graph and X
+cards. No external image service, runtime package or account is required.
+The navigation wordmark uses Next.js image optimization at its displayed size;
+the source artwork is unchanged.
+
+Production is indexable by default. Vercel preview/development builds emit
+`noindex`, allow crawling so robots can read that directive, and omit sitemap
+entries. For previews hosted elsewhere, set `ARGENT_SITE_NOINDEX=1` **before
+building**. Rebuild when changing deployment environments; do not reuse a
+production artifact for a publicly accessible staging host. Neither a robots
+directive nor a canonical URL provides access control.
+
+After publishing, check the canonical, crawl files, social image and 404 response
+on the live domain. Validate JSON-LD, submit the sitemap in Search Console, and
+inspect the home page once domain ownership is verified. Indexing, ranking and
+field Core Web Vitals require live observations. The `www` hostname must use a
+valid certificate and redirect to the apex domain while preserving paths and
+query strings.
+
+For a repository-root deployment on Vercel, select `website` as the Root
+Directory, the Next.js framework preset and Node.js 22.x. Install with `npm ci`,
+build with `npm run build`, and leave the output directory at the framework
+default. The root package builds the desktop engine and is not the website build.
+Publishing the static `website/index.html` preview does not publish the Next.js
+site or its sharing metadata. Project configuration alone does not connect Git
+or deploy future commits; verify the deployment source revision explicitly.

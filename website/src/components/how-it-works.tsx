@@ -109,7 +109,7 @@ const STEPS: {
   },
   {
     title: "Agents run side by side.",
-    body: "Each task gets its own branch and Git worktree of your repository, so parallel agents never overwrite each other. Follow every session live, send follow-ups, or stop it.",
+    body: "Each workspace gets its own branch and Git worktree. Follow-up tasks reuse that workspace. Follow parallel sessions live, send follow-ups, or stop them. Local execution is not a sandbox.",
     object: <BranchObject />,
     status: "live",
   },

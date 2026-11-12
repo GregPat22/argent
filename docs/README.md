@@ -6,6 +6,13 @@ runs Claude Code in local worktrees as the first part of the local MVP
 ([spec 0013](specs/0013-local-mvp.md)), which is in development; a signed public
 release, then remote and cloud execution, follow.
 
+The offline [history CLI](specs/0012-portable-history.md) exports and restores
+simulation history only. Export of real Claude Code transcripts and Git changes
+remains planned. Public capability descriptions follow the
+[website copy contract](specs/0016-website-restyle.md#capability-copy-acceptance--12-november-2026):
+one branch per workspace, local results recorded rather than tested, and explicit
+labels for planned verification.
+
 The [local hardening contract](specs/0013-local-mvp.md#local-execution-hardening)
 and [delivery regression gates](specs/0004-desktop-prototype.md#delivery-regression-gates)
 record the implemented safety and validation work, including the limits of
@@ -97,6 +104,10 @@ recorded revision.
 | [0013 Local MVP](specs/0013-local-mvp.md)                                                 | Critical path: L1.1–L1.3 implemented; trusted checks and later slices planned.      |
 | [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.      |
 | [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks. |
+
+[0017 Website SEO](specs/0017-website-seo.md) defines search metadata, crawl files,
+structured data, social previews and deployment validation. The implementation
+is integrated at `864188a`; live deployment needs its own checks.
 
 Spec 0005 (the landing-page draft) is maintained privately with the website's
 design history.
