@@ -204,3 +204,52 @@ the complete website suite passes all 57 checks, and `npm run check` passes all
 and documentation links were reviewed. Hosted CI remains required before
 integration. No hosted deployment, native GUI, packaged app or real signed-in
 agent is validated by this correction.
+
+## Reveal layout regression (in development)
+
+Recorded 12 November 2026 against main `3f2181b`. Temporary split-text masks
+use padding and negative block margins, which collapse through their wrappers.
+The heading expands during its reveal, then contracts when its original nodes
+return. A Chromium probe at 1440 px measures the statement heading contracting
+by 50.6875 px and the roadmap heading by 11.515625 px at cleanup. Separate
+word boxes also lose the font's comma/space kerning: after removing the vertical
+jump, the roadmap's following words still shift horizontally by 0.765625 px.
+Retain the following space while shaping each word, cancel its measured advance
+so the external space owns wrapping, and remove it at the end of each line.
+
+Acceptance:
+
+1. Hero lines and every scroll-revealed heading retain the same text positions,
+   dimensions and section geometry across cleanup at phone, tablet and desktop
+   widths. No compensating animation or permanent fixed height hides the jump.
+2. Keep the word-by-word reveal, balanced wrapping, explicit line breaks,
+   gradient, ascender/descender clearance and original accessible markup.
+   Reduced motion and the script-loading fallback remain supported.
+3. Use a paint-only clip with vertical breathing room, without padding or margins
+   on temporary line masks. Regression checks observe the actual restoration
+   boundary; settled screenshots alone cannot establish absence of this defect.
+4. Run the new geometry regressions on unchanged main and with the correction,
+   the existing entrance/browser suite, website typecheck/build and the root
+   repository check. Publication remains a separate step.
+
+Validation on 12 November 2026, based on main `3f2181b`:
+
+- All three new geometry regressions fail against the unchanged production
+  build at 390, 768 and 1440 px. The first hero line contracts by 13.09375,
+  23.03125 and 32.25 px respectively.
+- The paint-only mask correction removes the vertical jumps. The first complete
+  browser run passes 61 checks and fails the desktop geometry regression on the
+  separate comma/space kerning defect. Preserving that shaping context resolves
+  the remaining horizontal shift without relaxing the regression tolerance.
+- The final production build, website typecheck and all 62 browser checks pass.
+  The new checks measure every hero line and scroll-revealed heading across
+  restoration, including individual word positions and containing section
+  geometry; differences must stay below half a CSS pixel. Existing entrance,
+  reduced-motion, glyph-clearance and script-fallback checks also pass.
+- The final `npm run check` passes all 541 repository tests, strict types,
+  formatting and compilation. The actual diff and new documentation anchors
+  were reviewed.
+
+These are local Chromium checks, including software WebGL, not deployed-site,
+Safari or Firefox validation. Integration and publication remain separate steps;
+no product capability or milestone status changes.

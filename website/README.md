@@ -58,7 +58,10 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
   and motion is allowed, with a 4 s failsafe. New sections are picked up
   automatically (`main > section`); mark a nested list with
   `data-reveal-children` to stagger its items. Don't add `whileInView` lifts to
-  section content: the orchestrator owns them.
+  section content: the orchestrator owns them. The
+  [reveal layout correction](../docs/specs/0016-website-restyle.md#reveal-layout-regression-in-development)
+  is in development: temporary line masks use a paint-only clip so restoring
+  original text does not change heading height or shift neighboring content.
 - **Liquid silver.** `src/components/liquid-silver.tsx` renders the hero field
   without a 3D library. Elements marked `data-liquid-avoid` are keep-out zones
   the metal never drifts behind. It pauses offscreen, holds a still frame under

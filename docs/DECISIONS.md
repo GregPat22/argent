@@ -47,6 +47,18 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Reveal masks preserve layout — 12 November 2026
+
+Usability correction in development, based on main `3f2181b`. Temporary text
+masks must not change heading or section geometry when removed. Replace padding
+and collapsing negative margins with a paint-only clip that preserves the
+existing vertical glyph clearance. Preserve punctuation/space kerning while
+splitting words, with ordinary spaces retaining line-breaking ownership. Keep
+the entrance sequence and restore the
+original accessible nodes. This changes no product claim, capability, milestone
+or accepted architecture. See the [regression contract](specs/0016-website-restyle.md#reveal-layout-regression-in-development)
+for measured baseline jumps, acceptance and validation limits.
+
 ### Public capability descriptions — 12 November 2026
 
 Copy corrections based on main `f1a773c` preserve the accepted evidence-first
