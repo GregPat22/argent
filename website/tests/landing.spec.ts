@@ -74,6 +74,32 @@ test("mobile navigation supports keyboard, Escape and anchor selection", async (
   ).toBeTruthy();
 });
 
+for (const reducedMotion of ["no-preference", "reduce"] as const) {
+  test(`closed navigation retires links before rapid reopening (${reducedMotion})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.emulateMedia({ reducedMotion });
+    await visit(page);
+    const toggle = page.locator("button[aria-controls=mobile-navigation]");
+    const menu = page.locator("#mobile-navigation");
+    for (let turn = 0; turn < 3; turn++) {
+      await toggle.focus();
+      await page.keyboard.press("Enter");
+      await expect(toggle).toHaveAttribute("aria-expanded", "true");
+      await page.keyboard.press("Escape");
+      await expect(toggle).toHaveAttribute("aria-expanded", "false");
+      // Check immediately: waiting for an exit animation would hide the race.
+      expect(await menu.getByRole("link").count()).toBe(0);
+      await expect(toggle).toBeFocused();
+    }
+    await page.keyboard.press("Enter");
+    await menu.getByRole("link", { name: "Roadmap", exact: true }).click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(page).toHaveURL(/#roadmap$/);
+  });
+}
+
 test("all sections fit at mobile and tablet widths", async ({ page }) => {
   for (const width of [360, 768]) {
     await page.setViewportSize({ width, height: 900 });

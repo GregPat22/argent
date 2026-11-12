@@ -193,77 +193,65 @@ export function Nav() {
           )}
           <AnimatePresence>
             {menuOpen && (
-              <>
-                <motion.div
-                  key="scrim"
-                  className="nav-scrim"
-                  aria-hidden="true"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => closeMenu()}
-                />
-                <motion.ul
-                  key="row"
-                  id="mobile-navigation"
-                  className="nav-squeeze"
-                  initial="hidden"
-                  animate="shown"
-                  exit="hidden"
-                  variants={{
-                    hidden: {
-                      transition: {
-                        staggerChildren: reduce ? 0 : 0.04,
-                        staggerDirection: -1,
-                      },
-                    },
-                    shown: {
-                      transition: {
-                        delayChildren: reduce ? 0 : 0.08,
-                        staggerChildren: reduce ? 0 : 0.07,
-                      },
-                    },
-                  }}
-                >
-                  {LINKS.map((link) => (
-                    <motion.li
-                      key={link.href}
-                      variants={reduce ? FADE : SQUEEZE}
-                    >
-                      <a
-                        href={link.href}
-                        aria-current={
-                          active === link.href ? "location" : undefined
-                        }
-                        onClick={() => setMenuOpen(false)}
-                        className="nav-squeeze-link"
-                      >
-                        {link.label}
-                      </a>
-                    </motion.li>
-                  ))}
-                  <motion.li variants={reduce ? FADE : SQUEEZE}>
-                    <a
-                      href="#top"
-                      onClick={() => setMenuOpen(false)}
-                      className="nav-squeeze-link"
-                    >
-                      Back to top
-                    </a>
-                  </motion.li>
-                  <motion.li variants={reduce ? FADE : SQUEEZE}>
-                    <LiquidLink
-                      href="#run"
-                      onClick={() => setMenuOpen(false)}
-                      className="nav-cta"
-                    >
-                      Try it locally <span aria-hidden>↓</span>
-                    </LiquidLink>
-                  </motion.li>
-                </motion.ul>
-              </>
+              <motion.div
+                key="scrim"
+                className="nav-scrim"
+                aria-hidden="true"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => closeMenu()}
+              />
             )}
           </AnimatePresence>
+          {/* Retire links on close; an interrupted exit must not be reused. */}
+          {menuOpen && (
+            <motion.ul
+              id="mobile-navigation"
+              className="nav-squeeze"
+              initial="hidden"
+              animate="shown"
+              variants={{
+                shown: {
+                  transition: {
+                    delayChildren: reduce ? 0 : 0.08,
+                    staggerChildren: reduce ? 0 : 0.07,
+                  },
+                },
+              }}
+            >
+              {LINKS.map((link) => (
+                <motion.li key={link.href} variants={reduce ? FADE : SQUEEZE}>
+                  <a
+                    href={link.href}
+                    aria-current={active === link.href ? "location" : undefined}
+                    onClick={() => setMenuOpen(false)}
+                    className="nav-squeeze-link"
+                  >
+                    {link.label}
+                  </a>
+                </motion.li>
+              ))}
+              <motion.li variants={reduce ? FADE : SQUEEZE}>
+                <a
+                  href="#top"
+                  onClick={() => setMenuOpen(false)}
+                  className="nav-squeeze-link"
+                >
+                  Back to top
+                </a>
+              </motion.li>
+              <motion.li variants={reduce ? FADE : SQUEEZE}>
+                <LiquidLink
+                  href="#run"
+                  onClick={() => setMenuOpen(false)}
+                  className="nav-cta"
+                >
+                  Try it locally <span aria-hidden>↓</span>
+                </LiquidLink>
+              </motion.li>
+            </motion.ul>
+          )}
         </div>
         <motion.div
           className="nav-full"

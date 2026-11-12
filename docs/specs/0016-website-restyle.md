@@ -127,3 +127,46 @@ On the final content, 10 November 2026:
 - The pointer light needs a fine pointer; touch devices see the resting plates.
 - At the restyle validation the site was not deployed. The landing page is now
   served at [argent.build](https://argent.build/); no desktop download exists.
+
+## Navigation reopen regression (in development)
+
+Recorded 12 November 2026 against main `864188a`. Closing and reopening the
+mobile menu during its staggered exit can leave its links at opacity zero and
+translated offscreen, even though the control reports expanded. A controlled
+rapid-toggle probe reproduces this on unchanged main; ordinary opens and three
+focused runs of the existing keyboard test pass, so the defect is intermittent.
+
+Acceptance:
+
+1. Closing navigation immediately retires its interactive links. Reopening
+   mounts a fresh list and plays the existing entrance; an exiting list must
+   never become the active menu again. The decorative scrim may fade separately.
+2. Keyboard open, Escape, immediate reopen and anchor selection work with normal
+   and reduced motion. Closed links are absent from keyboard and accessibility
+   navigation as soon as the control reports collapsed.
+3. Preserve compact navigation, focus transfer, action-pill behavior and the
+   approved copy. Run the original browser regressions, a rapid-reopen regression,
+   website typecheck/build and the repository check. No deployment is implied.
+
+Validation on 12 November 2026, based on main `864188a`:
+
+- The initial complete browser run passes 54 checks and fails mobile anchor
+  selection: the reopened Roadmap link remains outside the viewport. A separate
+  unchanged-main rapid-toggle probe confirms all six links stuck at opacity zero
+  and `translateX(-72px)`, with no active animation.
+- Both new regressions fail before the correction: a collapsed menu still exposes
+  six links. After the correction, both pass with normal and reduced motion,
+  alongside the original mobile navigation and scroll/focus-transfer tests.
+  Website typecheck and production build also pass.
+- The reported desktop/backend failures do not reproduce: all 20 reported groups
+  pass on unchanged `3836760` (31 tests, including the public-content file's
+  checks). The initial complete repository check at `864188a` passes 541 tests.
+  These local runs have a Git checkout, loopback listeners and process control;
+  they do not establish the exact cause of every earlier restricted-run failure.
+
+After the correction, the same timing probe passes all ten rapid-reopen cases,
+the complete website suite passes all 57 checks, and `npm run check` passes all
+541 repository tests, strict types, formatting and compilation. The changed diff
+and documentation links were reviewed. Hosted CI remains required before
+integration. No hosted deployment, native GUI, packaged app or real signed-in
+agent is validated by this correction.

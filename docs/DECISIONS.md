@@ -47,6 +47,17 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Navigation links retire on close — 12 November 2026
+
+Usability correction in development, based on main `864188a`. A rapid reopen
+can reuse a menu whose staggered exit left every link invisible and offscreen.
+Remove the interactive list as soon as navigation closes; each open creates
+a fresh list with the existing entrance animation. Keep only the decorative
+scrim's exit fade. Closed links must not remain keyboard or accessibility
+targets. This changes no product claim, capability or milestone. See the
+[regression contract](specs/0016-website-restyle.md#navigation-reopen-regression-in-development)
+for reproduction, acceptance and validation limits.
+
 ### Website search identity — 12 November 2026
 
 Technical SEO work in development, based on main `8027d0b`. Use the live
