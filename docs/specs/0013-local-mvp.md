@@ -14,8 +14,9 @@ is in the [roadmap's work queue](../../ROADMAP.md#work-queue).
 
 The first release people can use for daily work runs real coding agents on the
 developer's own computer. Each Argent workspace is a new Git branch checked out in
-its own worktree of a local repository, so several tasks can run side by side
-without overwriting each other. The agent runs through its official command-line
+its own worktree of a local repository, so parallel workspaces use separate
+working directories. Follow-up tasks reuse their workspace; this is not
+filesystem isolation. The agent runs through its official command-line
 interface with the developer's own sign-in. The developer reviews the diff and
 the recorded checks, and opens a draft pull request when satisfied.
 

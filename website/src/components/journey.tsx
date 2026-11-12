@@ -33,7 +33,7 @@ const STEPS: {
 }[] = [
   {
     title: "Hand it off at your desk.",
-    body: "Choose a repository and describe the task. Your agent starts in its own branch and worktree, so several tasks run side by side without overwriting each other.",
+    body: "Choose a repository, create a workspace and describe the task. Each workspace has its own branch and worktree; follow-up tasks continue there. Local execution is not a sandbox.",
     subject: "Local MVP",
     status: "next",
   },

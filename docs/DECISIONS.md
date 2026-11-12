@@ -124,6 +124,44 @@ and [implementation evidence](specs/0013-local-mvp.md#internal-bounded-runner-ev
 The complete repository check passed with 562 tests. This changes no accepted
 product or security decision, connects nothing and does not complete L1.4.
 
+### Public capability descriptions — 12 November 2026
+
+Copy corrections based on main `f1a773c` preserve the accepted evidence-first
+direction and milestone order. A local run records worktree state; trusted tests
+remain L1.4. Branches belong to workspaces and follow-ups reuse them. The existing
+history exporter rejects local workspaces, so current export claims describe
+simulation history only. An environment allowlist is not a guarantee against
+credential access by an unsandboxed agent. Planned verification illustrations
+carry their status within the card and use no invented test totals or repair
+findings. See the [acceptance criteria](specs/0016-website-restyle.md#capability-copy-acceptance--12-november-2026).
+No execution behavior, accepted security requirement or milestone changes.
+
+### Navigation links retire on close — 12 November 2026
+
+Usability correction in development, based on main `864188a`. A rapid reopen
+can reuse a menu whose staggered exit left every link invisible and offscreen.
+Remove the interactive list as soon as navigation closes; each open creates
+a fresh list with the existing entrance animation. Keep only the decorative
+scrim's exit fade. Closed links must not remain keyboard or accessibility
+targets. This changes no product claim, capability or milestone. See the
+[regression contract](specs/0016-website-restyle.md#navigation-reopen-regression-in-development)
+for reproduction, acceptance and validation limits.
+
+### Website search identity — 12 November 2026
+
+Technical SEO work in development, based on main `8027d0b`. Use the live
+`https://argent.build` origin for canonical, sitemap, sharing and schema
+identities; never infer it from a preview hostname. Generate crawl files and
+social imagery with the website's existing Next.js APIs. Keep preview builds
+out of the index through readable `noindex` metadata. Structured data describes
+only visible capabilities and supplies no invented ratings, offers or download
+URLs. Preserve the approved headline, product positioning and milestone order.
+See [spec 0017](specs/0017-website-seo.md) for acceptance, evidence and deployment
+limits. Production and preview SEO regressions, the full website browser suite,
+website typecheck/build and the repository check pass on 12 November 2026.
+Hosting redirects, publication and Search Console verification remain separate
+from code validation.
+
 ### Pinned candidate review before consent — 11 November 2026
 
 Implemented at `042a169f7267adf1b4d2806ba802de04b81d3b83`, with validation recorded
