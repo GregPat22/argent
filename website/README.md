@@ -29,6 +29,12 @@ npx playwright install chromium  # once per machine
 npm run test:e2e                 # browser regression tests against the built site
 ```
 
+The browser suite keeps one worker and separates interactive, reveal and SEO
+checks into projects, giving each group a fresh browser process. Run one group
+with `npm run test:e2e -- --project=seo`; the default command runs every group.
+The [browser-isolation correction](../docs/specs/0014-ci-test-determinism.md#website-browser-process-isolation-in-development)
+records the CI evidence and validation limits.
+
 The repository also keeps a static download preview in `website/index.html` and
 `website/styles.css`. The root `npm run site:preview` serves it on port 4320 once
 a local desktop package exists; Next.js neither serves nor overwrites those files.

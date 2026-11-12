@@ -47,6 +47,17 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Website test browser ownership — 12 November 2026
+
+Test-harness correction in development, based on main `3f2181b` and CI evidence
+at `4aebc04`. Keep website test concurrency at one worker, but separate the
+interactive, reveal and SEO groups into projects so each owns a fresh Chromium
+process. Preserve test selection, assertions, deadlines and software-rendering
+settings. Two context-startup failures after the animation suites motivate this
+isolation; the precise Chromium stall remains unconfirmed. See the
+[regression contract](specs/0014-ci-test-determinism.md#website-browser-process-isolation-in-development).
+No product, runtime security or milestone decision changes.
+
 ### Reveal masks preserve layout — 12 November 2026
 
 Usability correction in development, based on main `3f2181b`. Temporary text

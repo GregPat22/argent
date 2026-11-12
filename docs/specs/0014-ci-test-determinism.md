@@ -247,3 +247,45 @@ final review and integration checks remain required. No approval
 implementation or other production code changes are part of this correction.
 This isolated clock-controlled proof does not certify real-provider scheduling
 or establish that every possible intermittent test failure has been found.
+
+## Website browser-process isolation (in development)
+
+Recorded 12 November 2026 at `4aebc0470bbdb3f494044ebb54cb3a16b9b7cb5b`,
+based on main `3f2181b`. Two hosted push runs pass 61 browser tests and time out
+while creating the browser context for the first crawler-visible SEO test,
+before navigation. Both report `Browser.setDownloadBehavior` failing to find
+its context. The pull-request run of the same code passes all 62 tests, and the
+isolated SEO test passes against unchanged main. These observations do not
+establish the exact Chromium stall or a deterministic application failure.
+
+The single-worker configuration shares one Chromium process across the
+animation-heavy landing/reveal tests and the SEO checks. Per-test contexts
+isolate page state, not browser-process resources. Separate these groups into
+Playwright projects so each group starts a fresh worker/browser process while
+retaining the global one-worker limit.
+
+Acceptance:
+
+1. Every existing test remains selected exactly once; new ordinary test files
+   still enter the interactive project by default. Reveal and SEO files each
+   have their own project. Keep every assertion, timeout, renderer flag and
+   zero-retry policy unchanged.
+2. A focused cross-group probe must show distinct Chromium process launches
+   with the correction, compared with reuse before it. Full browser tests must
+   pass, including the reveal geometry and crawler-visible metadata checks.
+3. Run website typecheck/build and `npm run check`; require hosted checks to pass
+   before integration. Process separation bounds cross-group resource sharing;
+   it does not prove that every possible browser-startup stall is resolved.
+
+The focused local probe runs one landing entrance test, the desktop reveal
+geometry regression and the affected SEO test in sequence. Before separation,
+all three share one observed Chromium launch; afterwards they pass with three
+distinct launches. Comparing Playwright's collected test lists before and after
+confirms all 62 tests are selected exactly once. This establishes the intended
+process boundary; the original CI startup timeout was not reproduced locally.
+
+Local validation on 12 November 2026 passes website typecheck, production build
+and all 62 browser tests across the three projects. `npm run check` passes
+strict types, formatting, compilation and all 541 repository tests. Independent
+review found no issues in test selection, inherited configuration or the stated
+validation limits. Hosted validation remains required before merging.
