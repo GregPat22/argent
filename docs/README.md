@@ -46,7 +46,12 @@ consent. An internal
 is implemented at `e4260cc`, with
 [validation evidence](specs/0013-local-mvp.md#internal-bounded-runner-evidence):
 one argument array without a shell string, an allowlisted environment, bounded
-output and a deadline. Nothing calls it, and L1.4 remains incomplete.
+output and a deadline. An internal
+[verification checkout](specs/0013-local-mvp.md#internal-verification-checkout-acceptance)
+is implemented at `217ad9d`, with
+[validation evidence](specs/0013-local-mvp.md#internal-verification-checkout-evidence):
+a detached worktree of one exact commit that Argent creates, verifies and
+removes. Nothing calls either, and L1.4 remains incomplete.
 
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
 is implemented at `d2ef4e5`, with

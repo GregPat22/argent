@@ -869,7 +869,8 @@ incomplete.
 #### Internal verification checkout acceptance
 
 Acceptance recorded 12 November 2026 against main `8027d0b` with the pinned
-review and bounded runner above. This creates and removes the fresh checkout a
+review and bounded runner above; implemented at
+`217ad9d1bb50be7e0f54d7eaeaf374daa5268d56`. This creates and removes the fresh checkout a
 trusted check will run in. It runs no configured command and nothing calls it:
 no job, worker, route or desktop control. L1.4 remains incomplete.
 
@@ -925,6 +926,40 @@ no job, worker, route or desktop control. L1.4 remains incomplete.
 Consent bound to a review identity, wiring to command jobs, running `setup`
 and `test` here and exact-commit results remain separate work, with an
 independent security review before anything is connected.
+
+#### Internal verification checkout evidence
+
+Recorded 12 November 2026 for implementation commit
+`217ad9d1bb50be7e0f54d7eaeaf374daa5268d56`, on macOS with Git 2.42.0.
+`npm run check` passed strict types, formatting, build and all 572 automated
+tests without failures, cancellations or skips. The ten focused cases in
+`tests/local-verification-checkout.test.ts` use real temporary Git
+repositories and run no configured command. The observation, review and
+changes suites pass unchanged against the shared clean-commit check.
+
+Removing each of these in a built copy made a focused case fail: the branch
+reachability check, the tree binding, the separation of folders, the folder
+identity check on removal, cleanup after a failed creation and exclusive
+creation of the checkout folder. The tree binding is checked before creation
+and again after it; removing only the first is not observable, because the
+second refuses the checkout.
+
+Two defects were found and corrected before this record. The verification
+folder was created before its location was checked, which left an empty folder
+inside a repository that should have been refused; the location is now decided
+first and the folder's parent must exist. The first hostile-settings fixture
+ran the hostile filter through its own untrusted Git calls; hostile settings
+are now present only while Argent's code runs.
+
+The diff was checked by its author against the
+[security model](#security-model). Independent security review is required
+before a command is run in a checkout. Limits: a checkout left by a crash or a
+restart is not removed, because ownership is held only by the live process; a
+command run in the checkout can change the shared repository's refs and
+configuration; a file stored through a filter such as Git LFS stays a pointer;
+a commit whose attributes convert line endings, and any commit above the
+observation's size limits, cannot be checked out for a trusted check. No
+command, consent or test result is established, and L1.4 remains incomplete.
 
 ### L1.5 draft pull request and archive
 

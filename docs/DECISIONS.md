@@ -47,6 +47,39 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Shape of a trusted check and its checkout — 12 November 2026
+
+Accepted by the maintainers on 12 November 2026, within the L1.4 contract:
+
+- **A detached linked worktree, not a file export.** A trusted check runs in a
+  fresh checkout that Argent creates and verifies. A plain export of the
+  commit's files has no Git metadata, so commands that call Git would fail,
+  including this repository's own tests. The cost is a shared Git directory:
+  a command can change the repository's refs and configuration, as it already
+  can when run in a terminal.
+- **Setup, then test, in the same fresh checkout.** A fresh checkout has no
+  installed dependencies. A test request runs the approved `setup` command,
+  when configured, and then `test`, and records both. This is slower than
+  reusing a checkout and is chosen for correctness; caching is a later choice.
+- **The `run` action is deferred** until setup and test results work. The
+  configuration schema still accepts it.
+
+The checkout is implemented at `217ad9d1bb50be7e0f54d7eaeaf374daa5268d56`, with
+validation recorded on 12 November 2026. Derive the repository and branch from
+the store and accept only a commit on the workspace's own branch. Create the
+folder exclusively under a separate private folder, let trusted Git populate
+it, and apply the observation's clean-commit check to it before returning.
+Hold ownership in the live process only: removal needs the object that
+creation returned and the same folder by device and inode, and goes through
+Git's removal of that one worktree. A crash therefore leaves a checkout
+behind instead of risking a deletion from a stored path; durable ownership
+belongs with the job wiring. See the
+[acceptance contract](specs/0013-local-mvp.md#internal-verification-checkout-acceptance)
+and [implementation evidence](specs/0013-local-mvp.md#internal-verification-checkout-evidence).
+The complete repository check passed with 572 tests. Nothing is connected and
+L1.4 remains incomplete. The observation's 1,000-file limit also bounds the
+checkout and remains to be revisited.
+
 ### Unconnected bounded command runner — 12 November 2026
 
 Implemented at `e4260cc61b42983f5092006af737cc36fbf56263`, with validation recorded
@@ -55,7 +88,7 @@ commands run with the agent's process rules, bounded output and deadlines.
 Build the process primitive before the checkout and consent that will use it,
 and leave it without a caller: every later design needs one argument array run
 under these rules, while how a fresh checkout is made and how setup relates to
-a test are not yet decided.
+a test were still open when it was built.
 
 Reuse the process-group supervisor, the agent's environment allowlist and its
 executable search. Allow a relative executable only inside the working

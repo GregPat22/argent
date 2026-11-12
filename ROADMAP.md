@@ -115,7 +115,11 @@ internal [pinned candidate review](docs/specs/0013-local-mvp.md#internal-pinned-
 is implemented at `042a169`: a bounded, read-only change set between the base
 and one exact commit, with no consent collected. An internal
 [bounded command runner](docs/specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance)
-is implemented at `e4260cc` and connected to nothing. Approval controls, consent,
+is implemented at `e4260cc` and connected to nothing. An internal
+[verification checkout](docs/specs/0013-local-mvp.md#internal-verification-checkout-acceptance)
+is implemented at `217ad9d`: a verified detached worktree of one exact commit,
+in which a trusted check will run `setup` and then `test`. Running the `run`
+action is deferred until those results work. Approval controls, consent,
 execution, exact-commit results and stale-result display remain unimplemented;
 work-queue item 3 is not complete.
 
