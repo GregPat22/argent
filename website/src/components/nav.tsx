@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   AnimatePresence,
   motion,
@@ -143,12 +144,14 @@ export function Nav() {
     >
       <nav ref={navigation} aria-label="Main">
         <div className="nav-logo-dock">
-          <img
+          <Image
             src="/brand/argent-wordmark-800.webp"
             alt=""
             aria-hidden="true"
-            width={2172}
-            height={724}
+            width={204}
+            height={68}
+            sizes="(max-width: 767px) 180px, 204px"
+            preload
             className="nav-wordmark"
             decoding="async"
           />

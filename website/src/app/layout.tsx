@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Manrope } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/site";
+import { isSiteIndexable } from "@/lib/seo";
 import "./globals.css";
 
 const inter = Inter({
@@ -21,25 +23,28 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
-const TITLE = "Argent: AI coding agents you can verify";
-const DESCRIPTION =
-  "Argent is an open-source desktop app for handing coding tasks to AI agents and reviewing results you can verify. An early prototype that runs Claude Code in local Git worktrees today, built from source. Checks Argent runs itself, Codex and work that continues with your laptop closed are on the roadmap.";
-
 export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  // Shown when the page is shared. No image or address yet: the site is not
-  // deployed, so there is no canonical URL to point at.
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  applicationName: "Argent",
+  robots: {
+    index: isSiteIndexable(),
+    follow: true,
+    ...(isSiteIndexable() ? { "max-image-preview": "large" as const } : {}),
+  },
   openGraph: {
     type: "website",
     siteName: "Argent",
-    title: TITLE,
-    description: DESCRIPTION,
+    locale: "en_US",
+    url: SITE_URL,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
   twitter: {
-    card: "summary",
-    title: TITLE,
-    description: DESCRIPTION,
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
     site: "@Argent_build",
   },
 };

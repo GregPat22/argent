@@ -125,4 +125,5 @@ On the final content, 10 November 2026:
 - The stills are fixed frames: they drift and lean toward the pointer but do
   not merge or ripple like the hero's metal.
 - The pointer light needs a fine pointer; touch devices see the resting plates.
-- The site is still not deployed, and no download exists.
+- At the restyle validation the site was not deployed. The landing page is now
+  served at [argent.build](https://argent.build/); no desktop download exists.

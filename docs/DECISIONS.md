@@ -47,6 +47,21 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Website search identity — 12 November 2026
+
+Technical SEO work in development, based on main `8027d0b`. Use the live
+`https://argent.build` origin for canonical, sitemap, sharing and schema
+identities; never infer it from a preview hostname. Generate crawl files and
+social imagery with the website's existing Next.js APIs. Keep preview builds
+out of the index through readable `noindex` metadata. Structured data describes
+only visible capabilities and supplies no invented ratings, offers or download
+URLs. Preserve the approved headline, product positioning and milestone order.
+See [spec 0017](specs/0017-website-seo.md) for acceptance, evidence and deployment
+limits. Production and preview SEO regressions, the full website browser suite,
+website typecheck/build and the repository check pass on 12 November 2026.
+Hosting redirects, publication and Search Console verification remain separate
+from code validation.
+
 ### Exact-commit observation before reviewed execution — 11 November 2026
 
 Implemented at `b7c426b26e4ab126a292aee8d7e58b49ac9c7235`, with validation recorded
