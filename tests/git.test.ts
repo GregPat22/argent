@@ -144,3 +144,24 @@ test("missing promisor objects cannot launch a lazy transport or refresh the ind
   assert.equal(existsSync(object), false);
   assert.deepEqual(readFileSync(join(f.repo, ".git", "index")), index);
 });
+
+test("filter subsection names containing equals cannot bypass trusted Git", async (t) => {
+  const f = fixture(t);
+  f.raw("config", "filter.a=b.clean", `touch '${f.marker}'; cat`);
+  writeFileSync(join(f.repo, ".git", "info", "attributes"), "* filter=a=b\n");
+  writeFileSync(join(f.repo, "file.txt"), "changed\n");
+  await git(f.repo, [
+    "diff",
+    "--binary",
+    "--no-ext-diff",
+    "--no-textconv",
+    "HEAD",
+  ]);
+  assert.equal(existsSync(f.marker), false);
+  f.raw("diff", "HEAD");
+  assert.equal(
+    existsSync(f.marker),
+    true,
+    "control actually invokes the filter",
+  );
+});

@@ -42,7 +42,7 @@ async function rejectSubmodules(
     ]),
   ];
   for (const args of commands) {
-    const entries = await git(directory, args, 8 << 20, signal);
+    const entries = await git(directory, args, 32 << 20, signal);
     if (
       entries
         .toString("utf8")
@@ -128,9 +128,12 @@ export async function createLocalWorkspace(
       "worktree",
       "add",
       "--quiet",
+      "--no-checkout",
       worktreePath,
       branch,
     ]);
+    // Re-read filters in the linked worktree's includeIf/config context.
+    await git(worktreePath, ["reset", "--hard", repository.head]);
     return store.createLocalWorkspace(
       id,
       {

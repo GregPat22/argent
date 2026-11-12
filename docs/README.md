@@ -43,6 +43,25 @@ is implemented at `b7c426b`, with
 It binds a fresh configuration approval to bounded raw
 index/working-byte equality with HEAD, explicitly excluding ignored content and
 collecting no human review. It adds no command execution or desktop capability.
+The internal [pinned candidate review](specs/0013-local-mvp.md#internal-pinned-candidate-review-acceptance)
+is implemented at `042a169`, with
+[validation evidence](specs/0013-local-mvp.md#internal-pinned-review-evidence).
+It lists the complete change set between the base and that exact commit from
+verified Git objects, labels binary content as not displayed and collects no
+consent. An internal
+[bounded command runner](specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance)
+is implemented at `e4260cc`, with
+[validation evidence](specs/0013-local-mvp.md#internal-bounded-runner-evidence):
+one argument array without a shell string, an allowlisted environment, bounded
+output and a deadline. An internal
+[verification checkout](specs/0013-local-mvp.md#internal-verification-checkout-acceptance)
+is implemented at `217ad9d`, with
+[validation evidence](specs/0013-local-mvp.md#internal-verification-checkout-evidence):
+a detached worktree of one exact commit that Argent creates, verifies and
+removes. The clean-commit check they share with the observation has its own
+[bounds](specs/0013-local-mvp.md#clean-commit-scale-acceptance) at `2ed334f`,
+with [validation evidence](specs/0013-local-mvp.md#clean-commit-scale-evidence).
+Nothing calls either, and L1.4 remains incomplete.
 
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
 is implemented at `d2ef4e5`, with
@@ -122,3 +141,7 @@ report does not certify later revisions. Fix the docs when those sources disagre
 and link every new spec or completion report from this index. A provider
 recommendation is not permission to provision it. Keep secrets, private notes,
 transcripts, customer data, local databases and generated artifacts out of Git.
+
+The [review and checkout security correction](specs/0013-local-mvp.md#review-and-checkout-security-correction)
+records conditional-filter, object-source and interrupted-cleanup regressions.
+No command execution or L1.4 completion is established by these internal checks.

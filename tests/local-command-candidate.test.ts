@@ -24,8 +24,11 @@ import { createLocalWorkspace } from "../src/local-worktree.js";
 import { Store } from "../src/store.js";
 import {
   CHANGES_LIMITS,
+  CLEAN_COMMIT_LIMITS,
   inspectLocalCommandCandidate,
   inspectWorkspaceChanges,
+  readCleanCommit,
+  type CleanCommitLimits,
 } from "../src/workspace-changes.js";
 
 const CONFIG =
@@ -427,30 +430,66 @@ test("submodule and unresolved index entries cannot count as clean committed byt
   await assert.rejects(f.inspect(), rejected(409));
 });
 
-test("candidate file size and total bytes are bounded without partial success", async (t) => {
+test("a commit larger than the display limits is observed by hashing content as it is read", async (t) => {
   const f = await fixture(t);
-  writeFileSync(
-    join(f.directory, "large"),
-    Buffer.alloc(CHANGES_LIMITS.fileBytes + 1, 120),
-  );
+  // Sizes around the read chunk, an empty file and one beyond the display limit.
+  const sizes = [
+    0,
+    1,
+    65535,
+    65536,
+    65537,
+    200000,
+    CHANGES_LIMITS.fileBytes + 1,
+  ];
+  for (const size of sizes) {
+    const bytes = Buffer.alloc(size);
+    for (let index = 0; index < size; index += 4093) bytes[index] = index % 251;
+    writeFileSync(join(f.directory, `size-${size}`), bytes);
+  }
+  mkdirSync(join(f.directory, "many"));
+  for (let index = 0; index < CHANGES_LIMITS.files + 200; index++)
+    writeFileSync(join(f.directory, "many", `file-${index}`), `${index}`);
   f.commit();
-  await assert.rejects(f.inspect(), rejected(413));
-  unlinkSync(join(f.directory, "large"));
-  for (let index = 0; index < 8; index++)
-    writeFileSync(
-      join(f.directory, `large-${index}`),
-      Buffer.alloc(CHANGES_LIMITS.fileBytes, 120),
-    );
-  f.commit();
-  await assert.rejects(f.inspect(), rejected(413));
+  const observed = await f.inspect();
+  assert.equal(observed.files, 3 + sizes.length + CHANGES_LIMITS.files + 200);
+  assert.equal(observed.headSha, git(f.directory, "rev-parse", "HEAD"));
+  // One changed byte deep inside the large file is still noticed.
+  const large = join(f.directory, `size-${CHANGES_LIMITS.fileBytes + 1}`);
+  const bytes = readFileSync(large);
+  bytes[bytes.length - 2] = 1;
+  writeFileSync(large, bytes);
+  await assert.rejects(f.inspect(), rejected(409));
 });
 
-test("candidate tree cardinality is bounded", async (t) => {
+test("the clean-commit check enforces its file-count, total-byte and listing bounds without partial success", async (t) => {
   const f = await fixture(t);
-  for (let index = 0; index < CHANGES_LIMITS.files; index++)
-    writeFileSync(join(f.directory, `extra-${index}`), "x");
-  f.commit();
-  await assert.rejects(f.inspect(), rejected(413));
+  const changed = () => new DomainError(409, "changed");
+  const check = (limits: Partial<CleanCommitLimits>) =>
+    readCleanCommit(f.directory, new AbortController().signal, changed, {
+      ...CLEAN_COMMIT_LIMITS,
+      ...limits,
+    });
+  const bytes = ["argent.json", "file.txt", "marker.js"]
+    .map((name) => readFileSync(join(f.directory, name)).length)
+    .reduce((sum, size) => sum + size, 0);
+  assert.equal((await check({})).files, 3);
+  assert.equal((await check({ files: 3, totalBytes: bytes })).files, 3);
+  await assert.rejects(check({ files: 2 }), rejected(413));
+  await assert.rejects(check({ totalBytes: bytes - 1 }), rejected(413));
+  await assert.rejects(check({ totalBytes: 0 }), rejected(413));
+  // A listing that does not fit is a refusal, never a truncated tree. The
+  // tree listing is the longer of the two, so one byte short refuses it alone.
+  const listing = execFileSync(
+    "git",
+    ["ls-tree", "-r", "-z", "--full-tree", "HEAD"],
+    { cwd: f.directory },
+  ).length;
+  assert.equal((await check({ listingBytes: listing })).files, 3);
+  await assert.rejects(check({ listingBytes: listing - 1 }), rejected(409));
+  await assert.rejects(check({ listingBytes: 64 }), rejected(409));
+  assert.ok(CLEAN_COMMIT_LIMITS.files > CHANGES_LIMITS.files);
+  assert.ok(CLEAN_COMMIT_LIMITS.totalBytes > CHANGES_LIMITS.totalBytes);
 });
 
 test("one candidate deadline covers approval lookup and abort never produces an observation", async (t) => {
@@ -483,7 +522,7 @@ test("one candidate deadline covers approval lookup and abort never produces an 
   const inspecting = f.inspect();
   const failed = assert.rejects(inspecting, rejected(408));
   await ready;
-  t.mock.timers.tick(CHANGES_LIMITS.timeoutMs);
+  t.mock.timers.tick(CLEAN_COMMIT_LIMITS.timeoutMs);
   await failed;
 });
 
