@@ -57,7 +57,9 @@ of the agent-writable `.git` file can otherwise substitute forged subtrees.
 Keep failed cleanup visible, including on cancellation; a moved checkout is
 not successfully removed. See the
 [acceptance and evidence](specs/0013-local-mvp.md#review-and-checkout-security-correction).
-These changes add no execution entry point and do not complete L1.4.
+Correction `2f243e1` passed the complete repository check on 12 November 2026;
+six new regressions fail on the pre-correction implementation. These changes
+add no execution entry point and do not complete L1.4.
 
 ### Clean-commit bounds apart from display limits — 12 November 2026
 

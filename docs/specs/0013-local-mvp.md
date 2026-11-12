@@ -1070,6 +1070,15 @@ L1.4's existing security contract, not permission to execute commands.
   redirection immediately after observation, interruption during population,
   a moved folder and cancellation with failed cleanup.
 
+Validation recorded 12 November 2026 for correction commit
+`2f243e1`: `npm run check` passed types, formatting, build and all 579 tests,
+without failures, cancellations or skips. The focused Git, review and checkout
+suites passed all 32 tests. Six new filter, forged-tree, redirection and cleanup
+regressions failed against unchanged `43573dd` and passed with the correction;
+the population-cancellation fixture also passed. These are real temporary Git
+and process fixtures, not real-agent or end-to-end trusted-check evidence.
+The final diff was inspected against the independent review's findings.
+
 These helpers remain unconnected. Consent, command-job integration, durable
 results, stale marking and desktop controls remain required before L1.4 is
 complete. A crash still requires manual inspection; local execution remains
