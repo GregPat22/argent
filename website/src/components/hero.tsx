@@ -34,8 +34,8 @@ export function Hero() {
               data-liquid-avoid
             >
               We’re building the open-source desktop app for your coding agents.
-              Every task runs in its own branch, and nothing merges until you’ve
-              seen the proof.
+              Each workspace has its own branch. Review the changes; you decide
+              what to merge.
             </p>
             <div
               className="hero-actions mt-8 flex flex-wrap items-center justify-center gap-3"
