@@ -618,11 +618,14 @@ review diff or execution plan, persist consent, enqueue work or run commands.
    an early-read file changed later in the operation cannot silently pass.
    These are point-in-time checks, not an atomic filesystem snapshot or protection
    against arbitrary host-owner tampering.
-4. Reuse the changes limits: 1,000 files, 4 MiB per file, 32 MiB total file bytes
-   and one ten-second deadline over the complete operation. Bound Git listings,
-   reject unsafe types/paths and fail the whole operation on overflow, observed
-   change or cancellation. Binary bytes can be compared for identity but are not
-   thereby human-reviewed. Existing changes display and API shapes stay unchanged.
+4. Bound the check by time, not by what a screen can show: 50,000 files, 2 GiB
+   of file bytes in total, 32 MiB per Git listing and one two-minute deadline
+   over the complete operation, as set out under
+   [clean-commit scale](#clean-commit-scale-acceptance). Reject unsafe
+   types/paths and fail the whole operation on overflow, observed change or
+   cancellation. Binary bytes can be compared for identity but are not thereby
+   human-reviewed. Existing changes display and API shapes, and their own
+   limits, stay unchanged.
 5. Trusted Git keeps optional index refresh disabled. An empty
    `GIT_ALLOW_PROTOCOL` allowlist denies transports despite per-protocol repository
    configuration; `GIT_NO_LAZY_FETCH=1` adds a guard on Git versions that support
@@ -712,13 +715,15 @@ persists nothing, enqueues no work and runs no command. L1.4 remains incomplete.
    flag. Another commit with the same tree, another operator and any content
    change produce another identity. The immutable result explicitly has no
    consent, forbids execution and is untested.
-6. The changes limits apply: 1,000 paths across both trees, 4 MiB per blob,
-   32 MiB of inspected blobs and 1 MiB of diff text; binary content does not
-   consume the diff allowance. Overflow fails the complete review with a limit
-   error and no partial result, so a candidate that cannot be reviewed in full
-   cannot later be consented to. One twenty-second deadline covers the
-   observation and every object read; cancellation awaits supervised Git
-   cleanup. Errors never disclose file contents or raw process output.
+6. The changes limits apply to what a person must read: 1,000 changed paths,
+   4 MiB per changed blob, 32 MiB of inspected blobs and 1 MiB of diff text;
+   binary content does not consume the diff allowance. Unchanged paths cost
+   only the two tree listings, each bounded as in the observation (50,000
+   files, 32 MiB). Overflow fails the complete review with a limit error and no
+   partial result, so a candidate that cannot be reviewed in full cannot later
+   be consented to. One four-minute deadline covers the observation and every
+   object read; cancellation awaits supervised Git cleanup. Errors never
+   disclose file contents or raw process output.
 7. The review has no idempotency receipt and no durable state. Its content is
    pinned to immutable objects; the cleanliness of the worktree is only the
    observation's point-in-time statement. Restart performs a new read, and an
@@ -899,8 +904,8 @@ no job, worker, route or desktop control. L1.4 remains incomplete.
    present, ignored or not. The reads are repeated at the end. A mismatch,
    such as line-ending conversion requested by the commit's own attributes or
    a submodule entry, refuses the checkout. The observation's limits apply
-   (1,000 files, 4 MiB per file, 32 MiB in total) under one sixty-second
-   deadline.
+   (50,000 files, 2 GiB in total) under one five-minute deadline, which also
+   bounds Git's own population of the folder.
 6. On refusal, cancellation or deadline, what was created is removed through
    Git's removal of that one worktree, or by removing the folder while it is
    still empty. Argent performs no recursive deletion of its own and never
@@ -960,6 +965,46 @@ configuration; a file stored through a filter such as Git LFS stays a pointer;
 a commit whose attributes convert line endings, and any commit above the
 observation's size limits, cannot be checked out for a trusted check. No
 command, consent or test result is established, and L1.4 remains incomplete.
+
+#### Clean-commit scale acceptance
+
+The exact-commit observation first reused the changes panel's limits, which
+exist because a person reads that panel. Proving that a folder equals a commit
+has no reader: the 1,000-file limit excluded ordinary repositories from
+trusted checks without protecting anything. The maintainers asked for the
+bound to be revisited on 12 November 2026.
+
+1. The clean-commit check, shared by the observation and the verification
+   checkout, computes each file's Git blob identity while reading it in 64 KiB
+   pieces and holds no file content. Memory therefore does not grow with file
+   size or total size. Every earlier check is kept: observed parent links,
+   final links not followed, regular files only, no hard links, the same file
+   before and after the read, and the final recheck of every file. A file
+   that grows while it is read is refused.
+2. Its bounds protect time: 50,000 tracked files, 2 GiB of file bytes in
+   total, 32 MiB for each Git listing and one two-minute deadline. There is no
+   separate per-file limit. Exceeding a bound is a limit error with no partial
+   result; a listing that does not fit is a refusal, never a shortened tree.
+3. The changes panel is unchanged. It still holds whole files, because it
+   displays them, within 1,000 paths, 4 MiB per file, 32 MiB in total and ten
+   seconds.
+4. The pinned review counts changed paths, not tracked files, against its
+   1,000-path limit. A tree of up to 50,000 files with a reviewable change set
+   is reviewable. The per-blob, total and diff limits on changed content are
+   unchanged, under one four-minute deadline.
+5. The verification checkout has one five-minute deadline for creation and
+   one for removal, each also given to Git's own population or removal of the
+   folder.
+6. The submodule listings of the worktree ownership check use the same 32 MiB
+   bound, so they do not refuse a tree the observation accepts.
+7. Real temporary Git fixtures cover a commit above every changes limit, file
+   sizes around the read piece size, each bound refusing without partial
+   success, a large tree with a small change set and a change set that is too
+   large. The existing observation, review, checkout and changes suites pass.
+
+Still open: a changed blob above 4 MiB, or more than 1 MiB of diff text, makes
+the whole candidate unreviewable and so untestable. Whether such a change may
+be accepted by identity alone is a product choice for the consent slice.
 
 ### L1.5 draft pull request and archive
 

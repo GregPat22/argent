@@ -11,6 +11,7 @@ import { COMMAND_CONFIG_PATH } from "./local-command-config.js";
 import type { Store } from "./store.js";
 import {
   CHANGES_LIMITS,
+  CLEAN_COMMIT_LIMITS,
   compareEntries,
   inspectLocalCommandCandidate,
   pathName,
@@ -19,11 +20,15 @@ import {
 } from "./workspace-changes.js";
 
 export const REVIEW_POLICY = "argent-local-command-review-v1";
-/** The changes limits, with one deadline that also covers the observation. */
+/**
+ * `files` bounds changed paths, which a person must read; `treeFiles` bounds
+ * each commit's whole tree. One deadline also covers the observation.
+ */
 export const REVIEW_LIMITS = Object.freeze({
   ...CHANGES_LIMITS,
-  treeBytes: 8 << 20,
-  timeoutMs: 20000,
+  treeFiles: CLEAN_COMMIT_LIMITS.files,
+  treeBytes: CLEAN_COMMIT_LIMITS.listingBytes,
+  timeoutMs: CLEAN_COMMIT_LIMITS.timeoutMs + 120000,
 });
 
 /** Untrusted display data. Blob identities are Git's, verified against bytes. */
@@ -133,14 +138,22 @@ export async function reviewLocalCommandCandidate(
         if (entries.has(name) || !Number.isSafeInteger(size))
           throw unreviewable();
         entries.set(name, { mode: match[1]!, oid: match[2]!, size });
-        if (entries.size > REVIEW_LIMITS.files) throw limit();
+        if (entries.size > REVIEW_LIMITS.treeFiles) throw limit();
       }
       return entries;
     };
     const base = await tree(observation.baseSha);
     const head = await tree(observation.headSha);
     if (head.size !== observation.files) throw unreviewable();
-    const names = [...new Set([...base.keys(), ...head.keys()])].sort();
+    // Only paths that differ are compared, so an unchanged large tree costs
+    // two listings and nothing more.
+    const names = [...new Set([...base.keys(), ...head.keys()])]
+      .filter((name) => {
+        const old = base.get(name);
+        const next = head.get(name);
+        return !old || !next || old.oid !== next.oid || old.mode !== next.mode;
+      })
+      .sort();
     if (names.length > REVIEW_LIMITS.files) throw limit();
 
     let total = 0;

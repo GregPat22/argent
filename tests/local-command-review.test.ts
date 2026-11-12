@@ -521,22 +521,33 @@ test("review inputs, diff text and path count are bounded without partial succes
       binaryFiles: 1,
     });
   });
-  await t.test("changed and unchanged paths together", async (t) => {
+  await t.test("changed paths, not the size of the tree", async (t) => {
     const files: Record<string, string> = {};
     for (let index = 0; index < 600; index++) files[`old-${index}`] = "x";
     const f = await fixture(t, files);
+    // More tracked files than the changed-path bound, with one small change.
+    mkdirSync(join(f.directory, "many"));
+    for (let index = 0; index < REVIEW_LIMITS.files + 200; index++)
+      writeFileSync(join(f.directory, "many", `file-${index}`), `${index}`);
+    f.commit();
+    const base = git(f.directory, "rev-parse", "HEAD");
+    f.db
+      .prepare("UPDATE local_worktrees SET base_sha = ? WHERE workspace_id = ?")
+      .run(base, f.workspace.id);
+    writeFileSync(join(f.directory, "file.txt"), "after\n");
+    f.commit();
+    const review = await f.review();
+    assert.equal(review.observation.files, 3 + 600 + REVIEW_LIMITS.files + 200);
+    assert.deepEqual(
+      review.files.map((file) => file.path),
+      ["file.txt"],
+    );
+    // Too many changed paths for a person to read is still a refusal.
     for (let index = 0; index < 600; index++) {
       unlinkSync(join(f.directory, `old-${index}`));
       writeFileSync(join(f.directory, `new-${index}`), `${index}`);
     }
     f.commit();
-    // The commit itself is small enough to observe; the comparison is not.
-    await inspectLocalCommandCandidate(
-      f.store,
-      f.worktrees,
-      f.workspace.id,
-      "operator",
-    );
     await assert.rejects(f.review(), rejected(413));
   });
 });

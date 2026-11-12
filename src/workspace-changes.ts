@@ -72,13 +72,24 @@ export function pathName(name: string): string {
   return name;
 }
 
-/** Reject observed parent links; do not follow final links or read special files. */
-async function readFile(
+interface Sink<T> {
+  add(chunk: Buffer): void;
+  done(): T;
+}
+
+/**
+ * Reject observed parent links; do not follow final links or read special
+ * files. Content goes to a sink in order, so a caller can hash without holding
+ * it. The sink's result is used only after every identity check has passed.
+ */
+async function scanFile<T>(
   directory: string,
   name: string,
   signal: AbortSignal,
+  maxBytes: number,
+  begin: (size: number) => Sink<T>,
 ): Promise<
-  { mode: string; bytes: Buffer; identity: FileIdentity } | undefined
+  { mode: string; value: T; size: number; identity: FileIdentity } | undefined
 > {
   signal.throwIfAborted();
   const path = join(directory, pathName(name));
@@ -107,14 +118,19 @@ async function readFile(
   // A tracked file replaced by a directory is deleted; its new children are
   // enumerated separately by Git's untracked listing.
   if (before.isDirectory()) return undefined;
-  let bytes: Buffer;
+  let sink: Sink<T>;
+  let size: number;
   let mode: string;
   if (before.isSymbolicLink()) {
-    bytes = await readlink(path, { encoding: "buffer" });
+    const target = await readlink(path, { encoding: "buffer" });
+    size = target.length;
+    if (size > maxBytes) throw limit();
+    sink = begin(size);
+    sink.add(target);
     mode = "120000";
   } else {
     if (!before.isFile() || before.nlink !== 1) throw unsafe();
-    if (before.size > CHANGES_LIMITS.fileBytes) throw limit();
+    if (before.size > maxBytes) throw limit();
     const file = await open(
       path,
       constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
@@ -128,28 +144,27 @@ async function readFile(
         opened.dev !== before.dev
       )
         throw unsafe();
-      bytes = Buffer.alloc(before.size + 1);
+      size = before.size;
+      sink = begin(size);
+      // One byte more than expected is requested, so growth is noticed.
+      const chunk = Buffer.allocUnsafe(Math.min(1 << 16, size + 1));
       let count = 0;
-      while (count < bytes.length) {
+      for (;;) {
         signal.throwIfAborted();
-        const read = await file.read(
-          bytes,
-          count,
-          Math.min(65536, bytes.length - count),
-          count,
-        );
+        const read = await file.read(chunk, 0, chunk.length, count);
         if (!read.bytesRead) break;
         count += read.bytesRead;
+        if (count > size) throw unsafe();
+        sink.add(chunk.subarray(0, read.bytesRead));
       }
       const after = await file.stat();
       if (
-        count !== before.size ||
-        after.size !== before.size ||
+        count !== size ||
+        after.size !== size ||
         after.mtimeMs !== before.mtimeMs ||
         after.ctimeMs !== before.ctimeMs
       )
         throw unsafe();
-      bytes = bytes.subarray(0, count);
       // Git's executable mode follows the owner's execute bit, not any x bit.
       mode = before.mode & 0o100 ? "100755" : "100644";
     } finally {
@@ -164,7 +179,52 @@ async function readFile(
     after.ctimeMs !== before.ctimeMs
   )
     throw unsafe();
-  return { mode, bytes, identity: fileIdentity(after) };
+  return { mode, value: sink.done(), size, identity: fileIdentity(after) };
+}
+
+/** A whole file in memory, for display. Bounded by the changes limits. */
+async function readFile(
+  directory: string,
+  name: string,
+  signal: AbortSignal,
+): Promise<
+  { mode: string; bytes: Buffer; identity: FileIdentity } | undefined
+> {
+  const file = await scanFile(
+    directory,
+    name,
+    signal,
+    CHANGES_LIMITS.fileBytes,
+    (size) => {
+      const bytes = Buffer.alloc(size);
+      let offset = 0;
+      return {
+        add(chunk) {
+          offset += chunk.copy(bytes, offset);
+        },
+        done: () => bytes,
+      };
+    },
+  );
+  return (
+    file && { mode: file.mode, bytes: file.value, identity: file.identity }
+  );
+}
+
+/**
+ * Bounds for proving that a folder equals a commit. Content is hashed as it is
+ * read and never held, so these protect time, not memory.
+ */
+export const CLEAN_COMMIT_LIMITS = Object.freeze({
+  files: 50000,
+  totalBytes: 2 * 1024 ** 3,
+  listingBytes: 32 << 20,
+  timeoutMs: 120000,
+});
+export interface CleanCommitLimits {
+  files: number;
+  totalBytes: number;
+  listingBytes: number;
 }
 
 export interface CleanCommit {
@@ -183,6 +243,7 @@ export async function readCleanCommit(
   directory: string,
   signal: AbortSignal,
   changed: () => DomainError,
+  limits: CleanCommitLimits = CLEAN_COMMIT_LIMITS,
 ): Promise<CleanCommit> {
   const text = async (args: string[]) => {
     const value = decode(await git(directory, args, 1 << 20, signal));
@@ -201,7 +262,7 @@ export async function readCleanCommit(
     await git(
       directory,
       ["ls-tree", "-r", "-z", "--full-tree", headSha],
-      1 << 20,
+      limits.listingBytes,
       signal,
     ),
   );
@@ -215,10 +276,10 @@ export async function readCleanCommit(
     const name = pathName(match[3]!);
     if (tree.has(name)) throw changed();
     tree.set(name, { mode: match[1]!, oid: match[2]! });
-    if (tree.size > CHANGES_LIMITS.files) throw limit();
+    if (tree.size > limits.files) throw limit();
   }
   const index = () =>
-    git(directory, ["ls-files", "--stage", "-z"], 1 << 20, signal);
+    git(directory, ["ls-files", "--stage", "-z"], limits.listingBytes, signal);
   const beforeIndex = await index();
   const indexText = decode(beforeIndex);
   if (indexText && !indexText.endsWith("\0")) throw changed();
@@ -250,18 +311,29 @@ export async function readCleanCommit(
     );
   if ((await untracked()).length) throw changed();
   const identities = new Map<string, FileIdentity>();
+  const algorithm = headSha.length === 64 ? "sha256" : "sha1";
   let total = 0;
   for (const [name, entry] of tree) {
     signal.throwIfAborted();
-    const file = await readFile(directory, name, signal);
-    if (!file || file.mode !== entry.mode) throw changed();
-    total += file.bytes.length;
-    if (total > CHANGES_LIMITS.totalBytes) throw limit();
-    const oid = createHash(headSha.length === 64 ? "sha256" : "sha1")
-      .update(`blob ${file.bytes.length}\0`)
-      .update(file.bytes)
-      .digest("hex");
-    if (oid !== entry.oid) throw changed();
+    // Git's blob identity, computed while reading: nothing is kept in memory.
+    const file = await scanFile(
+      directory,
+      name,
+      signal,
+      limits.totalBytes - total,
+      (size) => {
+        const hash = createHash(algorithm).update(`blob ${size}\0`);
+        return {
+          add(chunk) {
+            hash.update(chunk);
+          },
+          done: () => hash.digest("hex"),
+        };
+      },
+    );
+    if (!file || file.mode !== entry.mode || file.value !== entry.oid)
+      throw changed();
+    total += file.size;
     identities.set(name, file.identity);
   }
   return {
@@ -330,7 +402,7 @@ export async function inspectLocalCommandCandidate(
   const timer = setTimeout(
     () =>
       controller.abort(new DomainError(408, "Candidate inspection timed out")),
-    CHANGES_LIMITS.timeoutMs,
+    CLEAN_COMMIT_LIMITS.timeoutMs,
   );
   const changed = () =>
     new DomainError(409, "Workspace does not match an approved clean commit");

@@ -46,6 +46,7 @@ export async function git(
   args: string[],
   maxBuffer = 1 << 20,
   signal?: AbortSignal,
+  timeoutMs?: number,
 ): Promise<Buffer> {
   const options = { cwd, env: environment() };
   // Read names, never command values (which can contain private configuration).
@@ -80,7 +81,7 @@ export async function git(
       "git",
       [...SAFE_GIT, ...overrides, ...commandArgs],
       options,
-      { signal, maxBuffer },
+      { signal, maxBuffer, ...(timeoutMs === undefined ? {} : { timeoutMs }) },
     );
   } catch (error) {
     if (error instanceof UncertainExecutionError) throw error;

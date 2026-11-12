@@ -10,9 +10,12 @@ import {
 import { DomainError, UncertainExecutionError } from "./domain.js";
 import { git } from "./git.js";
 import type { Store } from "./store.js";
-import { readCleanCommit } from "./workspace-changes.js";
+import { CLEAN_COMMIT_LIMITS, readCleanCommit } from "./workspace-changes.js";
 
-export const CHECKOUT_LIMITS = Object.freeze({ timeoutMs: 60000 });
+/** One deadline for creation and verification, or for removal. */
+export const CHECKOUT_LIMITS = Object.freeze({
+  timeoutMs: CLEAN_COMMIT_LIMITS.timeoutMs + 180000,
+});
 
 export interface VerificationRoots {
   /** Where the service keeps workspace worktrees. */
@@ -211,6 +214,7 @@ export async function createVerificationCheckout(
       ["worktree", "add", "--quiet", "--detach", directory, headSha],
       1 << 20,
       signal,
+      CHECKOUT_LIMITS.timeoutMs,
     );
 
     const after = await realDirectory(directory);
@@ -307,6 +311,7 @@ async function discard(
       ["worktree", "remove", "--force", directory],
       1 << 20,
       signal,
+      CHECKOUT_LIMITS.timeoutMs,
     );
   } catch (error) {
     if (error instanceof UncertainExecutionError) throw error;

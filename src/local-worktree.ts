@@ -42,7 +42,7 @@ async function rejectSubmodules(
     ]),
   ];
   for (const args of commands) {
-    const entries = await git(directory, args, 8 << 20, signal);
+    const entries = await git(directory, args, 32 << 20, signal);
     if (
       entries
         .toString("utf8")
