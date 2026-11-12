@@ -1,6 +1,7 @@
 # Argent website
 
-The Argent landing page. It is not deployed yet.
+The Argent landing page at [argent.build](https://argent.build/). Public desktop
+downloads are not available yet.
 
 This package is separate from the engine: it shares no code or dependencies with
 `src/`, and the root `npm run check` does not build it.
@@ -161,3 +162,31 @@ only an exit. The compact menu also provides a Back to top link. The regression
 suite checks this boundary reversal and seeks the actual CSS width transition to
 its midpoint before checking the final compact geometry; it does not depend on
 software rendering producing an intermediate frame inside a fixed time window.
+
+## Search and sharing
+
+Search metadata is defined in `src/lib/site.ts`: the production URL is
+`https://argent.build`, with one shared title and description. The home page
+owns its canonical; new pages must supply their own. Keep schema in
+`src/lib/seo.ts` aligned with visible capabilities. The technical SEO work is
+specified in [spec 0017](../docs/specs/0017-website-seo.md) and remains in
+development until integrated and published.
+
+The production build generates `/robots.txt`, `/sitemap.xml`, and a 1200 × 630
+PNG at `/opengraph-image`. Next.js adds that image to both Open Graph and X
+cards. No external image service, runtime package or account is required.
+The navigation wordmark uses Next.js image optimization at its displayed size;
+the source artwork is unchanged.
+
+Production is indexable by default. Vercel preview/development builds emit
+`noindex`, allow crawling so robots can read that directive, and omit sitemap
+entries. For previews hosted elsewhere, set `ARGENT_SITE_NOINDEX=1` **before
+building**. Rebuild when changing deployment environments; do not reuse a
+production artifact for a publicly accessible staging host. Neither a robots
+directive nor a canonical URL provides access control.
+
+After publishing, check the canonical, crawl files, social image and 404 response
+on the live domain. Validate JSON-LD, submit the sitemap in Search Console, and
+inspect the home page once domain ownership is verified. Indexing, ranking and
+field Core Web Vitals require live observations. The current `www` hostname
+needs a valid certificate and a redirect to the apex domain at the hosting layer.

@@ -14,6 +14,8 @@ check says so. You decide what gets merged.
 > remain a scripted simulation. Everything below says which parts are
 > real and which are planned.
 
+Website: [argent.build](https://argent.build/). Desktop downloads are planned.
+
 Follow the build on X: [@Argent_build](https://x.com/Argent_build).
 
 ## What works today

@@ -1,3 +1,6 @@
+import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
+import { siteStructuredData } from "@/lib/seo";
 import { Agents } from "@/components/agents";
 import { Entrance } from "@/components/entrance";
 import { Footer } from "@/components/footer";
@@ -14,9 +17,18 @@ import { RunIt } from "@/components/run-it";
 import { SectionActivity } from "@/components/section-activity";
 import { Statement } from "@/components/statement";
 
+// Page-specific: future pages must declare their own canonical URL.
+export const metadata: Metadata = { alternates: { canonical: SITE_URL } };
+
 export default function Home() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(siteStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       <a
         href="#top"
         className="fixed top-3 left-3 z-[60] -translate-y-24 rounded-full bg-polished px-5 py-3 text-sm text-oxide focus:translate-y-0"

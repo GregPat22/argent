@@ -82,6 +82,9 @@ recorded revision.
 | [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.      |
 | [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks. |
 
+[0017 Website SEO](specs/0017-website-seo.md) defines search metadata, crawl files,
+structured data, social previews and deployment validation; in development.
+
 Spec 0005 (the landing-page draft) is maintained privately with the website's
 design history.
 
