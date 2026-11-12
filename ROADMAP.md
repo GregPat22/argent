@@ -135,6 +135,11 @@ approval receipts, with no command dispatch. Its bounded acceptance step precede
 desktop configuration review controls. Candidate-change consent, execution,
 exact-commit results and stale-result display remain open; item 3 stays **Next**.
 
+- [x] Validate the configuration approval service contract in development at
+      `9b6ddef`: [automated and review evidence](docs/specs/0013-local-mvp.md#configuration-approval-service-validation)
+      recorded on 12 November 2026. Desktop controls and the remaining item 3 exit
+      evidence are still pending.
+
 Already implemented: L1.1, L1.2, L1.3, the
 [local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening) and
 the [desktop restyle](docs/specs/0015-desktop-restyle.md).

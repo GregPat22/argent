@@ -576,6 +576,25 @@ exact-commit results and stale-result presentation still require their contracts
 and evidence. Public product descriptions continue to label trusted checks as
 planned.
 
+#### Configuration approval service validation
+
+Development validation recorded on 12 November 2026 for implementation
+`9b6ddef2dc2e15915177e117bfb6dac12006e46a`, based on main `6ba963b`.
+`npm run check` passed strict type checking, formatting, compilation and all
+589 automated tests, including ten HTTP cases and the existing approval-store
+regressions. Focused HTTP/storage tests also passed before the final cancellation
+case was added. An initial typecheck rejected a test helper outside the configured
+ES2023 library; ordinary promises corrected it without changing the compiler target.
+
+Independent diff and security review found no blocking issue against the local
+execution model. Added documentation links and anchors resolve. The fixtures
+establish authenticated configuration approval, historical replay and cancellation
+propagation with real temporary Git repositories and loopback HTTP. They do not
+establish human review, desktop usability, configured command execution or a
+verified commit. No real agent account or native desktop walkthrough was used.
+L1.4 remains incomplete; desktop configuration approval controls are the next
+integration step.
+
 #### Dormant command-job ownership acceptance
 
 Acceptance recorded 11 November 2026 against main `0ad0caf`. Internal ownership
