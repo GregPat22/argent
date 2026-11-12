@@ -573,3 +573,86 @@ Trusted Git transport denial uses an empty `GIT_ALLOW_PROTOCOL` allowlist, which
 transport. Optional index refresh remains disabled. Local marker-only fixtures
 exercise explicit protocol overrides and missing promisor objects without a
 network or account. No minimum Git version is raised.
+
+### Internal pinned candidate review
+
+Implemented at `042a169` under the
+[acceptance contract](docs/specs/0013-local-mvp.md#internal-pinned-candidate-review-acceptance),
+with [validation evidence](docs/specs/0013-local-mvp.md#internal-pinned-review-evidence)
+recorded on 11 November 2026. The read-only `local-command-review.ts` module
+first requires a fresh exact-commit observation, then compares the recorded
+base tree with the observed commit's tree. Trusted Git reads only objects named
+by those two commits through the stored repository's pinned common directory.
+Each commit, recursively traversed tree and changed blob is checked against its
+object ID; changed blobs also match their declared sizes. The live changes inspector and the review share one comparison
+helper for exact renames and bounded whole-file hunks; the inspector's public
+contract is unchanged.
+
+The immutable result lists every changed path with modes, blob IDs and sizes.
+Binary content has identity only and is labelled as never displayed. Commands
+always come from the approved base; the candidate's own configuration file is
+reported as unchanged, changed or removed. Argent does not guess which changed
+files a command executes, so the complete change set is the review. The review
+identity binds the observation and every changed entry.
+
+It is not consent, a receipt, a job or a runnable plan, and it has no API,
+desktop or worker entry point. Any failure, overflow, cancellation or deadline
+yields no review. Consent bound to a review identity, a fresh owned checkout,
+bounded execution and exact-commit results remain planned.
+
+### Internal bounded command runner
+
+Implemented at `e4260cc` under the
+[acceptance contract](docs/specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance),
+with [validation evidence](docs/specs/0013-local-mvp.md#internal-bounded-runner-evidence)
+recorded on 12 November 2026. `local-command-runner.ts` starts one validated
+argument array through the existing process-group supervisor, in a validated
+directory, with the agent's allowlisted environment and closed standard input.
+It counts and hashes both output streams, retains a bounded tail, stops at a
+total output limit or the deadline, and returns an immutable observation of the
+outcome. Cancellation and unconfirmed termination return no result.
+
+Nothing calls it: there is no configuration, approval, review, job, worker,
+API or desktop path to the runner, and dormant command jobs remain forbidden to
+execute. Its result is labelled untested and is not evidence about a commit.
+Connecting it requires consent bound to a review identity, a fresh owned
+checkout, exact-commit result handling and an independent security review.
+
+### Internal verification checkout
+
+Implemented at `217ad9d` under the
+[acceptance contract](docs/specs/0013-local-mvp.md#internal-verification-checkout-acceptance),
+with [validation evidence](docs/specs/0013-local-mvp.md#internal-verification-checkout-evidence)
+recorded on 12 November 2026. `local-verification-checkout.ts` adds a detached
+linked worktree of one exact commit under a private verification folder that
+is apart from the repository and the workspace worktrees. The repository and
+branch come from the store; the commit must carry the named tree and be
+reachable from the workspace's own branch. Trusted Git creates the worktree
+with hooks, filter commands and transports disabled. It registers without
+population, then populates from inside the linked worktree so conditional
+filter configuration is neutralized there too.
+
+Before returning, Argent applies the exact-commit observation's clean-commit
+check to the new folder, which the two now share, and requires that no other
+file exists. Failure removes what was created, or reports incomplete cleanup.
+A moved or missing folder is reported as kept. Removal takes only a checkout
+object created by the live process and only the same real folder, through
+Git's removal of that one worktree; Argent deletes nothing recursively itself
+and prunes no other worktree.
+
+A checkout is not isolation: a command there runs as the developer and shares
+the repository's Git directory. A trusted check will run `setup`, when
+configured, and then `test` in one such checkout. Nothing calls this module
+yet, and a checkout left by a crash stays until durable ownership exists.
+
+### Clean-commit check bounds
+
+Implemented at `2ed334f` under the
+[acceptance contract](docs/specs/0013-local-mvp.md#clean-commit-scale-acceptance),
+with [validation evidence](docs/specs/0013-local-mvp.md#clean-commit-scale-evidence)
+recorded on 12 November 2026. The clean-commit check in `workspace-changes.ts`
+hashes each file's Git blob identity while reading it and holds no content,
+so its bounds protect time and not memory: 50,000 files, 2 GiB in total,
+32 MiB per Git listing and a two-minute deadline. The changes panel keeps its
+own smaller limits because it holds and displays what it reads. The pinned
+review applies its 1,000-path limit to changed paths only.

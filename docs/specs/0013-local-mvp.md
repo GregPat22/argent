@@ -357,6 +357,13 @@ recorded commit is the workspace's current commit and the worktree is clean;
 any later change shows it as stale. This is the first time Argent itself
 launches repository code, so it needs its own security review.
 
+Accepted on 12 November 2026: a trusted check runs in a fresh checkout that
+Argent creates as a detached linked worktree of the exact commit and verifies
+before use, so commands that call Git keep working. A test request runs the
+approved `setup` command, when one is configured, and then `test` in that same
+checkout, and records both. Running the `run` action is deferred until setup
+and test results work; the configuration schema is unchanged.
+
 #### Internal command-configuration reader acceptance
 
 Acceptance recorded 11 November 2026 against main `9ddf9d7`; the internal reader
@@ -612,11 +619,14 @@ review diff or execution plan, persist consent, enqueue work or run commands.
    an early-read file changed later in the operation cannot silently pass.
    These are point-in-time checks, not an atomic filesystem snapshot or protection
    against arbitrary host-owner tampering.
-4. Reuse the changes limits: 1,000 files, 4 MiB per file, 32 MiB total file bytes
-   and one ten-second deadline over the complete operation. Bound Git listings,
-   reject unsafe types/paths and fail the whole operation on overflow, observed
-   change or cancellation. Binary bytes can be compared for identity but are not
-   thereby human-reviewed. Existing changes display and API shapes stay unchanged.
+4. Bound the check by time, not by what a screen can show: 50,000 files, 2 GiB
+   of file bytes in total, 32 MiB per Git listing and one two-minute deadline
+   over the complete operation, as set out under
+   [clean-commit scale](#clean-commit-scale-acceptance). Reject unsafe
+   types/paths and fail the whole operation on overflow, observed change or
+   cancellation. Binary bytes can be compared for identity but are not thereby
+   human-reviewed. Existing changes display and API shapes, and their own
+   limits, stay unchanged.
 5. Trusted Git keeps optional index refresh disabled. An empty
    `GIT_ALLOW_PROTOCOL` allowlist denies transports despite per-protocol repository
    configuration; `GIT_NO_LAZY_FETCH=1` adds a guard on Git versions that support
@@ -664,6 +674,415 @@ This is automated fixture evidence for read-only inspection. It does not complet
 L1.4 or establish human consent, fresh-checkout isolation, command execution or
 trusted test evidence. The next work remains complete pinned candidate review,
 explicit consent, fresh-checkout execution and exact-commit result handling.
+
+#### Internal pinned candidate review acceptance
+
+Acceptance recorded 11 November 2026 against main `8027d0b`; implemented at
+`042a169f7267adf1b4d2806ba802de04b81d3b83`. This read-only
+groundwork produces what a person would have to read before consenting to run
+the approved base commands against one exact commit. It collects no consent,
+persists nothing, enqueues no work and runs no command. L1.4 remains incomplete.
+
+1. The service supplies its worktree root, a stored workspace ID and the trusted
+   operator identity. The review first requires a fresh
+   [exact-commit observation](#internal-exact-commit-candidate-observation-acceptance):
+   the operator's matching configuration approval and a worktree whose index
+   and Git-visible bytes equal one commit. It accepts no caller path, revision,
+   argv, diff or purported observation. A dirty, unapproved, simulated or
+   unknown workspace has no review.
+2. The change set compares the recorded base commit with the observed commit,
+   tree to tree. Trusted Git reads only objects named by those two commits:
+   never the worktree, the index, replacement refs, filters, textconv or an
+   external diff. The object source is pinned to the stored repository's common
+   Git directory, independently of the worktree's `.git` file. Every commit,
+   traversed tree and changed blob is hashed against its Git object ID; changed
+   blobs also match their declared sizes. The common-directory binding is
+   checked again after the reads. A missing object, a gitlink, an unsafe
+   path, an invalid-UTF-8 path name or a malformed listing fails the whole
+   review.
+3. Each changed file records its status, both modes, both blob IDs and both
+   sizes. Added, modified, deleted, exact-content renamed, mode-only and
+   symlink changes are represented with the same bounded whole-file text hunks
+   as the changes panel. Binary or invalid-UTF-8 content has identity and size
+   only, and the review says so: it is counted as binary and never described
+   as displayed or reviewed. All paths and text remain untrusted display data.
+4. Commands always come from the approved base configuration. The review
+   reports whether the candidate's own `argent.json` is unchanged, changed or
+   removed relative to the base, and marks that file in the change set. It
+   states that Argent cannot identify which changed files a command will
+   execute: the complete change set is the review, and no heuristic narrows it.
+5. The versioned review identity hashes the observation identity (workspace,
+   operator, approval, configuration, base, commit and tree), the configuration
+   state and every changed path with its status, modes, blob IDs and binary
+   flag. Another commit with the same tree, another operator and any content
+   change produce another identity. The immutable result explicitly has no
+   consent, forbids execution and is untested.
+6. The changes limits apply to what a person must read: 1,000 changed paths,
+   4 MiB per changed blob, 32 MiB of inspected blobs and 1 MiB of diff text;
+   binary content does not consume the diff allowance. Unchanged paths cost
+   only verified tree traversal, bounded to 50,000 files, 50,000 trees and
+   32 MiB of commit/tree bytes per revision. Changed blobs alone are read. Overflow fails the complete review with a limit error and no
+   partial result, so a candidate that cannot be reviewed in full cannot later
+   be consented to. One four-minute deadline covers the observation and every
+   object read; cancellation awaits supervised Git cleanup. Errors never
+   disclose file contents or raw process output.
+7. The review has no idempotency receipt and no durable state. Its content is
+   pinned to immutable objects; the cleanliness of the worktree is only the
+   observation's point-in-time statement. Restart performs a new read, and an
+   old review cannot authorize execution. Ignored content stays excluded, and
+   host-owner tampering with the object database remains outside the
+   protection claimed.
+8. Real temporary Git fixtures cover every change kind, identity stability and
+   change, candidate configuration changes, refusal without a clean approved
+   commit, replacement refs and hostile command settings, literal unusual
+   names, a missing and a forged object, each bound, cancellation and the
+   deadline. Reviews leave store records, the index and working files
+   unchanged; no configured marker runs and no dormant job becomes runnable.
+   The existing changes inspection keeps its behavior and tests.
+
+Explicit consent bound to a review identity, a fresh owned checkout, bounded
+command execution and exact-commit results remain separate work. A reviewed
+change set is not evidence that a command passed.
+
+#### Internal pinned review evidence
+
+Recorded 11 November 2026 for implementation commit
+`042a169f7267adf1b4d2806ba802de04b81d3b83`, on macOS with Git 2.42.0. `npm run check`
+passed strict types, formatting, build and all 554 automated tests without
+failures, cancellations or skips; unchanged main `8027d0b` passed its 541 tests
+in the same environment. The thirteen focused cases in
+`tests/local-command-review.test.ts` use real temporary Git repositories and
+cover the acceptance criteria above. The existing changes, candidate and
+approval suites pass unchanged against the shared comparison helper.
+
+Each check was also disabled in turn in a built copy: blob size and object-ID
+verification, the per-blob, total and path-count limits, the observation
+binding in the identity, the configuration state and the final abort check.
+Every omission made a focused case fail. That probe found the first
+total-bytes fixture passing through the diff-text limit instead; the fixture
+now uses NUL-filled content so that only the input allowance applies.
+
+The forged-object case replaces a base blob's loose object with different
+bytes of the same length. Git 2.42.0 served those bytes under the original ID
+without error; the review refused them through its own object-ID check and
+produced a result again once the object was restored. The live changes panel
+does not verify base blobs this way: its diff remains unverified, untrusted
+display data, as its contract states.
+
+The diff was checked by its author against the
+[security model](#security-model): explicit argument arrays, object IDs taken
+only from validated listings, no caller-supplied path or revision, no worktree
+or index read after the observation and no process other than trusted Git.
+Blob content is the only thing the review hashes itself: a forged commit or
+tree object that Git serves could still misstate the change set, which stays
+within the originally stated host-owner tampering limit. The subsequent
+[security correction](#review-and-checkout-security-correction) replaces that
+assumption: an agent-writable Git-directory redirect can supply forged subtrees.
+Independent hosted integration checks remain required.
+
+Limits: every trusted Git read starts two processes, and a review reads up to
+two blobs per changed file, so a change set of several hundred files can reach
+the deadline before the size limits. The observation it depends on reads every
+tracked file and refuses a commit with more than 1,000 of them, which excludes
+larger repositories from trusted checks until that bound is revisited.
+These fixtures establish bounded read-only review. They establish no consent,
+fresh checkout, command execution or test result, and L1.4 remains incomplete.
+
+#### Internal bounded command runner acceptance
+
+Acceptance recorded 12 November 2026 against main `8027d0b` with the pinned
+candidate review above; implemented at
+`e4260cc61b42983f5092006af737cc36fbf56263`. This is the process primitive a later trusted check
+needs under every design: one argument array, started under the
+[security model](#security-model)'s process rules, with bounded output and one
+deadline. Nothing calls it. No configuration, approval, review, job, worker,
+route or desktop control reaches it, dormant command jobs stay forbidden to
+execute, and Argent still launches no repository command. L1.4 remains
+incomplete.
+
+1. The runner accepts an argument array, a working directory, a runtime bound
+   and an optional cancellation signal. The array has the configuration
+   reader's bounds: 1 to 64 strings of at most 4 KiB, without NUL or unpaired
+   surrogates, and a nonblank first element. The directory must be an existing
+   directory given by its real absolute path. The runtime is an integer from
+   one second to two hours. Invalid input is refused before anything starts.
+2. No shell string is built or passed. A bare executable name of letters,
+   digits, dot, underscore and hyphen is searched on the same path as the agent
+   CLI; an absolute path is used as given; a relative path containing a slash
+   must resolve, after links, to an executable regular file inside the working
+   directory. Remaining arguments are passed unchanged as separate arguments.
+   Starting the file is the operating system's: an interpreter line applies,
+   and a file without one is run by the system shell, as `execvp` does.
+3. The process receives the agent's allowlisted environment (`PATH`, `HOME`,
+   `USER`, `LOGNAME`, `SHELL`, `LANG`, `LC_*`, `TERM`, `TMPDIR`) and nothing
+   else: no provider API key, host token, service credential, agent
+   configuration location or runtime option variable. Standard input is closed.
+   The command runs as the developer. This is not a sandbox.
+4. Standard output and standard error are each counted and hashed with SHA-256
+   over every byte; only the last 256 KiB of each is retained, with a
+   truncation flag. Both streams together are limited to 64 MiB: reaching the
+   limit stops the command and is reported as such. Output is untrusted bytes.
+5. The deadline, the output limit and cancellation terminate the command's
+   whole process group and wait for confirmed quiescence, with the existing
+   supervisor. A deadline or output limit returns a result with that outcome
+   and no exit status. Cancellation returns no result. Unconfirmed termination
+   raises the existing uncertainty error and is never described as an outcome.
+   The runner waits for both output streams to close, so a command whose
+   leftover child keeps them open ends at the deadline.
+6. The immutable result records the argument array, the resolved executable,
+   the directory, the outcome (exited, signaled, timed out or output limit),
+   the exit status or signal when the process ended on its own, start time,
+   duration and both stream records. It is labelled untested and as no
+   recorded evidence: an exit status of zero says only that this process
+   exited with zero. An executable that is missing, not executable, outside
+   the directory or refused by the system fails without a result.
+7. Fixtures start only the test runtime and small scripts written by the test
+   in temporary directories; no repository command or configured action runs.
+   They cover literal shell metacharacters, exit and signal outcomes, closed
+   input, the environment allowlist, each executable form and its refusals,
+   invalid input, output accounting and truncation, the output limit, and
+   deadline and cancellation with a child process in the same group.
+
+A fresh owned checkout, explicit consent bound to a review identity, wiring to
+command jobs and exact-commit results remain separate work, with their own
+security review. Until then this runner establishes nothing about a commit.
+
+#### Internal bounded runner evidence
+
+Recorded 12 November 2026 for implementation commit
+`e4260cc61b42983f5092006af737cc36fbf56263`, on macOS with Node 22.19.0.
+`npm run check` passed strict types, formatting, build and all 562 automated
+tests without failures, cancellations or skips. The eight focused cases in
+`tests/local-command-runner.test.ts` passed in three consecutive runs. They
+start real child processes and no repository command.
+
+Removing the environment allowlist, the inside-the-directory check, the
+cancellation refusal or the output limit in a built copy each made a focused
+case fail. The deadline and cancellation cases start a child that starts
+another process, and confirm that both are gone afterwards.
+
+One expectation was wrong and is corrected in the contract: an executable file
+without an interpreter line is not refused by the system. It is run by the
+system shell, as `execvp` does. Argent builds no shell string, but a later
+check that runs a repository script inherits this.
+
+The diff was checked by its author against the
+[security model](#security-model). It has no caller, so it adds no path by
+which Argent runs repository code. Independent security review is required
+before anything is connected to it. Limits: bare names with other characters
+are not found; a command that leaves a child holding its output open is
+reported as timed out; the tail is bytes, not decoded or redacted text. No
+commit, checkout, consent or test result is established, and L1.4 remains
+incomplete.
+
+#### Internal verification checkout acceptance
+
+Acceptance recorded 12 November 2026 against main `8027d0b` with the pinned
+review and bounded runner above; implemented at
+`217ad9d1bb50be7e0f54d7eaeaf374daa5268d56`. This creates and removes the fresh checkout a
+trusted check will run in. It runs no configured command and nothing calls it:
+no job, worker, route or desktop control. L1.4 remains incomplete.
+
+1. The service supplies its worktree folder, a separate verification folder,
+   a UUID naming the checkout, a stored workspace ID and the commit and tree it
+   expects. The repository and branch come from the store. No caller path,
+   branch or revision name is accepted. A simulated, unknown or inconsistently
+   recorded workspace is refused.
+2. The commit must resolve to itself, carry the named tree and be reachable
+   from the workspace's own `argent/<id>` branch. Any other commit in the
+   repository, including one amended away from that branch, is refused before
+   anything is created.
+3. The verification folder must be apart from the repository and the
+   workspace worktrees: none may equal or contain another. Its parent must
+   already exist. The checkout folder, named by the UUID, is created
+   exclusively with owner-only permissions; a name that already exists is
+   refused and left untouched.
+4. Trusted Git adds a detached linked worktree at the commit from the stored
+   repository, with hooks, fsmonitor, filter commands and transports disabled.
+   Registration uses `--no-checkout`; a separate population command runs
+   inside the linked worktree after re-reading its conditional filter settings.
+   No branch is created or moved. The workspace worktree, its index, its
+   ignored files and the store are unchanged.
+5. Before a checkout is returned, Argent requires the same folder it created,
+   the expected top level and common Git directory, a detached HEAD at the
+   commit, and an index and Git-visible bytes and modes equal to the commit,
+   using the same check as the exact-commit observation. No other file may be
+   present, ignored or not. The reads are repeated at the end. A mismatch,
+   such as line-ending conversion requested by the commit's own attributes or
+   a submodule entry, refuses the checkout. The observation's limits apply
+   (50,000 files, 2 GiB in total) under one five-minute deadline, which also
+   bounds Git's own population of the folder.
+6. On refusal, cancellation or deadline, what was created is removed through
+   Git's removal of that one worktree, or by removing the folder while it is
+   still empty. Argent performs no recursive deletion of its own and never
+   prunes other worktrees. If removal cannot be completed the remainder is
+   left in place and the cleanup failure is reported, including on cancellation.
+   A moved or missing owned folder is not reported as successfully removed.
+   Unconfirmed process termination stops all cleanup.
+7. Removal accepts only a checkout object created by the live service
+   process. The folder must still be the same real directory, by path, device
+   and inode. Whatever a command left in it is discarded, without following
+   links out of the folder. A description of a checkout, or a folder that
+   replaced it, removes nothing and is reported. Nothing is removed from a
+   stored path or after a restart.
+8. The immutable result names the folder, workspace, commit, tree and file
+   count, and says that its contents matched at one point in time, that it is
+   not isolation and that nothing was tested. A command run there acts as the
+   developer and shares the repository's Git directory.
+9. Real temporary Git fixtures cover the exact contents and modes, ignored
+   and uncommitted workspace content staying behind, hostile hooks and filter
+   settings, every refusal above, mismatching checkouts, removal of a dirtied
+   checkout with links pointing outside, unowned and replaced folders,
+   cancellation and the deadline. The existing observation tests pass
+   unchanged against the shared check.
+
+Consent bound to a review identity, wiring to command jobs, running `setup`
+and `test` here and exact-commit results remain separate work, with an
+independent security review before anything is connected.
+
+#### Internal verification checkout evidence
+
+Recorded 12 November 2026 for implementation commit
+`217ad9d1bb50be7e0f54d7eaeaf374daa5268d56`, on macOS with Git 2.42.0.
+`npm run check` passed strict types, formatting, build and all 572 automated
+tests without failures, cancellations or skips. The ten focused cases in
+`tests/local-verification-checkout.test.ts` use real temporary Git
+repositories and run no configured command. The observation, review and
+changes suites pass unchanged against the shared clean-commit check.
+
+Removing each of these in a built copy made a focused case fail: the branch
+reachability check, the tree binding, the separation of folders, the folder
+identity check on removal, cleanup after a failed creation and exclusive
+creation of the checkout folder. The tree binding is checked before creation
+and again after it; removing only the first is not observable, because the
+second refuses the checkout.
+
+Two defects were found and corrected before this record. The verification
+folder was created before its location was checked, which left an empty folder
+inside a repository that should have been refused; the location is now decided
+first and the folder's parent must exist. The first hostile-settings fixture
+ran the hostile filter through its own untrusted Git calls; hostile settings
+are now present only while Argent's code runs.
+
+The diff was checked by its author against the
+[security model](#security-model). Independent security review is required
+before a command is run in a checkout. Limits: a checkout left by a crash or a
+restart is not removed, because ownership is held only by the live process; a
+command run in the checkout can change the shared repository's refs and
+configuration; a file stored through a filter such as Git LFS stays a pointer;
+a commit whose attributes convert line endings, and any commit above the
+observation's size limits, cannot be checked out for a trusted check. No
+command, consent or test result is established, and L1.4 remains incomplete.
+
+#### Clean-commit scale acceptance
+
+The exact-commit observation first reused the changes panel's limits, which
+exist because a person reads that panel. Proving that a folder equals a commit
+has no reader: the 1,000-file limit excluded ordinary repositories from
+trusted checks without protecting anything. The bound is revised below independently of the display limits.
+
+1. The clean-commit check, shared by the observation and the verification
+   checkout, computes each file's Git blob identity while reading it in 64 KiB
+   pieces and holds no file content. Memory therefore does not grow with file
+   size or total size. Every earlier check is kept: observed parent links,
+   final links not followed, regular files only, no hard links, the same file
+   before and after the read, and the final recheck of every file. A file
+   that grows while it is read is refused.
+2. Its bounds protect time: 50,000 tracked files, 2 GiB of file bytes in
+   total, 32 MiB for each Git listing and one two-minute deadline. There is no
+   separate per-file limit. Exceeding a bound is a limit error with no partial
+   result; a listing that does not fit is a refusal, never a shortened tree.
+3. The changes panel is unchanged. It still holds whole files, because it
+   displays them, within 1,000 paths, 4 MiB per file, 32 MiB in total and ten
+   seconds.
+4. The pinned review counts changed paths, not tracked files, against its
+   1,000-path limit. A tree of up to 50,000 files with a reviewable change set
+   is reviewable. The per-blob, total and diff limits on changed content are
+   unchanged, under one four-minute deadline.
+5. The verification checkout has one five-minute deadline for creation and
+   one for removal, each also given to Git's own population or removal of the
+   folder.
+6. The submodule listings of the worktree ownership check use the same 32 MiB
+   bound, so they do not refuse a tree the observation accepts.
+7. Real temporary Git fixtures cover a commit above every changes limit, file
+   sizes around the read piece size, each bound refusing without partial
+   success, a large tree with a small change set and a change set that is too
+   large. The existing observation, review, checkout and changes suites pass.
+
+Still open: a changed blob above 4 MiB, or more than 1 MiB of diff text, makes
+the whole candidate unreviewable and so untestable. Whether such a change may
+be accepted by identity alone is a product choice for the consent slice.
+
+#### Clean-commit scale evidence
+
+Recorded 12 November 2026 for implementation commit
+`2ed334f687b7887e3d86931be4a8e67bf6eae862`, on macOS (Apple M1) with Git 2.42.0
+and Node.js 22.19.0. `npm run check` passed strict types, formatting, build
+and all 572 automated tests without failures, cancellations or skips. Two
+earlier cases that asserted the 1,000-file refusal were replaced by cases for
+the new contract; the changes panel's suite is unchanged.
+
+Measured once on that machine, outside the test suite, with other work
+running: a commit of 50,000 files totalling 1,995 MiB, one of them 1,800 MiB,
+took 21 to 22 seconds to check and 3 to 5 seconds to recheck in two runs,
+with the process at 77 to 104 MiB of resident memory. A commit of 50,001
+files was refused. The two-minute deadline is about four times the measured
+time at the bounds; a slower disk reaches the deadline and is refused, never
+passed.
+
+Changing each of these in a built copy made a focused case fail: the
+cumulative total, the comparison of the computed blob identity, the file
+count, the tree listing bound, the remaining-bytes limit on a single file,
+the review's restriction to changed paths and the review's changed-path
+limit. Three removals are not observable by outcome, because another check
+refuses the same input: the index listing bound (a clean index listing is
+never longer than the tree listing), the refusal of growth during a read
+(the size comparison after the read refuses it) and the review's tree file
+bound (the observation or the changed-path limit refuses first).
+
+The diff was checked by its author against the
+[security model](#security-model). Limits: Git's own time to populate or
+remove a checkout of this size was not measured; the bounds are engineering
+values to adjust by evidence, not a product commitment; and the review still
+refuses large changed blobs as stated above. No command, consent or test
+result is established, and L1.4 remains incomplete.
+
+#### Review and checkout security correction
+
+Acceptance recorded 12 November 2026 against `43573dd`. An independent review
+identified filter commands enabled only in linked-worktree configuration,
+filter names containing `=`, forged nested trees supplied through a redirected
+worktree `.git`, and incomplete cleanup reporting. These are corrections to
+L1.4's existing security contract, not permission to execute commands.
+
+- Filter overrides preserve complete keys through Git's separate environment
+  key/value fields. Both workspace creation and verification-checkout creation
+  register without population, then populate through trusted Git inside the
+  new worktree's configuration context.
+- Candidate review pins the object source to the stored repository, verifies
+  commit and recursive tree identities as well as changed blobs, and refuses
+  a changed common-directory binding. Raw traversal replaces the differently
+  sized flat listings; object-size and cumulative bounds refuse with 413.
+- Cancellation during population leaves a registered worktree for targeted
+  removal. Failed cleanup and a moved or missing owned checkout report a
+  remainder instead of success. No recursive deletion or global prune is added.
+- Regression fixtures cover both filter bypasses, a forged nested tree,
+  redirection immediately after observation, interruption during population,
+  a moved folder and cancellation with failed cleanup.
+
+Validation recorded 12 November 2026 for correction commit
+`2f243e1`: `npm run check` passed types, formatting, build and all 579 tests,
+without failures, cancellations or skips. The focused Git, review and checkout
+suites passed all 32 tests. Six new filter, forged-tree, redirection and cleanup
+regressions failed against unchanged `43573dd` and passed with the correction;
+the population-cancellation fixture also passed. These are real temporary Git
+and process fixtures, not real-agent or end-to-end trusted-check evidence.
+The final diff was inspected against the independent review's findings.
+
+These helpers remain unconnected. Consent, command-job integration, durable
+results, stale marking and desktop controls remain required before L1.4 is
+complete. A crash still requires manual inspection; local execution remains
+unsandboxed, and an escaped process is not fenced by a process group.
 
 ### L1.5 draft pull request and archive
 

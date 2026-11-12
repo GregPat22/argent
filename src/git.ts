@@ -46,6 +46,7 @@ export async function git(
   args: string[],
   maxBuffer = 1 << 20,
   signal?: AbortSignal,
+  timeoutMs?: number,
 ): Promise<Buffer> {
   const options = { cwd, env: environment() };
   // Read names, never command values (which can contain private configuration).
@@ -65,10 +66,20 @@ export async function git(
     { signal, allowedExitCodes: [0, 1] },
   );
   const filters = configured.toString("utf8").split("\0").filter(Boolean);
-  const overrides = filters.flatMap((name) => [
-    "-c",
-    `${name}=${name.endsWith(".required") ? "false" : ""}`,
-  ]);
+  // Keys may contain '=' in the subsection: -c key=value cannot represent
+  // those keys. Separate environment fields preserve their exact identity.
+  if (!Buffer.from(configured.toString("utf8")).equals(configured))
+    throw new DomainError(
+      409,
+      "Git filter configuration cannot be read safely",
+    );
+  options.env.GIT_CONFIG_COUNT = String(filters.length);
+  filters.forEach((name, index) => {
+    options.env[`GIT_CONFIG_KEY_${index}`] = name;
+    options.env[`GIT_CONFIG_VALUE_${index}`] = name.endsWith(".required")
+      ? "false"
+      : "";
+  });
   // Unlike diff.ignoreSubmodules, this option also overrides per-submodule
   // ignore=none. Evidence callers reject all gitlinks rather than omit them.
   const commandArgs =
@@ -76,12 +87,11 @@ export async function git(
       ? ["diff", "--ignore-submodules=all", ...args.slice(1)]
       : args;
   try {
-    return await captureProcess(
-      "git",
-      [...SAFE_GIT, ...overrides, ...commandArgs],
-      options,
-      { signal, maxBuffer },
-    );
+    return await captureProcess("git", [...SAFE_GIT, ...commandArgs], options, {
+      signal,
+      maxBuffer,
+      ...(timeoutMs === undefined ? {} : { timeoutMs }),
+    });
   } catch (error) {
     if (error instanceof UncertainExecutionError) throw error;
     if (signal?.aborted) signal.throwIfAborted();

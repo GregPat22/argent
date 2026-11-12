@@ -70,6 +70,96 @@ original accessible nodes. This changes no product claim, capability, milestone
 or accepted architecture. See the [regression contract](specs/0016-website-restyle.md#reveal-layout-regression-in-development)
 for measured baseline jumps, acceptance and validation limits.
 
+### Review and checkout security correction — 12 November 2026
+
+Preserve the accepted local security model by registering worktrees before
+population, disabling filters in the linked worktree's configuration context,
+and passing filter keys separately from values. Pin review object reads to
+the stored repository and hash commits and recursive trees, because a redirect
+of the agent-writable `.git` file can otherwise substitute forged subtrees.
+Keep failed cleanup visible, including on cancellation; a moved checkout is
+not successfully removed. See the
+[acceptance and evidence](specs/0013-local-mvp.md#review-and-checkout-security-correction).
+Correction `2f243e1` passed the complete repository check on 12 November 2026;
+six new regressions fail on the pre-correction implementation. These changes
+add no execution entry point and do not complete L1.4.
+
+### Clean-commit bounds apart from display limits — 12 November 2026
+
+Implemented at `2ed334f687b7887e3d86931be4a8e67bf6eae862`, with validation
+recorded on 12 November 2026, revising the observation's 1,000-file limit. That limit came from the
+changes panel, where a person reads the result. Proving that a folder equals
+a commit has no reader, so the limit excluded ordinary repositories from
+trusted checks and protected nothing.
+
+Hash content as it is read instead of holding it, and bound the check by time:
+50,000 files, 2 GiB in total, 32 MiB per Git listing and a two-minute
+deadline, measured at about a quarter of that deadline at the bounds. Keep the
+changes panel's limits as they are. Keep the review's limits on changed
+content, because a person must read it, and count only changed paths against
+them. See the
+[acceptance contract](specs/0013-local-mvp.md#clean-commit-scale-acceptance)
+and [implementation evidence](specs/0013-local-mvp.md#clean-commit-scale-evidence).
+The complete repository check passed with 572 tests. This supersedes the
+note below that the limit remained to be revisited. The bounds are
+engineering values to adjust by evidence. Whether a change too large to
+display may be accepted by identity alone stays open for the consent slice.
+Nothing is connected and L1.4 remains incomplete.
+
+### Shape of a trusted check and its checkout — 12 November 2026
+
+Accepted by the maintainers on 12 November 2026, within the L1.4 contract:
+
+- **A detached linked worktree, not a file export.** A trusted check runs in a
+  fresh checkout that Argent creates and verifies. A plain export of the
+  commit's files has no Git metadata, so commands that call Git would fail,
+  including this repository's own tests. The cost is a shared Git directory:
+  a command can change the repository's refs and configuration, as it already
+  can when run in a terminal.
+- **Setup, then test, in the same fresh checkout.** A fresh checkout has no
+  installed dependencies. A test request runs the approved `setup` command,
+  when configured, and then `test`, and records both. This is slower than
+  reusing a checkout and is chosen for correctness; caching is a later choice.
+- **The `run` action is deferred** until setup and test results work. The
+  configuration schema still accepts it.
+
+The checkout is implemented at `217ad9d1bb50be7e0f54d7eaeaf374daa5268d56`, with
+validation recorded on 12 November 2026. Derive the repository and branch from
+the store and accept only a commit on the workspace's own branch. Create the
+folder exclusively under a separate private folder, let trusted Git populate
+it, and apply the observation's clean-commit check to it before returning.
+Hold ownership in the live process only: removal needs the object that
+creation returned and the same folder by device and inode, and goes through
+Git's removal of that one worktree. A crash therefore leaves a checkout
+behind instead of risking a deletion from a stored path; durable ownership
+belongs with the job wiring. See the
+[acceptance contract](specs/0013-local-mvp.md#internal-verification-checkout-acceptance)
+and [implementation evidence](specs/0013-local-mvp.md#internal-verification-checkout-evidence).
+The complete repository check passed with 572 tests. Nothing is connected and
+L1.4 remains incomplete. The observation's 1,000-file limit also bounds the
+checkout and remains to be revisited.
+
+### Unconnected bounded command runner — 12 November 2026
+
+Implemented at `e4260cc61b42983f5092006af737cc36fbf56263`, with validation recorded
+on 12 November 2026, within the accepted L1.4 requirement that configured
+commands run with the agent's process rules, bounded output and deadlines.
+Build the process primitive before the checkout and consent that will use it,
+and leave it without a caller: every later design needs one argument array run
+under these rules, while how a fresh checkout is made and how setup relates to
+a test were still open when it was built.
+
+Reuse the process-group supervisor, the agent's environment allowlist and its
+executable search. Allow a relative executable only inside the working
+directory after links are resolved. Hash and count all output but retain only
+a tail, and stop a flood at a total limit, so memory stays bounded for the
+whole runtime. Report a deadline or output limit as an outcome and a
+cancellation as no result. Label the result as untested and as no evidence. See
+the [acceptance contract](specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance)
+and [implementation evidence](specs/0013-local-mvp.md#internal-bounded-runner-evidence).
+The complete repository check passed with 562 tests. This changes no accepted
+product or security decision, connects nothing and does not complete L1.4.
+
 ### Public capability descriptions — 12 November 2026
 
 Copy corrections based on main `f1a773c` preserve the accepted evidence-first
@@ -107,6 +197,33 @@ limits. Production and preview SEO regressions, the full website browser suite,
 website typecheck/build and the repository check pass on 12 November 2026.
 Hosting redirects, publication and Search Console verification remain separate
 from code validation.
+
+### Pinned candidate review before consent — 11 November 2026
+
+Implemented at `042a169f7267adf1b4d2806ba802de04b81d3b83`, with validation recorded
+on 11 November 2026, within the accepted L1.4 requirement to compare command and
+test changes with the trusted base and surface them for human review. Keep the
+review separate from consent and execution. Build it on a fresh exact-commit
+observation and read the change set from Git objects pinned by the base and the
+observed commit, never from the worktree or index. Verify each blob against its
+listed size and object ID: Git served a forged loose object without error in
+the regression fixture.
+
+Do not classify files as test machinery. A frozen command can run any file the
+candidate changed, so a heuristic would suggest an assurance Argent cannot
+give. The complete change set is the review; only the fixed configuration path
+is marked, because commands come from the approved base regardless of the
+candidate's copy. Binary content keeps an identity and is labelled as not
+displayed instead of counting as reviewed. Overflow fails the whole review:
+partial display with later consent is a product choice and stays open.
+
+Share the rename and whole-file hunk logic with the live changes inspector
+without changing its contract. See the
+[acceptance contract](specs/0013-local-mvp.md#internal-pinned-candidate-review-acceptance)
+and [implementation evidence](specs/0013-local-mvp.md#internal-pinned-review-evidence).
+The complete repository check passed with 554 tests. This changes no accepted
+product or security decision and does not complete L1.4: consent, a fresh owned
+checkout, bounded execution and exact-commit results remain planned.
 
 ### Exact-commit observation before reviewed execution — 11 November 2026
 
