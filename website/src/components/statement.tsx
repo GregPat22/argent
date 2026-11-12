@@ -72,8 +72,8 @@ export function Statement() {
           <p className="mt-8 max-w-[36rem] text-lg leading-[1.75] text-sterling md:text-xl">
             A conductor also turns a room full of players into one piece of
             music. Argent does both for your coding agents: every task flows
-            through one place, each agent plays its part in its own branch, and
-            you hold the baton when it’s time to merge.
+            through one place, each workspace has its own branch, and you hold
+            the baton when it’s time to merge.
           </p>
         </div>
         <div className="statement-atom min-w-0 md:col-span-5">

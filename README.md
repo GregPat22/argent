@@ -1,9 +1,9 @@
 # Argent
 
-**An open-source desktop app for handing coding tasks to AI agents and reviewing
-results you can verify.** Agents work in persistent workspaces, the work keeps
-its record when you disconnect, and nothing counts as done until an independent
-check says so. You decide what gets merged.
+**An open-source desktop app for Claude Code in local Git worktrees.** Follow
+live sessions, inspect changes and keep a durable record of each run. Independent
+test checks and draft pull requests carrying that evidence are in development.
+You decide what gets merged.
 
 > **Status: early prototype.** The durable engine and the macOS desktop app work
 > today. The desktop app can run **Claude Code on a local repository**, each
@@ -36,14 +36,16 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
 - **A desktop app** (macOS, Apple Silicon, unsigned local build): workspaces,
   tasks, live activity and verification details. Closing the app leaves the
   local service running, and reopening it reconnects to the same history.
-- **Offline history export and restore**, as a CLI.
+- **Offline simulation-history export and read-only restore**, as a CLI.
+  Export of real Claude Code history and Git changes is planned.
 - **Claude Code in local worktrees** (L1.1 and L1.2): choose a repository folder
   and Argent creates branch `argent/<id>` in a private worktree, leaving your
   checkout untouched. Claude Code runs there through its official CLI with a live
   transcript, follow-ups that continue the same conversation, cancellation and a
   per-run choice between edits only (the default) and full access. Start a
   parallel workspace on the same repository with one click. Requires the `claude`
-  CLI installed and signed in; Argent never passes API keys. See
+  CLI installed and signed in; Argent does not pass provider API-key environment
+  variables. See
   [spec 0013](docs/specs/0013-local-mvp.md).
 - **An opt-in, read-only GitHub sign-in pilot** using GitHub's device flow. It
   is not connected to the desktop app or to task execution.
@@ -60,7 +62,8 @@ In order:
 
 1. **Local MVP (in development).** Real coding agents on your own computer:
    each workspace is a new branch in its own Git worktree of a local repository,
-   so tasks run side by side without overwriting each other. It runs Claude
+   so parallel workspaces have separate working directories. Follow-up tasks
+   reuse their workspace. It runs Claude
    Code through its official CLI and your own sign-in. You follow the session
    live, review the diff, see the result of checks Argent ran itself against the
    exact commit, and open a draft pull request that carries that evidence.
@@ -82,8 +85,9 @@ automatic merging are explicitly out of scope for now.
 
 ## Principles
 
-- **An agent's claim is not proof.** Trusted checks run against the exact commit
-  and are recorded separately from what the agent says.
+- **An agent's claim is not proof.** Argent records local changes itself today.
+  Planned trusted checks will run against the exact commit and record their
+  results separately from what the agent says.
 - **Stop when unsure.** An unknown outcome blocks the workspace until someone
   inspects it; reconnecting only reads state.
 - **Self-hosting is first-class.** The core is MIT-licensed and runs without our
@@ -142,8 +146,10 @@ flowchart LR
 ```
 
 The API records a run and its first event in one transaction. The worker claims
-it atomically under a fenced lease, writes logs and completes the run only after
-independent verification. API requests never own a running task. The desktop app
+it atomically under a fenced lease, writes logs and completes a local run only
+after independently recording its worktree state. That record is not a test
+result. Simulated runs require an artifact integrity check. API requests never
+own a running task. The desktop app
 starts or reconnects to a detached local service that hosts the API and worker;
 its renderer is sandboxed and never sees credentials. See
 [ARCHITECTURE.md](ARCHITECTURE.md) for the state machine, trust boundaries and
@@ -216,7 +222,9 @@ bodies are capped at 16 KiB. The desktop service also exposes an authenticated
 ## Offline history export and restore
 
 `npm run continuity -- help` lists the export, inspect, restore, list and show
-commands. Export reads one workspace from a consistent read-only snapshot.
+commands. Export reads one simulation workspace from a consistent read-only
+snapshot. Real local workspaces are rejected: export of Claude Code transcripts
+and Git changes is planned.
 Metadata is exported by default; task and log text and simulated artifacts need
 `--include-text`. Credentials, leases and arbitrary files are never exported.
 Text is not sanitized, so review it for secrets before sharing a bundle.
@@ -262,7 +270,7 @@ before live repository access.
 | `npm run desktop:smoke`   | Drive the real Electron app and capture a screenshot.         |
 | `npm run desktop:package` | Build a self-contained macOS arm64 app with a zip and digest. |
 | `npm run site:preview`    | Serve the static download preview with local build artifacts. |
-| `npm run continuity`      | Offline history export and restore CLI.                       |
+| `npm run continuity`      | Offline simulation-history export and read-only restore CLI.  |
 | `npm run github:pilot`    | Opt-in device sign-in and read-only repository preflight.     |
 
 Tests use temporary on-disk databases and real child processes: they kill API and

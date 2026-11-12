@@ -1,6 +1,7 @@
 # Website search and sharing metadata
 
-Status: in development. Baseline: main `8027d0b`, inspected on 12 November 2026.
+Status: implementation integrated in main `864188a`; live publication is a
+separate validation step. Baseline: main `8027d0b`, inspected on 12 November 2026.
 The public landing page is served at <https://argent.build/>. Desktop downloads
 and trusted checks remain planned; this work changes no product positioning or
 milestone scope.
@@ -75,16 +76,26 @@ publication, Search Console verification or hosted post-deployment check ran.
 
 ## Limits and release follow-up
 
-The implementation is not deployed by this change. After publication, verify
+The initial implementation validation did not deploy the site. After publication, verify
 production responses and social previews again, validate the JSON-LD with the
 Schema Markup Validator, then submit the sitemap in a verified Search Console
 property and inspect the home page. Search Console ownership, actual indexing,
 search traffic and field Core Web Vitals cannot be inferred from a local build
 or a lab score. No ranking or rich-result guarantee is made.
 
-The `www` certificate and redirect require hosting access. Prefer an HTTPS
-redirect to the apex domain while preserving paths and query strings. No DNS,
-hosting or Search Console setting is changed here.
+The `www` certificate and redirect require hosting access. Use an HTTPS
+redirect to the apex domain while preserving paths and query strings. Search
+Console verification is independent of hosting and remains a separate step.
+
+### Deployment contract
+
+Build the Next.js package under `website`, not the desktop engine at the
+repository root or the static local download preview. The hosting project uses
+the Next.js preset, Node.js 22.x, `npm ci`, `npm run build` and the framework's
+default output directory. A deployment must identify its source commit and use
+the production indexing environment for production. Verify the resulting HTML,
+crawl files, image and redirects on the live hostname; a successful local build
+does not establish any of those production results.
 
 ## References
 
