@@ -356,6 +356,13 @@ recorded commit is the workspace's current commit and the worktree is clean;
 any later change shows it as stale. This is the first time Argent itself
 launches repository code, so it needs its own security review.
 
+Accepted on 12 November 2026: a trusted check runs in a fresh checkout that
+Argent creates as a detached linked worktree of the exact commit and verifies
+before use, so commands that call Git keep working. A test request runs the
+approved `setup` command, when one is configured, and then `test` in that same
+checkout, and records both. Running the `run` action is deferred until setup
+and test results work; the configuration schema is unchanged.
+
 #### Internal command-configuration reader acceptance
 
 Acceptance recorded 11 November 2026 against main `9ddf9d7`; the internal reader
@@ -858,6 +865,66 @@ are not found; a command that leaves a child holding its output open is
 reported as timed out; the tail is bytes, not decoded or redacted text. No
 commit, checkout, consent or test result is established, and L1.4 remains
 incomplete.
+
+#### Internal verification checkout acceptance
+
+Acceptance recorded 12 November 2026 against main `8027d0b` with the pinned
+review and bounded runner above. This creates and removes the fresh checkout a
+trusted check will run in. It runs no configured command and nothing calls it:
+no job, worker, route or desktop control. L1.4 remains incomplete.
+
+1. The service supplies its worktree folder, a separate verification folder,
+   a UUID naming the checkout, a stored workspace ID and the commit and tree it
+   expects. The repository and branch come from the store. No caller path,
+   branch or revision name is accepted. A simulated, unknown or inconsistently
+   recorded workspace is refused.
+2. The commit must resolve to itself, carry the named tree and be reachable
+   from the workspace's own `argent/<id>` branch. Any other commit in the
+   repository, including one amended away from that branch, is refused before
+   anything is created.
+3. The verification folder must be apart from the repository and the
+   workspace worktrees: none may equal or contain another. Its parent must
+   already exist. The checkout folder, named by the UUID, is created
+   exclusively with owner-only permissions; a name that already exists is
+   refused and left untouched.
+4. Trusted Git adds a detached linked worktree at the commit from the stored
+   repository, with hooks, fsmonitor, filter commands and transports disabled.
+   No branch is created or moved. The workspace worktree, its index, its
+   ignored files and the store are unchanged.
+5. Before a checkout is returned, Argent requires the same folder it created,
+   the expected top level and common Git directory, a detached HEAD at the
+   commit, and an index and Git-visible bytes and modes equal to the commit,
+   using the same check as the exact-commit observation. No other file may be
+   present, ignored or not. The reads are repeated at the end. A mismatch,
+   such as line-ending conversion requested by the commit's own attributes or
+   a submodule entry, refuses the checkout. The observation's limits apply
+   (1,000 files, 4 MiB per file, 32 MiB in total) under one sixty-second
+   deadline.
+6. On refusal, cancellation or deadline, what was created is removed through
+   Git's removal of that one worktree, or by removing the folder while it is
+   still empty. Argent performs no recursive deletion of its own and never
+   prunes other worktrees. If removal cannot be completed the remainder is
+   left in place. Unconfirmed process termination stops all cleanup.
+7. Removal accepts only a checkout object created by the live service
+   process. The folder must still be the same real directory, by path, device
+   and inode. Whatever a command left in it is discarded, without following
+   links out of the folder. A description of a checkout, or a folder that
+   replaced it, removes nothing and is reported. Nothing is removed from a
+   stored path or after a restart.
+8. The immutable result names the folder, workspace, commit, tree and file
+   count, and says that its contents matched at one point in time, that it is
+   not isolation and that nothing was tested. A command run there acts as the
+   developer and shares the repository's Git directory.
+9. Real temporary Git fixtures cover the exact contents and modes, ignored
+   and uncommitted workspace content staying behind, hostile hooks and filter
+   settings, every refusal above, mismatching checkouts, removal of a dirtied
+   checkout with links pointing outside, unowned and replaced folders,
+   cancellation and the deadline. The existing observation tests pass
+   unchanged against the shared check.
+
+Consent bound to a review identity, wiring to command jobs, running `setup`
+and `test` here and exact-commit results remain separate work, with an
+independent security review before anything is connected.
 
 ### L1.5 draft pull request and archive
 

@@ -167,6 +167,131 @@ async function readFile(
   return { mode, bytes, identity: fileIdentity(after) };
 }
 
+export interface CleanCommit {
+  headSha: string;
+  treeId: string;
+  files: number;
+  /** Repeats the Git reads and every file's identity after later work. */
+  recheck(): Promise<void>;
+}
+
+/**
+ * Requires the raw index and every Git-visible byte and mode in a directory to
+ * equal its HEAD commit, with no nonignored untracked file. Point-in-time.
+ */
+export async function readCleanCommit(
+  directory: string,
+  signal: AbortSignal,
+  changed: () => DomainError,
+): Promise<CleanCommit> {
+  const text = async (args: string[]) => {
+    const value = decode(await git(directory, args, 1 << 20, signal));
+    if (!value.endsWith("\n")) throw changed();
+    return value.slice(0, -1);
+  };
+  const revision = async (value: string) => {
+    const sha = await text(["rev-parse", "--verify", value]);
+    if (SHA.exec(sha)?.[0] !== sha) throw changed();
+    return sha;
+  };
+  const headSha = await revision("HEAD^{commit}");
+  const treeId = await revision(`${headSha}^{tree}`);
+  const tree = new Map<string, Entry>();
+  const treeBytes = decode(
+    await git(
+      directory,
+      ["ls-tree", "-r", "-z", "--full-tree", headSha],
+      1 << 20,
+      signal,
+    ),
+  );
+  if (treeBytes && !treeBytes.endsWith("\0")) throw changed();
+  for (const record of treeBytes.split("\0").filter(Boolean)) {
+    const match =
+      /^(100644|100755|120000) blob ([a-f0-9]{40}|[a-f0-9]{64})\t([\s\S]+)$/.exec(
+        record,
+      );
+    if (!match) throw changed();
+    const name = pathName(match[3]!);
+    if (tree.has(name)) throw changed();
+    tree.set(name, { mode: match[1]!, oid: match[2]! });
+    if (tree.size > CHANGES_LIMITS.files) throw limit();
+  }
+  const index = () =>
+    git(directory, ["ls-files", "--stage", "-z"], 1 << 20, signal);
+  const beforeIndex = await index();
+  const indexText = decode(beforeIndex);
+  if (indexText && !indexText.endsWith("\0")) throw changed();
+  const indexed = new Set<string>();
+  for (const record of indexText.split("\0").filter(Boolean)) {
+    const match =
+      /^(100644|100755|120000) ([a-f0-9]{40}|[a-f0-9]{64}) 0\t([\s\S]+)$/.exec(
+        record,
+      );
+    if (!match) throw changed();
+    const name = pathName(match[3]!);
+    const entry = tree.get(name);
+    if (
+      indexed.has(name) ||
+      !entry ||
+      entry.mode !== match[1] ||
+      entry.oid !== match[2]
+    )
+      throw changed();
+    indexed.add(name);
+  }
+  if (indexed.size !== tree.size) throw changed();
+  const untracked = () =>
+    git(
+      directory,
+      ["ls-files", "--others", "--exclude-standard", "-z"],
+      1 << 20,
+      signal,
+    );
+  if ((await untracked()).length) throw changed();
+  const identities = new Map<string, FileIdentity>();
+  let total = 0;
+  for (const [name, entry] of tree) {
+    signal.throwIfAborted();
+    const file = await readFile(directory, name, signal);
+    if (!file || file.mode !== entry.mode) throw changed();
+    total += file.bytes.length;
+    if (total > CHANGES_LIMITS.totalBytes) throw limit();
+    const oid = createHash(headSha.length === 64 ? "sha256" : "sha1")
+      .update(`blob ${file.bytes.length}\0`)
+      .update(file.bytes)
+      .digest("hex");
+    if (oid !== entry.oid) throw changed();
+    identities.set(name, file.identity);
+  }
+  return {
+    headSha,
+    treeId,
+    files: tree.size,
+    async recheck() {
+      if (
+        (await revision("HEAD^{commit}")) !== headSha ||
+        !(await index()).equals(beforeIndex) ||
+        (await untracked()).length
+      )
+        throw changed();
+      // Recheck every previously read file after the complete traversal and
+      // Git reads. A change to an early file must not disappear behind a
+      // later read.
+      for (const [name, before] of identities) {
+        signal.throwIfAborted();
+        const path = join(directory, name);
+        if (
+          (await realpath(dirname(path))) !== dirname(path) ||
+          JSON.stringify(fileIdentity(await lstat(path))) !==
+            JSON.stringify(before)
+        )
+          throw changed();
+      }
+    },
+  };
+}
+
 export type LocalCommandCandidateObservation = Readonly<{
   kind: "local-command-candidate-observation";
   version: 1;
@@ -244,86 +369,8 @@ export async function inspectLocalCommandCandidate(
     if (!approved) throw changed();
     const adapter = new LocalWorktreeWorkspace(store, root);
     await adapter.prepare(workspace, signal);
-    const text = async (args: string[]) => {
-      const value = decode(await git(directory, args, 1 << 20, signal));
-      if (!value.endsWith("\n")) throw changed();
-      return value.slice(0, -1);
-    };
-    const revision = async (value: string) => {
-      const sha = await text(["rev-parse", "--verify", value]);
-      if (SHA.exec(sha)?.[0] !== sha) throw changed();
-      return sha;
-    };
-    const headSha = await revision("HEAD^{commit}");
-    const treeId = await revision(`${headSha}^{tree}`);
-    const tree = new Map<string, Entry>();
-    const treeBytes = decode(
-      await git(
-        directory,
-        ["ls-tree", "-r", "-z", "--full-tree", headSha],
-        1 << 20,
-        signal,
-      ),
-    );
-    if (treeBytes && !treeBytes.endsWith("\0")) throw changed();
-    for (const record of treeBytes.split("\0").filter(Boolean)) {
-      const match =
-        /^(100644|100755|120000) blob ([a-f0-9]{40}|[a-f0-9]{64})\t([\s\S]+)$/.exec(
-          record,
-        );
-      if (!match) throw changed();
-      const name = pathName(match[3]!);
-      if (tree.has(name)) throw changed();
-      tree.set(name, { mode: match[1]!, oid: match[2]! });
-      if (tree.size > CHANGES_LIMITS.files) throw limit();
-    }
-    const index = () =>
-      git(directory, ["ls-files", "--stage", "-z"], 1 << 20, signal);
-    const beforeIndex = await index();
-    const indexText = decode(beforeIndex);
-    if (indexText && !indexText.endsWith("\0")) throw changed();
-    const indexed = new Set<string>();
-    for (const record of indexText.split("\0").filter(Boolean)) {
-      const match =
-        /^(100644|100755|120000) ([a-f0-9]{40}|[a-f0-9]{64}) 0\t([\s\S]+)$/.exec(
-          record,
-        );
-      if (!match) throw changed();
-      const name = pathName(match[3]!);
-      const entry = tree.get(name);
-      if (
-        indexed.has(name) ||
-        !entry ||
-        entry.mode !== match[1] ||
-        entry.oid !== match[2]
-      )
-        throw changed();
-      indexed.add(name);
-    }
-    if (indexed.size !== tree.size) throw changed();
-    const untracked = () =>
-      git(
-        directory,
-        ["ls-files", "--others", "--exclude-standard", "-z"],
-        1 << 20,
-        signal,
-      );
-    if ((await untracked()).length) throw changed();
-    const identities = new Map<string, FileIdentity>();
-    let total = 0;
-    for (const [name, entry] of tree) {
-      signal.throwIfAborted();
-      const file = await readFile(directory, name, signal);
-      if (!file || file.mode !== entry.mode) throw changed();
-      total += file.bytes.length;
-      if (total > CHANGES_LIMITS.totalBytes) throw limit();
-      const oid = createHash(headSha.length === 64 ? "sha256" : "sha1")
-        .update(`blob ${file.bytes.length}\0`)
-        .update(file.bytes)
-        .digest("hex");
-      if (oid !== entry.oid) throw changed();
-      identities.set(name, file.identity);
-    }
+    const clean = await readCleanCommit(directory, signal, changed);
+    const { headSha, treeId } = clean;
     const currentApproval = await store.localCommandApprovals.lookup(
       root,
       workspaceId,
@@ -333,27 +380,13 @@ export async function inspectLocalCommandCandidate(
     if (JSON.stringify(currentApproval) !== JSON.stringify(approved))
       throw changed();
     await adapter.prepare(workspace, signal);
+    await clean.recheck();
     if (
-      (await revision("HEAD^{commit}")) !== headSha ||
-      !(await index()).equals(beforeIndex) ||
-      (await untracked()).length ||
       JSON.stringify(store.getWorkspace(workspaceId).local) !==
         JSON.stringify(local) ||
       JSON.stringify(await directories()) !== JSON.stringify(beforeDirectories)
     )
       throw changed();
-    // Recheck every previously read file after the complete traversal and Git
-    // reads. A change to an early file must not disappear behind a later read.
-    for (const [name, before] of identities) {
-      signal.throwIfAborted();
-      const path = join(directory, name);
-      if (
-        (await realpath(dirname(path))) !== dirname(path) ||
-        JSON.stringify(fileIdentity(await lstat(path))) !==
-          JSON.stringify(before)
-      )
-        throw changed();
-    }
     signal.throwIfAborted();
     const policyVersion = "argent-local-command-candidate-v1";
     const configuration = approved.candidate.approvalCandidate;
@@ -385,7 +418,7 @@ export async function inspectLocalCommandCandidate(
       baseSha: local.baseSha,
       headSha,
       treeId,
-      files: tree.size,
+      files: clean.files,
       cleanliness: "index-and-git-visible-bytes-match",
       ignoredContent: "excluded",
       review: "not-collected",
