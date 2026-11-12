@@ -24,6 +24,6 @@
     "tailwindcss": "^4",
     "typescript": "^5"
   },
-  "description": "Landing page for Argent. Draft; not deployed.",
+  "description": "Landing page for Argent at argent.build. Desktop downloads are planned.",
   "license": "MIT"
 }

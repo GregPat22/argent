@@ -20,7 +20,7 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
   },
   {
     title: "Local MVP",
-    body: "Claude Code already runs in the app, each task in its own branch and worktree with a live session. The changes panel shows current files and a bounded diff. Next: checks Argent runs itself against the exact commit, then a draft pull request that carries the proof.",
+    body: "Claude Code already runs in the app, each workspace in its own branch and worktree with a live session. The changes panel shows current files and a bounded diff. Next: checks Argent runs itself against the exact commit, then a draft pull request that carries the proof.",
     state: "now",
   },
   {
@@ -47,15 +47,16 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
 
 const TODAY = [
   "A durable engine that survives crashes and never repeats an uncertain step",
-  "Claude Code in the desktop app, one branch and worktree per task (early, not a sandbox)",
+  "Claude Code in the desktop app, one branch and worktree per workspace (early, not a sandbox)",
   "A local macOS desktop app, built from source",
   "Argent’s own record of what each run changed",
   "A changes panel with current files and a bounded diff (not tested)",
-  "History export and restore, from the command line",
+  "Simulation-history export and read-only restore, from the command line",
 ];
 
 const NOT_YET = [
   "Trusted test checks and pull requests in the app",
+  "Export of real Claude Code history and Git changes",
   "Codex and the model picker (the first update after release)",
   "Work that continues with your laptop closed, and the iPhone companion",
   "Signed downloads: today you build from source",

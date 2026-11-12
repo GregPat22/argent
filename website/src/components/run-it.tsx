@@ -49,7 +49,7 @@ const WAYS: Way[] = [
     id: "desktop",
     label: "Desktop app",
     summary:
-      "The real thing, early. Choose a repository and hand Claude Code a task in its own branch and worktree, signed in as you.",
+      "The real thing, early. Choose a repository and create a workspace with its own branch and worktree. Claude Code runs there, signed in as you.",
     needs: [
       "A Mac with Apple silicon",
       "Git and Node 22.19 or a later Node 22",

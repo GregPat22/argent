@@ -47,7 +47,9 @@ desktop migration controls, Conductor import and live process recovery remain op
 ## Limits and subsequent slices
 
 This is real export/restore of the existing simulator's history, not a simulated
-export operation. All exported work remains simulated. It does not satisfy M1d's
+export operation. All exported work remains simulated. The exporter rejects real
+local workspaces, including those without completed runs; this CLI cannot move
+Claude Code history to another machine. It does not satisfy M1d's
 fresh-machine drill or restore cloud storage, Git changes, transcripts from real
 agents, credentials, provider operations, approvals or live sessions. No Conductor
 archive schema or private user data is inspected. Desktop selection/preview and

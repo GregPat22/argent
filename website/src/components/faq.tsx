@@ -14,13 +14,13 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         <a href={REPO_URL} target="_blank" rel="noreferrer">
           build the desktop app from source
         </a>
-        . It runs Claude Code on your local repositories, each task in its own
-        branch and Git worktree, with your own sign-in. It is early and not a
-        sandbox. Its changes panel shows current files and a bounded diff;
-        trusted tests and pull requests are planned. Today it runs on Macs with
-        Apple silicon; Windows, Linux and Intel Mac builds have not been made or
-        tested. Star and watch the repository to hear when signed downloads
-        land.
+        . It runs Claude Code on your local repositories, each workspace in its
+        own branch and Git worktree, with your own sign-in. Follow-up tasks
+        reuse that workspace. It is early and not a sandbox. Its changes panel
+        shows current files and a bounded diff; trusted tests and pull requests
+        are planned. Today it runs on Macs with Apple silicon; Windows, Linux
+        and Intel Mac builds have not been made or tested. Star and watch the
+        repository to hear when signed downloads land.
       </>
     ),
   },
@@ -34,8 +34,9 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         for each workspace and the model for each task. Cursor and OpenCode
         follow. Each agent runs with its own official sign-in, so you use the
         subscription you already have. Argent never reads or copies that
-        sign-in, and it keeps provider API keys away from agents, so a missing
-        sign-in fails visibly instead of quietly billing your API account.
+        sign-in. It does not pass provider API-key environment variables or
+        automatically fall back to API billing. Local agents still have your
+        filesystem and credential access.
       </>
     ),
   },
@@ -46,9 +47,9 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         Local mode is not a sandbox, and Argent says so. The agent runs as you,
         with the same access as running it in your terminal; a worktree
         separates changes, not privileges. What Argent adds is discipline: no
-        shell strings, validated paths, Git commands that never run repository
-        hooks, a minimal environment for the agent, and a person in charge of
-        every merge.{" "}
+        shell strings, validated paths, Argent’s own Git commands that do not
+        run repository hooks, a minimal environment for the agent, and a person
+        in charge of every merge.{" "}
         <a href={LOCAL_MVP_URL} target="_blank" rel="noreferrer">
           Read the security model
         </a>
@@ -75,10 +76,10 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         It stays where it already is: on your computer. Every workspace is an
         ordinary Git branch and worktree of your own repository, so your code
         never lives inside Argent. The app and engine are MIT licensed and run
-        without our servers, your agents keep their own sign-in, and your Argent
-        history can be exported and restored on another machine (from the
-        command line today). No hosted service of ours sits between you and your
-        work.
+        without our servers, and your agents keep their own sign-in. The CLI
+        exports and restores simulation history only. Export of real Claude Code
+        history and Git changes is planned. No hosted service of ours sits
+        between you and your work.
       </>
     ),
   },
@@ -98,8 +99,8 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     answer: (
       <>
         Argent doesn’t replace your agent; it conducts it. Today it gives every
-        task its own branch and worktree, keeps a durable record of every run
-        and records what changed itself instead of trusting the agent. The
+        workspace its own branch and worktree, keeps a durable record of every
+        run and records what changed itself instead of trusting the agent. The
         changes panel shows current files and a bounded diff; it is not test
         evidence. Next are trusted tests for the exact commit and a draft pull
         request you merge yourself. It is open source, built for more than one
@@ -112,8 +113,8 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     question: "Who decides what gets merged?",
     answer: (
       <>
-        You do, always. In the local MVP, Argent’s work ends at a draft pull
-        request with its evidence; merging is a separate human action.{" "}
+        You do, always. Draft pull requests carrying Argent’s evidence are
+        planned for the local MVP; merging remains a separate human action.{" "}
         <a href={ARCHITECTURE_URL} target="_blank" rel="noreferrer">
           Read the architecture
         </a>{" "}

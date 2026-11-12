@@ -25,7 +25,7 @@ const RECORD: [string, ReactNode][] = [
   [
     "Status",
     <span key="s" className="text-verified">
-      Verified
+      Verified (example)
     </span>,
   ],
   [
@@ -34,8 +34,8 @@ const RECORD: [string, ReactNode][] = [
       9b1e07d
     </span>,
   ],
-  ["Checks", "39 of 39, from the project’s policy"],
-  ["Review", "1 finding, repaired once"],
+  ["Checks", "Project checks passed (example)"],
+  ["Scope", "Exact commit only"],
   ["Verified by", "Argent’s verifier, not the agent"],
   ["Merge", "Waiting for you"],
 ];
@@ -154,7 +154,7 @@ function Comparison() {
       >
         <div className="ml-auto max-w-[25rem]">
           <p className="text-right text-[0.875rem] text-sterling-dim">
-            What Argent records
+            Planned verification · illustrative example
           </p>
           <dl className="proof-sheet mt-5 divide-y divide-hairline rounded-xl">
             {RECORD.map(([label, value]) => (
