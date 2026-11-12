@@ -772,6 +772,64 @@ larger repositories from trusted checks until that bound is revisited.
 These fixtures establish bounded read-only review. They establish no consent,
 fresh checkout, command execution or test result, and L1.4 remains incomplete.
 
+#### Internal bounded command runner acceptance
+
+Acceptance recorded 12 November 2026 against main `8027d0b` with the pinned
+candidate review above. This is the process primitive a later trusted check
+needs under every design: one argument array, started under the
+[security model](#security-model)'s process rules, with bounded output and one
+deadline. Nothing calls it. No configuration, approval, review, job, worker,
+route or desktop control reaches it, dormant command jobs stay forbidden to
+execute, and Argent still launches no repository command. L1.4 remains
+incomplete.
+
+1. The runner accepts an argument array, a working directory, a runtime bound
+   and an optional cancellation signal. The array has the configuration
+   reader's bounds: 1 to 64 strings of at most 4 KiB, without NUL or unpaired
+   surrogates, and a nonblank first element. The directory must be an existing
+   directory given by its real absolute path. The runtime is an integer from
+   one second to two hours. Invalid input is refused before anything starts.
+2. No shell string is built or passed. A bare executable name of letters,
+   digits, dot, underscore and hyphen is searched on the same path as the agent
+   CLI; an absolute path is used as given; a relative path containing a slash
+   must resolve, after links, to an executable regular file inside the working
+   directory. Remaining arguments are passed unchanged as separate arguments.
+   Starting the file is the operating system's: an interpreter line applies,
+   and a file without one is run by the system shell, as `execvp` does.
+3. The process receives the agent's allowlisted environment (`PATH`, `HOME`,
+   `USER`, `LOGNAME`, `SHELL`, `LANG`, `LC_*`, `TERM`, `TMPDIR`) and nothing
+   else: no provider API key, host token, service credential, agent
+   configuration location or runtime option variable. Standard input is closed.
+   The command runs as the developer. This is not a sandbox.
+4. Standard output and standard error are each counted and hashed with SHA-256
+   over every byte; only the last 256 KiB of each is retained, with a
+   truncation flag. Both streams together are limited to 64 MiB: reaching the
+   limit stops the command and is reported as such. Output is untrusted bytes.
+5. The deadline, the output limit and cancellation terminate the command's
+   whole process group and wait for confirmed quiescence, with the existing
+   supervisor. A deadline or output limit returns a result with that outcome
+   and no exit status. Cancellation returns no result. Unconfirmed termination
+   raises the existing uncertainty error and is never described as an outcome.
+   The runner waits for both output streams to close, so a command whose
+   leftover child keeps them open ends at the deadline.
+6. The immutable result records the argument array, the resolved executable,
+   the directory, the outcome (exited, signaled, timed out or output limit),
+   the exit status or signal when the process ended on its own, start time,
+   duration and both stream records. It is labelled untested and as no
+   recorded evidence: an exit status of zero says only that this process
+   exited with zero. An executable that is missing, not executable, outside
+   the directory or refused by the system fails without a result.
+7. Fixtures start only the test runtime and small scripts written by the test
+   in temporary directories; no repository command or configured action runs.
+   They cover literal shell metacharacters, exit and signal outcomes, closed
+   input, the environment allowlist, each executable form and its refusals,
+   invalid input, output accounting and truncation, the output limit, and
+   deadline and cancellation with a child process in the same group.
+
+A fresh owned checkout, explicit consent bound to a review identity, wiring to
+command jobs and exact-commit results remain separate work, with their own
+security review. Until then this runner establishes nothing about a commit.
+
 ### L1.5 draft pull request and archive
 
 Commit and push the workspace branch and open a draft pull request through `gh`,
