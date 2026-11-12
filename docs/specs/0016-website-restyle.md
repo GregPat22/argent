@@ -83,12 +83,46 @@ says.
 
 ## Verification
 
+### Capability copy acceptance — 12 November 2026
+
+Based on main `f1a773c`. These corrections preserve the product direction,
+headline and milestone order; they describe the implemented limits more precisely.
+
+1. A branch and worktree belong to a workspace. Follow-up tasks reuse that
+   workspace; copy never promises a new branch for each run or filesystem
+   isolation between agents.
+2. Current local results are recorded, not tested. Independent test checks and
+   draft pull requests remain planned. The comparison card labels planned
+   verification inside the illustration and contains no invented test totals or
+   repair findings.
+3. Every current history-export claim identifies the simulation-only CLI scope.
+   Real-agent transcript and Git-history export remain planned, consistently
+   with [spec 0012](0012-portable-history.md#limits-and-subsequent-slices).
+4. Authentication claims describe the environment allowlist and absence of an
+   automatic API fallback, without guaranteeing that an unsandboxed process
+   cannot access credentials or incur charges.
+5. The security policy describes real local Claude Code execution and simulated
+   GitHub-URL/cloud work. README, vision, roadmap, documentation index, package
+   metadata and website agree without claiming additional delivered capability.
+6. Browser coverage checks the visible limitations and the self-contained
+   illustration label, including with scripts disabled. Existing mobile layout,
+   navigation and sharing-metadata checks continue to pass.
+
+Validation on 12 November 2026 against main `f1a773c`: `npm run check` passes
+541 tests, type checking and formatting. Website type checking, the production
+build and all 59 browser checks pass, including capability limitations with
+scripts enabled and disabled and the existing phone/tablet fit checks.
+Publication and domain configuration require separate live checks; these local
+results do not establish the deployed content or real-agent test execution.
+
+### Restyle validation
+
 On the final content, 10 November 2026:
 
 - Website: type check and production build pass; 47 of 47 browser tests pass
   (38 from before this work, 9 new). The suite runs on software WebGL.
 - Repository: `npm run check` passes, 461 of 461, after merging main
-  `1b9e4dd` into the branch on 11 November.
+  `1b9e4dd` on 11 November.
 - The first full run of the new suite failed 8 tests. Five came from real
   defects this work had introduced: removing the comparison's clipping let its
   divider widen the page at every width, and the statement's glow and the
@@ -106,7 +140,7 @@ On the final content, 10 November 2026:
   under that load.
 - On one slow hosted run an earlier test (the atom's) reached its 30 second
   limit. Timed step by step under the same processor load, that test takes as
-  long on main `1b9e4dd` as on this branch (20 to 26 seconds against 22 to 24
+  long on main `1b9e4dd` as in the restyle validation (20 to 26 seconds against 22 to 24
   from a cold start), so the restyle did not slow the software-rendered page.
   The test is close to its limit on a slow runner either way.
 - Looked at in headless Chromium at 1440, 768 and 390 px, every section, and

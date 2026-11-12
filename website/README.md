@@ -40,6 +40,13 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
   Shared links and status labels live in `src/lib/site.ts`.
 - When the roadmap or capabilities change, update the hero, the roadmap section
   and the FAQ together.
+- A branch and worktree belong to a workspace; follow-up tasks reuse it. Local
+  execution is not a sandbox. A finished local run is recorded, not tested.
+- History export and read-only restore currently cover simulation history only.
+  Export of real Claude Code transcripts and Git changes is planned.
+- Planned verification examples carry an explicit label inside the card so a
+  screenshot retains the limitation. Do not invent test totals or repair
+  findings. See the [copy acceptance criteria](../docs/specs/0016-website-restyle.md#capability-copy-acceptance--12-november-2026).
 
 ## Implementation notes
 
@@ -173,8 +180,8 @@ Search metadata is defined in `src/lib/site.ts`: the production URL is
 `https://argent.build`, with one shared title and description. The home page
 owns its canonical; new pages must supply their own. Keep schema in
 `src/lib/seo.ts` aligned with visible capabilities. The technical SEO work is
-specified in [spec 0017](../docs/specs/0017-website-seo.md) and remains in
-development until integrated and published.
+specified in [spec 0017](../docs/specs/0017-website-seo.md) and integrated at
+`864188a`. Check every production deployment independently.
 
 The production build generates `/robots.txt`, `/sitemap.xml`, and a 1200 × 630
 PNG at `/opengraph-image`. Next.js adds that image to both Open Graph and X
@@ -192,5 +199,14 @@ directive nor a canonical URL provides access control.
 After publishing, check the canonical, crawl files, social image and 404 response
 on the live domain. Validate JSON-LD, submit the sitemap in Search Console, and
 inspect the home page once domain ownership is verified. Indexing, ranking and
-field Core Web Vitals require live observations. The current `www` hostname
-needs a valid certificate and a redirect to the apex domain at the hosting layer.
+field Core Web Vitals require live observations. The `www` hostname must use a
+valid certificate and redirect to the apex domain while preserving paths and
+query strings.
+
+For a repository-root deployment on Vercel, select `website` as the Root
+Directory, the Next.js framework preset and Node.js 22.x. Install with `npm ci`,
+build with `npm run build`, and leave the output directory at the framework
+default. The root package builds the desktop engine and is not the website build.
+Publishing the static `website/index.html` preview does not publish the Next.js
+site or its sharing metadata. Project configuration alone does not connect Git
+or deploy future commits; verify the deployment source revision explicitly.

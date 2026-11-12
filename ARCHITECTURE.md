@@ -360,8 +360,10 @@ target diagram above remain unchanged.
 ## Offline historical continuity
 
 `continuity-export.ts` opens an explicit source database read-only and reads one
-consistent M0/P1 workspace snapshot. It rejects cloud lifecycle/bootstrap records
-instead of omitting their cleanup obligations. The versioned JSON format in
+consistent M0/P1 simulation-workspace snapshot. It rejects real local workspaces
+and command jobs, and rejects cloud lifecycle/bootstrap records instead of
+omitting their cleanup obligations. Export of real Claude Code transcripts and
+Git changes remains planned. The versioned JSON format in
 `continuity.ts` contains projected metadata/events, optional selected text and
 canonical fixed simulator artifacts, hashes, bounds and an omission inventory.
 No lease, request key, credential envelope, raw event payload or discovered file

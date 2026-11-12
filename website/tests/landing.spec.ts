@@ -1419,7 +1419,7 @@ test("hero states the promise once and today's facts under the actions", async (
     await visit(page, "/");
     const hero = page.locator("#intro");
     await expect(hero.locator(".hero-description")).toHaveText(
-      "We’re building the open-source desktop app for your coding agents. Every task runs in its own branch, and nothing merges until you’ve seen the proof.",
+      "We’re building the open-source desktop app for your coding agents. Each workspace has its own branch. Review the changes; you decide what to merge.",
     );
     const status = hero.locator(".hero-status");
     await expect(status).toContainText(
@@ -1444,6 +1444,52 @@ test("hero states the promise once and today's facts under the actions", async (
     expect(box.x + box.width).toBeLessThanOrEqual(width!);
   }
 });
+
+for (const javaScriptEnabled of [true, false]) {
+  test.describe(`capability copy (scripts ${javaScriptEnabled ? "on" : "off"})`, () => {
+    test.use({ javaScriptEnabled, reducedMotion: "reduce" });
+
+    test("distinguishes current records and simulation exports from planned features", async ({
+      page,
+    }) => {
+      await page.goto("/");
+      const hero = page.locator("#intro");
+      await expect(hero).toContainText("Each workspace has its own branch");
+      await expect(hero).toContainText("trusted checks planned");
+      await expect(page.locator("#lifecycle")).toContainText(
+        "Follow-up tasks reuse that workspace",
+      );
+
+      const record = page.locator(".proof-record");
+      await page.getByRole("slider").focus();
+      if (javaScriptEnabled) await page.keyboard.press("Home");
+      await expect(record).toContainText(
+        "Planned verification · illustrative example",
+      );
+      await expect(record).toContainText("Verified (example)");
+      await expect(record).not.toContainText(/\d+ of \d+|repaired once/);
+
+      const portability = page.locator("#open li", {
+        hasText: "Your history leaves with you",
+      });
+      await portability.scrollIntoViewIfNeeded();
+      await expect(portability).toContainText("simulation history only");
+      await expect(portability).toContainText(
+        "export of real Claude Code history and Git changes is planned",
+      );
+
+      const faq = page.locator("#faq details", {
+        hasText: "What happens to my work if Argent goes away?",
+      });
+      await faq.locator("summary").click();
+      await expect(faq.locator("p")).toBeVisible();
+      await expect(faq).toContainText("simulation history only");
+      await expect(faq).toContainText(
+        "Export of real Claude Code history and Git changes is planned",
+      );
+    });
+  });
+}
 
 test("the compact pill keeps the main action in reach and rests where the page already offers it", async ({
   page,

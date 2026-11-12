@@ -254,10 +254,10 @@ export function Agents() {
           An illustration of the planned picker. Each agent runs through its
           official command-line tool under your own sign-in; which models you
           can choose depends on your plan, and Argent never routes models or
-          switches to paid API usage. Claude and Claude Code are trademarks of
-          Anthropic; OpenAI, Codex and GPT are trademarks of OpenAI. Their logos
-          appear only to identify the agents Argent works with; Argent is not
-          affiliated with either company.
+          automatically falls back to API billing. Claude and Claude Code are
+          trademarks of Anthropic; OpenAI, Codex and GPT are trademarks of
+          OpenAI. Their logos appear only to identify the agents Argent works
+          with; Argent is not affiliated with either company.
         </p>
         <div className="flex shrink-0 flex-wrap gap-2">
           <StatusTag status="live" subject="Claude Code" />

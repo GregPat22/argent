@@ -47,6 +47,18 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Public capability descriptions — 12 November 2026
+
+Copy corrections based on main `f1a773c` preserve the accepted evidence-first
+direction and milestone order. A local run records worktree state; trusted tests
+remain L1.4. Branches belong to workspaces and follow-ups reuse them. The existing
+history exporter rejects local workspaces, so current export claims describe
+simulation history only. An environment allowlist is not a guarantee against
+credential access by an unsandboxed agent. Planned verification illustrations
+carry their status within the card and use no invented test totals or repair
+findings. See the [acceptance criteria](specs/0016-website-restyle.md#capability-copy-acceptance--12-november-2026).
+No execution behavior, accepted security requirement or milestone changes.
+
 ### Navigation links retire on close — 12 November 2026
 
 Usability correction in development, based on main `864188a`. A rapid reopen
