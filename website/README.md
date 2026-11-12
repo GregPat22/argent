@@ -120,6 +120,10 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
   scrolling hides a focused control. While compact, content fades out under a
   short gradient at the top of the page (no panel, border or blur), so it never
   collides with the logo or the pill; the logo keeps its feathered halo.
+  The [reopen correction](../docs/specs/0016-website-restyle.md#navigation-reopen-regression-in-development)
+  is in development: interactive links must retire immediately on close, with
+  only the decorative scrim retaining its exit fade, so a rapid reopen cannot
+  reuse an invisible list.
 - **Journey on phones.** Below 900 px the stage sticks under the header while
   the three steps scroll beneath it, and the hand-off plays between the pin and
   its release. On wide screens the whole stage pins as before.
