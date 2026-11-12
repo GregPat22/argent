@@ -51,7 +51,10 @@ output and a deadline. An internal
 is implemented at `217ad9d`, with
 [validation evidence](specs/0013-local-mvp.md#internal-verification-checkout-evidence):
 a detached worktree of one exact commit that Argent creates, verifies and
-removes. Nothing calls either, and L1.4 remains incomplete.
+removes. The clean-commit check they share with the observation has its own
+[bounds](specs/0013-local-mvp.md#clean-commit-scale-acceptance) at `2ed334f`,
+with [validation evidence](specs/0013-local-mvp.md#clean-commit-scale-evidence).
+Nothing calls either, and L1.4 remains incomplete.
 
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
 is implemented at `d2ef4e5`, with

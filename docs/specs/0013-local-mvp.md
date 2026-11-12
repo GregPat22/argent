@@ -1006,6 +1006,40 @@ Still open: a changed blob above 4 MiB, or more than 1 MiB of diff text, makes
 the whole candidate unreviewable and so untestable. Whether such a change may
 be accepted by identity alone is a product choice for the consent slice.
 
+#### Clean-commit scale evidence
+
+Recorded 12 November 2026 for implementation commit
+`2ed334f687b7887e3d86931be4a8e67bf6eae862`, on macOS (Apple M1) with Git 2.42.0
+and Node.js 22.19.0. `npm run check` passed strict types, formatting, build
+and all 572 automated tests without failures, cancellations or skips. Two
+earlier cases that asserted the 1,000-file refusal were replaced by cases for
+the new contract; the changes panel's suite is unchanged.
+
+Measured once on that machine, outside the test suite, with other work
+running: a commit of 50,000 files totalling 1,995 MiB, one of them 1,800 MiB,
+took 21 to 22 seconds to check and 3 to 5 seconds to recheck in two runs,
+with the process at 77 to 104 MiB of resident memory. A commit of 50,001
+files was refused. The two-minute deadline is about four times the measured
+time at the bounds; a slower disk reaches the deadline and is refused, never
+passed.
+
+Changing each of these in a built copy made a focused case fail: the
+cumulative total, the comparison of the computed blob identity, the file
+count, the tree listing bound, the remaining-bytes limit on a single file,
+the review's restriction to changed paths and the review's changed-path
+limit. Three removals are not observable by outcome, because another check
+refuses the same input: the index listing bound (a clean index listing is
+never longer than the tree listing), the refusal of growth during a read
+(the size comparison after the read refuses it) and the review's tree file
+bound (the observation or the changed-path limit refuses first).
+
+The diff was checked by its author against the
+[security model](#security-model). Limits: Git's own time to populate or
+remove a checkout of this size was not measured; the bounds are engineering
+values to adjust by evidence, not a product commitment; and the review still
+refuses large changed blobs as stated above. No command, consent or test
+result is established, and L1.4 remains incomplete.
+
 ### L1.5 draft pull request and archive
 
 Commit and push the workspace branch and open a draft pull request through `gh`,

@@ -638,3 +638,15 @@ A checkout is not isolation: a command there runs as the developer and shares
 the repository's Git directory. A trusted check will run `setup`, when
 configured, and then `test` in one such checkout. Nothing calls this module
 yet, and a checkout left by a crash stays until durable ownership exists.
+
+### Clean-commit check bounds
+
+Implemented at `2ed334f` under the
+[acceptance contract](docs/specs/0013-local-mvp.md#clean-commit-scale-acceptance),
+with [validation evidence](docs/specs/0013-local-mvp.md#clean-commit-scale-evidence)
+recorded on 12 November 2026. The clean-commit check in `workspace-changes.ts`
+hashes each file's Git blob identity while reading it and holds no content,
+so its bounds protect time and not memory: 50,000 files, 2 GiB in total,
+32 MiB per Git listing and a two-minute deadline. The changes panel keeps its
+own smaller limits because it holds and displays what it reads. The pinned
+review applies its 1,000-path limit to changed paths only.

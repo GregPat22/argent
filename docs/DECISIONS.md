@@ -47,6 +47,29 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Clean-commit bounds apart from display limits — 12 November 2026
+
+Implemented at `2ed334f687b7887e3d86931be4a8e67bf6eae862`, with validation
+recorded on 12 November 2026, after the maintainers asked for the
+observation's 1,000-file limit to be revisited. That limit came from the
+changes panel, where a person reads the result. Proving that a folder equals
+a commit has no reader, so the limit excluded ordinary repositories from
+trusted checks and protected nothing.
+
+Hash content as it is read instead of holding it, and bound the check by time:
+50,000 files, 2 GiB in total, 32 MiB per Git listing and a two-minute
+deadline, measured at about a quarter of that deadline at the bounds. Keep the
+changes panel's limits as they are. Keep the review's limits on changed
+content, because a person must read it, and count only changed paths against
+them. See the
+[acceptance contract](specs/0013-local-mvp.md#clean-commit-scale-acceptance)
+and [implementation evidence](specs/0013-local-mvp.md#clean-commit-scale-evidence).
+The complete repository check passed with 572 tests. This supersedes the
+note below that the limit remained to be revisited. The bounds are
+engineering values to adjust by evidence. Whether a change too large to
+display may be accepted by identity alone stays open for the consent slice.
+Nothing is connected and L1.4 remains incomplete.
+
 ### Shape of a trusted check and its checkout — 12 November 2026
 
 Accepted by the maintainers on 12 November 2026, within the L1.4 contract:

@@ -119,7 +119,9 @@ is implemented at `e4260cc` and connected to nothing. An internal
 [verification checkout](docs/specs/0013-local-mvp.md#internal-verification-checkout-acceptance)
 is implemented at `217ad9d`: a verified detached worktree of one exact commit,
 in which a trusted check will run `setup` and then `test`. Running the `run`
-action is deferred until those results work. Approval controls, consent,
+action is deferred until those results work. The shared clean-commit check is
+[sized for real repositories](docs/specs/0013-local-mvp.md#clean-commit-scale-acceptance)
+at `2ed334f`: up to 50,000 files and 2 GiB, hashed without holding content. Approval controls, consent,
 execution, exact-commit results and stale-result display remain unimplemented;
 work-queue item 3 is not complete.
 
