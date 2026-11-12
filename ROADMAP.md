@@ -125,7 +125,9 @@ action is deferred until those results work. The shared clean-commit check is
 [sized for real repositories](docs/specs/0013-local-mvp.md#clean-commit-scale-acceptance)
 at `2ed334f`: up to 50,000 files and 2 GiB, hashed without holding content. Approval controls, consent,
 execution, exact-commit results and stale-result display remain unimplemented;
-work-queue item 3 is not complete.
+work-queue item 3 is not complete. The
+[security correction](docs/specs/0013-local-mvp.md#review-and-checkout-security-correction)
+covers conditional filters, verified review objects and interrupted-checkout cleanup.
 
 Already implemented: L1.1, L1.2, L1.3, the
 [local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening) and

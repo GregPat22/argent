@@ -141,3 +141,7 @@ report does not certify later revisions. Fix the docs when those sources disagre
 and link every new spec or completion report from this index. A provider
 recommendation is not permission to provision it. Keep secrets, private notes,
 transcripts, customer data, local databases and generated artifacts out of Git.
+
+The [review and checkout security correction](specs/0013-local-mvp.md#review-and-checkout-security-correction)
+records conditional-filter, object-source and interrupted-cleanup regressions.
+No command execution or L1.4 completion is established by these internal checks.

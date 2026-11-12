@@ -582,8 +582,9 @@ with [validation evidence](docs/specs/0013-local-mvp.md#internal-pinned-review-e
 recorded on 11 November 2026. The read-only `local-command-review.ts` module
 first requires a fresh exact-commit observation, then compares the recorded
 base tree with the observed commit's tree. Trusted Git reads only objects named
-by those two commits; each blob is checked against its listed size and its own
-object ID, while commit and tree objects are taken from Git as listed. The live changes inspector and the review share one comparison
+by those two commits through the stored repository's pinned common directory.
+Each commit, recursively traversed tree and changed blob is checked against its
+object ID; changed blobs also match their declared sizes. The live changes inspector and the review share one comparison
 helper for exact renames and bounded whole-file hunks; the inspector's public
 contract is unchanged.
 
@@ -627,11 +628,14 @@ linked worktree of one exact commit under a private verification folder that
 is apart from the repository and the workspace worktrees. The repository and
 branch come from the store; the commit must carry the named tree and be
 reachable from the workspace's own branch. Trusted Git creates the worktree
-with hooks, filter commands and transports disabled.
+with hooks, filter commands and transports disabled. It registers without
+population, then populates from inside the linked worktree so conditional
+filter configuration is neutralized there too.
 
 Before returning, Argent applies the exact-commit observation's clean-commit
 check to the new folder, which the two now share, and requires that no other
-file exists. Failure removes what was created. Removal takes only a checkout
+file exists. Failure removes what was created, or reports incomplete cleanup.
+A moved or missing folder is reported as kept. Removal takes only a checkout
 object created by the live process and only the same real folder, through
 Git's removal of that one worktree; Argent deletes nothing recursively itself
 and prunes no other worktree.

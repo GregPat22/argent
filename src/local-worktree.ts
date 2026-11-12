@@ -128,9 +128,12 @@ export async function createLocalWorkspace(
       "worktree",
       "add",
       "--quiet",
+      "--no-checkout",
       worktreePath,
       branch,
     ]);
+    // Re-read filters in the linked worktree's includeIf/config context.
+    await git(worktreePath, ["reset", "--hard", repository.head]);
     return store.createLocalWorkspace(
       id,
       {

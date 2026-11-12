@@ -211,7 +211,15 @@ export async function createVerificationCheckout(
     signal.throwIfAborted();
     await git(
       repository,
-      ["worktree", "add", "--quiet", "--detach", directory, headSha],
+      [
+        "worktree",
+        "add",
+        "--quiet",
+        "--detach",
+        "--no-checkout",
+        directory,
+        headSha,
+      ],
       1 << 20,
       signal,
       CHECKOUT_LIMITS.timeoutMs,
@@ -226,6 +234,16 @@ export async function createVerificationCheckout(
       (await text(directory, ["rev-parse", "--abbrev-ref", "HEAD"])) !== "HEAD"
     )
       throw mismatch();
+    // Register first, then populate in this worktree's config context. This
+    // neutralizes conditional filters and leaves interrupted population
+    // registered so Git can remove precisely the checkout we created.
+    await git(
+      directory,
+      ["reset", "--hard", headSha],
+      1 << 20,
+      signal,
+      CHECKOUT_LIMITS.timeoutMs,
+    );
     const clean = await readCleanCommit(directory, signal, mismatch);
     if (clean.headSha !== headSha || clean.treeId !== treeId) throw mismatch();
     // Fresh means nothing but the commit: not even an ignored file.
@@ -272,10 +290,7 @@ export async function createVerificationCheckout(
     // Never touch the folder while a Git process may still be writing to it.
     if (error instanceof UncertainExecutionError) throw error;
     if (directory && created && repository)
-      await discard(repository, directory, created).catch((failure) => {
-        if (failure instanceof UncertainExecutionError) throw failure;
-        // Leave any remainder for the developer; never widen the deletion.
-      });
+      await discard(repository, directory, created);
     if (signal.aborted) signal.throwIfAborted();
     if (error instanceof DomainError) throw error;
     throw refused();
@@ -296,7 +311,7 @@ async function discard(
     if ((await realpath(directory)) !== directory) throw kept();
     stat = await lstat(directory, { bigint: true });
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") throw kept();
     throw error;
   }
   if (

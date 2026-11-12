@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { realpath } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   DomainError,
   UncertainExecutionError,
@@ -111,42 +111,101 @@ export async function reviewLocalCommandCandidate(
       operatorId,
       signal,
     );
-    const binding = JSON.stringify(store.getWorkspace(workspaceId).local);
+    const local = store.getWorkspace(workspaceId).local;
+    if (!local) throw unreviewable();
+    const binding = JSON.stringify(local);
     const root = await realpath(worktreeRoot);
     const directory = join(root, workspaceId);
-
-    const tree = async (commit: string) => {
-      const listing = decode(
-        await git(
-          directory,
-          ["ls-tree", "-r", "-z", "-l", "--full-tree", commit],
-          REVIEW_LIMITS.treeBytes,
-          signal,
-        ),
+    const commonAt = async (cwd: string) => {
+      const value = decode(
+        await git(cwd, ["rev-parse", "--git-common-dir"], 1 << 20, signal),
       );
-      if (listing && !listing.endsWith("\0")) throw unreviewable();
+      if (!value.endsWith("\n")) throw unreviewable();
+      return realpath(resolve(cwd, value.slice(0, -1)));
+    };
+    const common = await commonAt(local.repositoryPath);
+    if ((await commonAt(directory)) !== common) throw unreviewable();
+    // Never rediscover objects through the agent-writable .git file.
+    const objectGit = (args: string[], maxBuffer: number) =>
+      git(
+        local.repositoryPath,
+        [`--git-dir=${common}`, ...args],
+        maxBuffer,
+        signal,
+      );
+    const object = async (
+      type: "commit" | "tree" | "blob",
+      oid: string,
+      maxBuffer: number,
+    ) => {
+      if (type !== "blob") {
+        const size = decode(await objectGit(["cat-file", "-s", oid], 128));
+        if (!/^(0|[1-9][0-9]*)\n$/.test(size)) throw unreviewable();
+        if (!Number.isSafeInteger(Number(size)) || Number(size) > maxBuffer)
+          throw limit();
+      }
+      const bytes = await objectGit(["cat-file", type, oid], maxBuffer);
+      if (
+        createHash(oid.length === 64 ? "sha256" : "sha1")
+          .update(`${type} ${bytes.length}\0`)
+          .update(bytes)
+          .digest("hex") !== oid
+      )
+        throw unreviewable();
+      return bytes;
+    };
+    const tree = async (commit: string) => {
+      const bytes = await object("commit", commit, REVIEW_LIMITS.treeBytes);
+      const match = /^tree ([a-f0-9]{40}|[a-f0-9]{64})\n/.exec(decode(bytes));
+      if (!match || match[1]!.length !== commit.length) throw unreviewable();
+      if (commit === observation.headSha && match[1] !== observation.treeId)
+        throw unreviewable();
       const entries = new Map<string, SizedEntry>();
-      for (const record of listing.split("\0").filter(Boolean)) {
-        // Anything else, including a gitlink or a tree, is not reviewable.
-        const match =
-          /^(100644|100755|120000) blob ([a-f0-9]{40}|[a-f0-9]{64}) +(0|[1-9][0-9]*)\t([\s\S]+)$/.exec(
-            record,
-          );
-        if (!match) throw unreviewable();
-        const name = pathName(match[4]!);
-        const size = Number(match[3]);
-        if (entries.has(name) || !Number.isSafeInteger(size))
-          throw unreviewable();
-        entries.set(name, { mode: match[1]!, oid: match[2]!, size });
-        if (entries.size > REVIEW_LIMITS.treeFiles) throw limit();
+      const pending = [{ oid: match[1]!, prefix: "" }];
+      let total = bytes.length;
+      let trees = 0;
+      while (pending.length) {
+        signal.throwIfAborted();
+        if (++trees > REVIEW_LIMITS.treeFiles) throw limit();
+        const { oid, prefix } = pending.pop()!;
+        const raw = await object("tree", oid, REVIEW_LIMITS.treeBytes);
+        total += raw.length;
+        if (total > REVIEW_LIMITS.treeBytes) throw limit();
+        let offset = 0;
+        const siblings = new Set<string>();
+        while (offset < raw.length) {
+          const space = raw.indexOf(32, offset);
+          const nul = raw.indexOf(0, space + 1);
+          const end = nul + 1 + commit.length / 2;
+          if (space < offset || nul < space || end > raw.length)
+            throw unreviewable();
+          const mode = decode(raw.subarray(offset, space));
+          const component = decode(raw.subarray(space + 1, nul));
+          if (component.includes("/") || siblings.has(component))
+            throw unreviewable();
+          siblings.add(component);
+          const name = pathName(prefix + component);
+          const child = raw.subarray(nul + 1, end).toString("hex");
+          offset = end;
+          if (mode === "40000") {
+            pending.push({ oid: child, prefix: name + "/" });
+          } else {
+            if (
+              !["100644", "100755", "120000"].includes(mode) ||
+              entries.has(name)
+            )
+              throw unreviewable();
+            entries.set(name, { mode, oid: child, size: -1 });
+            if (entries.size > REVIEW_LIMITS.treeFiles) throw limit();
+          }
+        }
       }
       return entries;
     };
     const base = await tree(observation.baseSha);
     const head = await tree(observation.headSha);
     if (head.size !== observation.files) throw unreviewable();
-    // Only paths that differ are compared, so an unchanged large tree costs
-    // two listings and nothing more.
+    // Only changed blobs are sized and read; every traversed tree is verified.
     const names = [...new Set([...base.keys(), ...head.keys()])]
       .filter((name) => {
         const old = base.get(name);
@@ -156,6 +215,17 @@ export async function reviewLocalCommandCandidate(
       .sort();
     if (names.length > REVIEW_LIMITS.files) throw limit();
 
+    for (const name of names) {
+      for (const entry of [base.get(name), head.get(name)]) {
+        if (!entry) continue;
+        const size = decode(
+          await objectGit(["cat-file", "-s", entry.oid], 128),
+        );
+        if (!/^(0|[1-9][0-9]*)\n$/.test(size)) throw unreviewable();
+        entry.size = Number(size);
+        if (!Number.isSafeInteger(entry.size)) throw unreviewable();
+      }
+    }
     let total = 0;
     const compared = await compareEntries(
       names,
@@ -169,12 +239,7 @@ export async function reviewLocalCommandCandidate(
         )
           throw limit();
         total += entry.size;
-        const bytes = await git(
-          directory,
-          ["cat-file", "blob", entry.oid],
-          REVIEW_LIMITS.fileBytes,
-          signal,
-        );
+        const bytes = await object("blob", entry.oid, REVIEW_LIMITS.fileBytes);
         if (
           bytes.length !== entry.size ||
           createHash(entry.oid.length === 64 ? "sha256" : "sha1")
@@ -215,6 +280,8 @@ export async function reviewLocalCommandCandidate(
 
     if (
       (await realpath(worktreeRoot)) !== root ||
+      (await commonAt(directory)) !== common ||
+      (await commonAt(local.repositoryPath)) !== common ||
       JSON.stringify(store.getWorkspace(workspaceId).local) !== binding
     )
       throw unreviewable();

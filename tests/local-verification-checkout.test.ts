@@ -468,3 +468,83 @@ test("cancellation and the deadline leave no checkout behind", async (t) => {
   assert.deepEqual(f.checkouts(), []);
   assert.equal(f.worktrees(), 2);
 });
+
+test("conditional worktree filters cannot execute during either checkout creation path", async (t) => {
+  const f = await fixture(t);
+  const marker = join(f.root, "filter-ran");
+  writeFileSync(
+    join(f.repo, ".git", "worktree-filter.inc"),
+    `[filter "a=b"]\n smudge = "touch '${marker}'; cat"\n`,
+  );
+  git(
+    f.repo,
+    "config",
+    "includeIf.gitdir:**/worktrees/**.path",
+    "worktree-filter.inc",
+  );
+  writeFileSync(join(f.repo, ".git", "info", "attributes"), "* filter=a=b\n");
+  const checkout = await f.create();
+  assert.equal(existsSync(marker), false);
+  await removeVerificationCheckout(checkout);
+  await createLocalWorkspace(f.store, f.roots.worktreeRoot, f.repo);
+  assert.equal(existsSync(marker), false);
+});
+
+test("a moved checkout is reported as kept, never successfully removed", async (t) => {
+  const f = await fixture(t);
+  const checkout = await f.create();
+  const moved = join(f.root, "moved");
+  renameSync(checkout.directory, moved);
+  await assert.rejects(removeVerificationCheckout(checkout), /left in place/);
+  assert.equal(existsSync(join(moved, "file.txt")), true);
+  assert.equal(f.worktrees(), 3);
+  renameSync(moved, checkout.directory);
+  await removeVerificationCheckout(checkout);
+});
+
+test("cancellation during population removes the registered partial checkout", async (t) => {
+  const f = await fixture(t);
+  mkdirSync(join(f.directory, "many"));
+  for (let i = 0; i < 4000; i++)
+    writeFileSync(join(f.directory, "many", `file-${i}`), "fixture\n");
+  git(f.directory, "add", ".");
+  git(f.directory, "commit", "--quiet", "-m", "large fixture");
+  const id = randomUUID();
+  const abort = new AbortController();
+  let observed = false;
+  const poll = setInterval(() => {
+    const many = join(f.roots.verificationRoot, id, "many");
+    if (existsSync(many) && readdirSync(many).length > 10) {
+      observed = true;
+      abort.abort(new Error("population interrupted"));
+    }
+  }, 1);
+  try {
+    await assert.rejects(
+      f.create({ id }, abort.signal),
+      /population interrupted/,
+    );
+  } finally {
+    clearInterval(poll);
+  }
+  assert.equal(observed, true);
+  assert.deepEqual(f.checkouts(), []);
+  assert.equal(f.worktrees(), 2);
+});
+
+test("cleanup failure during creation is reported instead of hidden by cancellation", async (t) => {
+  const f = await fixture(t);
+  const id = randomUUID();
+  const original = f.store.getWorkspace.bind(f.store);
+  const abort = new AbortController();
+  let calls = 0;
+  t.mock.method(f.store, "getWorkspace", (workspaceId: string) => {
+    if (++calls === 2) {
+      renameSync(join(f.roots.verificationRoot, id), join(f.root, "moved"));
+      abort.abort(new Error("cancelled"));
+    }
+    return original(workspaceId);
+  });
+  await assert.rejects(f.create({ id }, abort.signal), /left in place/);
+  assert.equal(existsSync(join(f.root, "moved", "file.txt")), true);
+});

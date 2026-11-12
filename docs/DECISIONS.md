@@ -47,11 +47,22 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Review and checkout security correction — 12 November 2026
+
+Preserve the accepted local security model by registering worktrees before
+population, disabling filters in the linked worktree's configuration context,
+and passing filter keys separately from values. Pin review object reads to
+the stored repository and hash commits and recursive trees, because a redirect
+of the agent-writable `.git` file can otherwise substitute forged subtrees.
+Keep failed cleanup visible, including on cancellation; a moved checkout is
+not successfully removed. See the
+[acceptance and evidence](specs/0013-local-mvp.md#review-and-checkout-security-correction).
+These changes add no execution entry point and do not complete L1.4.
+
 ### Clean-commit bounds apart from display limits — 12 November 2026
 
 Implemented at `2ed334f687b7887e3d86931be4a8e67bf6eae862`, with validation
-recorded on 12 November 2026, after the maintainers asked for the
-observation's 1,000-file limit to be revisited. That limit came from the
+recorded on 12 November 2026, revising the observation's 1,000-file limit. That limit came from the
 changes panel, where a person reads the result. Proving that a folder equals
 a commit has no reader, so the limit excluded ordinary repositories from
 trusted checks and protected nothing.

@@ -612,3 +612,68 @@ test("cancellation at any stage and the review deadline never produce a review",
   release();
   await failed;
 });
+
+test("review rejects forged nested trees even when Git serves them under the expected id", async (t) => {
+  const f = await fixture(t, { "scripts/test.sh": "safe\n" });
+  writeFileSync(join(f.directory, "scripts", "test.sh"), "changed\n");
+  f.commit();
+  const base = git(
+    f.repo,
+    "rev-parse",
+    `${f.workspace.local!.baseSha}:scripts`,
+  );
+  const head = git(f.directory, "rev-parse", "HEAD:scripts");
+  const bytes = execFileSync("git", ["cat-file", "tree", head], {
+    cwd: f.repo,
+  });
+  const path = join(f.repo, ".git", "objects", base.slice(0, 2), base.slice(2));
+  chmodSync(path, 0o644);
+  writeFileSync(
+    path,
+    deflateSync(Buffer.concat([Buffer.from(`tree ${bytes.length}\0`), bytes])),
+  );
+  await assert.rejects(f.review(), rejected(409));
+});
+
+test("a Git-directory redirect after observation cannot hide changed test code", async (t) => {
+  const f = await fixture(t, { "scripts/test.sh": "safe\n" });
+  writeFileSync(join(f.directory, "scripts", "test.sh"), "changed\n");
+  f.commit();
+  const original = f.store.getWorkspace.bind(f.store);
+  let calls = 0;
+  let redirectAt = 0;
+  const target = join(f.root, "alternate");
+  mkdirSync(target);
+  git(target, "init", "--quiet");
+  writeFileSync(
+    join(target, ".git", "objects", "info", "alternates"),
+    join(f.repo, ".git", "objects") + "\n",
+  );
+  const base = git(
+    f.repo,
+    "rev-parse",
+    `${f.workspace.local!.baseSha}:scripts`,
+  );
+  const head = git(f.directory, "rev-parse", "HEAD:scripts");
+  const bytes = execFileSync("git", ["cat-file", "tree", base], {
+    cwd: f.repo,
+  });
+  const folder = join(target, ".git", "objects", head.slice(0, 2));
+  mkdirSync(folder);
+  writeFileSync(
+    join(folder, head.slice(2)),
+    deflateSync(Buffer.concat([Buffer.from(`tree ${bytes.length}\0`), bytes])),
+  );
+  t.mock.method(f.store, "getWorkspace", (id: string) => {
+    if (++calls === redirectAt)
+      writeFileSync(
+        join(f.directory, ".git"),
+        `gitdir: ${join(target, ".git")}\n`,
+      );
+    return original(id);
+  });
+  await f.review();
+  redirectAt = calls - 1; // first binding read after the observation
+  calls = 0;
+  await assert.rejects(f.review(), rejected(409));
+});

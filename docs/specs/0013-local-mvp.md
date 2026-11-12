@@ -693,10 +693,11 @@ persists nothing, enqueues no work and runs no command. L1.4 remains incomplete.
 2. The change set compares the recorded base commit with the observed commit,
    tree to tree. Trusted Git reads only objects named by those two commits:
    never the worktree, the index, replacement refs, filters, textconv or an
-   external diff. Every blob read is checked against the size in the pinned
-   tree listing and against its own Git object ID, so content Git would serve
-   under a mismatched ID is refused. Commit and tree objects are taken from
-   Git as listed and are not independently hashed. A missing object, a gitlink, an unsafe
+   external diff. The object source is pinned to the stored repository's common
+   Git directory, independently of the worktree's `.git` file. Every commit,
+   traversed tree and changed blob is hashed against its Git object ID; changed
+   blobs also match their declared sizes. The common-directory binding is
+   checked again after the reads. A missing object, a gitlink, an unsafe
    path, an invalid-UTF-8 path name or a malformed listing fails the whole
    review.
 3. Each changed file records its status, both modes, both blob IDs and both
@@ -719,8 +720,8 @@ persists nothing, enqueues no work and runs no command. L1.4 remains incomplete.
 6. The changes limits apply to what a person must read: 1,000 changed paths,
    4 MiB per changed blob, 32 MiB of inspected blobs and 1 MiB of diff text;
    binary content does not consume the diff allowance. Unchanged paths cost
-   only the two tree listings, each bounded as in the observation (50,000
-   files, 32 MiB). Overflow fails the complete review with a limit error and no
+   only verified tree traversal, bounded to 50,000 files, 50,000 trees and
+   32 MiB of commit/tree bytes per revision. Changed blobs alone are read. Overflow fails the complete review with a limit error and no
    partial result, so a candidate that cannot be reviewed in full cannot later
    be consented to. One four-minute deadline covers the observation and every
    object read; cancellation awaits supervised Git cleanup. Errors never
@@ -774,8 +775,10 @@ only from validated listings, no caller-supplied path or revision, no worktree
 or index read after the observation and no process other than trusted Git.
 Blob content is the only thing the review hashes itself: a forged commit or
 tree object that Git serves could still misstate the change set, which stays
-within the host-owner tampering the local mode does not claim to resist.
-Independent review and hosted integration checks remain required.
+within the originally stated host-owner tampering limit. The subsequent
+[security correction](#review-and-checkout-security-correction) replaces that
+assumption: an agent-writable Git-directory redirect can supply forged subtrees.
+Independent hosted integration checks remain required.
 
 Limits: every trusted Git read starts two processes, and a review reads up to
 two blobs per changed file, so a change set of several hundred files can reach
@@ -896,6 +899,8 @@ no job, worker, route or desktop control. L1.4 remains incomplete.
    refused and left untouched.
 4. Trusted Git adds a detached linked worktree at the commit from the stored
    repository, with hooks, fsmonitor, filter commands and transports disabled.
+   Registration uses `--no-checkout`; a separate population command runs
+   inside the linked worktree after re-reading its conditional filter settings.
    No branch is created or moved. The workspace worktree, its index, its
    ignored files and the store are unchanged.
 5. Before a checkout is returned, Argent requires the same folder it created,
@@ -911,7 +916,9 @@ no job, worker, route or desktop control. L1.4 remains incomplete.
    Git's removal of that one worktree, or by removing the folder while it is
    still empty. Argent performs no recursive deletion of its own and never
    prunes other worktrees. If removal cannot be completed the remainder is
-   left in place. Unconfirmed process termination stops all cleanup.
+   left in place and the cleanup failure is reported, including on cancellation.
+   A moved or missing owned folder is not reported as successfully removed.
+   Unconfirmed process termination stops all cleanup.
 7. Removal accepts only a checkout object created by the live service
    process. The folder must still be the same real directory, by path, device
    and inode. Whatever a command left in it is discarded, without following
@@ -972,8 +979,7 @@ command, consent or test result is established, and L1.4 remains incomplete.
 The exact-commit observation first reused the changes panel's limits, which
 exist because a person reads that panel. Proving that a folder equals a commit
 has no reader: the 1,000-file limit excluded ordinary repositories from
-trusted checks without protecting anything. The maintainers asked for the
-bound to be revisited on 12 November 2026.
+trusted checks without protecting anything. The bound is revised below independently of the display limits.
 
 1. The clean-commit check, shared by the observation and the verification
    checkout, computes each file's Git blob identity while reading it in 64 KiB
@@ -1040,6 +1046,34 @@ remove a checkout of this size was not measured; the bounds are engineering
 values to adjust by evidence, not a product commitment; and the review still
 refuses large changed blobs as stated above. No command, consent or test
 result is established, and L1.4 remains incomplete.
+
+#### Review and checkout security correction
+
+Acceptance recorded 12 November 2026 against `43573dd`. An independent review
+identified filter commands enabled only in linked-worktree configuration,
+filter names containing `=`, forged nested trees supplied through a redirected
+worktree `.git`, and incomplete cleanup reporting. These are corrections to
+L1.4's existing security contract, not permission to execute commands.
+
+- Filter overrides preserve complete keys through Git's separate environment
+  key/value fields. Both workspace creation and verification-checkout creation
+  register without population, then populate through trusted Git inside the
+  new worktree's configuration context.
+- Candidate review pins the object source to the stored repository, verifies
+  commit and recursive tree identities as well as changed blobs, and refuses
+  a changed common-directory binding. Raw traversal replaces the differently
+  sized flat listings; object-size and cumulative bounds refuse with 413.
+- Cancellation during population leaves a registered worktree for targeted
+  removal. Failed cleanup and a moved or missing owned checkout report a
+  remainder instead of success. No recursive deletion or global prune is added.
+- Regression fixtures cover both filter bypasses, a forged nested tree,
+  redirection immediately after observation, interruption during population,
+  a moved folder and cancellation with failed cleanup.
+
+These helpers remain unconnected. Consent, command-job integration, durable
+results, stale marking and desktop controls remain required before L1.4 is
+complete. A crash still requires manual inspection; local execution remains
+unsandboxed, and an escaped process is not fenced by a process group.
 
 ### L1.5 draft pull request and archive
 
