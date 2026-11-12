@@ -775,7 +775,8 @@ fresh checkout, command execution or test result, and L1.4 remains incomplete.
 #### Internal bounded command runner acceptance
 
 Acceptance recorded 12 November 2026 against main `8027d0b` with the pinned
-candidate review above. This is the process primitive a later trusted check
+candidate review above; implemented at
+`e4260cc61b42983f5092006af737cc36fbf56263`. This is the process primitive a later trusted check
 needs under every design: one argument array, started under the
 [security model](#security-model)'s process rules, with bounded output and one
 deadline. Nothing calls it. No configuration, approval, review, job, worker,
@@ -829,6 +830,34 @@ incomplete.
 A fresh owned checkout, explicit consent bound to a review identity, wiring to
 command jobs and exact-commit results remain separate work, with their own
 security review. Until then this runner establishes nothing about a commit.
+
+#### Internal bounded runner evidence
+
+Recorded 12 November 2026 for implementation commit
+`e4260cc61b42983f5092006af737cc36fbf56263`, on macOS with Node 22.19.0.
+`npm run check` passed strict types, formatting, build and all 562 automated
+tests without failures, cancellations or skips. The eight focused cases in
+`tests/local-command-runner.test.ts` passed in three consecutive runs. They
+start real child processes and no repository command.
+
+Removing the environment allowlist, the inside-the-directory check, the
+cancellation refusal or the output limit in a built copy each made a focused
+case fail. The deadline and cancellation cases start a child that starts
+another process, and confirm that both are gone afterwards.
+
+One expectation was wrong and is corrected in the contract: an executable file
+without an interpreter line is not refused by the system. It is run by the
+system shell, as `execvp` does. Argent builds no shell string, but a later
+check that runs a repository script inherits this.
+
+The diff was checked by its author against the
+[security model](#security-model). It has no caller, so it adds no path by
+which Argent runs repository code. Independent security review is required
+before anything is connected to it. Limits: bare names with other characters
+are not found; a command that leaves a child holding its output open is
+reported as timed out; the tail is bytes, not decoded or redacted text. No
+commit, checkout, consent or test result is established, and L1.4 remains
+incomplete.
 
 ### L1.5 draft pull request and archive
 

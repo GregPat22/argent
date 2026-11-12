@@ -41,7 +41,12 @@ is implemented at `042a169`, with
 [validation evidence](specs/0013-local-mvp.md#internal-pinned-review-evidence).
 It lists the complete change set between the base and that exact commit from
 verified Git objects, labels binary content as not displayed and collects no
-consent. L1.4 remains incomplete.
+consent. An internal
+[bounded command runner](specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance)
+is implemented at `e4260cc`, with
+[validation evidence](specs/0013-local-mvp.md#internal-bounded-runner-evidence):
+one argument array without a shell string, an allowlisted environment, bounded
+output and a deadline. Nothing calls it, and L1.4 remains incomplete.
 
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
 is implemented at `d2ef4e5`, with

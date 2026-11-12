@@ -113,7 +113,9 @@ public actions or results. Internal [exact-commit observation](docs/specs/0013-l
 is implemented at `b7c426b`; it is not human review or an execution plan. The
 internal [pinned candidate review](docs/specs/0013-local-mvp.md#internal-pinned-candidate-review-acceptance)
 is implemented at `042a169`: a bounded, read-only change set between the base
-and one exact commit, with no consent collected. Approval controls, consent,
+and one exact commit, with no consent collected. An internal
+[bounded command runner](docs/specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance)
+is implemented at `e4260cc` and connected to nothing. Approval controls, consent,
 execution, exact-commit results and stale-result display remain unimplemented;
 work-queue item 3 is not complete.
 

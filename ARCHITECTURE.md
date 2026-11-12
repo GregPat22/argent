@@ -596,3 +596,21 @@ It is not consent, a receipt, a job or a runnable plan, and it has no API,
 desktop or worker entry point. Any failure, overflow, cancellation or deadline
 yields no review. Consent bound to a review identity, a fresh owned checkout,
 bounded execution and exact-commit results remain planned.
+
+### Internal bounded command runner
+
+Implemented at `e4260cc` under the
+[acceptance contract](docs/specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance),
+with [validation evidence](docs/specs/0013-local-mvp.md#internal-bounded-runner-evidence)
+recorded on 12 November 2026. `local-command-runner.ts` starts one validated
+argument array through the existing process-group supervisor, in a validated
+directory, with the agent's allowlisted environment and closed standard input.
+It counts and hashes both output streams, retains a bounded tail, stops at a
+total output limit or the deadline, and returns an immutable observation of the
+outcome. Cancellation and unconfirmed termination return no result.
+
+Nothing calls it: there is no configuration, approval, review, job, worker,
+API or desktop path to the runner, and dormant command jobs remain forbidden to
+execute. Its result is labelled untested and is not evidence about a commit.
+Connecting it requires consent bound to a review identity, a fresh owned
+checkout, exact-commit result handling and an independent security review.

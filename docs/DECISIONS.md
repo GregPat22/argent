@@ -47,6 +47,27 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Unconnected bounded command runner — 12 November 2026
+
+Implemented at `e4260cc61b42983f5092006af737cc36fbf56263`, with validation recorded
+on 12 November 2026, within the accepted L1.4 requirement that configured
+commands run with the agent's process rules, bounded output and deadlines.
+Build the process primitive before the checkout and consent that will use it,
+and leave it without a caller: every later design needs one argument array run
+under these rules, while how a fresh checkout is made and how setup relates to
+a test are not yet decided.
+
+Reuse the process-group supervisor, the agent's environment allowlist and its
+executable search. Allow a relative executable only inside the working
+directory after links are resolved. Hash and count all output but retain only
+a tail, and stop a flood at a total limit, so memory stays bounded for the
+whole runtime. Report a deadline or output limit as an outcome and a
+cancellation as no result. Label the result as untested and as no evidence. See
+the [acceptance contract](specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance)
+and [implementation evidence](specs/0013-local-mvp.md#internal-bounded-runner-evidence).
+The complete repository check passed with 562 tests. This changes no accepted
+product or security decision, connects nothing and does not complete L1.4.
+
 ### Pinned candidate review before consent — 11 November 2026
 
 Implemented at `042a169f7267adf1b4d2806ba802de04b81d3b83`, with validation recorded
