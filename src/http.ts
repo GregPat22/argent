@@ -5,7 +5,7 @@ import {
   type Server,
   type ServerResponse,
 } from "node:http";
-import { DomainError, type Run } from "./domain.js";
+import { DomainError, requireString, type Run } from "./domain.js";
 import { Store } from "./store.js";
 import { inspectArtifact } from "./artifacts.js";
 import { createLocalWorkspace } from "./local-worktree.js";
@@ -52,6 +52,8 @@ export interface ServerOptions {
   artifactRoot?: string;
   /** Enables real local worktree workspaces (spec 0013) under this folder. */
   worktreeRoot?: string;
+  /** Stable single-host operator supplied by the service, never by a request. */
+  localCommandOperatorId?: string;
   instanceId?: string;
   onStop?: () => void;
 }
@@ -63,6 +65,17 @@ export function makeServer(
 ): Server {
   if (token.length < 32)
     throw new Error("API token must contain at least 32 characters");
+  if (options.localCommandOperatorId !== undefined) {
+    requireString(
+      options.localCommandOperatorId,
+      "local command operator",
+      128,
+    );
+    if (!options.worktreeRoot)
+      throw new Error(
+        "Command approvals require local execution configuration",
+      );
+  }
   const expected = createHash("sha256").update(`Bearer ${token}`).digest();
   const server = createServer((request, response) => {
     void (async () => {
@@ -124,6 +137,86 @@ export function makeServer(
           );
         } else {
           send(response, 201, store.createWorkspace(body.repository));
+        }
+      } else if (
+        parts[0] === "workspaces" &&
+        parts.length === 3 &&
+        ((parts[2] === "command-configuration" && method === "GET") ||
+          (parts[2] === "command-approvals" && method === "POST"))
+      ) {
+        if (!options.worktreeRoot || !options.localCommandOperatorId)
+          throw new DomainError(409, "Local command approvals are not enabled");
+        if (url.searchParams.size)
+          throw new DomainError(
+            400,
+            "Command approvals accept no query parameters",
+          );
+        const controller = new AbortController();
+        const abort = () =>
+          controller.abort(
+            new DomainError(408, "Command approval request disconnected"),
+          );
+        response.once("close", abort);
+        try {
+          if (method === "GET") {
+            const { candidate, approval } =
+              await store.localCommandApprovals.inspect(
+                options.worktreeRoot,
+                parts[1]!,
+                options.localCommandOperatorId,
+                controller.signal,
+              );
+            send(response, 200, {
+              kind: "local-command-configuration",
+              workspaceId: parts[1]!,
+              configuration: candidate,
+              approval: approval
+                ? { id: approval.id, approvedAt: approval.approvedAt }
+                : null,
+              executionAllowed: false,
+            });
+          } else {
+            const body = await readBody(request);
+            if (
+              Object.keys(body).length !== 1 ||
+              !Object.hasOwn(body, "expectedCandidateIdentity")
+            )
+              throw new DomainError(
+                400,
+                "Expected only expectedCandidateIdentity",
+              );
+            const receipt = await store.localCommandApprovals.approve(
+              options.worktreeRoot,
+              parts[1]!,
+              options.localCommandOperatorId,
+              requireString(
+                body.expectedCandidateIdentity,
+                "expected candidate",
+                64,
+              ),
+              requireString(
+                request.headers["idempotency-key"],
+                "Idempotency-Key",
+                128,
+              ),
+              controller.signal,
+            );
+            send(response, 200, {
+              kind: receipt.kind,
+              workspaceId: receipt.workspaceId,
+              approval: {
+                id: receipt.approval.id,
+                workspaceId: receipt.approval.workspaceId,
+                descriptor: receipt.approval.descriptor,
+                approvedAt: receipt.approval.approvedAt,
+              },
+              event: receipt.event,
+              historical: true,
+              executionAllowed: false,
+            });
+          }
+        } finally {
+          response.off("close", abort);
         }
       } else if (
         parts[0] === "workspaces" &&

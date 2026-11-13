@@ -150,7 +150,7 @@ function matches(
     throw corrupt();
 }
 
-/** Internal only: this component has no API, worker dispatch or portable grant. */
+/** Durable configuration approval only; never a dispatch or portable grant. */
 export class LocalCommandApprovalStore {
   constructor(
     private readonly db: DatabaseSync,
@@ -390,6 +390,33 @@ export class LocalCommandApprovalStore {
     operatorId: string,
     signal?: AbortSignal,
   ): Promise<LocalCommandApprovalMatch | null> {
+    const { candidate, approval: approved } = await this.inspect(
+      worktreeRoot,
+      workspaceId,
+      operatorId,
+      signal,
+    );
+    return candidate && approved
+      ? Object.freeze({
+          kind: "local-command-approval-match",
+          approval: approved,
+          candidate,
+        })
+      : null;
+  }
+
+  /** Read configuration and its approval from the same fresh source observation. */
+  async inspect(
+    worktreeRoot: string,
+    workspaceId: string,
+    operatorId: string,
+    signal?: AbortSignal,
+  ): Promise<
+    Readonly<{
+      candidate: LocalCommandConfigDescriptor | null;
+      approval: LocalCommandApproval | null;
+    }>
+  > {
     identity(workspaceId, UUID, "workspace");
     requireString(operatorId, "operatorId", 128);
     const workspace = this.store.getWorkspace(workspaceId);
@@ -399,19 +426,14 @@ export class LocalCommandApprovalStore {
       workspaceId,
       signal,
     );
-    if (!candidate) return null;
     if (
       JSON.stringify(this.store.getWorkspace(workspaceId).local) !==
       JSON.stringify(workspace.local)
     )
       throw changed();
-    const approved = this.find(operatorId, candidate);
-    return approved
-      ? Object.freeze({
-          kind: "local-command-approval-match",
-          approval: approved,
-          candidate,
-        })
-      : null;
+    return Object.freeze({
+      candidate,
+      approval: candidate ? this.find(operatorId, candidate) : null,
+    });
   }
 }

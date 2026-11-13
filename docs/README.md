@@ -32,7 +32,10 @@ tested result, and L1.4 remains incomplete. Internal
 is implemented at `268ed61`: atomic snapshots, attributed events and historical
 receipts,
 with fresh source validation for reuse. It adds no command dispatch or desktop
-controls. The internal
+controls. The service
+[configuration approval integration](specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development)
+is in development, exposing authenticated configuration inspection and historical
+receipts without command dispatch or desktop controls. The internal
 [dormant command-ownership contract](specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance)
 is implemented at `f70dbf3`; shared queue ownership supplies neither execution permission
 nor test evidence. L1.4 remains incomplete.
