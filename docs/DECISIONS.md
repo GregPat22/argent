@@ -47,6 +47,29 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Configuration approval service boundary — 12 November 2026
+
+Integration in development, based on main `6ba963b`, within the accepted L1.4
+configuration approval contract. Expose configuration inspection and historical
+approval receipts before connecting desktop controls or execution. Read the
+descriptor and its matching approval together so the response cannot combine
+different source observations. Supply a fixed local actor from the private
+single-user service; its identity survives service restart and token rotation,
+and requests cannot choose it. This is local attribution, not a new account or
+multi-user authorization model. Project internal actor data out of responses.
+
+Reuse the existing transactional receipt semantics: a duplicate request reads
+history, while new approval and current inspection revalidate the base. Neither
+allows execution. See the
+[acceptance contract](specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development)
+for routes, failure cases and validation scope. The open candidate-consent
+policy is unchanged, and L1.4 remains incomplete.
+
+Development implementation `9b6ddef` passed the complete repository check and
+independent security review on 12 November 2026. The
+[validation evidence](specs/0013-local-mvp.md#configuration-approval-service-validation)
+records automated coverage and the untested desktop and real-execution limits.
+
 ### Website test browser ownership — 12 November 2026
 
 Test-harness correction in development, based on main `3f2181b` and CI evidence

@@ -46,6 +46,8 @@ try {
   const server = makeServer(store, token, {
     artifactRoot: paths.workspaces,
     worktreeRoot,
+    // This private single-user store retains the same actor across token rotation.
+    localCommandOperatorId: "local-desktop",
     instanceId,
     onStop: () => shutdown.abort(),
   });

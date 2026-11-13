@@ -522,6 +522,18 @@ stale result display remain planned. Before a result qualifies as verification,
 command-defining and test changes must be compared to the trusted base and
 surfaced for human review; freezing argv alone is insufficient.
 
+### Configuration approval service (in development)
+
+Configuration approval service integration is in development under the
+[service acceptance contract](docs/specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development).
+The planned authenticated GET reads configuration and its approval from one
+source observation; POST supplies only the expected digest and idempotency key
+to the existing transaction. The service owns the stable single-user actor,
+independent of its rotating bearer token. Receipts remain historical and cannot
+dispatch work. Standalone mode stays disabled, and no renderer bridge or desktop
+control is included. The accepted execution and candidate-review contracts are
+unchanged.
+
 ### Dormant command ownership
 
 Internal command ownership is implemented at

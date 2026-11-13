@@ -519,6 +519,82 @@ review of candidate changes to command-defining files and tests, exact-commit
 results, stale-result display and the complete L1.4 exit remain separate work.
 Configuration approval alone does not approve later changes to a test script.
 
+#### Configuration approval service acceptance (in development)
+
+Acceptance recorded 12 November 2026 against main `6ba963b`. This integration
+step exposes the existing configuration reader and approval store through the
+local service. It does not complete L1.4 or enable execution, candidate-change
+consent, desktop controls or verified results.
+
+1. `GET /workspaces/:id/command-configuration` reads the stored base configuration
+   and looks up its approval from that same fresh observation. It returns the
+   workspace ID, descriptor (commands, source hashes and candidate identity),
+   approval ID/time when matched, and `executionAllowed: false`. Missing
+   configuration returns null configuration and approval; malformed or unsafe
+   source and corrupt stored approval fail closed. Current worktree bytes never
+   supply configuration authority. GET does not record approval.
+2. `POST /workspaces/:id/command-approvals` accepts exactly
+   `{"expectedCandidateIdentity":"<sha256>"}` and requires `Idempotency-Key`.
+   It invokes the existing fresh-source approval transaction. No request can
+   select the operator, repository, root, revision, command array or descriptor.
+   Changed expected identities reject without mutation. Its projected receipt
+   includes the original approval descriptor, originating workspace, approval
+   ID/time, requesting workspace and audit event. It is labelled
+   `historical: true` and `executionAllowed: false`; it is never candidate consent
+   or a job.
+3. Both routes require the existing bearer authentication, reject browser origins
+   and query parameters, and require explicit service configuration with a
+   worktree root and stable operator. The desktop service supplies the fixed
+   `local-desktop` actor within its private single-user store. Token/instance
+   rotation does not change that actor. This is not multi-user authentication or
+   resistance to an agent with the host owner's filesystem privileges. The
+   standalone API does not enable these routes. Responses omit the internal
+   operator identity, use `no-store`, and never return raw unexpected exceptions.
+4. A duplicate POST returns the original historical receipt after restart or
+   source loss without rereading Git or adding events. A fresh GET or new POST
+   still revalidates source. Reused keys with different content conflict. The
+   original approval workspace and the requesting sibling workspace remain
+   distinguishable. Inspection, approval and retry never create runs, enqueue
+   commands or invoke a configured command.
+5. The existing 16 KiB body limit and ten-second source-read deadline apply.
+   Disconnect signals cancel in-flight source inspection; the approval store
+   checks cancellation before committing. A receipt committed before a lost
+   response remains retrievable with the same key. Authentication and exact
+   request-shape validation precede source reads or writes.
+6. Real temporary repositories and loopback HTTP tests cover base versus current
+   bytes, missing/malformed configuration, auth/origin/enablement gates, caller
+   authority rejection, request bounds, stale digest, sibling reuse, operator
+   separation, service restart/token rotation, lost source, corrupt snapshots,
+   disconnect propagation and error redaction. Marker commands stay unexecuted
+   and the agent queue remains empty. Existing approval-store regressions retain
+   transaction, repository separation and concurrency coverage.
+
+The next integration step is desktop configuration review and approval controls.
+Candidate-change consent, including the open handling of changes that cannot be
+displayed, remains separate from configuration approval. Command execution,
+exact-commit results and stale-result presentation still require their contracts
+and evidence. Public product descriptions continue to label trusted checks as
+planned.
+
+#### Configuration approval service validation
+
+Development validation recorded on 12 November 2026 for implementation
+`9b6ddef2dc2e15915177e117bfb6dac12006e46a`, based on main `6ba963b`.
+`npm run check` passed strict type checking, formatting, compilation and all
+589 automated tests, including ten HTTP cases and the existing approval-store
+regressions. Focused HTTP/storage tests also passed before the final cancellation
+case was added. An initial typecheck rejected a test helper outside the configured
+ES2023 library; ordinary promises corrected it without changing the compiler target.
+
+Independent diff and security review found no blocking issue against the local
+execution model. Added documentation links and anchors resolve. The fixtures
+establish authenticated configuration approval, historical replay and cancellation
+propagation with real temporary Git repositories and loopback HTTP. They do not
+establish human review, desktop usability, configured command execution or a
+verified commit. No real agent account or native desktop walkthrough was used.
+L1.4 remains incomplete; desktop configuration approval controls are the next
+integration step.
+
 #### Dormant command-job ownership acceptance
 
 Acceptance recorded 11 November 2026 against main `0ad0caf`. Internal ownership
