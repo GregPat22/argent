@@ -206,6 +206,15 @@ targets. This changes no product claim, capability or milestone. See the
 [regression contract](specs/0016-website-restyle.md#navigation-reopen-regression-in-development)
 for reproduction, acceptance and validation limits.
 
+### Website sharing artwork — 12 November 2026
+
+Presentation update in development, based on main `6ba963b`: use a static capture
+of the approved landing-page hero for Open Graph and X, with the existing
+large-image card metadata. This preserves the headline, availability limits and
+product decisions. The image needs recapturing after hero changes; publication
+and actual platform previews remain separate validation. See the
+[acceptance contract](specs/0017-website-seo.md#landing-page-sharing-image-in-development).
+
 ### Website search identity — 12 November 2026
 
 Technical SEO work in development, based on main `8027d0b`. Use the live

@@ -192,9 +192,15 @@ owns its canonical; new pages must supply their own. Keep schema in
 specified in [spec 0017](../docs/specs/0017-website-seo.md) and integrated at
 `864188a`. Check every production deployment independently.
 
-The production build generates `/robots.txt`, `/sitemap.xml`, and a 1200 × 630
-PNG at `/opengraph-image`. Next.js adds that image to both Open Graph and X
-cards. No external image service, runtime package or account is required.
+The production build generates `/robots.txt`, `/sitemap.xml`, and a social image.
+A landing-page screenshot is in development for sharing: the 1200 × 630 PNG
+in `src/app/opengraph-image.png` replaces the generated text card and is served
+at `/opengraph-image.png`. Next.js adds the image, dimensions and companion
+`.alt.txt` description to Open Graph and X cards. No external image service,
+runtime package or account is required. Recapture the hero after visible copy
+or artwork changes: use a 1440 × 756 viewport, a device scale factor of 5/6,
+reduced motion, and wait for fonts and the liquid field to render. Preserve
+the headline and status text without overlays or browser chrome.
 The navigation wordmark uses Next.js image optimization at its displayed size;
 the source artwork is unchanged.
 
