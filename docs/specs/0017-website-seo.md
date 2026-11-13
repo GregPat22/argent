@@ -102,3 +102,31 @@ does not establish any of those production results.
 - [Google: JavaScript SEO](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics)
 - [Google: canonical URLs](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls)
 - [Google: software application structured data](https://developers.google.com/search/docs/appearance/structured-data/software-app)
+
+## Landing-page sharing image (in development)
+
+Based on main `6ba963b`, 12 November 2026. Replace the generated text card with
+an unmodified capture of the landing-page hero, preserving its approved copy,
+brand artwork and visible availability limits.
+
+Acceptance: both Open Graph and X reference the same fetchable 1200 × 630 PNG
+under 1 MB at `/opengraph-image.png`, with matching descriptive alternative text
+in the initial HTML. Keep `summary_large_image`. The image includes the full
+headline and status line; no new capability or download claim is introduced.
+The static image URL carries Next.js's content version query. Recapture when
+the hero changes; the capture procedure is in the website README.
+
+Local validation and live publication are separate: no X preview or production
+deployment is established by the local browser checks.
+
+Validation on 12 November 2026 against baseline main `6ba963b`: website
+`typecheck`, production `build` and all 62 browser checks pass, including
+no-JavaScript Open Graph/X image delivery, PNG dimensions and matching alt text.
+The 228,637-byte screenshot was visually inspected at 1200 × 630. Live
+publication and an actual X preview were not checked.
+
+Repository `npm run check` passed type checking, formatting and 567 tests, but
+the public-content scanner failed while the removed image generator remained
+in Git's unstaged file list. The unchanged-main scanner passes; after staging
+the replacement, all 12 scanner checks pass too. No assertion was changed.
+The full repository command was not repeated after this index-only correction.

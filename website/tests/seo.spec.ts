@@ -130,7 +130,9 @@ test.describe("crawler-visible HTML", () => {
     const imageUrl = await page
       .locator('meta[property="og:image"]')
       .getAttribute("content");
-    expect(imageUrl).toMatch(/^https:\/\/argent\.build\/opengraph-image/);
+    expect(imageUrl).toMatch(
+      /^https:\/\/argent\.build\/opengraph-image\.png\?/,
+    );
     await expect(
       page.locator('meta[property="og:image:width"]'),
     ).toHaveAttribute("content", "1200");
@@ -144,6 +146,14 @@ test.describe("crawler-visible HTML", () => {
     await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute(
       "content",
       imageUrl!,
+    );
+    await expect(
+      page.locator('meta[name="twitter:image:alt"]'),
+    ).toHaveAttribute(
+      "content",
+      (await page
+        .locator('meta[property="og:image:alt"]')
+        .getAttribute("content"))!,
     );
     const url = new URL(imageUrl!);
     const response = await request.get(`${url.pathname}${url.search}`);
