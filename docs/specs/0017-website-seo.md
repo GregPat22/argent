@@ -129,4 +129,8 @@ Repository `npm run check` passed type checking, formatting and 567 tests, but
 the public-content scanner failed while the removed image generator remained
 in Git's unstaged file list. The unchanged-main scanner passes; after staging
 the replacement, all 12 scanner checks pass too. No assertion was changed.
-The full repository command was not repeated after this index-only correction.
+Revalidation on 13 November 2026 at `3782ef4`, including main `69028d9`,
+passes the complete `npm run check` (589 tests), website type checking,
+production build and all 62 browser checks. Independent diff and coverage
+review found no issues. Live publication and actual platform previews remain
+unverified.
