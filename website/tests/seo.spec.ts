@@ -104,7 +104,7 @@ test.describe("crawler-visible HTML", () => {
     await expect(page.locator(".hero-status")).toContainText(
       "trusted checks planned",
     );
-    await expect(page.locator("#faq details")).toHaveCount(8);
+    await expect(page.locator("#faq details")).toHaveCount(9);
     for (const details of await page.locator("#faq details").all()) {
       if (!(await details.evaluate((node) => node.hasAttribute("open")))) {
         await details.locator("summary").click();

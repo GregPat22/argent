@@ -30,7 +30,7 @@ import {
 type Line = {
   kind: "command" | "comment" | "output";
   text: string;
-  tone?: "verified";
+  tone?: "recorded" | "verified";
 };
 
 type Way = {
@@ -74,7 +74,7 @@ const WAYS: Way[] = [
       {
         kind: "output",
         text: "5  Argent records the commit and what changed.   recorded, not tested",
-        tone: "verified",
+        tone: "recorded",
       },
       {
         kind: "output",
@@ -167,17 +167,26 @@ function Terminal({ way, start }: { way: Way; start: boolean }) {
     ...way.commands.map((text) => ({ kind: "command" as const, text })),
     ...way.after,
   ]);
-  const { line, chars } = useTypedLines(lines, start, Boolean(reduceMotion));
   const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
+  const { line, chars } = useTypedLines(
+    lines,
+    start,
+    reduceMotion || copy === "failed",
+  );
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  useEffect(() => () => clearTimeout(copyTimer.current), []);
 
   const copyCommands = async () => {
+    clearTimeout(copyTimer.current);
     try {
       await navigator.clipboard.writeText(way.commands.join("\n"));
       setCopy("copied");
+      copyTimer.current = setTimeout(() => setCopy("idle"), 2200);
     } catch {
       setCopy("failed");
     }
-    window.setTimeout(() => setCopy("idle"), 2200);
   };
 
   return (
@@ -254,7 +263,9 @@ function Terminal({ way, start }: { way: Way; start: boolean }) {
                     ? "text-sterling-dim"
                     : item.tone === "verified"
                       ? "text-verified"
-                      : "text-sterling"
+                      : item.tone === "recorded"
+                        ? "text-polished"
+                        : "text-sterling"
               }`}
               initial={item.kind === "command" ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}

@@ -50,15 +50,17 @@ function Comparison() {
     damping: 40,
     restDelta: 0.0005,
   });
+  // MotionConfig does not disable springs driving style MotionValues.
+  const displayed = reduceMotion ? position : smooth;
   const clipPath = useTransform(
-    smooth,
+    displayed,
     [0, 1],
     ["inset(0 0 0 0%)", "inset(0 0 0 100%)"],
   );
   // A full-width carrier moved by a percentage of its own width: the divider
   // travels on a transform instead of animating `left`, so it never lays out.
-  const travel = useTransform(smooth, [0, 1], ["0%", "100%"]);
-  const handleOffset = useTransform(smooth, [0, 1], [28, -28]);
+  const travel = useTransform(displayed, [0, 1], ["0%", "100%"]);
+  const handleOffset = useTransform(displayed, [0, 1], [28, -28]);
   const dragging = useRef(false);
   const interacted = useRef(false);
   const hint = useRef<{ stop(): void } | null>(null);

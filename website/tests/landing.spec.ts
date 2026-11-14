@@ -708,7 +708,12 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await page.emulateMedia({ reducedMotion });
     await visit(page, "/#faq");
     const items = page.locator("#faq details");
-    await expect(items).toHaveCount(8);
+    await expect(items).toHaveCount(9);
+    await expect(
+      items.filter({
+        hasText: "What are project rules and checked workspace links?",
+      }),
+    ).toContainText("A link grants no access");
     await expect(items.first()).toHaveAttribute("open", "");
     const item = items.nth(3);
     const summary = item.locator("summary");

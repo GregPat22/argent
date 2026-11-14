@@ -76,6 +76,13 @@ const LATER = [
 
 function Composer({ agent }: { agent: Agent }) {
   const Mark = agent.mark;
+  const reduce = useReducedMotion();
+  const enter = reduce
+    ? { opacity: 0 }
+    : { opacity: 0, transform: "translateY(10px)", filter: "blur(4px)" };
+  const exit = reduce
+    ? { opacity: 0 }
+    : { opacity: 0, transform: "translateY(-10px)", filter: "blur(4px)" };
   return (
     <div className="agents-composer" aria-hidden>
       <div className="agents-composer-bar">
@@ -91,9 +98,13 @@ function Composer({ agent }: { agent: Agent }) {
             <motion.div
               key={agent.id}
               className="agents-field-value"
-              initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+              initial={enter}
+              animate={{
+                opacity: 1,
+                transform: "translateY(0px)",
+                filter: "blur(0px)",
+              }}
+              exit={exit}
               transition={{ type: "spring", visualDuration: 0.35, bounce: 0 }}
             >
               <Mark className="size-4" />
@@ -107,9 +118,13 @@ function Composer({ agent }: { agent: Agent }) {
             <motion.div
               key={agent.id}
               className="agents-field-value"
-              initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+              initial={enter}
+              animate={{
+                opacity: 1,
+                transform: "translateY(0px)",
+                filter: "blur(0px)",
+              }}
+              exit={exit}
               transition={{
                 type: "spring",
                 visualDuration: 0.35,
