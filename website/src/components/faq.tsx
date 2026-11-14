@@ -110,6 +110,21 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     ),
   },
   {
+    question: "What are project rules and checked workspace links?",
+    answer: (
+      <>
+        Rules are named by what enforces them: guidance given to an agent, a
+        check Argent runs, a gate that blocks a step, or a prevention control.
+        Today Argent offers no prevention control, and trusted checks are in
+        development. After Codex and the model picker, the planned checked links
+        experiment warns when two workspaces change the same paths and tests a
+        trial merge of their exact commits. A link grants no access and carries
+        no messages between agents. Further project rules follow; shared rule
+        sets remain a longer-term goal.
+      </>
+    ),
+  },
+  {
     question: "Who decides what gets merged?",
     answer: (
       <>

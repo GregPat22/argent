@@ -56,6 +56,16 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
 
 ## Implementation notes
 
+The [consistency and motion correction contract](../docs/specs/0016-website-restyle.md#website-consistency-and-motion-corrections-in-development)
+is in development. The post-release sequence includes Codex/model choice,
+checked links as an experiment, further project rules, then Cursor/OpenCode.
+Links grant no access and carry no messages. Rules distinguish guidance, checks,
+gates and prevention; Argent offers no prevention control. Real-process crash
+reconciliation stays planned. Untested local records use silver. The comparison
+must bypass its style-driven spring under reduced motion, clipboard failure
+must show complete commands immediately, and the journey meter and pulse must
+animate transforms/opacity rather than width/shadow.
+
 - **Entrance.** `src/components/entrance.tsx` and `src/lib/split-words.ts` run the
   first-load sequence: the header drops in, the headline rises word by word, the
   copy and actions follow, and the liquid forms last. Later sections reveal their

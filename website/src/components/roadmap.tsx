@@ -15,7 +15,7 @@ type State = "done" | "now" | "next";
 const MILESTONES: { title: string; body: string; state: State }[] = [
   {
     title: "Engine and desktop prototype",
-    body: "Durable runs, crash recovery, reconnect and independent records of what changed, in a local macOS app you build from source.",
+    body: "Durable run history, reconnect and independent records of what changed, in a local macOS app you build from source. An interrupted agent run stays blocked until its process can be reconciled.",
     state: "done",
   },
   {
@@ -29,8 +29,8 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
     state: "next",
   },
   {
-    title: "More agents",
-    body: "Codex and a model picker as the first update, then Cursor and OpenCode, each through its official tool.",
+    title: "Agents, links and rules",
+    body: "Codex and a model picker as the first update, then the checked links experiment and further project rules, then Cursor and OpenCode through their official tools.",
     state: "next",
   },
   {
@@ -46,7 +46,7 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
 ];
 
 const TODAY = [
-  "A durable engine that survives crashes and never repeats an uncertain step",
+  "Durable history and reconnect; an uncertain step is never repeated automatically",
   "Claude Code in the desktop app, one branch and worktree per workspace (early, not a sandbox)",
   "A local macOS desktop app, built from source",
   "Argent’s own record of what each run changed",
@@ -58,6 +58,8 @@ const NOT_YET = [
   "Trusted test checks and pull requests in the app",
   "Export of real Claude Code history and Git changes",
   "Codex and the model picker (the first update after release)",
+  "Checked links between workspaces (an experiment after Codex), then further project rules",
+  "Process reconciliation after a crash and complete first-run guidance",
   "Work that continues with your laptop closed, and the iPhone companion",
   "Signed downloads: today you build from source",
 ];
@@ -149,6 +151,13 @@ export function Roadmap() {
           ))}
         </ol>
       </div>
+
+      <p className="mt-6 max-w-[60rem] text-sm leading-relaxed text-sterling">
+        Planned checked links warn when two workspaces change the same paths and
+        run approved tests on a trial merge of their exact commits. The result
+        becomes stale when either commit changes. A link grants no access and
+        carries no messages between agents.
+      </p>
 
       <div className="mt-6 grid gap-5 md:grid-cols-2">
         <div className="rounded-3xl border border-hairline p-7">
