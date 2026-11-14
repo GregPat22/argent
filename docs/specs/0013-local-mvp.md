@@ -1189,8 +1189,8 @@ with each of Claude Code and Codex.
 ## Out of scope for L1
 
 Cloud workspaces, laptop-independent execution, mobile access, sandboxed
-execution, team features, dependent tasks, automatic merges and any claim of
-feature parity with other tools.
+execution, team features, links between workspaces, dependent tasks, automatic
+merges and any claim of feature parity with other tools.
 
 ## Local execution hardening
 

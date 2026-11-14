@@ -10,6 +10,9 @@ what works today and the [roadmap](../ROADMAP.md) for sequencing.
 | Argent is desktop-first, downloaded from a website                      | Accepted product requirement                                                                                | The installed app is the primary interface. Browser access may complement it later.                                                                                                                                                  | Local package and hands-on desktop checks; signing, notarization and public distribution are separate.                                     |
 | Cloud execution is foundational                                         | Accepted product requirement; sequenced after L1 and after a remote host the developer owns                 | A developer can close the client and reconnect elsewhere. Desktop delivery does not move remote execution into the client.                                                                                                           | A real remotely hosted worker, an isolated persistent workspace and disconnect/reconnect evidence.                                         |
 | Evidence Argent collects itself is the reason the product exists        | Accepted 10 November 2026                                                                                   | Running agents side by side in separate branches is common; proof of what they did is not. Parallel workspaces and several agents are the means.                                                                                     | Checks recorded for the exact commit (L1.4) and the evidence record on the pull request (L1.5). Revisit if users do not value it.          |
+| Enforceable project rules with evidence, for several agents             | Accepted 14 November 2026; extends the proof-first decision                                                 | The goal is the easiest open-source environment for running several coding agents under consistent, enforceable project rules, with evidence of completion Argent collects itself. Rules are named by what enforces them.            | L1.4 delivers the first check and gate. Further rule types after the release. Revisit if the maintainers' own use does not bear it out.    |
+| Checked links between workspaces (L2), after Codex                      | Accepted 14 November 2026 as a planned experiment                                                           | Worktrees keep changes apart but do not make them fit. Argent warns on overlapping paths and runs the approved tests on a trial merge of two exact commits. A link grants no access and carries no messages between agents.          | Its own spec and security review. Kept only if the maintainers keep using it on this repository.                                           |
+| The maintainers' daily use decides what stays                           | Accepted 14 November 2026                                                                                   | Argent is built first for its maintainers' work on this repository. No outside research step gates the work queue.                                                                                                                   | A recorded outcome for each experiment: kept, changed or removed.                                                                          |
 | First public release with Claude Code only; Codex is the first update   | Accepted 10 November 2026 (was both agents inside the local MVP)                                            | A release people can use sooner, with the agent the maintainers use daily. The adapter boundary makes Codex an addition, not a redesign.                                                                                             | L1 exit evidence without Codex; L1.6 keeps its own two-agent evidence.                                                                     |
 | A remote host the developer owns before a managed cloud                 | Accepted 10 November 2026                                                                                   | Work that continues with the laptop closed needs no hosted service of ours: the same API and worker run on the developer's own machine. A managed cloud becomes an optional convenience on the same core.                            | Its own spec and security review: authenticated, encrypted transport and never a raw exposed service.                                      |
 | Local MVP before cloud workspaces                                       | Accepted 7 November 2026                                                                                    | Real agents in local worktrees are the shortest path to a usable product and exercise the contracts cloud needs. Not a sandbox.                                                                                                      | [Spec 0013](specs/0013-local-mvp.md) exit evidence; revisit if local execution blocks the cloud design.                                    |
@@ -41,11 +44,79 @@ what works today and the [roadmap](../ROADMAP.md) for sequencing.
 - Evidence retention, artifact access, backup/restore and deletion policies.
 - Commercial packaging, proprietary feature boundaries and contributor governance
   as the community grows.
+- The format, review and trust model of shared rule sets. Nothing is built or
+  scheduled.
 
 Do not turn an open choice into an implied commitment in product copy or code.
 Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
+
+### Enforceable rules, checked links and reasons that stand alone — 14 November 2026
+
+Three product decisions, taken after a review of where the project stands. None
+changes the order of work up to the first public release, and Codex stays the
+first update after it.
+
+**The goal, stated in full.** Argent aims to be the easiest open-source
+environment for running several coding agents under consistent, enforceable
+project rules, with evidence of completion that Argent collects itself. This
+extends the proof-first decision of 10 November and does not replace it:
+evidence stays the centre. The addition is that the rules a result is judged by
+belong to the project, apply to every agent alike and are named by what
+enforces them:
+
+- **guidance** the agent is given, which nothing enforces;
+- a **check** Argent runs afterwards, against an exact commit;
+- a **gate** that blocks a defined step until a check passes;
+- a **prevention control** that stops an action before it happens.
+
+L1.4 delivers the first check and the first gate: approved commands read from
+the base commit, a result for the exact commit, and a stale result after any
+later change. Further rule types are planned after the release, with no
+availability implied. Argent provides no prevention control: local execution is
+not a sandbox, and a check after the fact cannot undo a command that already
+ran. Public copy uses bounded status words (recorded, checks passed, needs
+review, blocked, stale, not checkable) and never "fully verified", "safe" or
+"guaranteed". A review by a model stays labelled as a review.
+
+**Reasons that stand alone.** Argent exists for open source, for the developer's
+freedom to choose agents, rules and machines, and for evidence. None of these
+depends on what happens to any other product; the 10 November rule that the
+release is not timed to another product and promises no replacement or
+migration is unchanged. Argent is built first for its maintainers' daily work
+on this repository. Whether they keep using a capability is the test of it, so
+no outside research step gates the work queue, and each experiment ends with a
+recorded outcome: kept, changed or removed.
+
+**Checked links between workspaces (L2), after Codex.** Separate worktrees keep
+parallel changes apart; they do not make them fit together, and today a
+developer finds out at merge time. A developer links two workspaces of the same
+repository, and the link carries two checks that Argent runs and no agent does:
+
+- **Overlap.** Both workspaces changed the same paths. A warning from the
+  changed-file lists Argent already reads; it is live display data, not test
+  evidence.
+- **Fit.** Argent merges the two exact commits in a fresh checkout it owns and
+  runs the approved `setup` and `test` commands there. A merge conflict is a
+  failed result. The result is recorded for both commits and the approved
+  configuration, and is stale as soon as either workspace's commit changes.
+
+A link grants nothing: no shared files, no permissions and no messages between
+agents. Agents exchanging messages through Argent stays out of scope, with
+swarms. The trial merge exists only in that checkout; it changes neither branch
+and is never pushed, so the rule against automatic merges and the human's
+authority over integration are unchanged. L2 reuses the verification checkout,
+the bounded runner and the approved configuration from L1.4, which is why it is
+sequenced after them. It is the first step of what M2b calls dependent tasks;
+ordering, handoff and repair stay in M2b. It needs its own spec and a security
+review before any code, because it is the first time Argent creates a merge. It
+is a bet: it stays only if the maintainers keep using it on real parallel work.
+
+Shared rule sets are direction only. Nothing is built or scheduled, their
+format and trust model are open, and an imported rule set must never run
+without the developer reviewing and approving it. See the
+[vision](../VISION.md) and the [roadmap](../ROADMAP.md).
 
 ### Configuration approval service boundary — 12 November 2026
 

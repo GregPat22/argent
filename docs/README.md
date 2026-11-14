@@ -1,7 +1,8 @@
 # Argent documentation
 
 Start with the [README](../README.md) for what works today, then the
-[architecture](../ARCHITECTURE.md) and [roadmap](../ROADMAP.md). The desktop app
+[vision](../VISION.md) for the goal, the [architecture](../ARCHITECTURE.md) and
+the [roadmap](../ROADMAP.md). The desktop app
 runs Claude Code in local worktrees as the first part of the local MVP
 ([spec 0013](specs/0013-local-mvp.md)), which is in development; a signed public
 release, then remote and cloud execution, follow.
@@ -24,47 +25,10 @@ item 1. L1.3 now supplies a read-only changes panel; its
 [implementation evidence](specs/0013-local-mvp.md#l13-implementation-evidence)
 records service/renderer regression tests and the native desktop flow at
 `37ea780`. Trusted checks (L1.4) are next, and the complete local MVP remains open.
-The internal [base-commit command-configuration reader](specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance)
-is implemented at `914323d`; its [validation evidence](specs/0013-local-mvp.md#internal-reader-implementation-evidence)
-is recorded on 11 November 2026. It adds no command execution, approval storage or
-tested result, and L1.4 remains incomplete. Internal
-[durable approval slice](specs/0013-local-mvp.md#internal-durable-command-approval-acceptance)
-is implemented at `268ed61`: atomic snapshots, attributed events and historical
-receipts,
-with fresh source validation for reuse. It adds no command dispatch or desktop
-controls. The service
-[configuration approval integration](specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development)
-is in development, exposing authenticated configuration inspection and historical
-receipts without command dispatch or desktop controls. The internal
-[dormant command-ownership contract](specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance)
-is implemented at `f70dbf3`; shared queue ownership supplies neither execution permission
-nor test evidence. L1.4 remains incomplete.
-
-The internal [exact-commit observation](specs/0013-local-mvp.md#internal-exact-commit-candidate-observation-acceptance)
-is implemented at `b7c426b`, with
-[validation evidence](specs/0013-local-mvp.md#internal-candidate-observation-evidence).
-It binds a fresh configuration approval to bounded raw
-index/working-byte equality with HEAD, explicitly excluding ignored content and
-collecting no human review. It adds no command execution or desktop capability.
-The internal [pinned candidate review](specs/0013-local-mvp.md#internal-pinned-candidate-review-acceptance)
-is implemented at `042a169`, with
-[validation evidence](specs/0013-local-mvp.md#internal-pinned-review-evidence).
-It lists the complete change set between the base and that exact commit from
-verified Git objects, labels binary content as not displayed and collects no
-consent. An internal
-[bounded command runner](specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance)
-is implemented at `e4260cc`, with
-[validation evidence](specs/0013-local-mvp.md#internal-bounded-runner-evidence):
-one argument array without a shell string, an allowlisted environment, bounded
-output and a deadline. An internal
-[verification checkout](specs/0013-local-mvp.md#internal-verification-checkout-acceptance)
-is implemented at `217ad9d`, with
-[validation evidence](specs/0013-local-mvp.md#internal-verification-checkout-evidence):
-a detached worktree of one exact commit that Argent creates, verifies and
-removes. The clean-commit check they share with the observation has its own
-[bounds](specs/0013-local-mvp.md#clean-commit-scale-acceptance) at `2ed334f`,
-with [validation evidence](specs/0013-local-mvp.md#clean-commit-scale-evidence).
-Nothing calls either, and L1.4 remains incomplete.
+The roadmap's [L1.4 progress](../ROADMAP.md#l14-progress) table lists every
+internal piece built so far, with its commit and contract, and what remains.
+None of them is reachable from the desktop app, runs a command or produces a
+test result.
 
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
 is implemented at `d2ef4e5`, with
@@ -82,7 +46,7 @@ belong to the maintainers.
 
 | Document                                                       | What it contains                                                                                     |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [Vision](../VISION.md)                                         | Desktop-first product experience, cloud persistence and open-source goals.                           |
+| [Vision](../VISION.md)                                         | The goal, the beliefs behind it, the desktop-first product and the order of work.                    |
 | [Roadmap](../ROADMAP.md)                                       | Milestone sequencing and the evidence each milestone needs.                                          |
 | [Architecture](../ARCHITECTURE.md)                             | Process boundaries, state machine, recovery, verification and security.                              |
 | [Decision register](DECISIONS.md)                              | Accepted requirements, provisional choices, reasons and open decisions.                              |
@@ -144,7 +108,3 @@ report does not certify later revisions. Fix the docs when those sources disagre
 and link every new spec or completion report from this index. A provider
 recommendation is not permission to provision it. Keep secrets, private notes,
 transcripts, customer data, local databases and generated artifacts out of Git.
-
-The [review and checkout security correction](specs/0013-local-mvp.md#review-and-checkout-security-correction)
-records conditional-filter, object-source and interrupted-cleanup regressions.
-No command execution or L1.4 completion is established by these internal checks.

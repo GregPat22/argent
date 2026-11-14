@@ -57,7 +57,13 @@ address, never a personal one.
   same change: README, ROADMAP.md, VISION.md, docs/DECISIONS.md, docs/README.md,
   the relevant spec, the website hero, roadmap, FAQ and open-source sections, the
   GitHub repository description and the `package.json` description.
-- Keep shared facts identical everywhere. Today: the first release is the local
+- Keep shared facts identical everywhere. Today: the goal is the easiest
+  open-source environment for running several coding agents under consistent,
+  enforceable project rules, with evidence of completion Argent collects
+  itself; rules are named by what enforces them (guidance, check, gate,
+  prevention control) and Argent offers no prevention control; checked links
+  between workspaces (L2) are a planned experiment after Codex, and a link
+  grants no access and carries no messages between agents; the first release is the local
   MVP (L1), real agents in isolated Git worktrees on the developer's computer,
   before any remote or cloud workspace; it ships with Claude Code through its
   official CLI, Codex and the model picker are the first update after it, then
