@@ -202,6 +202,11 @@ Validation on 14 November 2026, based on main `c05fbf7`:
   baseline also fails the new roadmap, untested-record color, clipboard fallback
   and transform-meter assertions. All six focused regressions pass after the
   corrections.
+- A follow-up review against main `c091bb8` reproduces an inherited CSS
+  specificity defect: the active journey pulse overrides its offscreen pause.
+  A browser regression reaches the active stage, scrolls away and observes
+  `running` instead of `paused`. The offscreen selector now takes precedence;
+  the regression also checks that returning to the section resumes the pulse.
 - Website production build and typecheck pass. The complete repository check
   passes all 589 tests, strict types, compilation and formatting.
 - The full browser run passes 65 checks and exposes three FAQ count assertions

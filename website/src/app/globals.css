@@ -895,7 +895,10 @@ main > section:not([data-onscreen="true"]) .cta-drops i,
 main > section:not([data-onscreen="true"]) .problem-dash,
 main > section:not([data-onscreen="true"]) .hiw-pulse,
 main > section:not([data-onscreen="true"]) .roadmap-node,
-main > section:not([data-onscreen="true"]) .journey-pulse::after {
+main
+  > section:not([data-onscreen="true"])
+  .journey-cloud[data-on="true"]
+  .journey-pulse::after {
   animation-play-state: paused;
 }
 

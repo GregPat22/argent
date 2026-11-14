@@ -103,3 +103,44 @@ test("journey meter fills without changing layout width", async ({ page }) => {
   ]);
   expect(widths[0]! / widths[1]!).toBeCloseTo(0.78, 2);
 });
+
+test("journey pulse pauses offscreen and resumes on return", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.waitForFunction(() => {
+    const state = document.documentElement.dataset.entrance;
+    return state === undefined || state === "done";
+  });
+  const journey = page.locator("#reconnect");
+  const showJourney = () =>
+    page.locator(".journey-track").evaluate((element) => {
+      window.scrollTo({
+        top:
+          element.getBoundingClientRect().top +
+          window.scrollY +
+          element.clientHeight -
+          window.innerHeight,
+        behavior: "instant",
+      });
+    });
+  await showJourney();
+  await expect(page.locator(".journey-cloud")).toHaveAttribute(
+    "data-on",
+    "true",
+  );
+  const playState = () =>
+    page
+      .locator(".journey-pulse")
+      .evaluate(
+        (element) => getComputedStyle(element, "::after").animationPlayState,
+      );
+  await expect(journey).toHaveAttribute("data-onscreen", "true");
+  await expect.poll(playState).toBe("running");
+  await page.locator("#intro").scrollIntoViewIfNeeded();
+  await expect(journey).toHaveAttribute("data-onscreen", "false");
+  await expect.poll(playState).toBe("paused");
+  await showJourney();
+  await expect(journey).toHaveAttribute("data-onscreen", "true");
+  await expect.poll(playState).toBe("running");
+});
