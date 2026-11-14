@@ -173,8 +173,9 @@ corrections preserve the accepted positioning, headline and milestone order.
 Acceptance:
 
 1. Website roadmap, FAQ and open-source principles reflect the README,
-   roadmap and vision: Claude Code release, Codex/model picker, checked-links
-   experiment, further rules, Cursor/OpenCode, developer-owned remote host,
+   roadmap and vision: Claude Code release, checked-links experiment,
+   Codex/model picker, further rules, Cursor/OpenCode (order revised on
+   14 November 2026), developer-owned remote host,
    optional managed cloud, then mobile. Links grant no access and carry no
    messages; rules distinguish guidance, checks, gates and prevention, with no
    prevention control offered today. Crash reconciliation stays planned.

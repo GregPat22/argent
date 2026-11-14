@@ -25,11 +25,28 @@ passes, or a control that prevents an action before it happens. Argent never
 presents one as another. L1.4 delivers the first check and the first gate.
 Argent provides no prevention control: local execution is not a sandbox.
 
-**Checked links, after Codex.** Separate worktrees keep changes apart; they do
-not make them fit together. The planned experiment L2 lets a developer link two
-workspaces so that Argent itself warns when both changed the same paths and
+**Checked links, the first update.** Separate worktrees keep changes apart; they
+do not make them fit together. The planned experiment L2 lets a developer link
+two workspaces so that Argent itself warns when both changed the same paths and
 runs the approved tests on a trial merge of the two exact commits. A link
-grants no access and carries no messages between agents.
+grants no access and carries no messages between agents. It comes before a
+second agent: whether parallel work still fits together matters more with every
+workspace added, whichever agent wrote it.
+
+**What sets Argent apart.** Three things, in the order they are built, none of
+them a count of agents or terminals:
+
+1. **Checks Argent runs itself** (L1.4, in development): each workspace shows a
+   result for its exact commit (passed, failed or stale) before a pull request
+   exists. The point is the state of every workspace at a glance, without
+   reading each transcript.
+2. **Checked links between workspaces** (L2, planned): the approved tests on a
+   trial merge of two parallel workspaces, before either becomes a pull request.
+3. **One set of project rules for every agent** (planned): approved by a person
+   and read from a state the agent cannot change, whichever agent runs.
+
+None of these works yet beyond review and approval of the command
+configuration; the [README](README.md#what-works-today) says what does.
 
 Argent is an independently usable desktop app with a familiar layout:
 repository and workspace navigation, agent sessions and a composer, files, diffs
@@ -51,9 +68,9 @@ The planned agent picker lets each workspace choose its agent, and each run
 choose a model the agent
 offers under the developer's sign-in: Claude models through Claude Code, GPT
 models through Codex. Argent never routes or proxies models itself.
-The first public release ships with Claude Code through its official CLI. Codex
-and the per-run model picker are the first update after it, then Cursor and
-OpenCode, all through official interfaces. Subscriptions are validated
+The first public release ships with Claude Code through its official CLI.
+Checked links are the first update after it; Codex and the per-run model picker
+follow, then Cursor and OpenCode, all through official interfaces. Subscriptions are validated
 per provider and deployment: there is no universal "link every subscription"
 promise. In local mode the agent uses its own official sign-in on the developer's
 computer; Argent never reads or copies it, and removes provider API-key variables
@@ -79,8 +96,8 @@ The desktop says so plainly. See [spec 0013](docs/specs/0013-local-mvp.md).
 | L1.5 draft pull request and archive    | Planned.                                                                                                                                     | Commit, push and open a draft pull request through the developer's own `gh`, with Argent's evidence record in its description; merge stays a human action. Archive removes the worktree only when it is safe.                                                                                                                                                                                                            |
 | Customer/auth compatibility            | Alongside L1.                                                                                                                                | Dated provider/auth/deployment matrix. No demand assumed.                                                                                                                                                                                                                                                                                                                                                                |
 | Desktop distribution                   | After L1. The first public release, with Claude Code.                                                                                        | Signed/notarized versioned artifacts, checksums and verified updates. Publication separately authorized.                                                                                                                                                                                                                                                                                                                 |
-| L1.6 Codex and model choice            | Planned. The first update after the first public release.                                                                                    | Codex through its official CLI with the same controls; the agent chosen per workspace and the model per run, for both agents; two-agent evidence.                                                                                                                                                                                                                                                                        |
-| L2: checked links between workspaces   | Planned experiment, after L1.6. Needs its own spec and security review.                                                                      | Two workspaces of one repository linked in the desktop app; a warning when both changed the same paths; the approved setup and test commands run by Argent on a trial merge of the two exact commits, in a checkout Argent owns, recorded for both commits and stale when either changes. A link grants no access and carries no messages between agents. Kept only if the maintainers keep using it on this repository. |
+| L2: checked links between workspaces   | Planned experiment: the first update after the first public release. Needs its own spec and security review.                                 | Two workspaces of one repository linked in the desktop app; a warning when both changed the same paths; the approved setup and test commands run by Argent on a trial merge of the two exact commits, in a checkout Argent owns, recorded for both commits and stale when either changes. A link grants no access and carries no messages between agents. Kept only if the maintainers keep using it on this repository. |
+| L1.6 Codex and model choice            | Planned. The update after L2.                                                                                                                | Codex through its official CLI with the same controls; the agent chosen per workspace and the model per run, for both agents; two-agent evidence.                                                                                                                                                                                                                                                                        |
 | Project rules beyond tests             | Planned, after the release.                                                                                                                  | Further named checks in the reviewed configuration, each labelled as guidance, a check or a gate; a rule Argent cannot check is shown as not checkable.                                                                                                                                                                                                                                                                  |
 | Smaller steps after the release        | Planned.                                                                                                                                     | A workspace started from an existing local branch, in a worktree Argent creates; history export from the desktop app.                                                                                                                                                                                                                                                                                                    |
 | Evidence that travels                  | Planned, after the release.                                                                                                                  | The evidence record on a pull request can be checked again without the Argent app; checks report when the tests that judge a change were themselves removed or skipped; a read-only review by a second agent is recorded as a review, never as proof.                                                                                                                                                                    |
@@ -96,8 +113,8 @@ The desktop says so plainly. See [spec 0013](docs/specs/0013-local-mvp.md).
 
 ## Work queue
 
-This is the order of work up to the first public release, its first update and
-the experiment after it. Take the first item that is not
+This is the order of work up to the first public release, the checked-links
+experiment that is its first update, and Codex after it. Take the first item that is not
 done. Do not start a later item early, and do not add scope to an item: propose
 it instead (see [AGENTS.md](AGENTS.md#9-when-to-stop-and-ask)). Each item is one
 or more small pull requests with tests. Anything that launches a process,
@@ -114,8 +131,8 @@ builds a path or runs Git gets a dedicated security review against the
 | 6   | First-run guidance                             | Planned           | Item 1.                                                                     | When the `claude` CLI is missing, too old or not signed in, the desktop app says which and how to fix it, before a task is accepted.                                                                                                                                                   |
 | 7   | L1 exit evidence                               | Planned           | Items 1 to 6.                                                               | The [exit evidence](docs/specs/0013-local-mvp.md#exit-evidence-for-l1) in spec 0013, including one pull request created through Argent and merged by a person.                                                                                                                         |
 | 8   | Desktop distribution: the first public release | After L1          | Item 7. Maintainer authorization for signing and publishing.                | Signed and notarized macOS build, checksum, versioned release; the website is deployed and its claims match that release.                                                                                                                                                              |
-| 9   | L1.6 Codex and model choice: the first update  | After the release | Item 8. Codex installed and signed in for testing.                          | Codex runs through its official CLI with the same controls; agent chosen per workspace, model per run, for both agents; one real task completed with each agent.                                                                                                                       |
-| 10  | L2 checked links between workspaces            | After item 9      | Item 9. Its own spec and security review.                                   | Two workspaces linked in the desktop app; the overlap warning; the fit check on a trial merge of both exact commits, recorded for both and stale when either changes; the maintainers have used it on real parallel work in this repository and recorded whether it stays.             |
+| 9   | L2 checked links: the first update             | After the release | Item 8. Its own spec and security review.                                   | Two workspaces linked in the desktop app; the overlap warning; the fit check on a trial merge of both exact commits, recorded for both and stale when either changes; the maintainers have used it on real parallel work in this repository and recorded whether it stays.             |
+| 10  | L1.6 Codex and model choice                    | After item 9      | Item 9. Codex installed and signed in for testing.                          | Codex runs through its official CLI with the same controls; agent chosen per workspace, model per run, for both agents; one real task completed with each agent.                                                                                                                       |
 
 Item 1 is complete: the [recorded walkthrough](docs/specs/0013-local-mvp.md#development-walkthrough-evidence)
 covers edits-only, full-access, cancellation and parallel workspaces, with the
@@ -155,14 +172,41 @@ then `test` in the verification checkout; the result recorded as evidence for
 the exact commit; and showing it as stale after a later change. Running the
 `run` action is deferred until those results work.
 
+**The next change is the first working result.** The pieces above are enough
+to connect, and none of them shows a developer anything yet. The remaining work
+for item 3 is one slice from approval to result: consent reachable from the
+desktop, `setup` and then `test` run in the verification checkout of the exact
+commit, and the desktop showing that result as passed, failed or stale. It
+lands in as few pull requests as review allows, and each one must bring a
+result closer to the desktop: no further piece that nothing can reach.
+Hardening that the first result exposes follows it, with its own review. The
+[security model](docs/specs/0013-local-mvp.md#security-model) is unchanged:
+commands come only from the approved configuration at the base commit and run
+only after consent to the exact commit.
+
 Already implemented: L1.1, L1.2, L1.3, the
 [local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening) and
 the [desktop restyle](docs/specs/0015-desktop-restyle.md).
 
+## Alongside the queue
+
+Accepted on 14 November 2026. These do not change the numbered order above.
+
+| Item                                            | Status                                                            | Done when                                                                                                                                                                                                                                                                                               |
+| ----------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Argent's own `argent.json`                      | Done with this change.                                            | This repository carries its own `setup` and `test` commands, so a maintainer reviews and approves them in the desktop app today and gets Argent's own result for Argent's commits as soon as item 3 runs commands. Until then the file runs nothing.                                                    |
+| Suggested commands without a configuration file | Planned, after item 3 produces results. Spec and security review. | For a repository with no `argent.json`, Argent proposes the usual `setup` and `test` commands for the project type it recognises, read at the base commit. The developer reviews and approves them like any other configuration; nothing runs unapproved, and a repository's own file always wins.      |
+| Simulated cloud groundwork out of the main path | Planned, in its own change, not while item 3 is in flight.        | The cloud lifecycle, custody and GitHub pilot simulations no longer load when the local service starts and no longer run in the default check. No milestone is removed: M1 resumes from that code. How it is set aside, and whether offline history export moves with it, is decided before the change. |
+| A shorter README                                | Planned, with the first working result of item 3.                 | The front page states what works, the beliefs and one real result a developer can reproduce; reference material (local API, standalone configuration, offline history, pilot) moves under `docs/`, with every link kept working.                                                                        |
+
+Remote host, managed cloud and the mobile companion keep their places in the
+milestones above; nothing is removed from the roadmap.
+
 ## Limits
 
-1. Keep the cloud simulations, custody and GitHub pilot code as they are; resume
-   M1 after the remote host milestone with the live gates in
+1. The cloud simulations, custody and GitHub pilot code stay as they are until
+   the change listed above sets them aside; resume M1 after the remote host
+   milestone with the live gates in
    [spec 0010](docs/specs/0010-live-repository-pilot-gates.md) unchanged.
 2. Fake-CLI tests do not prove real behavior. The recorded real-CLI walkthrough
    satisfies item 1; durable process recovery remains a separate, open evidence

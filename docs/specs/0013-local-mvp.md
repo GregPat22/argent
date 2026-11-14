@@ -26,8 +26,9 @@ check and pull-request contracts that [M1](0002-cloud-mvp.md) reuses later. The
 cloud lifecycle, custody and GitHub pilot work stays as implemented.
 
 The first public release of the local MVP runs Claude Code through its official
-CLI. Codex and the per-run model picker (L1.6) are the first update after that
-release, decided on 10 November 2026: each workspace then chooses its agent, and
+CLI. Codex and the per-run model picker (L1.6) are an update after that
+release, decided on 10 November 2026 and placed after checked links (L2) on
+14 November 2026: each workspace then chooses its agent, and
 each run can choose a model that the agent offers under the developer's own
 sign-in, so the same desktop runs Claude models through Claude Code and GPT
 models through Codex. Cursor and OpenCode remain later targets.
@@ -1354,8 +1355,8 @@ kept.
 
 ### L1.6 Codex and model choice
 
-The first update after the first public release, not a condition of it. The same
-controls through Codex's official CLI. The create-workspace dialog
+An update after the first public release, following checked links (L2), and not
+a condition of the release. The same controls through Codex's official CLI. The create-workspace dialog
 offers both agents, and the task dialog a per-run model choice for either agent,
 following [agent and model choice](#agent-and-model-choice). A developer can then
 run Claude and GPT models side by side in separate workspaces.

@@ -84,12 +84,12 @@ In order:
    in your terminal. See [spec 0013](docs/specs/0013-local-mvp.md).
 2. **Signed public downloads** from the website: the first public release, with
    Claude Code.
-3. **Codex and a model picker**, the first update: every workspace chooses its
-   agent and every run its model (Claude models or GPT models).
-4. **Checked links between workspaces**, as an experiment. Link two workspaces
-   and Argent warns when both changed the same files, then runs the approved
-   tests on a trial merge of their exact commits. A link grants no access and
-   carries no messages between agents.
+3. **Checked links between workspaces**, the first update, as an experiment.
+   Link two workspaces and Argent warns when both changed the same files, then
+   runs the approved tests on a trial merge of their exact commits. A link
+   grants no access and carries no messages between agents.
+4. **Codex and a model picker**: every workspace chooses its agent and every
+   run its model (Claude models or GPT models).
 5. **More kinds of project rule** than tests, each labelled as guidance, a
    check or a gate.
 6. **Cursor and OpenCode**, through their official interfaces.

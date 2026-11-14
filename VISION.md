@@ -75,11 +75,11 @@ self-hosting a second-class or limited mode.
 
 The first usable release runs real agents locally: one repository, a branch and
 worktree per workspace, Claude Code through its official CLI, a reviewable diff,
-checks Argent runs itself and a human-controlled draft pull request. Codex and a
-per-run model picker are its first update. Checked links between workspaces
-follow as an experiment: Argent warns when two linked workspaces changed the
-same paths and runs the approved tests on a trial merge of their exact commits.
-More kinds of project rule come after the release.
+checks Argent runs itself and a human-controlled draft pull request. Checked
+links between workspaces are its first update, as an experiment: Argent warns
+when two linked workspaces changed the same paths and runs the approved tests
+on a trial merge of their exact commits. Codex and a per-run model picker
+follow. More kinds of project rule come after the release.
 
 A remote host the developer owns, and after it an optional managed cloud, then
 add disconnect and reconnect on the same engine. The personal release adds a

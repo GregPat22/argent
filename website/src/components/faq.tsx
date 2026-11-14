@@ -29,10 +29,10 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     answer: (
       <>
         Claude Code works in the desktop app today, and the first release ships
-        with it. Codex is the first update after that, together with a model
-        picker, so you can use Claude models and GPT models and choose the agent
-        for each workspace and the model for each task. Cursor and OpenCode
-        follow. Each agent runs with its own official sign-in, so you use the
+        with it. Codex follows in a later update, together with a model picker,
+        so you can use Claude models and GPT models and choose the agent for
+        each workspace and the model for each task. Cursor and OpenCode follow.
+        Each agent runs with its own official sign-in, so you use the
         subscription you already have. Argent never reads or copies that
         sign-in. It does not pass provider API-key environment variables or
         automatically fall back to API billing. Local agents still have your
@@ -116,11 +116,11 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         Rules are named by what enforces them: guidance given to an agent, a
         check Argent runs, a gate that blocks a step, or a prevention control.
         Today Argent offers no prevention control, and trusted checks are in
-        development. After Codex and the model picker, the planned checked links
-        experiment warns when two workspaces change the same paths and tests a
-        trial merge of their exact commits. A link grants no access and carries
-        no messages between agents. Further project rules follow; shared rule
-        sets remain a longer-term goal.
+        development. As the first update after release, the planned checked
+        links experiment warns when two workspaces change the same paths and
+        tests a trial merge of their exact commits. A link grants no access and
+        carries no messages between agents. Further project rules follow; shared
+        rule sets remain a longer-term goal.
       </>
     ),
   },
