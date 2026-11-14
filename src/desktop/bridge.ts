@@ -13,6 +13,12 @@ import {
 } from "./service-client.js";
 
 import { validateWorkspaceChanges } from "./changes.js";
+import {
+  CANDIDATE_IDENTITY,
+  WORKSPACE_ID,
+  validateCommandApprovalReceipt,
+  validateCommandConfiguration,
+} from "./command-configuration.js";
 
 export const APP_URL = "argent://app/index.html";
 
@@ -72,6 +78,8 @@ export class DesktopClient {
     const str = (index: number, label: string, max = 4000) =>
       requireString(args[index], label, max);
     const id = (index = 0) => encodeURIComponent(str(index, "identifier", 128));
+    const uuid = (value: unknown): value is string =>
+      typeof value === "string" && WORKSPACE_ID.test(value);
     const before = (index: number) =>
       args[index] === undefined
         ? ""
@@ -113,13 +121,7 @@ export class DesktopClient {
         });
       }
       case "workspaceChanges": {
-        if (
-          args.length !== 1 ||
-          typeof args[0] !== "string" ||
-          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
-            args[0],
-          )
-        )
+        if (args.length !== 1 || !uuid(args[0]))
           throw new DomainError(400, "Expected one workspace identifier");
         const value = await serviceRequest(
           connection,
@@ -130,6 +132,45 @@ export class DesktopClient {
           20000,
         );
         return validateWorkspaceChanges(value, args[0]);
+      }
+      case "commandConfiguration": {
+        if (args.length !== 1 || !uuid(args[0]))
+          throw new DomainError(400, "Expected one workspace identifier");
+        // The service reads Git under its own ten-second deadline.
+        const value = await serviceRequest(
+          connection,
+          `/workspaces/${id()}/command-configuration`,
+          "GET",
+          undefined,
+          undefined,
+          20000,
+        );
+        return validateCommandConfiguration(value, args[0]);
+      }
+      case "approveCommandConfiguration": {
+        // Only the identity the person was shown and a request key: never a
+        // command, path, revision or operator. The service reads the rest.
+        const expected = args[1];
+        if (
+          args.length !== 3 ||
+          !uuid(args[0]) ||
+          typeof expected !== "string" ||
+          !CANDIDATE_IDENTITY.test(expected) ||
+          !uuid(args[2])
+        )
+          throw new DomainError(
+            400,
+            "Expected a workspace, the reviewed configuration identity and a request key",
+          );
+        const value = await serviceRequest(
+          connection,
+          `/workspaces/${id()}/command-approvals`,
+          "POST",
+          { expectedCandidateIdentity: expected },
+          args[2],
+          20000,
+        );
+        return validateCommandApprovalReceipt(value, args[0], expected);
       }
       case "getWorkspace":
         return serviceRequest(connection, `/workspaces/${id()}`);

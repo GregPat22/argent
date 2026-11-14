@@ -96,6 +96,14 @@
             Changes
           </button>
           <button
+            id="workspace-commands"
+            class="button small"
+            aria-haspopup="dialog"
+            hidden
+          >
+            Commands
+          </button>
+          <button
             id="workspace-menu-button"
             class="icon-button header-menu"
             popovertarget="workspace-menu"
@@ -373,6 +381,61 @@
             aria-label="Selected file unified diff"
           ></pre>
         </section>
+      </div>
+    </dialog>
+
+    <dialog
+      id="commands-dialog"
+      class="changes-panel commands-panel"
+      aria-labelledby="commands-title"
+      aria-describedby="commands-notice"
+    >
+      <header class="sheet-head">
+        <h2 id="commands-title">Command configuration</h2>
+        <button id="commands-refresh" class="button small">Refresh</button>
+        <button
+          id="commands-close"
+          class="icon-button"
+          aria-label="Close command configuration"
+        >
+          <span class="icon icon-x" aria-hidden="true"></span>
+        </button>
+      </header>
+      <p id="commands-notice" class="changes-notice">
+        The setup, test and run commands for this repository, read from
+        <span class="mono">argent.json</span> at the workspace's base commit and
+        never from the worktree, so edits in the workspace do not change them.
+        Argent does not run them yet: approving records your review, and running
+        checks is still in development.
+      </p>
+      <p
+        id="commands-status"
+        class="changes-notice"
+        role="status"
+        aria-live="polite"
+      ></p>
+      <pre
+        id="commands-example"
+        class="commands-example"
+        aria-label="Example argent.json"
+        hidden
+      >
+{"version":1,"commands":{"test":{"argv":["npm","test"]}}}</pre>
+      <div id="commands-content" class="commands-content" hidden>
+        <p id="commands-source" class="changes-notice mono"></p>
+        <div
+          id="commands-list"
+          class="commands-list"
+          role="region"
+          tabindex="0"
+          aria-label="Configured commands"
+        ></div>
+        <div class="commands-approval">
+          <p id="commands-approval"></p>
+          <button id="commands-approve" class="button primary" disabled>
+            Approve these commands
+          </button>
+        </div>
       </div>
     </dialog>
 
