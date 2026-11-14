@@ -142,6 +142,7 @@ desktop app. None runs a command and none produces a test result.
 | Review and checkout security correction          | `2f243e1` | [Correction](docs/specs/0013-local-mvp.md#review-and-checkout-security-correction)                                       |
 | Service routes to inspect and approve it         | `69028d9` | [Service](docs/specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development), validated at `9b6ddef` |
 | Desktop review and approval of the configuration | `bfeb63a` | [Desktop](docs/specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development), a development commit   |
+| Internal candidate-consent storage, no execution | `2920f29` | [Consent](docs/specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development), a development commit       |
 
 The [internal candidate-consent step](docs/specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development)
 is in development: durable acknowledgements bound to a complete text review of

@@ -1017,6 +1017,35 @@ candidate review and consent controls, command execution, exact-commit results
 and stale-result display remain separate integration steps. It does not finish
 L1.4 or establish a real-account walkthrough.
 
+#### Internal candidate consent validation
+
+Validation recorded on 14 November 2026 for development implementation
+`2920f296b2d7774688fec837abf16904942dc17e`, based on main `c091bb8`.
+`npm run check` passed strict types, formatting, compilation and all 619 tests,
+with no failures, cancellations or skips. The focused consent suite passed
+20 cases using temporary Git repositories, SQLite and two competing fixture
+processes. The unchanged-main configuration-approval suite passed all 13 cases.
+Documentation links and anchors resolve.
+
+The initial focused run failed one new fixture assertion: Node's IPC callback
+also supplied a handle argument, while the assertion expected only the payload.
+The fixture now checks the payload and bounds message and exit waits. That new
+test has no counterpart on unchanged main; the existing approval-process tests
+provide the baseline comparison. No production assertion was removed or weakened.
+
+Independent review checked trusted actor/root inputs, recomputed review
+identities, binary and overflow refusal, transactional events, historical
+retry semantics and the absence of execution authority. The resulting race
+and process-teardown test improvements are included in the passing suite. No
+blocking finding remains.
+
+Not established: service or desktop candidate consent, a real account or human
+review walkthrough, configured command execution, exact-commit test evidence
+or stale-result UI. No website source changed and no local website or native
+smoke run was performed for this step; hosted delivery checks remain required.
+The next integration step is exposing candidate review and consent through the
+service and desktop, while execution remains forbidden. L1.4 remains incomplete.
+
 #### Internal bounded command runner acceptance
 
 Acceptance recorded 12 November 2026 against main `8027d0b` with the pinned
