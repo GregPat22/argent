@@ -59,6 +59,30 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Complete text review before candidate consent — 14 November 2026
+
+Accepted for the first candidate-consent implementation, in development against
+main `c091bb8`. Consent requires a complete text display of every changed file.
+Binary and invalid-UTF-8 changes and reviews exceeding the existing limits are
+refused, with no identity-only exception. This includes binary deletion, rename
+and mode changes; unchanged binary files do not block a text-only change set.
+This resolves the open consent policy in the pinned-review and scale decisions
+below. It favors a single explicit review contract over an exception flow; a
+change containing an image cannot receive trusted test consent in this version.
+
+Persist only a compact binding to the actor, workspace, approved configuration,
+review and exact commit, with an atomic audit event and idempotent historical
+receipt. A fresh lookup repeats the review and is still not permission to
+execute. No UI, queue or worker consumes consent yet. The
+[acceptance contract](specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development)
+defines coverage and remaining execution boundaries. No milestone is complete
+and no local security boundary is weakened.
+
+Development implementation `2920f29` passed the repository check and independent
+security review on 14 November 2026. The
+[validation evidence](specs/0013-local-mvp.md#internal-candidate-consent-validation)
+records the fixtures, corrected IPC assertion and remaining integration limits.
+
 ### Enforceable rules, checked links and reasons that stand alone — 14 November 2026
 
 Three product decisions, taken after a review of where the project stands. None
@@ -140,8 +164,8 @@ Reuse the existing transactional receipt semantics: a duplicate request reads
 history, while new approval and current inspection revalidate the base. Neither
 allows execution. See the
 [acceptance contract](specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development)
-for routes, failure cases and validation scope. The open candidate-consent
-policy is unchanged, and L1.4 remains incomplete.
+for routes, failure cases and validation scope. The candidate-consent policy is resolved by the complete-text decision above;
+L1.4 remains incomplete.
 
 Development implementation `9b6ddef` passed the complete repository check and
 independent security review on 12 November 2026. The
@@ -165,7 +189,7 @@ full-access choice does; a native confirmation is not added. See the
 [acceptance contract](specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development)
 and its
 [validation](specs/0013-local-mvp.md#desktop-configuration-approval-validation).
-Approval runs nothing. The open candidate-consent policy is unchanged, and
+Approval runs nothing. The complete-text decision above now resolves the candidate-consent policy;
 L1.4 remains incomplete.
 
 ### Website test browser ownership — 12 November 2026
@@ -223,8 +247,8 @@ them. See the
 and [implementation evidence](specs/0013-local-mvp.md#clean-commit-scale-evidence).
 The complete repository check passed with 572 tests. This supersedes the
 note below that the limit remained to be revisited. The bounds are
-engineering values to adjust by evidence. Whether a change too large to
-display may be accepted by identity alone stays open for the consent slice.
+engineering values to adjust by evidence. The complete-text consent decision above retains refusal for a change too
+large to display; identity-only acceptance is not supported.
 Nothing is connected and L1.4 remains incomplete.
 
 ### Shape of a trusted check and its checkout — 12 November 2026
@@ -345,7 +369,7 @@ give. The complete change set is the review; only the fixed configuration path
 is marked, because commands come from the approved base regardless of the
 candidate's copy. Binary content keeps an identity and is labelled as not
 displayed instead of counting as reviewed. Overflow fails the whole review:
-partial display with later consent is a product choice and stays open.
+the complete-text consent decision above also forbids identity-only acceptance.
 
 Share the rename and whole-file hunk logic with the live changes inspector
 without changing its contract. See the
