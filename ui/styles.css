@@ -2006,3 +2006,84 @@ dialog::backdrop {
     border-bottom: 1px solid var(--line);
   }
 }
+
+/* Command configuration review: every argument is shown whole, never clipped. */
+.commands-panel {
+  width: min(760px, calc(100vw - 48px));
+  height: fit-content;
+}
+.commands-example {
+  margin: 0 0 12px;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: 12px/1.7 var(--mono);
+  color: var(--sterling);
+}
+.commands-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.commands-list {
+  flex: 1;
+  min-height: 96px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.command-action {
+  padding: 14px 16px;
+}
+.command-action + .command-action {
+  border-top: 1px solid var(--line);
+}
+.command-action h3 {
+  margin: 0;
+  font: 500 12px/1.6 var(--mono);
+}
+.command-action p {
+  margin: 2px 0 10px;
+  color: var(--faint);
+  font-size: 11px;
+}
+.command-argv {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.command-argv li {
+  max-width: 100%;
+  padding: 3px 8px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--wash);
+  font: 12px/1.7 var(--mono);
+  color: var(--polished);
+}
+.command-argv li:first-child {
+  border-color: var(--line-strong);
+  background: var(--wash-strong);
+}
+.commands-approval {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+}
+.commands-approval p {
+  flex: 1;
+  margin: 0;
+  color: var(--sterling);
+}
+.commands-approval .button {
+  flex-shrink: 0;
+}

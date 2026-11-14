@@ -7,6 +7,7 @@ import type {
   Workspace,
   WorkspaceChanges,
 } from "../domain.js";
+import type { LocalCommandConfigDescriptor } from "../local-command-config.js";
 
 export interface ServiceStatus {
   connected: boolean;
@@ -19,6 +20,37 @@ export interface ArtifactView {
   simulation: boolean;
 }
 
+/**
+ * One fresh reading of the configuration at the workspace's base commit and
+ * its approval. It is display data and never permission to run a command.
+ */
+export interface CommandConfigurationView {
+  kind: "local-command-configuration";
+  workspaceId: string;
+  configuration: LocalCommandConfigDescriptor | null;
+  approval: { id: string; approvedAt: number } | null;
+  executionAllowed: false;
+}
+
+/** A historical audit receipt. The current state is always read again. */
+export interface CommandApprovalReceiptView {
+  kind: "local-command-approval-receipt";
+  workspaceId: string;
+  approval: {
+    id: string;
+    workspaceId: string;
+    descriptor: LocalCommandConfigDescriptor;
+    approvedAt: number;
+  };
+  event: {
+    cursor: number;
+    type: "configuration.approved" | "configuration.reused";
+    createdAt: number;
+  };
+  historical: true;
+  executionAllowed: false;
+}
+
 export interface DesktopBridge {
   status(): Promise<ServiceStatus>;
   startService(): Promise<ServiceStatus>;
@@ -26,6 +58,17 @@ export interface DesktopBridge {
   listWorkspaces(before?: string): Promise<Page<Workspace>>;
   getWorkspace(id: string): Promise<Workspace>;
   workspaceChanges(id: string): Promise<WorkspaceChanges>;
+  commandConfiguration(id: string): Promise<CommandConfigurationView>;
+  /**
+   * Records approval of the configuration the person was shown. The renderer
+   * supplies only that configuration's identity and a request key; the service
+   * reads the commands again itself and refuses a different identity.
+   */
+  approveCommandConfiguration(
+    id: string,
+    expectedCandidateIdentity: string,
+    key: string,
+  ): Promise<CommandApprovalReceiptView>;
   createWorkspace(repository: string): Promise<Workspace>;
   /**
    * Creates a worktree workspace. The repository folder is chosen by the person
