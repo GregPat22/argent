@@ -14,6 +14,11 @@ You decide what gets merged.
 > remain a scripted simulation. Everything below says which parts are
 > real and which are planned.
 
+**The goal:** the easiest open-source environment for running several coding
+agents under consistent, enforceable project rules, with evidence of completion
+that Argent collects itself. The [vision](VISION.md) states the beliefs behind
+it; the list below says what works today.
+
 Website: [argent.build](https://argent.build/). Desktop downloads are planned.
 
 Follow the build on X: [@Argent_build](https://x.com/Argent_build).
@@ -73,21 +78,32 @@ In order:
    Claude Code.
 3. **Codex and a model picker**, the first update: every workspace chooses its
    agent and every run its model (Claude models or GPT models).
-4. **Cursor and OpenCode**, through their official interfaces.
-5. **A remote host you own.** The same engine on a machine of yours that stays
+4. **Checked links between workspaces**, as an experiment. Link two workspaces
+   and Argent warns when both changed the same files, then runs the approved
+   tests on a trial merge of their exact commits. A link grants no access and
+   carries no messages between agents.
+5. **More kinds of project rule** than tests, each labelled as guidance, a
+   check or a gate.
+6. **Cursor and OpenCode**, through their official interfaces.
+7. **A remote host you own.** The same engine on a machine of yours that stays
    on, so a task keeps going when you close your laptop.
-6. **Managed cloud workspaces**, as an optional service on the same core.
-7. **A mobile companion** (native iOS) to check progress and steer from your
+8. **Managed cloud workspaces**, as an optional service on the same core.
+9. **A mobile companion** (native iOS) to check progress and steer from your
    phone.
 
-After that: team handoff, then dependent tasks. A full IDE, agent swarms and
-automatic merging are explicitly out of scope for now.
+After that: team handoff, then dependent tasks, and rule sets that developers
+can share. A full IDE, agent swarms, agents messaging each other and automatic
+merging are explicitly out of scope for now.
 
 ## Principles
 
 - **An agent's claim is not proof.** Argent records local changes itself today.
   Planned trusted checks will run against the exact commit and record their
   results separately from what the agent says.
+- **Rules are named by what enforces them.** Guidance given to an agent, a
+  check Argent runs, a gate that blocks a step and a control that prevents an
+  action are four different things. Argent does not present one as another, and
+  today it offers no prevention: local execution is not a sandbox.
 - **Stop when unsure.** An unknown outcome blocks the workspace until someone
   inspects it; reconnecting only reads state.
 - **Self-hosting is first-class.** The core is MIT-licensed and runs without our
@@ -193,8 +209,8 @@ The demo uses its own disposable token; never reuse it for a real deployment.
 
 ## Local API
 
-Configuration review and approval endpoints for the desktop's local service are
-in development; see the
+The desktop's local service has configuration review and approval endpoints,
+with no desktop controls connected yet; see the
 [service acceptance contract](docs/specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development).
 Configuration approval alone does not run commands or verify an agent's changes.
 
