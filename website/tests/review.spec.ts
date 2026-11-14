@@ -49,7 +49,7 @@ test("roadmap preserves the approved post-release sequence and recovery limit", 
   await page.goto("/");
   const roadmap = page.locator("#roadmap");
   await expect(roadmap).toContainText(
-    /Codex[\s\S]*checked links[\s\S]*project rules[\s\S]*Cursor and OpenCode/,
+    /checked links[\s\S]*Codex[\s\S]*project rules[\s\S]*Cursor and OpenCode/,
   );
   await expect(roadmap).toContainText(
     "A link grants no access and carries no messages between agents",

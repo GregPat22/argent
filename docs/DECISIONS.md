@@ -18,9 +18,9 @@ bounded animation costs. No execution, security or product decision changes.
 | Cloud execution is foundational                                         | Accepted product requirement; sequenced after L1 and after a remote host the developer owns                 | A developer can close the client and reconnect elsewhere. Desktop delivery does not move remote execution into the client.                                                                                                           | A real remotely hosted worker, an isolated persistent workspace and disconnect/reconnect evidence.                                         |
 | Evidence Argent collects itself is the reason the product exists        | Accepted 10 November 2026                                                                                   | Running agents side by side in separate branches is common; proof of what they did is not. Parallel workspaces and several agents are the means.                                                                                     | Checks recorded for the exact commit (L1.4) and the evidence record on the pull request (L1.5). Revisit if users do not value it.          |
 | Enforceable project rules with evidence, for several agents             | Accepted 14 November 2026; extends the proof-first decision                                                 | The goal is the easiest open-source environment for running several coding agents under consistent, enforceable project rules, with evidence of completion Argent collects itself. Rules are named by what enforces them.            | L1.4 delivers the first check and gate. Further rule types after the release. Revisit if the maintainers' own use does not bear it out.    |
-| Checked links between workspaces (L2), after Codex                      | Accepted 14 November 2026 as a planned experiment                                                           | Worktrees keep changes apart but do not make them fit. Argent warns on overlapping paths and runs the approved tests on a trial merge of two exact commits. A link grants no access and carries no messages between agents.          | Its own spec and security review. Kept only if the maintainers keep using it on this repository.                                           |
+| Checked links between workspaces (L2), the first update                 | Accepted 14 November 2026 as a planned experiment; placed ahead of Codex the same day                       | Worktrees keep changes apart but do not make them fit. Argent warns on overlapping paths and runs the approved tests on a trial merge of two exact commits. A link grants no access and carries no messages between agents.          | Its own spec and security review. Kept only if the maintainers keep using it on this repository.                                           |
 | The maintainers' daily use decides what stays                           | Accepted 14 November 2026                                                                                   | Argent is built first for its maintainers' work on this repository. No outside research step gates the work queue.                                                                                                                   | A recorded outcome for each experiment: kept, changed or removed.                                                                          |
-| First public release with Claude Code only; Codex is the first update   | Accepted 10 November 2026 (was both agents inside the local MVP)                                            | A release people can use sooner, with the agent the maintainers use daily. The adapter boundary makes Codex an addition, not a redesign.                                                                                             | L1 exit evidence without Codex; L1.6 keeps its own two-agent evidence.                                                                     |
+| First public release with Claude Code only; Codex is a later update     | Accepted 10 November 2026 (was both agents inside the local MVP); Codex follows checked links, 14 November  | A release people can use sooner, with the agent the maintainers use daily. The adapter boundary makes Codex an addition, not a redesign.                                                                                             | L1 exit evidence without Codex; L1.6 keeps its own two-agent evidence.                                                                     |
 | A remote host the developer owns before a managed cloud                 | Accepted 10 November 2026                                                                                   | Work that continues with the laptop closed needs no hosted service of ours: the same API and worker run on the developer's own machine. A managed cloud becomes an optional convenience on the same core.                            | Its own spec and security review: authenticated, encrypted transport and never a raw exposed service.                                      |
 | Local MVP before cloud workspaces                                       | Accepted 7 November 2026                                                                                    | Real agents in local worktrees are the shortest path to a usable product and exercise the contracts cloud needs. Not a sandbox.                                                                                                      | [Spec 0013](specs/0013-local-mvp.md) exit evidence; revisit if local execution blocks the cloud design.                                    |
 | Open-source, independently usable core                                  | Accepted product requirement                                                                                | Self-hosting and model/provider independence are part of the product, not a lesser mode.                                                                                                                                             | Self-hosted control-plane instructions and a separately verified isolation runtime.                                                        |
@@ -59,6 +59,58 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### What sets Argent apart, and checked links before Codex — 14 November 2026
+
+Accepted product decisions. They revise one point of the entry
+[below](#enforceable-rules-checked-links-and-reasons-that-stand-alone--14-november-2026):
+Codex is no longer the first update. The order of work up to the first public
+release is unchanged, and remote host, managed cloud and the mobile companion
+keep their places.
+
+**What sets Argent apart.** Running several agents in separate worktrees is
+common and is not the reason for Argent. Three things are, in the order they
+are built:
+
+1. **Checks Argent runs itself** (L1.4): each workspace shows a result for its
+   exact commit before a pull request exists. Its everyday value is knowing the
+   state of every workspace without reading each transcript. It is not
+   presented as a way to catch a dishonest agent: a passed check says the named
+   commands passed on a known commit, nothing more.
+2. **Checked links between workspaces** (L2): the approved tests on a trial
+   merge of two parallel workspaces. This problem exists only with several
+   workspaces and grows with each one added.
+3. **One set of project rules for every agent**: approved by a person and read
+   from a state the agent cannot change, whichever agent runs.
+
+**Checked links are the first update; Codex follows.** A second agent adds
+breadth. A check that parallel work still fits together adds evidence, which is
+what the product is for, and it does not depend on which agent wrote the
+changes. L2 therefore becomes work-queue item 9 and Codex with the model picker
+item 10. L2 still needs its own spec and security review and stays an
+experiment with a recorded outcome.
+
+**The next L1.4 change is a working result.** Twelve pieces of item 3 are
+implemented and only configuration review is reachable from the desktop. The
+remaining work is one slice from approval to a result the developer can see:
+consent, `setup` and `test` in the verification checkout, and the result shown
+as passed, failed or stale. No further piece that nothing can reach comes
+first. The security model is unchanged.
+
+**Smaller accepted items**, listed in the
+[roadmap](../ROADMAP.md#alongside-the-queue):
+
+- This repository carries its own `argent.json` (`npm ci`, then
+  `npm run check`), so the rule that every change passes the repository check
+  becomes a check Argent can run on Argent, not only guidance in AGENTS.md.
+- For a repository without `argent.json`, Argent will propose the usual
+  commands for the project type, for the developer to approve. Planned, with
+  its own spec and security review; nothing runs unapproved.
+- The simulated cloud lifecycle, custody and GitHub pilot code will be set
+  aside from the local service's startup path and the default check until M1
+  resumes. Planned as its own change; how, and whether offline history export
+  moves with it, is open. No milestone is removed.
+- The README becomes shorter once item 3 produces a real result to show.
+
 ### Complete text review before candidate consent — 14 November 2026
 
 Accepted for the first candidate-consent implementation, in development against
@@ -87,7 +139,8 @@ records the fixtures, corrected IPC assertion and remaining integration limits.
 
 Three product decisions, taken after a review of where the project stands. None
 changes the order of work up to the first public release, and Codex stays the
-first update after it.
+first update after it. (Revised the same day: checked links are the first
+update and Codex follows; see the entry above.)
 
 **The goal, stated in full.** Argent aims to be the easiest open-source
 environment for running several coding agents under consistent, enforceable
@@ -120,7 +173,8 @@ on this repository. Whether they keep using a capability is the test of it, so
 no outside research step gates the work queue, and each experiment ends with a
 recorded outcome: kept, changed or removed.
 
-**Checked links between workspaces (L2), after Codex.** Separate worktrees keep
+**Checked links between workspaces (L2), after Codex.** (Order revised the same
+day: L2 is the first update and Codex follows; see the entry above.) Separate worktrees keep
 parallel changes apart; they do not make them fit together, and today a
 developer finds out at merge time. A developer links two workspaces of the same
 repository, and the link carries two checks that Argent runs and no agent does:

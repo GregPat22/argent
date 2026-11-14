@@ -62,15 +62,17 @@ address, never a personal one.
   enforceable project rules, with evidence of completion Argent collects
   itself; rules are named by what enforces them (guidance, check, gate,
   prevention control) and Argent offers no prevention control; checked links
-  between workspaces (L2) are a planned experiment after Codex, and a link
+  between workspaces (L2) are a planned experiment and the first update after
+  the release, and a link
   grants no access and carries no messages between agents; the first release is the local
   MVP (L1), real agents in isolated Git worktrees on the developer's computer,
   before any remote or cloud workspace; it ships with Claude Code through its
-  official CLI, Codex and the model picker are the first update after it, then
-  Cursor and OpenCode; work that continues with the laptop closed comes first on
+  official CLI, checked links are the first update after it, Codex and the
+  model picker follow, then Cursor and OpenCode; work that continues with the laptop closed comes first on
   a remote host the developer owns, then in an optional managed cloud; what sets
-  Argent apart is evidence it collects itself, and checks are planned, not
-  working, until L1.4 lands;
+  Argent apart is evidence it collects itself (checks it runs itself, checked
+  links between workspaces, one set of project rules for every agent), and
+  checks are planned, not working, until L1.4 lands;
   each workspace chooses its agent and each run a model that agent offers, and
   Argent never routes or proxies models; in local mode the agent uses
   its own official sign-in and never receives provider API-key variables; local

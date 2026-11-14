@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "commands": {
+    "setup": { "argv": ["npm", "ci"] },
+    "test": { "argv": ["npm", "run", "check"] }
+  }
+}

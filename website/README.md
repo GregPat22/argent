@@ -57,8 +57,8 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
 ## Implementation notes
 
 The [consistency and motion correction contract](../docs/specs/0016-website-restyle.md#website-consistency-and-motion-corrections-in-development)
-is in development. The post-release sequence includes Codex/model choice,
-checked links as an experiment, further project rules, then Cursor/OpenCode.
+is in development. The post-release sequence includes checked links as an
+experiment, Codex/model choice, further project rules, then Cursor/OpenCode.
 Links grant no access and carry no messages. Rules distinguish guidance, checks,
 gates and prevention; Argent offers no prevention control. Real-process crash
 reconciliation stays planned. Untested local records use silver. The comparison
