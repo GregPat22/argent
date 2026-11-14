@@ -75,7 +75,7 @@ The desktop says so plainly. See [spec 0013](docs/specs/0013-local-mvp.md).
 | L1.1 worktree workspaces + Claude Code | Implemented.                                                                                                                                 | Create a branch/worktree from a local repository; run Claude Code in it with a live transcript, follow-up turns and acknowledged cancel; record the resulting commit and diff as evidence.                                                                                                                                                                                                                               |
 | L1.2 desktop on real execution         | Implemented; real-CLI walkthrough recorded in spec 0013.                                                                                     | Choose a local repository, create/select workspaces, see the agent's transcript, send follow-ups, choose the permission mode and cancel, in the desktop app.                                                                                                                                                                                                                                                             |
 | L1.3 changes panel                     | Implemented. Read-only changed-file list and bounded unified diff; live, not tested.                                                         | Real changed-file list and diff for the workspace against its base.                                                                                                                                                                                                                                                                                                                                                      |
-| L1.4 setup, run and test actions       | In development. Internal configuration reader implemented; actions and results remain planned.                                               | Per-repository reviewed commands with bounded output, read from a configuration the agent cannot change; a test result recorded for the exact commit as evidence, separate from what the agent says.                                                                                                                                                                                                                     |
+| L1.4 setup, run and test actions       | In development. The desktop shows the command configuration for review and records its approval; actions and results remain planned.         | Per-repository reviewed commands with bounded output, read from a configuration the agent cannot change; a test result recorded for the exact commit as evidence, separate from what the agent says.                                                                                                                                                                                                                     |
 | L1.5 draft pull request and archive    | Planned.                                                                                                                                     | Commit, push and open a draft pull request through the developer's own `gh`, with Argent's evidence record in its description; merge stays a human action. Archive removes the worktree only when it is safe.                                                                                                                                                                                                            |
 | Customer/auth compatibility            | Alongside L1.                                                                                                                                | Dated provider/auth/deployment matrix. No demand assumed.                                                                                                                                                                                                                                                                                                                                                                |
 | Desktop distribution                   | After L1. The first public release, with Claude Code.                                                                                        | Signed/notarized versioned artifacts, checksums and verified updates. Publication separately authorized.                                                                                                                                                                                                                                                                                                                 |
@@ -125,28 +125,28 @@ at `37ea780`: see the
 
 ## L1.4 progress
 
-Item 3 is **Next** and not complete. The internal pieces below are implemented
-and tested. None is reachable from the desktop app, none runs a command and none
-produces a test result.
+Item 3 is **Next** and not complete. The pieces below are implemented and
+tested. Only review and approval of the configuration is reachable from the
+desktop app. None runs a command and none produces a test result.
 
-| Piece                                          | Commit    | Contract                                                                                                                 |
-| ---------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Command configuration read at the base commit  | `914323d` | [Reader](docs/specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance)                                  |
-| Durable approval storage                       | `268ed61` | [Approvals](docs/specs/0013-local-mvp.md#internal-durable-command-approval-acceptance)                                   |
-| Dormant command-job ownership                  | `f70dbf3` | [Ownership](docs/specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance)                                       |
-| Exact-commit observation                       | `b7c426b` | [Observation](docs/specs/0013-local-mvp.md#internal-exact-commit-candidate-observation-acceptance)                       |
-| Pinned candidate review, no consent collected  | `042a169` | [Review](docs/specs/0013-local-mvp.md#internal-pinned-candidate-review-acceptance)                                       |
-| Bounded command runner, connected to nothing   | `e4260cc` | [Runner](docs/specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance)                                        |
-| Verification checkout of one exact commit      | `217ad9d` | [Checkout](docs/specs/0013-local-mvp.md#internal-verification-checkout-acceptance)                                       |
-| Clean-commit check sized for real repositories | `2ed334f` | [Bounds](docs/specs/0013-local-mvp.md#clean-commit-scale-acceptance)                                                     |
-| Review and checkout security correction        | `2f243e1` | [Correction](docs/specs/0013-local-mvp.md#review-and-checkout-security-correction)                                       |
-| Service routes to inspect and approve it       | `69028d9` | [Service](docs/specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development), validated at `9b6ddef` |
+| Piece                                            | Commit    | Contract                                                                                                                 |
+| ------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Command configuration read at the base commit    | `914323d` | [Reader](docs/specs/0013-local-mvp.md#internal-command-configuration-reader-acceptance)                                  |
+| Durable approval storage                         | `268ed61` | [Approvals](docs/specs/0013-local-mvp.md#internal-durable-command-approval-acceptance)                                   |
+| Dormant command-job ownership                    | `f70dbf3` | [Ownership](docs/specs/0013-local-mvp.md#dormant-command-job-ownership-acceptance)                                       |
+| Exact-commit observation                         | `b7c426b` | [Observation](docs/specs/0013-local-mvp.md#internal-exact-commit-candidate-observation-acceptance)                       |
+| Pinned candidate review, no consent collected    | `042a169` | [Review](docs/specs/0013-local-mvp.md#internal-pinned-candidate-review-acceptance)                                       |
+| Bounded command runner, connected to nothing     | `e4260cc` | [Runner](docs/specs/0013-local-mvp.md#internal-bounded-command-runner-acceptance)                                        |
+| Verification checkout of one exact commit        | `217ad9d` | [Checkout](docs/specs/0013-local-mvp.md#internal-verification-checkout-acceptance)                                       |
+| Clean-commit check sized for real repositories   | `2ed334f` | [Bounds](docs/specs/0013-local-mvp.md#clean-commit-scale-acceptance)                                                     |
+| Review and checkout security correction          | `2f243e1` | [Correction](docs/specs/0013-local-mvp.md#review-and-checkout-security-correction)                                       |
+| Service routes to inspect and approve it         | `69028d9` | [Service](docs/specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development), validated at `9b6ddef` |
+| Desktop review and approval of the configuration | `bfeb63a` | [Desktop](docs/specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development), a development commit   |
 
-Remaining for item 3: desktop controls to review and approve the configuration,
-which come next; consent to a candidate's changes; running `setup` and then
-`test` in the verification checkout; the result recorded as evidence for the
-exact commit; and showing it as stale after a later change. Running the `run` action
-is deferred until those results work.
+Remaining for item 3: consent to a candidate's changes; running `setup` and
+then `test` in the verification checkout; the result recorded as evidence for
+the exact commit; and showing it as stale after a later change. Running the
+`run` action is deferred until those results work.
 
 Already implemented: L1.1, L1.2, L1.3, the
 [local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening) and

@@ -595,6 +595,111 @@ verified commit. No real agent account or native desktop walkthrough was used.
 L1.4 remains incomplete; desktop configuration approval controls are the next
 integration step.
 
+#### Desktop configuration approval acceptance (in development)
+
+Acceptance recorded 14 November 2026 against main `c05fbf7`. This integration
+step connects the desktop app to the
+[configuration approval service](#configuration-approval-service-acceptance-in-development).
+It runs no command and records no test result. Candidate-change consent,
+execution, exact-commit results and stale-result display remain open, so L1.4
+is not complete.
+
+1. A Commands button opens an accessible dialog for the selected workspace. For
+   a local workspace it shows the configuration read from root `argent.json` at
+   the recorded base commit: the abbreviated base commit and content digest,
+   then each configured action in the planned order (`setup`, `test`, `run`)
+   with every argument. A demo says that no repository is checked out. A base
+   without `argent.json` says so, shows an example file and offers nothing to
+   approve. Loading, request-error, mismatched and disconnected states never
+   show a partial or approvable configuration.
+2. Every argument is rendered through `textContent` as a quoted JSON string in
+   which each character outside printable ASCII is written as an escape. Empty
+   arguments, surrounding spaces, control and bidi-format characters, invisible
+   characters and look-alike letters are therefore visible in review. Nothing
+   is shortened: the reader's 64 KiB configuration limit bounds the display,
+   and the list scrolls inside the dialog.
+3. Only opening the dialog, pressing Refresh or a completed approval request
+   reads the configuration. Transcript polling and reconnecting never read the
+   repository. Refresh clears the old content while loading. Closing, changing
+   workspace or observing a disconnect clears the content and invalidates
+   pending readings, receipts and errors; reconnect requires an explicit
+   refresh.
+4. The Approve control is enabled only while an unapproved configuration is
+   displayed, the service is connected and no request is pending. It sends the
+   workspace, the candidate identity of exactly the displayed configuration and
+   a request key. The service reads the base again and refuses a different
+   identity. The window keeps one request key per workspace and identity, so
+   repeating an approval whose outcome was not confirmed returns the same
+   receipt. A definite rejection says that nothing was approved; any other
+   failure says that the outcome could not be confirmed. Both clear the
+   displayed configuration and require an explicit refresh.
+5. A receipt is never displayed as the current state. After a successful
+   request the dialog reads the configuration again and shows the approval and
+   its time from that fresh reading. An approved configuration cannot be
+   approved again from the dialog.
+6. The sandboxed preload exposes only `commandConfiguration(workspaceId)` and
+   `approveCommandConfiguration(workspaceId, expectedCandidateIdentity, key)`.
+   The main process rejects other argument counts, non-UUID workspace
+   identifiers and request keys, and anything but a lowercase SHA-256 identity
+   before contacting the service. It sends only the expected identity and the
+   key, with a twenty-second timeout. No command, path, revision, descriptor or
+   operator is accepted from the renderer. Responses are rebuilt from validated
+   fields: exact key sets, the reader's own schema and limits, hash formats,
+   `executionAllowed: false`, `historical: true` on receipts, and a receipt
+   identity equal to the one requested. The renderer additionally checks the
+   selected workspace and its recorded base.
+7. The dialog says that Argent does not run these commands yet, that approving
+   records a review for this repository and these exact bytes, and that the
+   `run` action has no control. Review, approval and retry create no run,
+   command job or verification record, and start no agent or configured
+   command.
+
+Limits: the approval request originates in the sandboxed renderer, like the
+per-run full-access choice, with no native confirmation. It is attributed to
+the service's fixed `local-desktop` actor. As in the service contract, this is
+neither multi-user authentication nor resistance to a process with the host
+owner's filesystem privileges. Approving a configuration does not approve
+later changes to the scripts those commands run.
+
+Regressions are in `tests/desktop-commands.test.ts` and
+`tests/renderer-commands.test.ts`. The first validates bridge arguments and
+response shapes, then drives the bridge against the real loopback service,
+store and temporary Git repositories: base versus worktree bytes, stale
+identity, retry with the same key, sibling reuse, missing and malformed
+configuration, an empty agent queue and unexecuted marker commands. The second
+runs the compiled renderer against a fake document. `npm run desktop:smoke`
+reviews and approves a configuration through the Electron interface with a
+fake CLI. These fixtures call no model.
+
+#### Desktop configuration approval validation
+
+Development validation recorded on 14 November 2026 for implementation
+`bfeb63aea629932f95221671d8eb397ac0ad16a8`, based on main `c05fbf7`. `npm run check` passed strict type checking,
+formatting, compilation and all 599 automated tests, with no failures,
+cancellations or skips. The ten new cases are five bridge and five renderer
+regressions. Two bridge cases use the real loopback service, store and
+temporary Git repositories; the others use fixed responses or a fake document.
+
+Five deliberate faults in the compiled renderer each failed a renderer case and
+were then removed: unescaped arguments, a skipped workspace check, a receipt
+shown as the current state, a new request key on every attempt and content
+kept after a rejected approval.
+
+`npm run desktop:smoke` passed through the Electron interface on macOS with a
+fake CLI and a real throwaway repository. It showed the demo notice, the
+`setup` and `test` arguments of the base configuration as literal text
+including hostile markup, recorded an approval, read it back as approved,
+closed with Escape and returned focus. The run list was unchanged by review and
+approval. Screenshots of the review and approved states were inspected.
+
+Not established: a real agent account, a maintainer's own review of a real
+repository's configuration, the packaged application, or any command
+execution. The website was not changed or rebuilt, because trusted checks stay
+labelled as planned there. No independent security review was performed beyond
+inspection of the final diff against the [security model](#security-model):
+the change starts no process, builds no path and runs no Git command of its
+own. L1.4 remains incomplete; candidate-change consent is the next piece.
+
 #### Dormant command-job ownership acceptance
 
 Acceptance recorded 11 November 2026 against main `0ad0caf`. Internal ownership

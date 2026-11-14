@@ -488,8 +488,9 @@ The internal, read-only `local-command-config.ts` module is implemented at
 identity from the store and reads the fixed
 `argent.json` blob at the exact stored base through trusted Git. It validates a
 bounded versioned schema of argument arrays and returns immutable commands,
-source hashes and an approval-candidate identity. It has no API, desktop or
-worker entry point and launches no configured command.
+source hashes and an approval-candidate identity. It has no worker entry point
+and launches no configured command; the approval service and desktop dialog
+below display its result.
 
 The candidate hashes the canonical common Git directory, its device and inode,
 the exact configuration bytes' SHA-256 and the interpretation-policy version.
@@ -515,8 +516,9 @@ host owner. A duplicate
 request returns only historical audit data. Reuse lookup
 freshly reads and compares the candidate and stored snapshot, including across
 sibling workspaces and newer bases. It supplies a point-in-time match, not a
-portable grant or permission to dispatch. Approval has no public API, desktop or
-worker entry point and never queues work. Existing history exports and restores
+portable grant or permission to dispatch. Approval has no worker entry point and
+never queues work; it is reached only through the local service routes and the
+desktop dialog below. Existing history exports and restores
 exclude its authority. Bounded action execution, exact-commit test evidence and
 stale result display remain planned. Before a result qualifies as verification,
 command-defining and test changes must be compared to the trusted base and
@@ -530,9 +532,23 @@ The planned authenticated GET reads configuration and its approval from one
 source observation; POST supplies only the expected digest and idempotency key
 to the existing transaction. The service owns the stable single-user actor,
 independent of its rotating bearer token. Receipts remain historical and cannot
-dispatch work. Standalone mode stays disabled, and no renderer bridge or desktop
-control is included. The accepted execution and candidate-review contracts are
-unchanged.
+dispatch work. Standalone mode stays disabled. The service step adds no
+renderer bridge; the desktop step below does. The accepted execution and
+candidate-review contracts are unchanged.
+
+### Desktop configuration approval (in development)
+
+The desktop's Commands dialog uses those two routes under the
+[desktop acceptance contract](docs/specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development).
+The preload adds `commandConfiguration` and `approveCommandConfiguration`. The
+renderer supplies a workspace identifier, the candidate identity of the
+configuration it displayed and a request key; the main process validates their
+formats and rebuilds each response from validated fields with the reader's own
+schema. Commands, paths, revisions and the operator never come from the
+renderer. The dialog reads only when opened, on Refresh and after an approval
+request, and shows approval only from a fresh reading, never from a receipt.
+Arguments are literal text with every character outside printable ASCII
+escaped. Approval still creates no job and runs nothing.
 
 ### Dormant command ownership
 
