@@ -143,7 +143,13 @@ desktop app. None runs a command and none produces a test result.
 | Service routes to inspect and approve it         | `69028d9` | [Service](docs/specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development), validated at `9b6ddef` |
 | Desktop review and approval of the configuration | `bfeb63a` | [Desktop](docs/specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development), a development commit   |
 
-Remaining for item 3: consent to a candidate's changes; running `setup` and
+The [internal candidate-consent step](docs/specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development)
+is in development: durable acknowledgements bound to a complete text review of
+one exact commit, with no binary or oversized-review exceptions. It has no
+service or desktop entry point and never permits execution.
+
+Remaining for item 3: service and desktop integration of candidate review and
+consent; running `setup` and
 then `test` in the verification checkout; the result recorded as evidence for
 the exact commit; and showing it as stale after a later change. Running the
 `run` action is deferred until those results work.

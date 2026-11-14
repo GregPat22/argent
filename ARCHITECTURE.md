@@ -628,6 +628,27 @@ desktop or worker entry point. Any failure, overflow, cancellation or deadline
 yields no review. Consent bound to a review identity, a fresh owned checkout,
 bounded execution and exact-commit results remain planned.
 
+### Internal candidate consent
+
+In development under the
+[consent acceptance contract](docs/specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development).
+`local-command-consent.ts` recomputes the pinned review and accepts only the
+identity the trusted caller says was displayed. Every changed entry must be
+text; binary and invalid-UTF-8 entries and review overflow are refused. The
+approved configuration must contain `test`. The versioned consent binds setup
+followed by test to one actor, workspace, configuration approval, review,
+observation, base, commit and tree, with no raw repository text in SQLite.
+
+The receipt and its event commit atomically. Retrying an identical request
+returns validated history, even if the worktree is gone. A fresh match requires
+another complete review; a different commit or unclean worktree cannot reuse
+consent. New consent also requires an idle running workspace, checked again in
+the write transaction. Receipts and matches explicitly forbid execution.
+No API, desktop control or worker consumes them. Future dispatch must obtain
+exclusive ownership, revalidate and create a fresh verification checkout; a
+point-in-time match cannot fence later repository writes. Checksums detect
+corruption, not host-owner tampering.
+
 ### Internal bounded command runner
 
 Implemented at `e4260cc` under the

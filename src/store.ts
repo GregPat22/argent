@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { LifecycleStore } from "./lifecycle-store.js";
 import { RepositoryStore } from "./repository-store.js";
+import { LocalCommandConsentStore } from "./local-command-consent.js";
 import { LocalCommandApprovalStore } from "./local-command-approvals.js";
 import {
   commandRequest,
@@ -112,6 +113,7 @@ export class Store {
   readonly lifecycle: LifecycleStore;
   readonly repositories: RepositoryStore;
   readonly localCommandApprovals: LocalCommandApprovalStore;
+  readonly localCommandConsents: LocalCommandConsentStore;
 
   constructor(path: string) {
     this.db = new DatabaseSync(path);
@@ -170,6 +172,7 @@ export class Store {
       this.lifecycle = new LifecycleStore(this.db);
       this.repositories = new RepositoryStore(this.db);
       this.localCommandApprovals = new LocalCommandApprovalStore(this.db, this);
+      this.localCommandConsents = new LocalCommandConsentStore(this.db, this);
       this.transaction(() => {
         const version = this.db
           .prepare(

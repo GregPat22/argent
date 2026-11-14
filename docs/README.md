@@ -30,6 +30,10 @@ piece built so far, with its commit and contract, and what remains. The
 desktop app reaches only
 [review and approval of the command configuration](specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development).
 None of the pieces runs a command or produces a test result.
+[Internal candidate consent](specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development)
+is in development. It records an acknowledgement for one complete text review;
+binary changes and reviews above the display limits cannot be consented to.
+Service and desktop candidate-consent controls remain planned.
 
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
 is implemented at `d2ef4e5`, with

@@ -569,12 +569,11 @@ consent, desktop controls or verified results.
    and the agent queue remains empty. Existing approval-store regressions retain
    transaction, repository separation and concurrency coverage.
 
-The next integration step is desktop configuration review and approval controls.
-Candidate-change consent, including the open handling of changes that cannot be
-displayed, remains separate from configuration approval. Command execution,
-exact-commit results and stale-result presentation still require their contracts
-and evidence. Public product descriptions continue to label trusted checks as
-planned.
+Desktop configuration review and approval controls are covered by the next
+acceptance section. Candidate-change consent follows the
+[complete-text policy](#internal-candidate-consent-acceptance-in-development):
+undisplayed changes cannot be approved by identity alone. Candidate consent,
+command execution and exact-commit test results remain separate integrations.
 
 #### Configuration approval service validation
 
@@ -969,6 +968,55 @@ larger repositories from trusted checks until that bound is revisited.
 These fixtures establish bounded read-only review. They establish no consent,
 fresh checkout, command execution or test result, and L1.4 remains incomplete.
 
+#### Internal candidate consent acceptance (in development)
+
+Acceptance recorded 14 November 2026 against main `c091bb8`. The first consent
+policy requires every changed file to have a complete text display. Binary and
+invalid-UTF-8 changes, including deletion, rename and mode-only changes, cannot
+be consented to. Existing review limits still refuse the whole request; there
+is no identity-only exception or partial-review override. Unchanged binary files
+are not part of the change set and do not block consent.
+
+1. The internal consent store accepts the stored workspace ID, a trusted actor,
+   the identity of the review displayed to that actor and an idempotency key.
+   The service supplies the worktree root. It accepts no caller diff, path,
+   revision, argv, approval snapshot or execution override. It recomputes the
+   pinned review and requires the exact identity, complete text changes and an
+   approved `test` command. Consent covers only approved setup followed by test;
+   it never covers the deferred `run` action.
+2. A compact immutable binding records the versioned consent policy, workspace,
+   actor, configuration approval and identity, review policy and identity,
+   observation identity, base, exact commit and tree. No raw file or diff text
+   is persisted. One receipt and its audit event are committed in the same
+   immediate transaction. A checksum and strict decoding protect stored reads
+   against accidental corruption, not the host owner.
+3. The idempotency fingerprint includes policy, workspace, actor and expected
+   review. A repeated key returns validated history even after files change or
+   disappear; a changed payload conflicts. Concurrent identical requests
+   produce one receipt and event. A different key records another explicit
+   acknowledgement after a fresh review.
+4. New consent requires a running local workspace with no active or uncertain
+   agent or command job, checked again inside the write transaction. Approval
+   and stored workspace bindings are rechecked before insertion. Abort, stale
+   identity, dirty worktree, missing approval, binary changes, review overflow
+   and audit insertion failure leave no consent or event.
+5. A separate lookup binds actor and workspace and repeats the whole review.
+   A different commit, even with the same tree, does not match. Dirty or
+   unreviewable state fails closed. A receipt is always historical; even a fresh
+   match explicitly forbids execution. This is a point-in-time observation, not
+   a lease or proof that a person read the displayed text. Future dispatch must
+   revalidate under exclusive ownership and use a fresh verification checkout.
+6. Real temporary Git and SQLite tests cover text and binary changes, review
+   bounds, stale identities, actor/workspace isolation, no-test configuration,
+   restart, concurrent processes, rollback, corruption, cancellation and active
+   or uncertain work. No configured marker runs, no job is queued and no agent
+   or test result is created. Existing review and approval behavior is retained.
+
+This is internal storage groundwork in development. Service routes, desktop
+candidate review and consent controls, command execution, exact-commit results
+and stale-result display remain separate integration steps. It does not finish
+L1.4 or establish a real-account walkthrough.
+
 #### Internal bounded command runner acceptance
 
 Acceptance recorded 12 November 2026 against main `8027d0b` with the pinned
@@ -1190,9 +1238,10 @@ trusted checks without protecting anything. The bound is revised below independe
    success, a large tree with a small change set and a change set that is too
    large. The existing observation, review, checkout and changes suites pass.
 
-Still open: a changed blob above 4 MiB, or more than 1 MiB of diff text, makes
-the whole candidate unreviewable and so untestable. Whether such a change may
-be accepted by identity alone is a product choice for the consent slice.
+A changed blob above 4 MiB, or more than 1 MiB of diff text, makes the whole
+candidate unreviewable and so untestable. The
+[full-display consent policy](#internal-candidate-consent-acceptance-in-development)
+retains this refusal; identity-only acceptance is not supported.
 
 #### Clean-commit scale evidence
 
