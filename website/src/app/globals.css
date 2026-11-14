@@ -895,7 +895,10 @@ main > section:not([data-onscreen="true"]) .cta-drops i,
 main > section:not([data-onscreen="true"]) .problem-dash,
 main > section:not([data-onscreen="true"]) .hiw-pulse,
 main > section:not([data-onscreen="true"]) .roadmap-node,
-main > section:not([data-onscreen="true"]) .journey-pulse {
+main
+  > section:not([data-onscreen="true"])
+  .journey-cloud[data-on="true"]
+  .journey-pulse::after {
   animation-play-state: paused;
 }
 
@@ -1196,22 +1199,30 @@ main > section:not([data-onscreen="true"]) .journey-pulse {
   color: #d5dce6;
 }
 .journey-pulse {
+  position: relative;
   width: 0.55em;
   height: 0.55em;
   border-radius: 50%;
   background: var(--color-running);
 }
-.journey-cloud[data-on="true"] .journey-pulse {
+.journey-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--color-running);
+  border-radius: inherit;
+}
+.journey-cloud[data-on="true"] .journey-pulse::after {
   animation: journey-pulse 1.6s ease-in-out infinite;
 }
 @keyframes journey-pulse {
-  50% {
-    box-shadow: 0 0 0 0.45em rgb(168 189 255 / 0);
+  from {
+    transform: scale(1);
     opacity: 0.5;
   }
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgb(168 189 255 / 0.5);
+  to {
+    transform: scale(2.6);
+    opacity: 0;
   }
 }
 .journey-meter {
@@ -1223,13 +1234,15 @@ main > section:not([data-onscreen="true"]) .journey-pulse {
 .journey-meter span {
   display: block;
   height: 100%;
-  width: 0;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left;
   border-radius: inherit;
   background: linear-gradient(90deg, #c9d1dc, #fff);
-  transition: width 2.4s var(--ease-out-quint);
+  transition: transform 2.4s var(--ease-out-quint);
 }
 .journey-cloud[data-on="true"] .journey-meter span {
-  width: 78%;
+  transform: scaleX(0.78);
 }
 .journey-phone {
   left: 58.6%;

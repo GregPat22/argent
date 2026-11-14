@@ -162,6 +162,75 @@ On the final content, 10 November 2026:
 - At the restyle validation the site was not deployed. The landing page is now
   served at [argent.build](https://argent.build/); no desktop download exists.
 
+## Website consistency and motion corrections (in development)
+
+Review baseline: main `c05fbf7`, 14 November 2026. The website omitted the
+accepted checked-links experiment and further project rules, and described
+crash recovery without the real-process reconciliation limit. The local
+terminal example also used verified green for an untested record. These
+corrections preserve the accepted positioning, headline and milestone order.
+
+Acceptance:
+
+1. Website roadmap, FAQ and open-source principles reflect the README,
+   roadmap and vision: Claude Code release, Codex/model picker, checked-links
+   experiment, further rules, Cursor/OpenCode, developer-owned remote host,
+   optional managed cloud, then mobile. Links grant no access and carry no
+   messages; rules distinguish guidance, checks, gates and prevention, with no
+   prevention control offered today. Crash reconciliation stays planned.
+2. Untested local records remain silver. Green may identify the explicitly
+   labelled simulation integrity result or planned verification example.
+3. The comparison divider follows input without spring travel when reduced
+   motion is enabled, including a live preference change. Its clip and handle
+   use the same position; normal-motion input keeps its existing spring.
+4. Clipboard failure immediately reveals complete, selectable commands and
+   retains the fallback message. Repeated copies reset their feedback timer;
+   changing tabs clears the previous terminal's timer.
+5. The journey meter keeps constant layout width and fills with a transform.
+   Its pulse animates transform and opacity, pauses offscreen and stops under
+   reduced motion. Agent preview changes use compositor-compatible transforms
+   and omit their entrance/exit blur under reduced motion.
+6. Focused browser regressions demonstrate the baseline defects and corrected
+   behavior. Run the complete browser suite, website typecheck/build and root
+   check, then inspect desktop and mobile layouts. Runtime performance scores
+   are observations from the measured browser, not field performance guarantees.
+
+Validation on 14 November 2026, based on main `c05fbf7`:
+
+- Both reduced-motion regressions fail on an isolated unchanged-main build,
+  including the live preference change, and pass with the correction. The
+  baseline also fails the new roadmap, untested-record color, clipboard fallback
+  and transform-meter assertions. All six focused regressions pass after the
+  corrections.
+- A follow-up review against main `c091bb8` reproduces an inherited CSS
+  specificity defect: the active journey pulse overrides its offscreen pause.
+  A browser regression reaches the active stage, scrolls away and observes
+  `running` instead of `paused`. The offscreen selector now takes precedence;
+  the regression also checks that returning to the section resumes the pulse.
+- Website production build and typecheck pass. The complete repository check
+  passes all 589 tests, strict types, compilation and formatting.
+- The full browser run passes 65 checks and exposes three FAQ count assertions
+  expecting eight answers after the rules-and-links answer makes nine. All
+  three original tests pass on unchanged main. With the expected count updated
+  and the added answer asserted, all three reruns pass, preserving every existing
+  keyboard, rapid-toggle, no-script and content assertion. All 68 browser checks
+  are covered by the full run and these focused reruns.
+- Desktop and phone screenshots were inspected at 1440 and 390 px; neither
+  viewport has horizontal overflow. The live GitHub description matches package
+  metadata; the deployed website still contains the baseline copy omissions.
+
+Motion's baseline runtime audit reports A (81/100), with 253 detected animations;
+242 were classified S and 11 C. The final local audit reports S (88/100), with
+260 S and nine C observations. These single runs differ in observed animation
+counts and machine load, so they are not a controlled performance benchmark.
+Static inspection identifies the meter's width
+and pulse's shadow as avoidable layout and paint costs. Their replacements use
+transform and opacity; this does not claim a measured global frame-rate gain.
+
+These are local Chromium checks, not Safari, Firefox or field performance
+validation. No deployed change, native app, account-backed agent run or new
+product capability is established. Integration and publication remain separate.
+
 ## Navigation reopen regression (in development)
 
 Recorded 12 November 2026 against main `864188a`. Closing and reopening the

@@ -5,6 +5,13 @@ recommendation that still needs a practical check. Neither label proves that a
 capability is implemented: see the [README](../README.md#what-works-today) for
 what works today and the [roadmap](../ROADMAP.md) for sequencing.
 
+Website consistency corrections are in development against main `c05fbf7`,
+14 November 2026. They apply the accepted rules and checked-links decisions to
+the existing website and preserve the headline, positioning and milestone order.
+The [acceptance contract](specs/0016-website-restyle.md#website-consistency-and-motion-corrections-in-development)
+also covers untested-record color, reduced-motion input, clipboard fallback and
+bounded animation costs. No execution, security or product decision changes.
+
 | Decision                                                                | Status                                                                                                      | Rationale and consequence                                                                                                                                                                                                            | Revisit or completion evidence                                                                                                             |
 | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Argent is desktop-first, downloaded from a website                      | Accepted product requirement                                                                                | The installed app is the primary interface. Browser access may complement it later.                                                                                                                                                  | Local package and hands-on desktop checks; signing, notarization and public distribution are separate.                                     |

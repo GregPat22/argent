@@ -54,6 +54,18 @@ const PROMISES: {
     status: "policy",
     subject: "Honest labels",
   },
+  {
+    title: "Rules say what enforces them.",
+    body: "A rule is guidance, a check, a gate or a prevention control. Argent offers no prevention control today: local execution is not a sandbox. Trusted checks are in development; further rule types are planned after release.",
+    status: "policy",
+    subject: "Project rules",
+  },
+  {
+    title: "Linked work, explicit boundaries.",
+    body: "Planned after Codex: checked links warn about overlapping changes and test a trial merge of exact commits. A link grants no access and carries no messages between agents.",
+    status: "planned",
+    subject: "Checked links experiment",
+  },
 ];
 
 function Ingot() {
