@@ -26,9 +26,10 @@ item 1. L1.3 now supplies a read-only changes panel; its
 records service/renderer regression tests and the native desktop flow at
 `37ea780`. Trusted checks (L1.4) are next, and the complete local MVP remains open.
 The roadmap's [L1.4 progress](../ROADMAP.md#l14-progress) table lists every
-internal piece built so far, with its commit and contract, and what remains.
-None of them is reachable from the desktop app, runs a command or produces a
-test result.
+piece built so far, with its commit and contract, and what remains. The
+desktop app reaches only
+[review and approval of the command configuration](specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development).
+None of the pieces runs a command or produces a test result.
 
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
 is implemented at `d2ef4e5`, with

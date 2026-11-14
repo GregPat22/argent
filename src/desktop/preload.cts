@@ -18,6 +18,9 @@ const bridge: DesktopBridge = {
   listWorkspaces: (before) => invoke("listWorkspaces", [before]),
   getWorkspace: (id) => invoke("getWorkspace", [id]),
   workspaceChanges: (id) => invoke("workspaceChanges", [id]),
+  commandConfiguration: (id) => invoke("commandConfiguration", [id]),
+  approveCommandConfiguration: (id, expected, key) =>
+    invoke("approveCommandConfiguration", [id, expected, key]),
   createWorkspace: (repository) => invoke("createWorkspace", [repository]),
   createLocalWorkspace: (from) => invoke("createLocalWorkspace", [from]),
   listRuns: (workspace, before) => invoke("listRuns", [workspace, before]),

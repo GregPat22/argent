@@ -36,7 +36,24 @@ const git = (...args: string[]) =>
 git("init", "--quiet", "--initial-branch=main");
 writeFileSync(join(repository, "README.md"), "# smoke\n");
 writeFileSync(join(repository, "delete-me.txt"), "to delete\n");
-git("add", "README.md", "delete-me.txt");
+// Reviewed in the desktop and never executed by this smoke run.
+writeFileSync(
+  join(repository, "argent.json"),
+  JSON.stringify({
+    version: 1,
+    commands: {
+      setup: { argv: ["npm", "ci"] },
+      test: {
+        argv: [
+          "node",
+          "--test",
+          "<img src=x onerror=window.untrustedCommand=true>",
+        ],
+      },
+    },
+  }),
+);
+git("add", "README.md", "delete-me.txt", "argent.json");
 git("commit", "--quiet", "-m", "initial");
 const claude = join(directory, "claude");
 writeFileSync(

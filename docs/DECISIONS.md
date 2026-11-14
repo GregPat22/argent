@@ -148,6 +148,26 @@ independent security review on 12 November 2026. The
 [validation evidence](specs/0013-local-mvp.md#configuration-approval-service-validation)
 records automated coverage and the untested desktop and real-execution limits.
 
+### Desktop configuration approval boundary — 14 November 2026
+
+Integration in development, based on main `c05fbf7`, within the accepted L1.4
+configuration approval contract. Connect the desktop to the existing service
+routes with a Commands dialog and two narrow bridge methods. The renderer sends
+only the candidate identity of the configuration it displayed and a request
+key; the service reads the base again, so what was reviewed is what is
+approved. Show every argument in full as quoted text with all characters
+outside printable ASCII escaped, because a review that hides a character is not
+a review. Read on demand only, and show approval from a fresh reading rather
+than from a receipt, which stays history.
+
+The approval request originates in the sandboxed renderer, as the per-run
+full-access choice does; a native confirmation is not added. See the
+[acceptance contract](specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development)
+and its
+[validation](specs/0013-local-mvp.md#desktop-configuration-approval-validation).
+Approval runs nothing. The open candidate-consent policy is unchanged, and
+L1.4 remains incomplete.
+
 ### Website test browser ownership — 12 November 2026
 
 Test-harness correction in development, based on main `3f2181b` and CI evidence

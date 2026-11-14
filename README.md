@@ -9,7 +9,9 @@ You decide what gets merged.
 > today. The desktop app can run **Claude Code on a local repository**, each
 > workspace on its own branch and Git worktree, using your own `claude` sign-in.
 > Local execution is **not a sandbox**: the agent runs as you. The Changes panel
-> shows current files and a bounded diff against the workspace base. Trusted test
+> shows current files and a bounded diff against the workspace base. The Commands
+> dialog shows a repository's check commands for review and records your
+> approval; Argent does not run them yet. Trusted test
 > execution, pull requests and cloud workspaces are planned; GitHub-URL workspaces
 > remain a scripted simulation. Everything below says which parts are
 > real and which are planned.
@@ -59,6 +61,12 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   binary files. Open Changes or press Refresh to read again. Live changes are
   not test evidence. See the
   [acceptance contract](docs/specs/0013-local-mvp.md#desktop-changes-acceptance).
+- **Review of the check commands** (part of L1.4): the Commands dialog shows
+  the `setup`, `test` and `run` commands from `argent.json` at the workspace's
+  base commit, every argument in full, and records your approval for that
+  repository and those exact bytes. Argent does not run the commands yet, so
+  this is not a test result. See the
+  [acceptance contract](docs/specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development).
 
 ## Where it is going
 
@@ -210,7 +218,7 @@ The demo uses its own disposable token; never reuse it for a real deployment.
 ## Local API
 
 The desktop's local service has configuration review and approval endpoints,
-with no desktop controls connected yet; see the
+used by the desktop's Commands dialog; see the
 [service acceptance contract](docs/specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development).
 Configuration approval alone does not run commands or verify an agent's changes.
 

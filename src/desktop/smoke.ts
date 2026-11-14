@@ -202,6 +202,18 @@ export async function runDesktopSmoke(
     true,
   );
   await js(`document.querySelector('#changes-close').click()`);
+  await js(`document.querySelector('#workspace-commands').click()`);
+  assert.match(
+    await text("#commands-status"),
+    /Scripted demo.*no command configuration/,
+  );
+  assert.deepEqual(
+    await js(
+      `[document.querySelector('#commands-refresh').disabled, document.querySelector('#commands-approve').disabled]`,
+    ),
+    [true, true],
+  );
+  await js(`document.querySelector('#commands-close').click()`);
 
   // Search jumps to workspaces with arrows and Enter.
   await js(`document.querySelector('#search-nav').click()`);
@@ -436,6 +448,70 @@ export async function runDesktopSmoke(
     "empty local changes",
   );
   await js(`document.querySelector('#changes-close').click()`);
+
+  // Review and approve the base commit's command configuration. Approval
+  // records a review: it creates no run and executes nothing.
+  const beforeApproval = await call("listRuns", [local.id]);
+  await js(
+    `document.querySelector('#workspace-commands').focus(); document.querySelector('#workspace-commands').click()`,
+  );
+  await until(
+    () =>
+      js(
+        `!document.querySelector('#commands-content').hidden && !document.querySelector('#commands-approve').disabled`,
+      ),
+    "command configuration shown for review",
+  );
+  assert.deepEqual(
+    await js(
+      `Array.from(document.querySelectorAll('#commands-list .command-action')).map(action => [action.querySelector('h3').textContent, ...Array.from(action.querySelectorAll('li'), item => item.textContent)])`,
+    ),
+    [
+      ["setup", '"npm"', '"ci"'],
+      [
+        "test",
+        '"node"',
+        '"--test"',
+        '"<img src=x onerror=window.untrustedCommand=true>"',
+      ],
+    ],
+  );
+  assert.match(await text("#commands-approval"), /Not approved/);
+  assert.match(await text("#commands-notice"), /does not run them yet/);
+  assert.equal(
+    await js(
+      `!!window.untrustedCommand || !!document.querySelector('#commands-list img')`,
+    ),
+    false,
+    "configured arguments stay literal text",
+  );
+  await capture("command-review");
+  await js(`document.querySelector('#commands-approve').click()`);
+  await until(
+    () =>
+      js(
+        `document.querySelector('#commands-approval').textContent.startsWith('Approved ') && document.querySelector('#commands-approve').disabled`,
+      ),
+    "approval recorded and read back",
+  );
+  assert.equal(await text("#commands-approve"), "Approved");
+  assert.match(await text("#commands-status"), /does not run it yet/);
+  assert.equal(
+    await js(
+      `document.documentElement.scrollWidth <= innerWidth && document.querySelector('#commands-dialog').getBoundingClientRect().right <= innerWidth`,
+    ),
+    true,
+    "the command dialog fits the window",
+  );
+  await capture("command-approved");
+  window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
+  window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
+  await until(
+    () => js(`!document.querySelector('#commands-dialog').open`),
+    "Escape closes the command configuration",
+  );
+  assert.equal(await js(`document.activeElement.id`), "workspace-commands");
+  assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
   await js(`document.querySelector('#permission-toggle').click()`);
   assert.equal(
     await js(
@@ -607,6 +683,7 @@ export async function runDesktopSmoke(
       honestRecord: true,
       liveChanges: true,
       changesKeyboardClose: true,
+      commandConfigurationApproved: true,
       parallelWorkspace: true,
       workspaceId: workspace.id,
       verifiedRun: first.id,
