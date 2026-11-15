@@ -1353,6 +1353,30 @@ permission mode), so the proof travels with the code. Archive removes the worktr
 uncommitted changes, unless the developer explicitly discards them; the branch is
 kept.
 
+#### Human-triggered merge design todo
+
+Accepted design requirement, 15 November 2026: provide a way for a person to
+explicitly merge a pull request from the desktop app. This is planned design
+work, not an implemented control or an addition to L1.5's release criteria.
+The delivery milestone remains open; automatic merging remains out of scope.
+
+Before implementation, review an Argent-specific UX and workflow covering:
+
+- How review, exact-commit check results, Create PR, Merge and Archive connect,
+  including which actions are available at each stage.
+- What the person sees and explicitly confirms before merging: the pull
+  request, target branch, commit and merge strategy.
+- How stale or failed checks, repository protections, conflicts and changed
+  remote state affect the flow.
+- How pending, failed or uncertain merge outcomes are displayed and reconciled
+  without silently retrying; when archiving is offered and what it preserves.
+
+The design todo is complete when a reviewed interaction proposal, delivery
+placement and testable acceptance criteria are recorded. Button layout,
+confirmation details, merge strategy and whether archiving is a separate step
+remain design questions. Existing human authority, security and safe-archive
+requirements remain in force.
+
 ### L1.6 Codex and model choice
 
 An update after the first public release, following checked links (L2), and not

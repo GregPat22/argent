@@ -59,6 +59,20 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Human-triggered desktop merge: design pending — 15 November 2026
+
+Accepted as a design requirement: a person should be able to explicitly merge
+a pull request from Argent. The interaction and workflow are not decided.
+Design review must connect review, check evidence, PR creation, merge and archive
+without implying that one action authorizes another. Automatic merging remains
+out of scope.
+
+The [design todo](specs/0013-local-mvp.md#human-triggered-merge-design-todo)
+records the open UX, confirmation, merge-strategy and recovery questions.
+Scheduling remains open; the numbered work queue and L1.5 exit criteria are
+unchanged. This records intended design work only, with no implementation or
+validation evidence for an in-app merge control.
+
 ### What sets Argent apart, and checked links before Codex — 14 November 2026
 
 Accepted product decisions. They revise one point of the entry
