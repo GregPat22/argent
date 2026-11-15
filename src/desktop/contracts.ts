@@ -8,6 +8,14 @@ import type {
   WorkspaceChanges,
 } from "../domain.js";
 import type { LocalCommandConfigDescriptor } from "../local-command-config.js";
+import type {
+  CandidateReviewView,
+  CandidateConsentReceiptView,
+} from "../local-command-views.js";
+export type {
+  CandidateReviewView,
+  CandidateConsentReceiptView,
+} from "../local-command-views.js";
 
 export interface ServiceStatus {
   connected: boolean;
@@ -59,6 +67,12 @@ export interface DesktopBridge {
   getWorkspace(id: string): Promise<Workspace>;
   workspaceChanges(id: string): Promise<WorkspaceChanges>;
   commandConfiguration(id: string): Promise<CommandConfigurationView>;
+  candidateReview(id: string): Promise<CandidateReviewView>;
+  consentCandidate(
+    id: string,
+    expectedReviewIdentity: string,
+    key: string,
+  ): Promise<CandidateConsentReceiptView>;
   /**
    * Records approval of the configuration the person was shown. The renderer
    * supplies only that configuration's identity and a request key; the service

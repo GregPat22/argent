@@ -164,13 +164,21 @@ desktop app. None runs a command and none produces a test result.
 The [internal candidate-consent step](docs/specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development)
 is in development: durable acknowledgements bound to a complete text review of
 one exact commit, with no binary or oversized-review exceptions. It has no
-service or desktop entry point and never permits execution.
+execution entry point and never permits execution. Service and desktop integration
+is in development under the
+[candidate-review contract](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development).
 
-Remaining for item 3: service and desktop integration of candidate review and
-consent; running `setup` and
-then `test` in the verification checkout; the result recorded as evidence for
-the exact commit; and showing it as stale after a later change. Running the
-`run` action is deferred until those results work.
+- [x] Implement the reachable candidate-review and consent flow (in development):
+      display the complete committed text changes and record exact-commit consent;
+      no command dispatch or test result. Validation is recorded in the linked spec.
+- [ ] Connect exclusive executable ownership, setup/test dispatch and
+      passed/failed/stale results to that desktop flow. This remains the next
+      integration; item 3 is not complete.
+
+After the candidate-review integration, item 3 still needs `setup` and then
+`test` in the verification checkout, the result recorded as evidence for the
+exact commit, and stale display after a later change. Running the `run` action
+is deferred until those results work.
 
 **The next change is the first working result.** The pieces above are enough
 to connect, and none of them shows a developer anything yet. The remaining work

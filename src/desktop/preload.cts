@@ -21,6 +21,9 @@ const bridge: DesktopBridge = {
   commandConfiguration: (id) => invoke("commandConfiguration", [id]),
   approveCommandConfiguration: (id, expected, key) =>
     invoke("approveCommandConfiguration", [id, expected, key]),
+  candidateReview: (id) => invoke("candidateReview", [id]),
+  consentCandidate: (id, expected, key) =>
+    invoke("consentCandidate", [id, expected, key]),
   createWorkspace: (repository) => invoke("createWorkspace", [repository]),
   createLocalWorkspace: (from) => invoke("createLocalWorkspace", [from]),
   listRuns: (workspace, before) => invoke("listRuns", [workspace, before]),

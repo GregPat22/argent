@@ -2087,3 +2087,53 @@ dialog::backdrop {
 .commands-approval .button {
   flex-shrink: 0;
 }
+
+/* All candidate changes stay in one bounded, keyboard-scrollable review. */
+.candidate-panel {
+  width: min(960px, calc(100vw - 48px));
+}
+.candidate-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.candidate-files {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+}
+.candidate-files p,
+.candidate-files h3 {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.candidate-files p {
+  color: var(--sterling);
+}
+.candidate-file {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 12px;
+}
+.candidate-file h3 {
+  font: 500 12px/1.6 var(--mono);
+}
+.candidate-file pre {
+  font: 12px/1.7 var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.candidate-file .mono {
+  font-size: 11px;
+}
+@media (max-width: 760px) {
+  .candidate-panel .commands-approval {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -135,6 +135,16 @@ security review on 14 November 2026. The
 [validation evidence](specs/0013-local-mvp.md#internal-candidate-consent-validation)
 records the fixtures, corrected IPC assertion and remaining integration limits.
 
+Service and desktop candidate-review integration is in development against main
+`540b00a`, 15 November 2026, under the
+[acceptance contract](specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development).
+It applies this accepted complete-text policy without changing execution
+permissions. A fresh review supplies both the full display and the lookup for
+matching consent; a POST receipt remains history. A separate dialog keeps the
+configuration approval and exact-commit acknowledgement distinct. This is the
+first reachable part of the remaining result flow; executable ownership,
+setup/test dispatch and passed/failed/stale evidence remain the next integration.
+
 ### Enforceable rules, checked links and reasons that stand alone — 14 November 2026
 
 Three product decisions, taken after a review of where the project stands. None

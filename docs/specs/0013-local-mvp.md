@@ -1047,6 +1047,56 @@ smoke run was performed for this step; hosted delivery checks remain required.
 The next integration step is exposing candidate review and consent through the
 service and desktop, while execution remains forbidden. L1.4 remains incomplete.
 
+#### Desktop candidate review and consent acceptance (in development)
+
+Acceptance recorded 15 November 2026 against main `540b00a`. This is the first
+reachable integration of the remaining L1.4 result flow. It records consent;
+execution and passed, failed or stale results remain the next integration.
+
+1. The authenticated local service exposes `GET /workspaces/:id/candidate-review`
+   and `POST /workspaces/:id/candidate-consents`. Both require the configured
+   local worktree root and stable service-owned actor; standalone mode stays
+   disabled. Requests cannot choose paths, revisions, argv or actors. POST
+   accepts only the displayed review identity and an idempotency header. Browser
+   origins, extra fields and query parameters are refused.
+2. GET requires an idle running local workspace and reads one complete pinned
+   review with the approved base configuration. It returns only display data,
+   omitting internal actor and observation bindings. Consent is shown only when
+   a validated stored receipt matches this fresh review. POST uses the existing
+   atomic consent transaction and returns historical metadata, never a current
+   grant. Reading, consenting and retrying enqueue and execute nothing.
+3. The Commands dialog leads to a separate candidate-review dialog after
+   configuration approval. It shows exact base and candidate commits, the base
+   commands, configuration-change status, and every changed path, mode, blob
+   identity, byte size and whole-file text diff. All content is literal text;
+   controls, non-ASCII characters and backslashes use visible escapes without
+   truncation. Binary entries are labelled undisplayed and block consent.
+   Missing `test`, dirty, oversized, busy and uncertain candidates cannot be
+   consented to. Empty change sets remain reviewable.
+4. The only new bridge methods are `candidateReview(workspaceId)` and
+   `consentCandidate(workspaceId, expectedReviewIdentity, key)`. Exact argument
+   counts, UUIDs and digests are checked before HTTP. Responses are rebuilt
+   from bounded validated fields, cross-checking workspace, base, summary,
+   file metadata and historical/no-execution flags. The request timeout covers
+   the four-minute review deadline plus ten seconds for supervised cleanup.
+5. The renderer reads on open, Refresh and successful consent only. It clears
+   old content on loading or failure, and invalidates pending responses and
+   errors on close, workspace change or disconnect. Reconnect waits for Refresh.
+   Consent requires a complete eligible displayed review and no pending request.
+   A request key is retained per workspace and review for uncertain retries.
+   A receipt triggers a fresh read and is never shown as current consent.
+6. Automated real-Git/service and bridge tests cover binding, request rejection,
+   stale identity, dirty/binary/busy candidates, no-test configuration, retries,
+   corrupt responses and unchanged queues. Renderer tests exercise full literal
+   display and response races. Native smoke covers review, consent and keyboard
+   closure with a local fixture and no model account. The complete repository
+   check and independent security review remain required before completion.
+
+The local security model and accepted consent policy are unchanged. A complete
+text display does not prove a person read it; matching consent is point-in-time
+and cannot fence later filesystem writes. No executable job, runner wiring,
+verification result or new prevention control is introduced.
+
 #### Internal bounded command runner acceptance
 
 Acceptance recorded 12 November 2026 against main `8027d0b` with the pinned

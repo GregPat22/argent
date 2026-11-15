@@ -53,6 +53,7 @@ function status(text: string): void {
     "commands-refresh",
     state.connected && isLocal(currentWorkspace()) && !pending,
   );
+  enable("commands-review", state.connected && !!view?.approval && !pending);
   const approvable = !!view?.configuration && !view.approval;
   setText(
     "commands-approve",

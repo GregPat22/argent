@@ -150,7 +150,7 @@ function readBinding(
   }
 }
 
-/** Internal only. No API, desktop control, queue or worker consumes this store. */
+/** Review acknowledgements only; no queue or worker consumes this store. */
 export class LocalCommandConsentStore {
   constructor(
     private readonly db: DatabaseSync,
@@ -286,6 +286,49 @@ export class LocalCommandConsentStore {
         "Idempotency key already used with a different payload",
       );
     return this.get(row.id as string);
+  }
+
+  /** One fresh review and its matching acknowledgement, never a grant. */
+  async inspect(
+    worktreeRoot: string,
+    workspaceId: string,
+    operatorId: string,
+    signal?: AbortSignal,
+  ) {
+    identity(workspaceId, UUID, "workspace");
+    requireString(operatorId, "operatorId", 128);
+    signal?.throwIfAborted();
+    this.idle(workspaceId);
+    const review = await reviewLocalCommandCandidate(
+      this.store,
+      worktreeRoot,
+      workspaceId,
+      operatorId,
+      signal,
+    );
+    signal?.throwIfAborted();
+    this.idle(workspaceId);
+    const approved = this.store.localCommandApprovals.get(
+      review.observation.approvalId,
+    );
+    if (
+      approved.operatorId !== operatorId ||
+      approved.descriptor.approvalCandidate.identity !==
+        review.observation.configurationIdentity
+    )
+      throw changed();
+    const row = this.db
+      .prepare(
+        "SELECT id FROM local_command_consents WHERE workspace_id = ? AND fingerprint = ? ORDER BY created_at DESC, id DESC LIMIT 1",
+      )
+      .get(workspaceId, fingerprint(workspaceId, operatorId, review.identity));
+    const receipt = row ? this.get(row.id as string) : null;
+    if (
+      receipt &&
+      JSON.stringify(receipt.binding) !== JSON.stringify(binding(review))
+    )
+      throw invalid();
+    return { review, approved, receipt };
   }
 
   /** Trusted caller supplies actor/root; request supplies only the displayed identity and key. */

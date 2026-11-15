@@ -20,6 +20,12 @@ import {
   validateCommandConfiguration,
 } from "./command-configuration.js";
 
+import {
+  validateCandidateReview,
+  validateCandidateConsentReceipt,
+} from "./candidate-review.js";
+import { REVIEW_LIMITS } from "../local-command-review.js";
+
 export const APP_URL = "argent://app/index.html";
 
 export function trustedSender(url: string, mainFrame: boolean): boolean {
@@ -79,7 +85,7 @@ export class DesktopClient {
       requireString(args[index], label, max);
     const id = (index = 0) => encodeURIComponent(str(index, "identifier", 128));
     const uuid = (value: unknown): value is string =>
-      typeof value === "string" && WORKSPACE_ID.test(value);
+      typeof value === "string" && WORKSPACE_ID.exec(value)?.[0] === value;
     const before = (index: number) =>
       args[index] === undefined
         ? ""
@@ -171,6 +177,42 @@ export class DesktopClient {
           20000,
         );
         return validateCommandApprovalReceipt(value, args[0], expected);
+      }
+      case "candidateReview": {
+        if (args.length !== 1 || !uuid(args[0]))
+          throw new DomainError(400, "Expected one workspace identifier");
+        const value = await serviceRequest(
+          connection,
+          `/workspaces/${id()}/candidate-review`,
+          "GET",
+          undefined,
+          undefined,
+          REVIEW_LIMITS.timeoutMs + 10000,
+        );
+        return validateCandidateReview(value, args[0]);
+      }
+      case "consentCandidate": {
+        const expected = args[1];
+        if (
+          args.length !== 3 ||
+          !uuid(args[0]) ||
+          typeof expected !== "string" ||
+          CANDIDATE_IDENTITY.exec(expected)?.[0] !== expected ||
+          !uuid(args[2])
+        )
+          throw new DomainError(
+            400,
+            "Expected a workspace, the reviewed changes identity and a request key",
+          );
+        const value = await serviceRequest(
+          connection,
+          `/workspaces/${id()}/candidate-consents`,
+          "POST",
+          { expectedReviewIdentity: expected },
+          args[2],
+          REVIEW_LIMITS.timeoutMs + 10000,
+        );
+        return validateCandidateConsentReceipt(value, args[0], expected);
       }
       case "getWorkspace":
         return serviceRequest(connection, `/workspaces/${id()}`);
