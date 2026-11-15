@@ -34,6 +34,10 @@ checks into projects, giving each group a fresh browser process. Run one group
 with `npm run test:e2e -- --project=seo`; the default command runs every group.
 The [browser-isolation correction](../docs/specs/0014-ci-test-determinism.md#website-browser-process-isolation-in-development)
 records the CI evidence and validation limits.
+Further isolation is in development: the affected atom and section-order tests
+own and close their browsers. Other tests retain their project browser. The atom's offscreen and
+live reduced-motion behaviors have independent tests with the same deadline.
+See the [landing-suite follow-up](../docs/specs/0014-ci-test-determinism.md#landing-suite-browser-lifetimes-in-development).
 
 The repository also keeps a static download preview in `website/index.html` and
 `website/styles.css`. The root `npm run site:preview` serves it on port 4320 once

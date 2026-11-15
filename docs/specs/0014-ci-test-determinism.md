@@ -289,3 +289,44 @@ and all 62 browser tests across the three projects. `npm run check` passes
 strict types, formatting, compilation and all 541 repository tests. Independent
 review found no issues in test selection, inherited configuration or the stated
 validation limits. Hosted validation remains required before merging.
+
+## Landing-suite browser lifetimes (in development)
+
+Investigation recorded 15 November 2026 at `44144a4`, against main `540b00a`.
+The website sources and CI configuration are identical at those revisions.
+Both hosted website runs passed typecheck and build, then exhausted the atom
+test's deadline late in its combined animation/offscreen/reduced-motion flow.
+One run also failed before the section-order test body, while Chromium created
+a context (`Browser.setDownloadBehavior`: missing browser context). The engine
+and desktop jobs passed. The two affected tests pass in isolation on unchanged
+main; this is not evidence of a website regression in the desktop changes.
+
+Project-level separation still leaves the landing suite sharing a Chromium
+process across many software-rendered pages. Context teardown does not close
+that process. The correction gives the affected atom and section-order tests
+their own browser lifetimes and
+separates two independent atom behaviors that previously shared one deadline.
+These are test-harness corrections; they do not establish the precise cause of
+the hosted Chromium failure or certify a production rendering fix.
+
+Acceptance criteria:
+
+1. Each affected atom and section-order test launches a browser through the
+   runner's Playwright instance and closes it in fixture teardown, including
+   failures. Its context closes before the browser. Other tests retain the
+   standard project-scoped browser to avoid repeatedly cold-starting the
+   software renderer throughout the suite.
+2. Preserve configured launch arguments, headed mode and channel, and inherited
+   context settings such as base URL, viewport, JavaScript and reduced motion.
+   Keep one worker, existing deadlines, zero retries and software WebGL.
+3. Keep every existing behavioral assertion. Independently prove that a visibly
+   changing atom stops drawing offscreen, and that a visibly changing atom
+   becomes static after a live reduced-motion change. Retain the size,
+   accessibility and absence-of-pause-control assertions.
+4. Compare collected tests with unchanged main, verify distinct browser
+   lifetimes, and run website typecheck, build, the full browser suite and root
+   `npm run check`. Hosted checks must pass before integration.
+
+Playwright documents [context option inheritance](https://playwright.dev/docs/test-use-options#explicit-context-creation-and-option-inheritance)
+for contexts created through the runner's instance. The fixture uses this public
+behavior rather than copying private runner configuration.

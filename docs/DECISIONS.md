@@ -273,6 +273,16 @@ isolation; the precise Chromium stall remains unconfirmed. See the
 [regression contract](specs/0014-ci-test-determinism.md#website-browser-process-isolation-in-development).
 No product, runtime security or milestone decision changes.
 
+Follow-up recorded 15 November 2026 against main `540b00a`: CI at `44144a4`
+again failed during context creation, this time within the interactive group,
+and the combined atom test timed out on both hosted runs. A test-harness
+refinement is in development: the affected atom and section-order tests own
+separate browser lifetimes,
+and offscreen stopping and live reduced motion have separate atom tests.
+Concurrency, deadlines, rendering settings and behavioral assertions remain
+unchanged. The exact hosted browser failure is still unconfirmed; see the
+[acceptance and validation limits](specs/0014-ci-test-determinism.md#landing-suite-browser-lifetimes-in-development).
+
 ### Reveal masks preserve layout — 12 November 2026
 
 Usability correction in development, based on main `3f2181b`. Temporary text
