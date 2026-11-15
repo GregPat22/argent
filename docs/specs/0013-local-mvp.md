@@ -1097,6 +1097,39 @@ text display does not prove a person read it; matching consent is point-in-time
 and cannot fence later filesystem writes. No executable job, runner wiring,
 verification result or new prevention control is introduced.
 
+#### Desktop candidate review and consent validation
+
+Development implementation `6dd49682db347e7d419fa39c463e96e3151c0997`, validated
+15 November 2026 against main `540b00a`:
+
+- `npm run check` passed types, formatting, build and all 631 tests. The final
+  response-validation corrections were then checked with strict types,
+  formatting and 22 focused service, bridge and renderer tests, all passing.
+- Real temporary Git repositories and SQLite exercised exact-commit identity,
+  complete text changes, reused configuration at later bases, historical retry,
+  restart reads, stale identity, dirty/binary/oversized candidates, missing test
+  configuration, active and uncertain work, request restrictions, disconnect
+  cancellation, corrupt receipts and unchanged execution queues. Configured
+  marker commands remained unexecuted.
+- Native Electron smoke passed with a fake CLI. The dialog displayed escaped
+  markup/control characters as text, recorded consent, refreshed its match,
+  removed that match after a later fixture commit, closed with Escape and
+  restored focus. Captured review and consent states were visually inspected.
+  Existing renderer isolation, reconnect and service survival checks also passed.
+- Independent security review found a desktop bounds mismatch for mode-only
+  changes and exact renames: the same blob was counted twice. The correction
+  mirrors the service's one-read accounting, with a regression for five large
+  mode-only changes. Final bridge tests also reject newline-suffixed UUIDs and
+  non-string configuration-state values before accepting display data.
+
+The full repository and native runs preceded those final response-validator
+corrections; the focused run covers the corrected validators. No test failed;
+initial test-source type errors were corrected before the focused runs. This
+establishes the review-and-consent flow, not command execution, a real-agent
+walkthrough, a packaged build or a test result about a candidate. L1.4 stays
+incomplete. The next integration connects exclusive executable ownership,
+setup/test in the verified checkout, exact-commit evidence and stale display.
+
 #### Internal bounded command runner acceptance
 
 Acceptance recorded 12 November 2026 against main `8027d0b` with the pinned

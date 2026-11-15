@@ -168,9 +168,11 @@ execution entry point and never permits execution. Service and desktop integrati
 is in development under the
 [candidate-review contract](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development).
 
-- [x] Implement the reachable candidate-review and consent flow (in development):
-      display the complete committed text changes and record exact-commit consent;
-      no command dispatch or test result. Validation is recorded in the linked spec.
+- [x] Implement the reachable candidate-review and consent flow (development
+      implementation `6dd4968`): display the complete committed text changes and
+      record exact-commit consent; no command dispatch or test result.
+      [Validation](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-validation)
+      records the checks and limits.
 - [ ] Connect exclusive executable ownership, setup/test dispatch and
       passed/failed/stale results to that desktop flow. This remains the next
       integration; item 3 is not complete.
