@@ -330,3 +330,19 @@ Acceptance criteria:
 Playwright documents [context option inheritance](https://playwright.dev/docs/test-use-options#explicit-context-creation-and-option-inheritance)
 for contexts created through the runner's instance. The fixture uses this public
 behavior rather than copying private runner configuration.
+
+Local validation on 15 November 2026 at
+`2a81e1b4681df9fc73fae00bc1cb117271d21933` passes website typecheck, production
+build and all 70 browser tests, with no retries or skips. The full corrected
+browser run takes 5.5 minutes locally; unchanged main `540b00a` passes all 69
+original browser tests in 5.2 minutes. Collection comparison shows exactly the
+original combined atom case replaced by the two independent behaviors, with no
+other additions, removals or duplicates. `npm run check` passes strict types,
+formatting, compilation and all 631 repository tests.
+
+A controlled fixture probe triggers an expected assertion failure, then verifies
+that the owned browser disconnected and the next test owns a different browser.
+It also verifies inherited base URL, viewport, disabled JavaScript and reduced
+motion. The final diff preserves production code, existing assertions, timeouts
+and worker count. Hosted checks remain required before integration; local passes
+do not reproduce or explain the original Chromium context-startup failure.
