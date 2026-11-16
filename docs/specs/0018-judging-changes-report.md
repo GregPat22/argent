@@ -1,0 +1,184 @@
+# Judging-changes report: whether a commit changed what judges it
+
+Status: **planned**, accepted 16 November 2026. Nothing in this spec is
+implemented. It is work-queue item 4 in the [roadmap](../../ROADMAP.md#work-queue):
+it starts after [L1.4](0013-local-mvp.md#l14-setup-run-and-test-actions) shows
+its first passed, failed or stale result in the desktop app, and it comes before
+the draft pull request (L1.5). The detailed acceptance contract and a dedicated
+security review are recorded here before any code.
+
+## Product decision
+
+L1.4 reads the `setup` and `test` commands from the workspace's base commit, so
+a commit cannot change which commands Argent runs. It can still change what
+those commands do. `npm run check` runs whatever the candidate commit's
+`package.json` says `check` is; the tests are the files in that commit; `setup`
+installs the dependencies that commit names. A passed result therefore says
+that the named commands passed on a known commit. It does not say whether that
+commit also changed what produced the pass.
+
+The complete text review before consent already shows every changed line. It
+does not point at the few changes that matter for the result, and a deleted
+test or a changed script is easy to miss in a long diff.
+
+The judging-changes report closes that gap. For one exact commit, Argent
+states whether the commit changed what judges it, in three groups, next to the
+check result and before the commands run. It is information for the person who
+decides. It makes no accusation: adding a dependency or rewriting a test is
+often the task itself. The report says that it happened and where.
+
+## What the report covers
+
+Argent computes the report from the committed difference between the
+workspace's base commit and the exact candidate commit. It reads Git objects
+with Argent's own Git commands. It runs no repository code, starts no package
+manager and uses no network.
+
+1. **Tests.** Test files that the commit deleted, renamed, added or modified,
+   and tests the commit newly marks as skipped. Test files are recognised by a
+   documented list of path patterns; skip markers by a documented list per
+   test runner.
+2. **What the approved commands run.** Changes to:
+   - `argent.json` (the candidate review already shows this status);
+   - the script definitions the approved commands call, for example the
+     `scripts` of `package.json`;
+   - recognised configuration files of test runners and other checks, from a
+     documented list of file names;
+   - continuous-integration workflow definitions, which judge the change
+     after a pull request exists.
+3. **Dependencies.** Code the approved `setup` and `test` commands install and
+   run:
+   - packages added, removed or changed in version, read from the lock file;
+   - packages that newly declare an install script;
+   - a package resolved from a URL, a Git reference or a local path instead of
+     the registry the base commit used;
+   - changes to package-source settings committed in the repository, such as a
+     registry override.
+
+Every entry names the path, the kind of change and, for dependencies, the
+package and both versions. All repository content is shown as literal text
+with the same visible escapes as the candidate review.
+
+## What the report says when it cannot tell
+
+- For a group Argent has no recogniser for in this repository, the report says
+  **not checkable**. It never says "no changes" for something it did not read.
+- A file too large or malformed to summarise within the bounds is reported as
+  changed and not summarised.
+- The report lists the recognisers it applied, so "no changes" always means
+  "none of these kinds".
+
+## Where it appears
+
+- **In the candidate review, before consent.** The person sees the report
+  before any command runs. This matters most for dependencies: `setup` is the
+  first time code from a newly added package can run on the developer's
+  computer.
+- **Next to the result.** A workspace shows passed, failed or stale together
+  with the number of judging changes for that commit, without opening the
+  transcript.
+- **In the evidence record.** When the draft pull request (L1.5) lands, its
+  evidence record carries the report for the same commit.
+
+The report is bound to the base commit and the candidate commit. When either
+changes it is computed again; an earlier report is never carried over.
+
+## What kind of rule this is
+
+The roadmap names rules by what enforces them. The report is a **check**:
+Argent computes it itself, after the agent has finished, from committed
+content. Because the candidate review displays it and consent is bound to that
+exact review, consent to run the commands is also a **gate** that the report
+passes through: commands do not run for a commit whose report was not
+displayed. It is not a prevention control. Nothing stops the agent from making
+the change.
+
+## Limits
+
+- It is not a security scan. It does not say whether a dependency is safe or
+  whether a test change is correct.
+- It reads the committed difference only. Local execution is not a sandbox:
+  the agent runs as the developer and can change things outside the worktree
+  that the report cannot see, such as package-manager settings in the home
+  directory or a local cache. The report does not protect Argent's own records
+  from a process running as the developer.
+- It recognises documented file names, path patterns and markers. A test
+  weakened by changing what it asserts appears only as a modified test file.
+- It does not compare how many tests ran on the base commit and on the
+  candidate.
+- A complete display does not prove that a person read it.
+
+## First scope
+
+The first implementation covers what this repository uses: `package.json`
+scripts, `package-lock.json`, npm source settings committed in the repository,
+JavaScript and TypeScript test files and the skip markers of their common test
+runners. Other package managers and languages are reported as not checkable
+until a recogniser is added, each as its own small change.
+
+## Security review focus
+
+The report parses untrusted repository content before a person has consented
+to anything. The review covers at least:
+
+- bounded reads of manifests, lock files and diffs, with fixed limits on size,
+  entry count and time, and a defined result when a limit is reached;
+- strict parsing with no evaluation of repository content, no shell, no package
+  manager and no network access;
+- paths taken from Git tree entries and validated, never resolved through the
+  worktree; symbolic links and submodules reported, not followed;
+- literal display with visible escapes, and bridge validation of every field,
+  as in the candidate review;
+- no new runtime dependency in the engine without maintainer approval.
+
+The [security model](0013-local-mvp.md#security-model) of spec 0013 is
+unchanged. No new process type, executable or prevention claim is introduced.
+
+## Acceptance criteria
+
+Recorded at the product level; the detailed contract follows before
+implementation.
+
+1. For an idle local workspace with an approved configuration, the candidate
+   review shows the report for the exact base and candidate commits, in the
+   three groups above, before consent is possible.
+2. Consent is bound to a review that includes the report. A report that could
+   not be computed blocks consent with a stated reason.
+3. The check result for a commit is shown with its judging-change count, and
+   both become stale together when the commit or the base changes.
+4. A group with no recogniser is shown as not checkable. A file over the
+   bounds is shown as changed and not summarised.
+5. Automated tests use real temporary Git repositories and cover: deleted,
+   renamed, added and modified test files; newly skipped tests; changed
+   scripts; changed check configuration and workflow files; added, removed and
+   changed packages; a new install script; a package from a URL, Git reference
+   or local path; a changed registry setting; oversized and malformed
+   manifests and lock files; symbolic links; and hostile text in every
+   displayed field.
+6. Native smoke covers the report in the candidate review and next to a
+   result, with a local fixture and no model account.
+
+## Exit evidence
+
+Automated tests for the criteria above, the recorded security review, and the
+maintainers' use on real tasks in this repository: for each task run through
+Argent, whether the report was empty and what it listed. The maintainers then
+record whether the report stays, changes or is removed, as for every
+experiment.
+
+## Out of scope
+
+- A vulnerability or malware scanner, and any integration with one. A scanner
+  a repository already uses can later be a named check under
+  [project rules beyond tests](../../ROADMAP.md#milestones-and-exit-evidence).
+- Blocking, reverting or rewriting a change.
+- Network lookups of package metadata.
+- Judging intent, or labelling a change as tampering.
+
+## Open questions for the maintainers
+
+- The order in which further package managers and languages get a recogniser.
+- Whether a repository may declare its own test paths in `argent.json`, read at
+  the base commit like the commands.
+- Whether a later version also runs the tests on the base commit to compare
+  how many ran.
