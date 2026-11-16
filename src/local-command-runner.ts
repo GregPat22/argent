@@ -156,7 +156,8 @@ function collector() {
 }
 
 /**
- * Internal only: no configuration, approval, review, job or route calls this.
+ * Process primitive. The local check worker supplies the approved argv after
+ * revalidating consent and exclusive ownership; this function alone grants neither.
  * Runs one argument array without a shell, as the developer, with the agent's
  * allowlisted environment, bounded output and one deadline. Not a sandbox.
  */

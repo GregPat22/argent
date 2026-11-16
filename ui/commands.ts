@@ -8,8 +8,8 @@ import { day, isLocal, plural, readableError, rejected } from "./model.js";
 import { currentWorkspace, state } from "./state.js";
 
 const ACTIONS = [
-  ["setup", "Planned to run first, in a fresh checkout of the exact commit."],
-  ["test", "Planned to decide the check result for the exact commit."],
+  ["setup", "Runs first when you choose Run checks, in a fresh checkout."],
+  ["test", "Decides the check result for the exact commit."],
   ["run", "Kept with the configuration. Argent has no run action yet."],
 ] as const;
 
@@ -142,7 +142,7 @@ async function readConfiguration(): Promise<void> {
     showConfiguration(shown);
     status(
       shown.approval
-        ? "Read from the base commit. This configuration is approved. Argent does not run it yet."
+        ? "Read from the base commit. This configuration is approved. Review the commit before running checks."
         : "Read from the base commit. Review every argument before approving.",
     );
   } catch (error) {

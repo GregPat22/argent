@@ -96,6 +96,15 @@
             Changes
           </button>
           <button
+            id="workspace-checks"
+            class="button small"
+            aria-haspopup="dialog"
+            hidden
+            disabled
+          >
+            Checks
+          </button>
+          <button
             id="workspace-commands"
             class="button small"
             aria-haspopup="dialog"
@@ -405,8 +414,8 @@
         The setup, test and run commands for this repository, read from
         <span class="mono">argent.json</span> at the workspace's base commit and
         never from the worktree, so edits in the workspace do not change them.
-        Argent does not run them yet: approving records your review, and running
-        checks is still in development.
+        Approving records your review. Review and consent to an exact commit,
+        then choose Run checks to run setup and test.
       </p>
       <p
         id="commands-status"
@@ -443,6 +452,38 @@
     </dialog>
 
     <dialog
+      id="checks-dialog"
+      class="changes-panel commands-panel"
+      aria-labelledby="checks-title"
+    >
+      <header class="sheet-head">
+        <h2 id="checks-title">Check results</h2>
+        <button id="checks-refresh" class="button small">Refresh</button>
+        <button
+          id="checks-close"
+          class="button small"
+          aria-label="Close check results"
+        >
+          Close
+        </button>
+      </header>
+      <p
+        id="checks-status"
+        class="changes-notice"
+        role="status"
+        aria-live="polite"
+      ></p>
+      <div
+        id="checks-result"
+        class="commands-content"
+        role="region"
+        tabindex="0"
+        aria-label="Recorded check evidence"
+      ></div>
+      <button id="checks-cancel" class="button" disabled>Cancel check</button>
+    </dialog>
+
+    <dialog
       id="candidate-dialog"
       class="changes-panel candidate-panel"
       aria-labelledby="candidate-title"
@@ -462,8 +503,9 @@
       <p id="candidate-notice" class="changes-notice">
         Review every changed file before consenting to the approved setup and
         test commands for this commit. Commands can execute changed scripts.
-        Local execution is not a sandbox. Recording consent runs nothing; check
-        execution is still in development.
+        Local execution is not a sandbox. Recording consent runs nothing. Run
+        checks separately starts setup and test in a fresh checkout with a
+        thirty-minute execution limit. Cancellation and cleanup may take longer.
       </p>
       <p
         id="candidate-status"
@@ -484,6 +526,7 @@
           <button id="candidate-consent" class="button primary" disabled>
             Record consent for this commit
           </button>
+          <button id="candidate-run" class="button" disabled>Run checks</button>
         </div>
       </div>
     </dialog>

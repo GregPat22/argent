@@ -1,10 +1,9 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { requireInteger } from "./domain.js";
-import type { Worker } from "./worker.js";
 
 /** Bounded dispatch; the store still serializes all claims and workspace writers. */
 export async function runWorkers(
-  worker: Worker,
+  worker: { tick(shutdown?: AbortSignal): Promise<boolean> },
   shutdown: AbortSignal,
   concurrency = 2,
 ): Promise<void> {

@@ -378,6 +378,18 @@ The complete repository check passed with 572 tests. Nothing is connected and
 L1.4 remains incomplete. The observation's 1,000-file limit also bounds the
 checkout and remains to be revisited.
 
+Integration in development on 16 November 2026 against main `043b1e2`, under the
+[desktop result acceptance contract](specs/0013-local-mvp.md#desktop-setup-and-test-results-in-development).
+Executable check details share the existing run ownership but remain distinct
+from dormant records. Revalidation happens after claiming; the pre-command
+manifest and checkout identity are compared before and after each phase. Keep
+stream digests and counts without raw output retention, and label that diagnostic
+limit in the desktop. Explicit opening/refresh computes freshness; no watcher or
+automatic rerun is introduced. These are implementation choices within the
+accepted checkout, consent and uncertainty requirements, not new product or
+security decisions. The [validation record](specs/0013-local-mvp.md#desktop-setup-and-test-validation)
+tracks evidence and remaining limits.
+
 ### Unconnected bounded command runner — 12 November 2026
 
 Implemented at `e4260cc61b42983f5092006af737cc36fbf56263`, with validation recorded

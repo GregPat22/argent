@@ -142,9 +142,9 @@ at `37ea780`: see the
 
 ## L1.4 progress
 
-Item 3 is **Next** and not complete. The pieces below are implemented and
-tested. Only review and approval of the configuration is reachable from the
-desktop app. None runs a command and none produces a test result.
+Item 3 is **Next** and not complete. The groundwork below is implemented and
+tested. Desktop review and exact-commit consent are integrated; the setup/test
+result integration below remains in development.
 
 | Piece                                            | Commit    | Contract                                                                                                                 |
 | ------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -174,8 +174,11 @@ is in development under the
       [Validation](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-validation)
       records the checks and limits.
 - [ ] Connect exclusive executable ownership, setup/test dispatch and
-      passed/failed/stale results to that desktop flow. This remains the next
-      integration; item 3 is not complete.
+      passed/failed/stale results to that desktop flow. Implementation and
+      validation are in development under the
+      [result contract](docs/specs/0013-local-mvp.md#desktop-setup-and-test-results-in-development).
+      Item 3 is not complete; the deferred `run` action and full L1 evidence
+      remain separate.
 
 After the candidate-review integration, item 3 still needs `setup` and then
 `test` in the verification checkout, the result recorded as evidence for the

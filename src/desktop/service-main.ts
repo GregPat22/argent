@@ -9,6 +9,7 @@ import { dataPaths } from "../config.js";
 import { makeServer } from "../http.js";
 import { Store } from "../store.js";
 import { Worker } from "../worker.js";
+import { LocalCheckWorker } from "../local-check-worker.js";
 import { runWorkers } from "../worker-pool.js";
 import { DatabaseSync } from "node:sqlite";
 import type { ServiceConnection } from "./service-client.js";
@@ -48,6 +49,7 @@ try {
     worktreeRoot,
     // This private single-user store retains the same actor across token rotation.
     localCommandOperatorId: "local-desktop",
+    localChecks: true,
     instanceId,
     onStop: () => shutdown.abort(),
   });
@@ -81,7 +83,17 @@ try {
     const temp = join(directory, `service-${instanceId}.tmp`);
     writeFileSync(temp, JSON.stringify(record), { mode: 0o600, flag: "wx" });
     renameSync(temp, recordPath);
-    await runWorkers(worker, shutdown.signal);
+    const checks = new LocalCheckWorker(store, {
+      worktreeRoot,
+      verificationRoot: join(directory, "verification"),
+    });
+    await runWorkers(
+      {
+        tick: async (signal) =>
+          (await checks.tick(signal)) || worker.tick(signal),
+      },
+      shutdown.signal,
+    );
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
     store.close();

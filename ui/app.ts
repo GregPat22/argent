@@ -1,3 +1,4 @@
+import { renderChecks, wireChecks } from "./checks.js";
 // Orchestrates refresh and rendering. Execution stays with the local service;
 // this window only reads state and sends explicit, idempotent requests.
 import { renderChanges, wireChanges } from "./changes.js";
@@ -114,6 +115,7 @@ function render(): void {
   renderSidebar();
   renderHeader();
   renderChanges();
+  renderChecks();
   renderCommands();
   renderCandidate();
   show("detail-empty", !!workspace && state.runs.length === 0);
@@ -344,6 +346,7 @@ Object.assign(actions, {
 });
 
 wireChanges();
+wireChecks();
 wireCommands();
 wireCandidate();
 wireComposer();

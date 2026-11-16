@@ -97,6 +97,7 @@ async function launch() {
     keys = 0;
   const reads: Deferred<CandidateReviewView>[] = [],
     writes: Deferred<CandidateConsentReceiptView>[] = [];
+  const checkRequests: Deferred<unknown>[] = [];
   const workspaces = ["one", "two"].map((id) => ({
     id,
     provider: "local-worktree",
@@ -127,6 +128,11 @@ async function launch() {
           approval: { id: "approval", approvedAt: 1 },
           executionAllowed: false,
         }),
+        latestCheck: async () => null,
+        runChecks: (...args: unknown[]) =>
+          new Promise((resolve, reject) =>
+            checkRequests.push({ resolve, reject, args }),
+          ),
         candidateReview: (...args: unknown[]) =>
           new Promise<CandidateReviewView>((resolve, reject) =>
             reads.push({ resolve, reject, args }),
@@ -159,6 +165,7 @@ async function launch() {
     element,
     reads,
     writes,
+    checkRequests,
     status: () => element("candidate-status").textContent,
     async open() {
       element("workspace-commands").click();
@@ -261,7 +268,7 @@ test("consent sends only the displayed review identity and refreshes before show
     consent: { id: "consent", createdAt: 1000 },
   });
   await settle();
-  assert.match(app.status(), /matches this reading.*does not run checks/);
+  assert.match(app.status(), /matches this reading.*Run checks/);
   assert.equal(app.element("candidate-consent").disabled, true);
   app.element("candidate-consent").fire("click");
   assert.equal(app.writes.length, 1);
@@ -380,4 +387,22 @@ test("close, workspace change and disconnect invalidate late candidate responses
   app.writes[1]!.reject(new Error("Request rejected (409): Old failure"));
   await settle();
   assert.doesNotMatch(app.status(), /Old failure/);
+});
+
+test("Run checks is explicit, consent-bound, duplicate-safe while pending and retains uncertain keys", async () => {
+  const app = await launch();
+  await app.show({ ...review(), consent: { id: "consent", createdAt: 1 } });
+  assert.equal(app.checkRequests.length, 0);
+  app.element("candidate-run").click();
+  app.element("candidate-run").fire("click");
+  assert.equal(app.checkRequests.length, 1);
+  assert.deepEqual(app.checkRequests[0]!.args, ["one", "consent", "key-1"]);
+  app.checkRequests[0]!.reject(new Error("Connection lost"));
+  await settle();
+  app.element("candidate-run").click();
+  assert.deepEqual(app.checkRequests[1]!.args, app.checkRequests[0]!.args);
+  app.checkRequests[1]!.resolve({});
+  await settle();
+  assert.equal(app.element("candidate-dialog").open, false);
+  assert.equal(app.element("checks-dialog").open, true);
 });

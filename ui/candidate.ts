@@ -1,3 +1,4 @@
+import { openChecks } from "./checks.js";
 import type { CandidateReviewView } from "../src/desktop/contracts.js";
 import { api } from "./actions.js";
 import { argumentText } from "./commands.js";
@@ -11,6 +12,7 @@ let connected = false;
 let pending = false;
 let view: CandidateReviewView | null = null;
 const keys = new Map<string, string>();
+const checkKeys = new Map<string, string>();
 const dialog = () => byId<HTMLDialogElement>("candidate-dialog");
 function clear(): void {
   generation++;
@@ -37,6 +39,7 @@ function status(message: string): void {
     "candidate-consent",
     state.connected && !pending && !!view && eligible(view) && !view.consent,
   );
+  enable("candidate-run", state.connected && !pending && !!view?.consent);
   setText(
     "candidate-consent",
     view?.consent ? "Consent recorded" : "Record consent for this commit",
@@ -123,7 +126,7 @@ function display(shown: CandidateReviewView): void {
   setText(
     "candidate-consent-status",
     shown.consent
-      ? `Consent recorded ${day(shown.consent.createdAt)} and matches this reading. No checks have run.`
+      ? `Consent recorded ${day(shown.consent.createdAt)} and matches this reading. Run checks is a separate action.`
       : "Consent applies only to these changes and this exact commit. It records your review; it does not start a check.",
   );
   show("candidate-content", true);
@@ -159,7 +162,7 @@ async function read(): Promise<void> {
         : shown.summary.binaryFiles
           ? "Binary or non-UTF-8 changes cannot receive consent. No partial review is accepted."
           : shown.consent
-            ? "Consent matches this reading. Argent does not run checks yet."
+            ? "Consent matches this reading. Run checks starts setup then test in a fresh checkout."
             : "Read the commands and every changed file before recording consent.",
     );
   } catch (error) {
@@ -230,6 +233,44 @@ export function renderCandidate(): void {
   }
 }
 export function wireCandidate(): void {
+  byId("candidate-run").addEventListener("click", () => {
+    if (
+      !dialog().open ||
+      pending ||
+      !state.connected ||
+      !view?.consent ||
+      view.workspaceId !== state.selectedWorkspace
+    )
+      return;
+    const id = view.workspaceId,
+      consent = view.consent.id,
+      version = generation;
+    const name = `${id}:${consent}`;
+    let key = checkKeys.get(name);
+    if (!key) {
+      key = crypto.randomUUID();
+      checkKeys.set(name, key);
+    }
+    pending = true;
+    status("Requesting setup and test for the reviewed commit…");
+    void api()
+      .runChecks(id, consent, key)
+      .then(() => {
+        if (stale(version, id)) return;
+        // Preserve the key until the receipt is observed. A later explicit click
+        // is a new check, never a retry of an uncertain request.
+        checkKeys.delete(name);
+        close();
+        openChecks();
+      })
+      .catch((error: unknown) => {
+        if (stale(version, id)) return;
+        pending = false;
+        status(
+          `${readableError(error)} Open Checks or refresh before retrying. Retrying this request will not run it twice.`,
+        );
+      });
+  });
   byId("commands-review").addEventListener("click", () => {
     if (
       !state.connected ||

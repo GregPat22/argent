@@ -365,6 +365,75 @@ approved `setup` command, when one is configured, and then `test` in that same
 checkout, and records both. Running the `run` action is deferred until setup
 and test results work; the configuration schema is unchanged.
 
+#### Desktop setup and test results (in development)
+
+Acceptance recorded 16 November 2026 against main `043b1e2`. This connects the
+existing complete-text consent flow to the first visible result; it does not
+change the accepted security model, consent policy or milestone order.
+
+1. **Explicit execution.** After configuration approval and exact-commit
+   consent, Run checks submits only the consent ID and an idempotency key.
+   Consent itself runs nothing. Only the authenticated local service enables
+   enqueue, latest-result and cancellation routes; standalone mode refuses them.
+   Paths, commands, revisions and actors cannot be supplied by the desktop.
+   Repeated keys return history, including after changes or restart.
+2. **Exclusive ownership.** Versioned executable details share the existing
+   runs table and workspace exclusion with agents and dormant jobs. Enqueue,
+   claim, completion and their events are transactional. A dedicated claim
+   protocol permits executable completion; dormant jobs keep their prohibition.
+   Migration preserves rows, references, indexes and triggers. Legacy claims
+   without a protocol marker still fail. Worker loss leaves uncertainty and
+   never replays or reclaims the check.
+3. **Revalidation and checkout.** Under a live lease, recompute the complete
+   review and compare every consent binding. Create the existing fresh detached
+   verification checkout. Capture its file manifest before any command; before
+   and after each command compare tracked bytes, index, HEAD, tree and manifest,
+   and recheck the owned directory and common Git directory identities. A
+   command cannot substitute a different tree under the original object name.
+   Reassert the lease after inspection and immediately before dispatch.
+4. **Bounded setup then test.** Run the approved base setup when present, then
+   test in the same checkout, without a shell and with the existing allowlisted
+   environment and process-group supervisor. Failed setup prevents test.
+   One thirty-minute deadline bounds preparation, both commands and result
+   acceptance. Cleanup has its own bounded deadline and may finish afterward;
+   ownership remains held until cleanup settles.
+   Cancellation confirms process quiescence before releasing ownership; unknown
+   termination or cleanup leaves `needs_attention`. Only the live-owned checkout
+   can be removed. A checkout left by a crash remains for manual inspection.
+5. **Exact evidence.** Persist base/commit/tree, configuration and review
+   identities, consent ID, ordered argv, exit or stopping outcome, timestamps,
+   durations, stdout/stderr byte counts and SHA-256 digests. Raw output tails are
+   deliberately not persisted or displayed. A pass requires setup (if present)
+   and test to exit zero, unchanged committed files and confirmed cleanup. A
+   preparation failure or cancellation produces no test evidence. Agent run
+   records and portable history remain separate.
+6. **Desktop result.** Checks opens the latest durable job/result, including
+   queued, running, failed, cancelled and uncertain work. A result is shown as
+   passed or failed and current only when a fresh hash-verified complete review
+   matches; changed, dirty, busy or unreadable state is stale. Freshness is
+   point-in-time, recomputed on opening or Refresh, never a filesystem watcher.
+   Close, workspace change and disconnect invalidate pending responses. Reconnect
+   reads nothing until Refresh; only an explicit Run checks queues work.
+7. **Validation.** Real temporary Git repositories and SQLite cover successful
+   setup/test, failure, stale commits, mutation after consent, hostile Git
+   metadata, idempotency, atomic rollback, cancellation, expired ownership,
+   corruption, post-result tree forgery, migration and route restrictions. Renderer and bridge tests cover
+   literal output, request bounds and stale replies. Native smoke runs harmless
+   fixture commands and shows passed then stale evidence, with no model account.
+   The full repository check and independent security review are required.
+
+Limits: local execution is not a sandbox and cannot resist arbitrary host-owner
+modification. Ignored dependencies are installed afresh; caching is absent.
+Setup/test that changes tracked files or leaves nonignored files cannot produce
+an exact-commit result. The first view exposes the latest check only; earlier
+records remain durable. `run`, crash reconciliation, real-account walkthroughs,
+PR creation and packaged/signed distribution remain outside this integration.
+
+#### Desktop setup and test validation
+
+Validation in progress on 16 November 2026 against main `043b1e2`. Results and
+remaining limits are recorded here before completion.
+
 #### Internal command-configuration reader acceptance
 
 Acceptance recorded 11 November 2026 against main `9ddf9d7`; the internal reader

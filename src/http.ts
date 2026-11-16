@@ -9,6 +9,7 @@ import { DomainError, requireString, type Run } from "./domain.js";
 import { Store } from "./store.js";
 import { inspectArtifact } from "./artifacts.js";
 import { createLocalWorkspace } from "./local-worktree.js";
+import { checkId } from "./local-checks.js";
 import { inspectWorkspaceChanges } from "./workspace-changes.js";
 import type {
   CandidateReviewView,
@@ -58,6 +59,7 @@ export interface ServerOptions {
   worktreeRoot?: string;
   /** Stable single-host operator supplied by the service, never by a request. */
   localCommandOperatorId?: string;
+  localChecks?: boolean;
   instanceId?: string;
   onStop?: () => void;
 }
@@ -97,7 +99,7 @@ export function makeServer(
       const url = new URL(request.url ?? "/", "http://127.0.0.1");
       const parts = url.pathname.split("/").filter(Boolean);
       const method = request.method;
-      // Internal command ownership has no public projection or mutation route.
+      // Agent routes cannot expose checks or dormant command ownership.
       if (parts[0] === "runs" && parts.length >= 2)
         store.requireAgentRun(parts[1]!);
       if (method === "GET" && url.pathname === "/health") {
@@ -107,6 +109,83 @@ export function makeServer(
           simulation: true,
           instanceId: options.instanceId ?? null,
         });
+      } else if (
+        parts[0] === "workspaces" &&
+        ((parts.length === 3 &&
+          parts[2] === "checks" &&
+          (method === "GET" || method === "POST")) ||
+          (parts.length === 5 &&
+            parts[2] === "checks" &&
+            parts[4] === "cancel" &&
+            method === "POST"))
+      ) {
+        if (
+          !options.localChecks ||
+          !options.worktreeRoot ||
+          !options.localCommandOperatorId
+        )
+          throw new DomainError(409, "Local checks are not enabled");
+        if (url.searchParams.size)
+          throw new DomainError(400, "Checks accept no query parameters");
+        const workspaceId = checkId(parts[1]),
+          operator = options.localCommandOperatorId;
+        const controller = new AbortController();
+        const abort = () =>
+          controller.abort(new DomainError(408, "Check request disconnected"));
+        response.once("close", abort);
+        try {
+          if (method === "GET") {
+            send(
+              response,
+              200,
+              await store.localChecks.latest(
+                options.worktreeRoot,
+                workspaceId,
+                operator,
+                controller.signal,
+              ),
+            );
+          } else {
+            const body = await readBody(request);
+            if (parts.length === 5) {
+              if (Object.keys(body).length)
+                throw new DomainError(400, "Expected an empty body");
+              const id = checkId(parts[3]);
+              store.localChecks.view(id, workspaceId, operator);
+              store.cancel(id);
+              send(
+                response,
+                200,
+                store.localChecks.view(id, workspaceId, operator),
+              );
+            } else {
+              if (
+                Object.keys(body).length !== 1 ||
+                !Object.hasOwn(body, "consentId")
+              )
+                throw new DomainError(400, "Expected only consentId");
+              const job = await store.localChecks.enqueue(
+                options.worktreeRoot,
+                workspaceId,
+                operator,
+                checkId(body.consentId),
+                requireString(
+                  request.headers["idempotency-key"],
+                  "Idempotency-Key",
+                  128,
+                ),
+                controller.signal,
+              );
+              send(
+                response,
+                202,
+                store.localChecks.view(job.run.id, workspaceId, operator),
+              );
+            }
+          }
+        } finally {
+          response.off("close", abort);
+        }
       } else if (
         parts[0] === "workspaces" &&
         parts.length === 3 &&

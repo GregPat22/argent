@@ -1,3 +1,5 @@
+import type { LocalCheckView } from "../local-checks.js";
+export type { LocalCheckView } from "../local-checks.js";
 import type {
   Evidence,
   Page,
@@ -67,6 +69,13 @@ export interface DesktopBridge {
   getWorkspace(id: string): Promise<Workspace>;
   workspaceChanges(id: string): Promise<WorkspaceChanges>;
   commandConfiguration(id: string): Promise<CommandConfigurationView>;
+  latestCheck(id: string): Promise<LocalCheckView | null>;
+  runChecks(
+    id: string,
+    consentId: string,
+    key: string,
+  ): Promise<LocalCheckView>;
+  cancelCheck(id: string, checkId: string): Promise<LocalCheckView>;
   candidateReview(id: string): Promise<CandidateReviewView>;
   consentCandidate(
     id: string,

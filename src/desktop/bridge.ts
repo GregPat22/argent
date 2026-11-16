@@ -1,3 +1,4 @@
+import { validateCheckView } from "./checks.js";
 import {
   DomainError,
   requireInteger,
@@ -177,6 +178,33 @@ export class DesktopClient {
           20000,
         );
         return validateCommandApprovalReceipt(value, args[0], expected);
+      }
+      case "latestCheck":
+      case "runChecks":
+      case "cancelCheck": {
+        const count =
+          method === "latestCheck" ? 1 : method === "runChecks" ? 3 : 2;
+        if (args.length !== count || !args.every(uuid))
+          throw new DomainError(400, "Expected check identifiers");
+        const value = await serviceRequest(
+          connection,
+          `/workspaces/${id()}/checks${method === "cancelCheck" ? `/${id(1)}/cancel` : ""}`,
+          method === "latestCheck" ? "GET" : "POST",
+          method === "latestCheck"
+            ? undefined
+            : method === "runChecks"
+              ? { consentId: args[1] }
+              : {},
+          method === "runChecks" ? (args[2] as string) : undefined,
+          REVIEW_LIMITS.timeoutMs + 10000,
+        );
+        const view = validateCheckView(value, args[0] as string);
+        if (
+          method !== "latestCheck" &&
+          (!view || (method === "cancelCheck" && view.id !== args[1]))
+        )
+          throw new DomainError(502, "Invalid check receipt");
+        return view;
       }
       case "candidateReview": {
         if (args.length !== 1 || !uuid(args[0]))

@@ -42,11 +42,12 @@ writeFileSync(
   JSON.stringify({
     version: 1,
     commands: {
-      setup: { argv: ["npm", "ci"] },
+      setup: { argv: ["node", "-e", "process.exit(0)"] },
       test: {
         argv: [
           "node",
-          "--test",
+          "-e",
+          "process.exit(0)",
           "<img src=x onerror=window.untrustedCommand=true>",
         ],
       },
