@@ -1,6 +1,7 @@
 // Orchestrates refresh and rendering. Execution stays with the local service;
 // this window only reads state and sends explicit, idempotent requests.
 import { renderChanges, wireChanges } from "./changes.js";
+import { renderCandidate, wireCandidate } from "./candidate.js";
 import { renderCommands, wireCommands } from "./commands.js";
 import { actions, api, hasBridge } from "./actions.js";
 import { renderComposer, wireComposer } from "./composer.js";
@@ -114,6 +115,7 @@ function render(): void {
   renderHeader();
   renderChanges();
   renderCommands();
+  renderCandidate();
   show("detail-empty", !!workspace && state.runs.length === 0);
   if (workspace) {
     const local = isLocal(workspace);
@@ -343,6 +345,7 @@ Object.assign(actions, {
 
 wireChanges();
 wireCommands();
+wireCandidate();
 wireComposer();
 wirePalette();
 

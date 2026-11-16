@@ -33,7 +33,9 @@ None of the pieces runs a command or produces a test result.
 [Internal candidate consent](specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development)
 is in development. It records an acknowledgement for one complete text review;
 binary changes and reviews above the display limits cannot be consented to.
-Service and desktop candidate-consent controls remain planned.
+[Service and desktop candidate-consent controls](specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development)
+are in development: full committed text changes, explicit consent and a fresh
+matching read. No configured command runs, and no test result is recorded.
 
 A [human-triggered desktop merge flow](specs/0013-local-mvp.md#human-triggered-merge-design-todo)
 is in the design backlog. Its UX, workflow and delivery milestone remain open;

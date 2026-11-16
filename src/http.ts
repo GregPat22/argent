@@ -10,6 +10,10 @@ import { Store } from "./store.js";
 import { inspectArtifact } from "./artifacts.js";
 import { createLocalWorkspace } from "./local-worktree.js";
 import { inspectWorkspaceChanges } from "./workspace-changes.js";
+import type {
+  CandidateReviewView,
+  CandidateConsentReceiptView,
+} from "./local-command-views.js";
 
 function publicRun(run: Run): Omit<Run, "leaseToken"> {
   const { leaseToken: _token, ...result } = run;
@@ -103,6 +107,98 @@ export function makeServer(
           simulation: true,
           instanceId: options.instanceId ?? null,
         });
+      } else if (
+        parts[0] === "workspaces" &&
+        parts.length === 3 &&
+        ((parts[2] === "candidate-review" && method === "GET") ||
+          (parts[2] === "candidate-consents" && method === "POST"))
+      ) {
+        if (!options.worktreeRoot || !options.localCommandOperatorId)
+          throw new DomainError(409, "Local candidate review is not enabled");
+        if (url.searchParams.size)
+          throw new DomainError(
+            400,
+            "Candidate review accepts no query parameters",
+          );
+        const controller = new AbortController();
+        const abort = () =>
+          controller.abort(
+            new DomainError(408, "Candidate review request disconnected"),
+          );
+        response.once("close", abort);
+        try {
+          if (method === "GET") {
+            const { review, approved, receipt } =
+              await store.localCommandConsents.inspect(
+                options.worktreeRoot,
+                parts[1]!,
+                options.localCommandOperatorId,
+                controller.signal,
+              );
+            send(response, 200, {
+              kind: "local-candidate-review",
+              workspaceId: parts[1]!,
+              identity: review.identity,
+              policyVersion: review.policyVersion,
+              baseSha: review.observation.baseSha,
+              headSha: review.observation.headSha,
+              treeId: review.observation.treeId,
+              configurationState: review.configuration,
+              // Review freshly matched these exact bytes at this workspace's base.
+              // The reusable approval may originally have been recorded at an older base.
+              configuration: {
+                ...approved.descriptor,
+                source: {
+                  ...approved.descriptor.source,
+                  baseSha: review.observation.baseSha,
+                },
+              },
+              approvalId: approved.id,
+              files: review.files,
+              summary: review.summary,
+              consent: receipt
+                ? { id: receipt.id, createdAt: receipt.createdAt }
+                : null,
+              executionAllowed: false,
+              tested: false,
+            } satisfies CandidateReviewView);
+          } else {
+            const body = await readBody(request);
+            if (
+              Object.keys(body).length !== 1 ||
+              !Object.hasOwn(body, "expectedReviewIdentity")
+            )
+              throw new DomainError(
+                400,
+                "Expected only expectedReviewIdentity",
+              );
+            const receipt = await store.localCommandConsents.consent(
+              options.worktreeRoot,
+              parts[1]!,
+              options.localCommandOperatorId,
+              requireString(body.expectedReviewIdentity, "expected review", 64),
+              requireString(
+                request.headers["idempotency-key"],
+                "Idempotency-Key",
+                128,
+              ),
+              controller.signal,
+            );
+            send(response, 200, {
+              kind: "local-candidate-consent-receipt",
+              workspaceId: receipt.binding.workspaceId,
+              id: receipt.id,
+              reviewIdentity: receipt.binding.reviewIdentity,
+              headSha: receipt.binding.headSha,
+              createdAt: receipt.createdAt,
+              historical: true,
+              executionAllowed: false,
+              tested: false,
+            } satisfies CandidateConsentReceiptView);
+          }
+        } finally {
+          response.off("close", abort);
+        }
       } else if (
         method === "POST" &&
         url.pathname === "/service/stop" &&

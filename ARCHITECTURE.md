@@ -644,7 +644,14 @@ returns validated history, even if the worktree is gone. A fresh match requires
 another complete review; a different commit or unclean worktree cannot reuse
 consent. New consent also requires an idle running workspace, checked again in
 the write transaction. Receipts and matches explicitly forbid execution.
-No API, desktop control or worker consumes them. Future dispatch must obtain
+Service and desktop integration is in development under the
+[desktop candidate-review contract](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development).
+An explicit GET obtains one fresh review and checks for a matching historical
+receipt; POST records only the displayed review identity. Both use the stable
+service actor and omit it from the desktop response. The bridge rebuilds bounded
+display fields, and the renderer shows the complete escaped text change set
+before enabling consent. Reconnect does not inspect repositories or replay consent.
+No worker consumes consent. Future dispatch must obtain
 exclusive ownership, revalidate and create a fresh verification checkout; a
 point-in-time match cannot fence later repository writes. Checksums detect
 corruption, not host-owner tampering.

@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from "electron";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, renameSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -512,6 +513,101 @@ export async function runDesktopSmoke(
   );
   assert.equal(await js(`document.activeElement.id`), "workspace-commands");
   assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
+  // Review a committed fixture through the real renderer and service.
+  writeFileSync(
+    join(local.local!.worktreePath, "review.txt"),
+    "<script>window.untrustedCandidate=true</script>\n\t\u202e\u200b\n",
+  );
+  for (const args of [
+    ["add", "review.txt"],
+    ["commit", "--quiet", "-m", "review fixture"],
+  ])
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Argent Smoke",
+        "-c",
+        "user.email=smoke@example.invalid",
+        ...args,
+      ],
+      { cwd: local.local!.worktreePath, stdio: "ignore" },
+    );
+  await js(`document.querySelector('#workspace-commands').click()`);
+  await until(
+    () => js(`!document.querySelector('#commands-review').disabled`),
+    "candidate review available",
+  );
+  await js(`document.querySelector('#commands-review').click()`);
+  await until(
+    () =>
+      js(
+        `!document.querySelector('#candidate-content').hidden && !document.querySelector('#candidate-consent').disabled`,
+      ),
+    "complete committed review",
+  );
+  assert.match(await text("#candidate-files"), /review\.txt/);
+  assert.match(await text("#candidate-files"), /\\t\\u202e\\u200b/);
+  assert.equal(
+    await js(
+      `!!window.untrustedCandidate || !!document.querySelector('#candidate-files script')`,
+    ),
+    false,
+  );
+  assert.equal(
+    await js(
+      `document.documentElement.scrollWidth <= innerWidth && document.querySelector('#candidate-dialog').getBoundingClientRect().right <= innerWidth`,
+    ),
+    true,
+  );
+  await capture("candidate-review");
+  await js(`document.querySelector('#candidate-consent').click()`);
+  await until(
+    () =>
+      js(
+        `document.querySelector('#candidate-status').textContent.includes('Consent matches this reading')`,
+      ),
+    "consent recorded and freshly matched",
+  );
+  assert.equal(
+    await js(`document.querySelector('#candidate-consent').disabled`),
+    true,
+  );
+  assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
+  await capture("candidate-consented");
+  // A later commit must not inherit the earlier consent. Remove only this fixture.
+  unlinkSync(join(local.local!.worktreePath, "review.txt"));
+  for (const args of [
+    ["add", "review.txt"],
+    ["commit", "--quiet", "-m", "restore review fixture"],
+  ])
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Argent Smoke",
+        "-c",
+        "user.email=smoke@example.invalid",
+        ...args,
+      ],
+      { cwd: local.local!.worktreePath, stdio: "ignore" },
+    );
+  await js(`document.querySelector('#candidate-refresh').click()`);
+  await until(
+    () =>
+      js(
+        `!document.querySelector('#candidate-consent').disabled && document.querySelector('#candidate-files').textContent.includes('No changes from the base')`,
+      ),
+    "new commit has no matching consent",
+  );
+
+  window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
+  window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
+  await until(
+    () => js(`!document.querySelector('#candidate-dialog').open`),
+    "Escape closes candidate review",
+  );
+  assert.equal(await js(`document.activeElement.id`), "workspace-commands");
   await js(`document.querySelector('#permission-toggle').click()`);
   assert.equal(
     await js(
@@ -684,6 +780,7 @@ export async function runDesktopSmoke(
       liveChanges: true,
       changesKeyboardClose: true,
       commandConfigurationApproved: true,
+      candidateConsentRecorded: true,
       parallelWorkspace: true,
       workspaceId: workspace.id,
       verifiedRun: first.id,

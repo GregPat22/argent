@@ -68,6 +68,11 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   this is not a test result. See the
   [acceptance contract](docs/specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development).
 
+Candidate review and consent are in development as the next desktop integration:
+review every committed change, then record consent for that exact commit and
+the approved base commands. This still runs nothing and produces no test result.
+See the [candidate review contract](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development).
+
 ## Where it is going
 
 The full [roadmap](ROADMAP.md) lists each milestone and the evidence it needs.

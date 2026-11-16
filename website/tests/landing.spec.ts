@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { test as isolatedTest } from "./fixtures";
 
 type EntranceWindow = Window & {
   entrance: { states: string[]; split: number; animations: number };
@@ -556,73 +557,88 @@ test("agents section shows Claude Code and Codex with their models and a manual 
   await expect(section.locator(".agents-composer")).toContainText("GPT models");
 });
 
-test("larger silver atom has no pause control, stops offscreen and respects reduced motion", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    const original = CanvasRenderingContext2D.prototype.clearRect;
-    Object.assign(window, { atomFrames: 0 });
-    CanvasRenderingContext2D.prototype.clearRect = function (...args) {
-      if (this.canvas.closest("[data-silver-atom]"))
-        (window as unknown as { atomFrames: number }).atomFrames++;
-      return original.apply(this, args);
-    };
-  });
-  await visit(page, "/");
-  const atom = page.locator("[data-silver-atom] canvas");
-  await atom.scrollIntoViewIfNeeded();
-  const image = await atom.evaluate((el) =>
-    (el as HTMLCanvasElement).toDataURL(),
-  );
-  await expect
-    .poll(() => atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL()))
-    .not.toBe(image);
-  await expect(page.locator("[data-silver-atom] button")).toHaveCount(0);
-  expect((await atom.boundingBox())!.width).toBeGreaterThanOrEqual(440);
-  await expect(page.locator("[data-silver-atom] p")).toHaveCount(0);
-  await expect(page.locator("[data-silver-atom] [role=img]")).toHaveAttribute(
-    "aria-label",
-    /47 electrons/,
-  );
-  await page.locator("#roadmap").scrollIntoViewIfNeeded();
-  await atom.evaluate(
-    (el) =>
-      new Promise<void>((resolve) => {
-        // Scrolling completes before intersection notifications are delivered.
-        // Wait for the offscreen notification and rendering turns, rather than
-        // assuming the component has stopped after a fixed wall-clock delay.
-        const observer = new IntersectionObserver(([entry]) => {
-          if (entry?.isIntersecting) return;
-          observer.disconnect();
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-        });
-        observer.observe(el);
-      }),
-  );
-  const frames = await page.evaluate(
-    () => (window as unknown as { atomFrames: number }).atomFrames,
-  );
-  await page.waitForTimeout(400);
-  expect(
-    await page.evaluate(
+isolatedTest(
+  "larger silver atom has no pause control and stops offscreen",
+  async ({ page }) => {
+    await page.addInitScript(() => {
+      const original = CanvasRenderingContext2D.prototype.clearRect;
+      Object.assign(window, { atomFrames: 0 });
+      CanvasRenderingContext2D.prototype.clearRect = function (...args) {
+        if (this.canvas.closest("[data-silver-atom]"))
+          (window as unknown as { atomFrames: number }).atomFrames++;
+        return original.apply(this, args);
+      };
+    });
+    await visit(page, "/");
+    const atom = page.locator("[data-silver-atom] canvas");
+    await atom.scrollIntoViewIfNeeded();
+    const image = await atom.evaluate((el) =>
+      (el as HTMLCanvasElement).toDataURL(),
+    );
+    await expect
+      .poll(() => atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL()))
+      .not.toBe(image);
+    await expect(page.locator("[data-silver-atom] button")).toHaveCount(0);
+    expect((await atom.boundingBox())!.width).toBeGreaterThanOrEqual(440);
+    await expect(page.locator("[data-silver-atom] p")).toHaveCount(0);
+    await expect(page.locator("[data-silver-atom] [role=img]")).toHaveAttribute(
+      "aria-label",
+      /47 electrons/,
+    );
+    await page.locator("#roadmap").scrollIntoViewIfNeeded();
+    await atom.evaluate(
+      (el) =>
+        new Promise<void>((resolve) => {
+          // Scrolling completes before intersection notifications are delivered.
+          // Wait for the offscreen notification and rendering turns, rather than
+          // assuming the component has stopped after a fixed wall-clock delay.
+          const observer = new IntersectionObserver(([entry]) => {
+            if (entry?.isIntersecting) return;
+            observer.disconnect();
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+          });
+          observer.observe(el);
+        }),
+    );
+    const frames = await page.evaluate(
       () => (window as unknown as { atomFrames: number }).atomFrames,
-    ),
-  ).toBe(frames);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await atom.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(250);
-  const still = await atom.evaluate((el) =>
-    (el as HTMLCanvasElement).toDataURL(),
-  );
-  await page.waitForTimeout(400);
-  expect(
-    (await atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL())) ===
-      still,
-  ).toBe(true);
-  await expect(
-    page.getByRole("button", { name: "Pause atom", exact: true }),
-  ).toHaveCount(0);
-});
+    );
+    await page.waitForTimeout(400);
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { atomFrames: number }).atomFrames,
+      ),
+    ).toBe(frames);
+  },
+);
+
+isolatedTest(
+  "moving silver atom stops after a live reduced-motion change",
+  async ({ page }) => {
+    await visit(page, "/");
+    const atom = page.locator("[data-silver-atom] canvas");
+    await atom.scrollIntoViewIfNeeded();
+    const moving = await atom.evaluate((el) =>
+      (el as HTMLCanvasElement).toDataURL(),
+    );
+    await expect
+      .poll(() => atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL()))
+      .not.toBe(moving);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.waitForTimeout(250);
+    const still = await atom.evaluate((el) =>
+      (el as HTMLCanvasElement).toDataURL(),
+    );
+    await page.waitForTimeout(400);
+    expect(
+      (await atom.evaluate((el) => (el as HTMLCanvasElement).toDataURL())) ===
+        still,
+    ).toBe(true);
+    await expect(
+      page.getByRole("button", { name: "Pause atom", exact: true }),
+    ).toHaveCount(0);
+  },
+);
 
 test("hero next steps fit the first mobile screen", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
@@ -1379,38 +1395,39 @@ test("the compact logo keeps a feathered halo and the final band follows the poi
     .toBeLessThanOrEqual(2);
 });
 
-test("sections lead with proof and leave the planned journey for later", async ({
-  page,
-}) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await visit(page, "/");
-  const ids = await page
-    .locator("main > section")
-    .evaluateAll((sections) => sections.map((section) => section.id));
-  expect(ids).toEqual([
-    "intro",
-    "statement",
-    "hallmark",
-    "lifecycle",
-    "agents",
-    "open",
-    "reconnect",
-    "roadmap",
-    "faq",
-    "run",
-    "join",
-  ]);
-  // The navigation lists its links in the same order as the page.
-  expect(
-    await page
-      .locator(".nav-links a")
-      .evaluateAll((links) => links.map((link) => link.getAttribute("href"))),
-  ).toEqual(["#hallmark", "#lifecycle", "#roadmap", "#faq"]);
-  // The first problem is the one the next section answers.
-  await expect(page.locator("#statement .problem-card h3").first()).toHaveText(
-    "“Done” is only a claim",
-  );
-});
+isolatedTest(
+  "sections lead with proof and leave the planned journey for later",
+  async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await visit(page, "/");
+    const ids = await page
+      .locator("main > section")
+      .evaluateAll((sections) => sections.map((section) => section.id));
+    expect(ids).toEqual([
+      "intro",
+      "statement",
+      "hallmark",
+      "lifecycle",
+      "agents",
+      "open",
+      "reconnect",
+      "roadmap",
+      "faq",
+      "run",
+      "join",
+    ]);
+    // The navigation lists its links in the same order as the page.
+    expect(
+      await page
+        .locator(".nav-links a")
+        .evaluateAll((links) => links.map((link) => link.getAttribute("href"))),
+    ).toEqual(["#hallmark", "#lifecycle", "#roadmap", "#faq"]);
+    // The first problem is the one the next section answers.
+    await expect(
+      page.locator("#statement .problem-card h3").first(),
+    ).toHaveText("“Done” is only a claim");
+  },
+);
 
 test("hero states the promise once and today's facts under the actions", async ({
   page,
