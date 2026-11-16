@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { LifecycleStore } from "./lifecycle-store.js";
 import { RepositoryStore } from "./repository-store.js";
+import { LocalCheckStore } from "./local-checks.js";
 import { LocalCommandConsentStore } from "./local-command-consent.js";
 import { LocalCommandApprovalStore } from "./local-command-approvals.js";
 import {
@@ -114,6 +115,7 @@ export class Store {
   readonly repositories: RepositoryStore;
   readonly localCommandApprovals: LocalCommandApprovalStore;
   readonly localCommandConsents: LocalCommandConsentStore;
+  readonly localChecks: LocalCheckStore;
 
   constructor(path: string) {
     this.db = new DatabaseSync(path);
@@ -210,6 +212,7 @@ export class Store {
           )
           .run();
       });
+      this.localChecks = new LocalCheckStore(this.db, this);
     } catch (error) {
       // An open handle would keep the WAL database locked after a failed start.
       this.db.close();
@@ -791,6 +794,7 @@ export class Store {
         .prepare(
           `SELECT r.* FROM runs r JOIN workspaces w ON w.id = r.workspace_id
         WHERE r.status = 'queued' AND r.kind = ? AND w.state = 'running'
+        AND NOT EXISTS (SELECT 1 FROM local_checks c WHERE c.run_id = r.id)
         AND NOT EXISTS (SELECT 1 FROM runs uncertain WHERE uncertain.workspace_id = r.workspace_id AND uncertain.status = 'needs_attention')
         AND NOT EXISTS (SELECT 1 FROM lifecycle_workspaces l WHERE l.workspace_id = r.workspace_id)
         ORDER BY r.created_at, r.id LIMIT 1`,

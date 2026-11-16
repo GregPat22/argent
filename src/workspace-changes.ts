@@ -228,6 +228,7 @@ export interface CleanCommitLimits {
 }
 
 export interface CleanCommit {
+  manifestSha256: string;
   headSha: string;
   treeId: string;
   files: number;
@@ -340,6 +341,7 @@ export async function readCleanCommit(
     headSha,
     treeId,
     files: tree.size,
+    manifestSha256: createHash("sha256").update(treeBytes).digest("hex"),
     async recheck() {
       if (
         (await revision("HEAD^{commit}")) !== headSha ||

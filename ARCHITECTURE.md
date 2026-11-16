@@ -712,3 +712,21 @@ so its bounds protect time and not memory: 50,000 files, 2 GiB in total,
 32 MiB per Git listing and a two-minute deadline. The changes panel keeps its
 own smaller limits because it holds and displays what it reads. The pinned
 review applies its 1,000-path limit to changed paths only.
+
+### Executable local checks (in development)
+
+The [desktop result contract](docs/specs/0013-local-mvp.md#desktop-setup-and-test-results-in-development)
+connects consent to the local worker. `LocalCheckStore` owns versioned check
+rows on the shared runs/exclusion boundary; dormant command records remain
+non-executable. A transactional table migration extends the claim protocol
+without losing state or references. Only the local service dispatches these
+checks, through the same bounded worker pool as agents.
+
+The worker revalidates complete review consent under its lease, creates an owned
+verification checkout, captures its manifest and checks that identity before and
+after setup and test. It reasserts ownership immediately before launch. Results
+and audit events commit together after confirmed process and checkout cleanup;
+uncertainty blocks subsequent work and never restarts a command. Evidence stores
+argv, outcomes, timing and stream digests/counts, with no raw output retention.
+The Checks dialog reads latest state explicitly; current/stale is a fresh
+hash-verified review comparison, not a watcher. No agent transcript becomes test evidence.

@@ -11,8 +11,8 @@ You decide what gets merged.
 > Local execution is **not a sandbox**: the agent runs as you. The Changes panel
 > shows current files and a bounded diff against the workspace base. The Commands
 > dialog shows a repository's check commands for review and records your
-> approval; Argent does not run them yet. Trusted test
-> execution, pull requests and cloud workspaces are planned; GitHub-URL workspaces
+> approval. Exact-commit setup/test results are in development; pull requests
+> and cloud workspaces are planned; GitHub-URL workspaces
 > remain a scripted simulation. Everything below says which parts are
 > real and which are planned.
 
@@ -64,14 +64,18 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
 - **Review of the check commands** (part of L1.4): the Commands dialog shows
   the `setup`, `test` and `run` commands from `argent.json` at the workspace's
   base commit, every argument in full, and records your approval for that
-  repository and those exact bytes. Argent does not run the commands yet, so
-  this is not a test result. See the
+  repository and those exact bytes. Approval records a review, not a test result.
+  Exact-commit setup/test results are in development. See the
   [acceptance contract](docs/specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development).
 
 Candidate review and consent are in development as the next desktop integration:
 review every committed change, then record consent for that exact commit and
 the approved base commands. This still runs nothing and produces no test result.
 See the [candidate review contract](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development).
+The next integration, also in development, connects that consent to approved
+setup/test in a fresh checkout and displays passed, failed or stale results.
+See the [result contract](docs/specs/0013-local-mvp.md#desktop-setup-and-test-results-in-development)
+for the limits and validation.
 
 ## Where it is going
 

@@ -60,6 +60,10 @@ interface Owned {
   repository: string;
   device: bigint;
   inode: bigint;
+  commonDirectory: string;
+  commonDevice: bigint;
+  commonInode: bigint;
+  manifestSha256: string;
 }
 // Only a checkout created by this live process can be removed. A stored path
 // or a description of a checkout is never enough to delete anything.
@@ -106,8 +110,8 @@ function deadline(requested: AbortSignal | undefined, message: string) {
 }
 
 /**
- * Internal only: no job, worker, route or desktop control calls this, and it
- * runs no configured command. The repository and branch come from the store;
+ * Creates the checkout for the local check worker without running a configured
+ * command. The repository and branch come from the store;
  * the caller names only a stored workspace and the commit it expects.
  */
 export async function createVerificationCheckout(
@@ -284,6 +288,10 @@ export async function createVerificationCheckout(
       repository,
       device: created.dev,
       inode: created.ino,
+      commonDirectory,
+      commonDevice: (await lstat(commonDirectory, { bigint: true })).dev,
+      commonInode: (await lstat(commonDirectory, { bigint: true })).ino,
+      manifestSha256: clean.manifestSha256,
     });
     return checkout;
   } catch (error) {
@@ -383,4 +391,62 @@ export async function removeVerificationCheckout(
   } finally {
     clear();
   }
+}
+
+/** Compare with the pre-command manifest, never a tree supplied by a command. */
+export async function verifyOwnedCheckout(
+  checkout: VerificationCheckout,
+  requestedSignal: AbortSignal,
+): Promise<void> {
+  const signal = AbortSignal.any([
+    requestedSignal,
+    AbortSignal.timeout(CLEAN_COMMIT_LIMITS.timeoutMs),
+  ]);
+  const record = owned.get(checkout);
+  if (!record) throw mismatch();
+  const checkDirectory = async () => {
+    const directory = await realDirectory(checkout.directory);
+    const common = await realDirectory(record.commonDirectory);
+    if (
+      directory.dev !== record.device ||
+      directory.ino !== record.inode ||
+      common.dev !== record.commonDevice ||
+      common.ino !== record.commonInode
+    )
+      throw mismatch();
+    const location = (
+      await git(
+        checkout.directory,
+        ["rev-parse", "--git-common-dir"],
+        1 << 20,
+        signal,
+      )
+    ).toString("utf8");
+    if (
+      !location.endsWith("\n") ||
+      (await realpath(resolve(checkout.directory, location.slice(0, -1)))) !==
+        record.commonDirectory
+    )
+      throw mismatch();
+    const head = (
+      await git(
+        checkout.directory,
+        ["rev-parse", "--abbrev-ref", "HEAD"],
+        128,
+        signal,
+      )
+    ).toString("utf8");
+    if (head !== "HEAD\n") throw mismatch();
+  };
+  await checkDirectory();
+  const clean = await readCleanCommit(checkout.directory, signal, mismatch);
+  if (
+    clean.headSha !== checkout.headSha ||
+    clean.treeId !== checkout.treeId ||
+    clean.manifestSha256 !== record.manifestSha256
+  )
+    throw mismatch();
+  await clean.recheck();
+  await checkDirectory();
+  signal.throwIfAborted();
 }

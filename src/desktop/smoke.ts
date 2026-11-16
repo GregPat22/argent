@@ -468,17 +468,18 @@ export async function runDesktopSmoke(
       `Array.from(document.querySelectorAll('#commands-list .command-action')).map(action => [action.querySelector('h3').textContent, ...Array.from(action.querySelectorAll('li'), item => item.textContent)])`,
     ),
     [
-      ["setup", '"npm"', '"ci"'],
+      ["setup", '"node"', '"-e"', '"process.exit(0)"'],
       [
         "test",
         '"node"',
-        '"--test"',
+        '"-e"',
+        '"process.exit(0)"',
         '"<img src=x onerror=window.untrustedCommand=true>"',
       ],
     ],
   );
   assert.match(await text("#commands-approval"), /Not approved/);
-  assert.match(await text("#commands-notice"), /does not run them yet/);
+  assert.match(await text("#commands-notice"), /Approving records your review/);
   assert.equal(
     await js(
       `!!window.untrustedCommand || !!document.querySelector('#commands-list img')`,
@@ -496,7 +497,7 @@ export async function runDesktopSmoke(
     "approval recorded and read back",
   );
   assert.equal(await text("#commands-approve"), "Approved");
-  assert.match(await text("#commands-status"), /does not run it yet/);
+  assert.match(await text("#commands-status"), /Review the commit/);
   assert.equal(
     await js(
       `document.documentElement.scrollWidth <= innerWidth && document.querySelector('#commands-dialog').getBoundingClientRect().right <= innerWidth`,
@@ -575,6 +576,31 @@ export async function runDesktopSmoke(
   );
   assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
   await capture("candidate-consented");
+  await js(`document.querySelector('#candidate-run').click()`);
+  await until(
+    () => js(`document.querySelector('#checks-dialog').open`),
+    "check result dialog",
+  );
+  await until(async () => {
+    if ((await text("#checks-status")).includes("Checks passed")) return true;
+    await js(`document.querySelector('#checks-refresh').click()`);
+    return false;
+  }, "setup and test passed");
+  assert.match(await text("#checks-result"), /setup.*exit 0/s);
+  assert.match(await text("#checks-result"), /test.*exit 0/s);
+  await capture("checks-passed");
+  await js(`document.querySelector('#checks-close').click()`);
+  await js(`document.querySelector('#workspace-commands').click()`);
+  await until(
+    () => js(`!document.querySelector('#commands-review').disabled`),
+    "review after check",
+  );
+  await js(`document.querySelector('#commands-review').click()`);
+  await until(
+    () => js(`!document.querySelector('#candidate-run').disabled`),
+    "consent after check",
+  );
+
   // A later commit must not inherit the earlier consent. Remove only this fixture.
   unlinkSync(join(local.local!.worktreePath, "review.txt"));
   for (const args of [
@@ -608,6 +634,16 @@ export async function runDesktopSmoke(
     "Escape closes candidate review",
   );
   assert.equal(await js(`document.activeElement.id`), "workspace-commands");
+  await js(`document.querySelector('#workspace-checks').click()`);
+  await until(
+    () =>
+      js(
+        `document.querySelector('#checks-status').textContent.includes('stale')`,
+      ),
+    "later commit makes check stale",
+  );
+  await capture("checks-stale");
+  await js(`document.querySelector('#checks-close').click()`);
   await js(`document.querySelector('#permission-toggle').click()`);
   assert.equal(
     await js(

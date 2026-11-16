@@ -245,7 +245,7 @@ test("approval sends only the identity on screen, then reads the current state a
     configuration("one", { id: "approval", approvedAt: 1000 }),
   );
   await settle();
-  assert.match(app.status(), /approved\. Argent does not run it yet/);
+  assert.match(app.status(), /approved\. Review the commit/);
   assert.match(
     app.element("commands-approval").textContent,
     /^Approved .* A changed configuration needs a fresh approval\.$/,

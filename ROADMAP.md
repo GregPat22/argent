@@ -148,9 +148,9 @@ at `37ea780`: see the
 
 ## L1.4 progress
 
-Item 3 is **Next** and not complete. The pieces below are implemented and
-tested. Only review and approval of the configuration is reachable from the
-desktop app. None runs a command and none produces a test result.
+Item 3 is **Next** and not complete. The groundwork below is implemented and
+tested. Desktop review and exact-commit consent are integrated; the setup/test
+result integration below remains in development.
 
 | Piece                                            | Commit    | Contract                                                                                                                 |
 | ------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -179,18 +179,20 @@ is in development under the
       record exact-commit consent; no command dispatch or test result.
       [Validation](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-validation)
       records the checks and limits.
-- [ ] Connect exclusive executable ownership, setup/test dispatch and
-      passed/failed/stale results to that desktop flow. This remains the next
-      integration; item 3 is not complete.
+- [x] Connect exclusive executable ownership, setup/test dispatch and
+      passed/failed/stale results to that desktop flow (development implementation
+      `7cebe40`). The [result validation](docs/specs/0013-local-mvp.md#desktop-setup-and-test-validation)
+      records passing repository/native checks, security review and limits.
+      Item 3 remains in development; this does not complete the whole milestone.
+- [ ] Implement the deferred `run` action after the setup/test result integration,
+      under the existing security model, and record the remaining L1.4 evidence.
 
-After the candidate-review integration, item 3 still needs `setup` and then
-`test` in the verification checkout, the result recorded as evidence for the
-exact commit, and stale display after a later change. Running the `run` action
-is deferred until those results work.
+The setup/test integration has automated and native fixture evidence at
+`7cebe40`; a real-repository walkthrough remains unestablished. The next L1.4
+step is the deferred `run` action. PR creation and archive remain L1.5.
 
-**The next change is the first working result.** The pieces above are enough
-to connect, and none of them shows a developer anything yet. The remaining work
-for item 3 is one slice from approval to result: consent reachable from the
+**The first-result integration requirement.** Accepted before implementation:
+the pieces above connect in one slice from approval to result: consent reachable from the
 desktop, `setup` and then `test` run in the verification checkout of the exact
 commit, and the desktop showing that result as passed, failed or stale. It
 lands in as few pull requests as review allows, and each one must bring a

@@ -27,15 +27,20 @@ records service/renderer regression tests and the native desktop flow at
 `37ea780`. Trusted checks (L1.4) are next, and the complete local MVP remains open.
 The roadmap's [L1.4 progress](../ROADMAP.md#l14-progress) table lists every
 piece built so far, with its commit and contract, and what remains. The
-desktop app reaches only
+desktop app includes
 [review and approval of the command configuration](specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development).
-None of the pieces runs a command or produces a test result.
+The setup/test result integration remains in development.
 [Internal candidate consent](specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development)
 is in development. It records an acknowledgement for one complete text review;
 binary changes and reviews above the display limits cannot be consented to.
 [Service and desktop candidate-consent controls](specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development)
 are in development: full committed text changes, explicit consent and a fresh
-matching read. No configured command runs, and no test result is recorded.
+matching read. Consent itself runs nothing and records no test result.
+The [setup/test result integration](specs/0013-local-mvp.md#desktop-setup-and-test-results-in-development)
+is in development: explicit execution after consent, exclusive ownership,
+setup/test in a fresh checkout, and a desktop result with freshness checked on
+open or Refresh. Its [validation](specs/0013-local-mvp.md#desktop-setup-and-test-validation)
+separates fixture evidence from real-account and release gates.
 
 The [judging-changes report](specs/0018-judging-changes-report.md) is planned
 as work-queue item 4, after L1.4 shows its first result and before the draft

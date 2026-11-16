@@ -2137,3 +2137,22 @@ dialog::backdrop {
     flex-direction: column;
   }
 }
+
+/* Check evidence stays readable at narrow desktop sizes and bounded in the modal. */
+#checks-result {
+  overflow: auto;
+  min-height: 0;
+}
+#checks-result pre,
+#checks-result .mono {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+#checks-result pre {
+  font: 12px/1.7 var(--mono);
+}
+#checks-cancel {
+  margin-top: 12px;
+  flex-shrink: 0;
+}

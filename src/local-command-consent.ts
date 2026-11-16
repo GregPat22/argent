@@ -66,7 +66,7 @@ function fingerprint(
   );
 }
 
-function binding(
+export function consentBinding(
   review: LocalCommandCandidateReview,
 ): LocalCommandConsentBinding {
   if (review.files.some((file) => file.binary))
@@ -150,7 +150,7 @@ function readBinding(
   }
 }
 
-/** Review acknowledgements only; no queue or worker consumes this store. */
+/** Review acknowledgements; execution additionally requires exclusive check ownership. */
 export class LocalCommandConsentStore {
   constructor(
     private readonly db: DatabaseSync,
@@ -325,7 +325,7 @@ export class LocalCommandConsentStore {
     const receipt = row ? this.get(row.id as string) : null;
     if (
       receipt &&
-      JSON.stringify(receipt.binding) !== JSON.stringify(binding(review))
+      JSON.stringify(receipt.binding) !== JSON.stringify(consentBinding(review))
     )
       throw invalid();
     return { review, approved, receipt };
@@ -362,7 +362,7 @@ export class LocalCommandConsentStore {
       signal,
     );
     if (review.identity !== expectedReviewIdentity) throw changed();
-    const value = binding(review);
+    const value = consentBinding(review);
     return this.transaction(() => {
       const duplicate = this.duplicate(requestKey, expected);
       if (duplicate) return duplicate;
@@ -397,7 +397,7 @@ export class LocalCommandConsentStore {
     });
   }
 
-  /** Fresh match only; future dispatch must revalidate under exclusive ownership. */
+  /** Fresh match only; dispatch must revalidate under exclusive ownership. */
   async lookup(
     worktreeRoot: string,
     workspaceId: string,
@@ -427,7 +427,7 @@ export class LocalCommandConsentStore {
       operatorId,
       signal,
     );
-    const value = binding(review);
+    const value = consentBinding(review);
     this.idle(workspaceId);
     this.approval(value);
     signal?.throwIfAborted();

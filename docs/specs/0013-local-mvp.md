@@ -373,6 +373,115 @@ commit, whether it changed what judges it. It is work-queue item 4, starts
 after this slice shows its first result, and has its own spec and security
 review. It adds no requirement to this slice.
 
+#### Desktop setup and test results (in development)
+
+Acceptance recorded 16 November 2026 against main `043b1e2`. This connects the
+existing complete-text consent flow to the first visible result; it does not
+change the accepted security model, consent policy or milestone order.
+
+1. **Explicit execution.** After configuration approval and exact-commit
+   consent, Run checks submits only the consent ID and an idempotency key.
+   Consent itself runs nothing. Only the authenticated local service enables
+   enqueue, latest-result and cancellation routes; standalone mode refuses them.
+   Paths, commands, revisions and actors cannot be supplied by the desktop.
+   Repeated keys return history, including after changes or restart.
+2. **Exclusive ownership.** Versioned executable details share the existing
+   runs table and workspace exclusion with agents and dormant jobs. Enqueue,
+   claim, completion and their events are transactional. A dedicated claim
+   protocol permits executable completion; dormant jobs keep their prohibition.
+   Migration preserves rows, references, indexes and triggers. Legacy claims
+   without a protocol marker still fail. Worker loss leaves uncertainty and
+   never replays or reclaims the check.
+3. **Revalidation and checkout.** Under a live lease, recompute the complete
+   review and compare every consent binding. Create the existing fresh detached
+   verification checkout. Capture its file manifest before any command; before
+   and after each command compare tracked bytes, index, HEAD, tree and manifest,
+   and recheck the owned directory and common Git directory identities. A
+   command cannot substitute a different tree under the original object name.
+   Reassert the lease after inspection and immediately before dispatch.
+4. **Bounded setup then test.** Run the approved base setup when present, then
+   test in the same checkout, without a shell and with the existing allowlisted
+   environment and process-group supervisor. Failed setup prevents test.
+   One thirty-minute deadline bounds preparation, both commands and result
+   acceptance. Cleanup has its own bounded deadline and may finish afterward;
+   ownership remains held until cleanup settles.
+   Cancellation confirms process quiescence before releasing ownership; unknown
+   termination or cleanup leaves `needs_attention`. Only the live-owned checkout
+   can be removed. A checkout left by a crash remains for manual inspection.
+5. **Exact evidence.** Persist base/commit/tree, configuration and review
+   identities, consent ID, ordered argv, exit or stopping outcome, timestamps,
+   durations, stdout/stderr byte counts and SHA-256 digests. Raw output tails are
+   deliberately not persisted or displayed. A pass requires setup (if present)
+   and test to exit zero, unchanged committed files and confirmed cleanup. A
+   preparation failure or cancellation produces no test evidence. Agent run
+   records and portable history remain separate.
+6. **Desktop result.** Checks opens the latest durable job/result, including
+   queued, running, failed, cancelled and uncertain work. A result is shown as
+   passed or failed and current only when a fresh hash-verified complete review
+   matches; changed, dirty, busy or unreadable state is stale. Freshness is
+   point-in-time, recomputed on opening or Refresh, never a filesystem watcher.
+   Close, workspace change and disconnect invalidate pending responses. Reconnect
+   reads nothing until Refresh; only an explicit Run checks queues work.
+7. **Validation.** Real temporary Git repositories and SQLite cover successful
+   setup/test, failure, stale commits, mutation after consent, hostile Git
+   metadata, idempotency, atomic rollback, cancellation, expired ownership,
+   corruption, post-result tree forgery, migration and route restrictions. Renderer and bridge tests cover
+   literal output, request bounds and stale replies. Native smoke runs harmless
+   fixture commands and shows passed then stale evidence, with no model account.
+   The full repository check and independent security review are required.
+
+Limits: local execution is not a sandbox and cannot resist arbitrary host-owner
+modification. Ignored dependencies are installed afresh; caching is absent.
+Setup/test that changes tracked files or leaves nonignored files cannot produce
+an exact-commit result. The first view exposes the latest check only; earlier
+records remain durable. `run`, crash reconciliation, real-account walkthroughs,
+PR creation and packaged/signed distribution remain outside this integration.
+
+#### Desktop setup and test validation
+
+Development implementation `7cebe40058eec21275b073c3e983d022fef308c0`, validated
+16 November 2026 against main `043b1e2`:
+
+- `npm run check` passed strict types, formatting, build and all 648 tests,
+  with no failures, cancellations or skips. Final typechecking and formatting
+  also passed. Relative documentation links and anchors resolve.
+- Real temporary Git repositories, SQLite and configured Node processes prove
+  setup/test ordering, durable passed/failed results, clean-commit freshness,
+  stale changes, cancellation after process start, expired ownership, rollback,
+  corruption, migration preservation and concurrent request deduplication.
+  Nested-tree forgery is rejected both during setup and when checking freshness.
+  The freshness regression directly demonstrates that the older observation
+  helper accepts the forged nested tree before the complete review rejects it.
+- Bridge and renderer cases pass for identifier-only requests, private-field
+  omission, literal commands, uncertain retries, explicit reads, cancellation
+  and late responses after close or disconnect.
+- Native Electron smoke passed with harmless setup/test commands and a fake
+  agent CLI. It displays a passed result, then stale evidence after a later
+  commit; screenshots were visually inspected. Existing keyboard, renderer
+  isolation, reconnect and service-survival checks also pass. The final
+  duplicate-receipt fallback has focused and full-suite coverage.
+- Independent security review found no remaining blocking issue after the
+  immutable manifest, pre-dispatch ownership and hash-verified freshness
+  corrections. No accepted security or product decision changes.
+
+Earlier checks exposed and corrected a concurrent identical-request race: a
+reservation made during another request's Git inspection must return its
+historical receipt even if that inspection subsequently fails or has no match.
+New fixture errors also required correction: missing DOM event support and an
+assumed workspace selection, intentional foreign-key corruption attempted with
+constraints enabled, and native polling that refreshed before reading a result.
+A root-tree forgery was already rejected by Git; the regression instead targets
+the nested-tree case the older observation accepts. No production assertion was
+removed or weakened. Unchanged main passed its original native smoke and all ten
+dormant ownership cases; the new check integration has no equivalent there. The
+initial incomplete full run was superseded by the passing full run above.
+
+Limits: no real-account walkthrough, packaged build, website checks or public
+release was performed. Website source is unchanged. Commands in the native
+walkthrough are fixtures, not this repository's own setup/test configuration.
+The `run` action, full L1 evidence and process reconciliation remain open;
+L1.4 is not marked complete.
+
 #### Internal command-configuration reader acceptance
 
 Acceptance recorded 11 November 2026 against main `9ddf9d7`; the internal reader
