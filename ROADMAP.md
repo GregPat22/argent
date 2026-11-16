@@ -202,6 +202,14 @@ the [desktop restyle](docs/specs/0015-desktop-restyle.md).
 
 Accepted on 14 November 2026. These do not change the numbered order above.
 
+**Design backlog, accepted 15 November 2026:** a human-triggered Merge control
+inside Argent is wanted; its UX, workflow and delivery milestone remain open.
+Design the flow from review and check results through Create PR, explicit merge
+and Archive around Argent's evidence and workspace states. Button placement,
+confirmation, merge strategy and the relationship to archiving need design
+review before implementation. This does not add a release gate or change L1.5's
+existing scope. See the [design todo](docs/specs/0013-local-mvp.md#human-triggered-merge-design-todo).
+
 | Item                                            | Status                                                            | Done when                                                                                                                                                                                                                                                                                               |
 | ----------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Argent's own `argent.json`                      | Done with this change.                                            | This repository carries its own `setup` and `test` commands, so a maintainer reviews and approves them in the desktop app today and gets Argent's own result for Argent's commits as soon as item 3 runs commands. Until then the file runs nothing.                                                    |

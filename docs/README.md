@@ -37,6 +37,10 @@ binary changes and reviews above the display limits cannot be consented to.
 are in development: full committed text changes, explicit consent and a fresh
 matching read. No configured command runs, and no test result is recorded.
 
+A [human-triggered desktop merge flow](specs/0013-local-mvp.md#human-triggered-merge-design-todo)
+is in the design backlog. Its UX, workflow and delivery milestone remain open;
+it does not change the current work queue or L1.5 exit criteria.
+
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
 is implemented at `d2ef4e5`, with
 [validation evidence](specs/0004-desktop-prototype.md#startup-ownership-validation).
