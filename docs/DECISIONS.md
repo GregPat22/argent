@@ -388,7 +388,10 @@ limit in the desktop. Explicit opening/refresh computes freshness; no watcher or
 automatic rerun is introduced. These are implementation choices within the
 accepted checkout, consent and uncertainty requirements, not new product or
 security decisions. The [validation record](specs/0013-local-mvp.md#desktop-setup-and-test-validation)
-tracks evidence and remaining limits.
+tracks evidence and remaining limits. Development implementation `7cebe40`
+passed the repository check, native fixture walkthrough and independent security
+review on 16 November 2026. The whole L1.4 milestone remains in development;
+raw-output retention, automatic refresh and crash recovery are not established.
 
 ### Unconnected bounded command runner — 12 November 2026
 

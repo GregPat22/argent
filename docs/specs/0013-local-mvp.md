@@ -431,8 +431,48 @@ PR creation and packaged/signed distribution remain outside this integration.
 
 #### Desktop setup and test validation
 
-Validation in progress on 16 November 2026 against main `043b1e2`. Results and
-remaining limits are recorded here before completion.
+Development implementation `7cebe40058eec21275b073c3e983d022fef308c0`, validated
+16 November 2026 against main `043b1e2`:
+
+- `npm run check` passed strict types, formatting, build and all 648 tests,
+  with no failures, cancellations or skips. Final typechecking and formatting
+  also passed. Relative documentation links and anchors resolve.
+- Real temporary Git repositories, SQLite and configured Node processes prove
+  setup/test ordering, durable passed/failed results, clean-commit freshness,
+  stale changes, cancellation after process start, expired ownership, rollback,
+  corruption, migration preservation and concurrent request deduplication.
+  Nested-tree forgery is rejected both during setup and when checking freshness.
+  The freshness regression directly demonstrates that the older observation
+  helper accepts the forged nested tree before the complete review rejects it.
+- Bridge and renderer cases pass for identifier-only requests, private-field
+  omission, literal commands, uncertain retries, explicit reads, cancellation
+  and late responses after close or disconnect.
+- Native Electron smoke passed with harmless setup/test commands and a fake
+  agent CLI. It displays a passed result, then stale evidence after a later
+  commit; screenshots were visually inspected. Existing keyboard, renderer
+  isolation, reconnect and service-survival checks also pass. The final
+  duplicate-receipt fallback has focused and full-suite coverage.
+- Independent security review found no remaining blocking issue after the
+  immutable manifest, pre-dispatch ownership and hash-verified freshness
+  corrections. No accepted security or product decision changes.
+
+Earlier checks exposed and corrected a concurrent identical-request race: a
+reservation made during another request's Git inspection must return its
+historical receipt even if that inspection subsequently fails or has no match.
+New fixture errors also required correction: missing DOM event support and an
+assumed workspace selection, intentional foreign-key corruption attempted with
+constraints enabled, and native polling that refreshed before reading a result.
+A root-tree forgery was already rejected by Git; the regression instead targets
+the nested-tree case the older observation accepts. No production assertion was
+removed or weakened. Unchanged main passed its original native smoke and all ten
+dormant ownership cases; the new check integration has no equivalent there. The
+initial incomplete full run was superseded by the passing full run above.
+
+Limits: no real-account walkthrough, packaged build, website checks or public
+release was performed. Website source is unchanged. Commands in the native
+walkthrough are fixtures, not this repository's own setup/test configuration.
+The `run` action, full L1 evidence and process reconciliation remain open;
+L1.4 is not marked complete.
 
 #### Internal command-configuration reader acceptance
 
