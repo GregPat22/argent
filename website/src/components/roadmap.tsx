@@ -56,6 +56,7 @@ const TODAY = [
 
 const NOT_YET = [
   "Trusted test checks and pull requests in the app",
+  "A report of whether a commit changed its own tests, check scripts or dependencies",
   "Export of real Claude Code history and Git changes",
   "Checked links between workspaces (an experiment, the first update after release)",
   "Codex and the model picker, then further project rules",

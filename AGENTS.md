@@ -72,7 +72,11 @@ address, never a personal one.
   a remote host the developer owns, then in an optional managed cloud; what sets
   Argent apart is evidence it collects itself (checks it runs itself, checked
   links between workspaces, one set of project rules for every agent), and
-  checks are planned, not working, until L1.4 lands;
+  checks are planned, not working, until L1.4 lands; a planned judging-changes
+  report (spec 0018) will say whether a commit changed what judges it (its
+  tests, what the approved commands run, or its dependencies), and it is a
+  check and a consent gate, never a prevention control, a security scan or a
+  claim that an agent cheated;
   each workspace chooses its agent and each run a model that agent offers, and
   Argent never routes or proxies models; in local mode the agent uses
   its own official sign-in and never receives provider API-key variables; local
