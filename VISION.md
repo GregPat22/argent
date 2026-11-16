@@ -75,7 +75,9 @@ self-hosting a second-class or limited mode.
 
 The first usable release runs real agents locally: one repository, a branch and
 worktree per workspace, Claude Code through its official CLI, a reviewable diff,
-checks Argent runs itself and a human-controlled draft pull request. Checked
+checks Argent runs itself, a report of whether the commit changed what judges
+it (its tests, what the approved commands run, or its dependencies) and a
+human-controlled draft pull request. Checked
 links between workspaces are its first update, as an experiment: Argent warns
 when two linked workspaces changed the same paths and runs the approved tests
 on a trial merge of their exact commits. Codex and a per-run model picker
@@ -99,5 +101,6 @@ Whether they keep using a capability decides whether it stays.
 Claude Code runs in local worktrees, and the desktop changes panel shows
 current changed files and a bounded diff against the workspace base. Live diffs are
 observations of current files, not checks or immutable evidence. Trusted test
-execution and draft pull requests remain the next local MVP slices. Links between
-workspaces, further rule types and shared rule sets do not exist.
+execution, the judging-changes report and draft pull requests remain the next
+local MVP steps. Links between workspaces, further rule types and shared rule
+sets do not exist.

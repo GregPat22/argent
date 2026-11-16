@@ -89,6 +89,10 @@ In order:
    Code through its official CLI and your own sign-in. You follow the session
    live, review the diff, see the result of checks Argent ran itself against the
    exact commit, and open a draft pull request that carries that evidence.
+   Planned with that result: a
+   [judging-changes report](docs/specs/0018-judging-changes-report.md) that
+   says whether the commit changed what judges it (its tests, what the
+   approved commands run, or its dependencies).
    Local execution is not a sandbox: the agent has the same access as running it
    in your terminal. See [spec 0013](docs/specs/0013-local-mvp.md).
 2. **Signed public downloads** from the website: the first public release, with
@@ -116,7 +120,9 @@ merging are explicitly out of scope for now.
 
 - **An agent's claim is not proof.** Argent records local changes itself today.
   Planned trusted checks will run against the exact commit and record their
-  results separately from what the agent says.
+  results separately from what the agent says. A planned report will say
+  whether that commit changed what judges it, because a pass means less when
+  the commit also rewrote its own tests or check scripts.
 - **Rules are named by what enforces them.** Guidance given to an agent, a
   check Argent runs, a gate that blocks a step and a control that prevents an
   action are four different things. Argent does not present one as another, and

@@ -365,6 +365,14 @@ approved `setup` command, when one is configured, and then `test` in that same
 checkout, and records both. Running the `run` action is deferred until setup
 and test results work; the configuration schema is unchanged.
 
+Accepted on 16 November 2026: reading the commands at the base commit fixes
+which commands run, not what they do, because scripts, tests and dependencies
+come from the candidate commit. The planned
+[judging-changes report](0018-judging-changes-report.md) states, for the exact
+commit, whether it changed what judges it. It is work-queue item 4, starts
+after this slice shows its first result, and has its own spec and security
+review. It adds no requirement to this slice.
+
 #### Desktop setup and test results (in development)
 
 Acceptance recorded 16 November 2026 against main `043b1e2`. This connects the
@@ -1541,7 +1549,9 @@ unsandboxed, and an escaped process is not fenced by a process group.
 Commit and push the workspace branch and open a draft pull request through `gh`,
 recording the pull request URL. The pull request description carries Argent's
 evidence record (commit, checks and their results, diff hash, agent, model and
-permission mode), so the proof travels with the code. Archive removes the worktree only when it has no
+permission mode), so the proof travels with the code. Once the
+[judging-changes report](0018-judging-changes-report.md) exists, the record
+carries it for the same commit. Archive removes the worktree only when it has no
 uncommitted changes, unless the developer explicitly discards them; the branch is
 kept.
 
@@ -1583,7 +1593,8 @@ Automated tests for every slice, a recorded desktop walkthrough, and maintainers
 completing real tasks on this repository through Argent: two workspaces running in
 parallel without interference, and at least one pull request created through
 Argent and merged by a person. This gates the first public release, which ships
-with Claude Code. L1.6 has its own evidence: at least one real task completed
+with Claude Code. The [judging-changes report](0018-judging-changes-report.md)
+precedes the release in the work queue and has its own exit evidence. L1.6 has its own evidence: at least one real task completed
 with each of Claude Code and Codex.
 
 ## Out of scope for L1

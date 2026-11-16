@@ -42,6 +42,12 @@ setup/test in a fresh checkout, and a desktop result with freshness checked on
 open or Refresh. Its [validation](specs/0013-local-mvp.md#desktop-setup-and-test-validation)
 separates fixture evidence from real-account and release gates.
 
+The [judging-changes report](specs/0018-judging-changes-report.md) is planned
+as work-queue item 4, after L1.4 shows its first result and before the draft
+pull request. For an exact commit it will say whether the commit changed its
+tests, what the approved commands run or its dependencies. Nothing of it is
+implemented; its detailed acceptance contract and security review come first.
+
 A [human-triggered desktop merge flow](specs/0013-local-mvp.md#human-triggered-merge-design-todo)
 is in the design backlog. Its UX, workflow and delivery milestone remain open;
 it does not change the current work queue or L1.5 exit criteria.
@@ -74,22 +80,23 @@ belong to the maintainers.
 Each behavior change starts from one of these specs. Status is as of the latest
 recorded revision.
 
-| Spec                                                                                      | Status                                                                              |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [0001 Durable local run](specs/0001-durable-local-run.md)                                 | Implemented (M0), simulated execution.                                              |
-| [0002 Cloud MVP to a tested PR](specs/0002-cloud-mvp.md)                                  | Planned real-provider release contract.                                             |
-| [0003 Project identity](specs/0003-project-identity.md)                                   | Name, license rationale, metadata and namespace check.                              |
-| [0004 Desktop prototype](specs/0004-desktop-prototype.md)                                 | Implemented local macOS prototype (P1).                                             |
-| [0006 Portable continuity](specs/0006-portable-continuity.md)                             | Managed-release requirements; the first offline slice is implemented in 0012.       |
-| [0007 Repository access and workspace lifecycle](specs/0007-cloud-workspace-lifecycle.md) | Lifecycle, bootstrap, custody and cleanup simulations implemented; live gates open. |
-| [0008 Desktop workspace shell](specs/0008-desktop-workspace-shell.md)                     | Layout superseded by 0015; execution and integration limits still apply.            |
-| [0009 Desktop UX and icons](specs/0009-desktop-ux-polish.md)                              | Visual system superseded by 0015; accessibility rules still apply.                  |
-| [0010 Live repository pilot gates](specs/0010-live-repository-pilot-gates.md)             | The credential, authorization and isolation gates before live repository access.    |
-| [0011 GitHub device sign-in pilot](specs/0011-github-device-pilot.md)                     | Implemented opt-in read-only pilot, not connected to the desktop.                   |
-| [0012 Portable history](specs/0012-portable-history.md)                                   | Implemented offline export and read-only restore, with commands.                    |
-| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | Critical path: L1.1–L1.3 implemented; trusted checks and later slices planned.      |
-| [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.      |
-| [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks. |
+| Spec                                                                                      | Status                                                                                |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [0001 Durable local run](specs/0001-durable-local-run.md)                                 | Implemented (M0), simulated execution.                                                |
+| [0002 Cloud MVP to a tested PR](specs/0002-cloud-mvp.md)                                  | Planned real-provider release contract.                                               |
+| [0003 Project identity](specs/0003-project-identity.md)                                   | Name, license rationale, metadata and namespace check.                                |
+| [0004 Desktop prototype](specs/0004-desktop-prototype.md)                                 | Implemented local macOS prototype (P1).                                               |
+| [0006 Portable continuity](specs/0006-portable-continuity.md)                             | Managed-release requirements; the first offline slice is implemented in 0012.         |
+| [0007 Repository access and workspace lifecycle](specs/0007-cloud-workspace-lifecycle.md) | Lifecycle, bootstrap, custody and cleanup simulations implemented; live gates open.   |
+| [0008 Desktop workspace shell](specs/0008-desktop-workspace-shell.md)                     | Layout superseded by 0015; execution and integration limits still apply.              |
+| [0009 Desktop UX and icons](specs/0009-desktop-ux-polish.md)                              | Visual system superseded by 0015; accessibility rules still apply.                    |
+| [0010 Live repository pilot gates](specs/0010-live-repository-pilot-gates.md)             | The credential, authorization and isolation gates before live repository access.      |
+| [0011 GitHub device sign-in pilot](specs/0011-github-device-pilot.md)                     | Implemented opt-in read-only pilot, not connected to the desktop.                     |
+| [0012 Portable history](specs/0012-portable-history.md)                                   | Implemented offline export and read-only restore, with commands.                      |
+| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | Critical path: L1.1–L1.3 implemented; trusted checks and later slices planned.        |
+| [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.        |
+| [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks.   |
+| [0018 Judging-changes report](specs/0018-judging-changes-report.md)                       | Planned: whether a commit changed what judges it. Work-queue item 4; not implemented. |
 
 [0017 Website SEO](specs/0017-website-seo.md) defines search metadata, crawl files,
 structured data, social previews and deployment validation. The implementation
