@@ -11,10 +11,18 @@ export async function runDesktopSmoke(
   initial: BrowserWindow,
   client: DesktopClient,
 ): Promise<void> {
+  const suite = process.env.ARGENT_DESKTOP_SMOKE_SUITE;
+  assert.ok(suite === "workspace" || suite === "commands", "known smoke suite");
+  const started = Date.now();
+  const progress = (stage: string) =>
+    console.log(
+      `[ARGENT_SMOKE_STAGE]${JSON.stringify({ suite, stage, elapsedMs: Date.now() - started })}`,
+    );
   let window = initial;
   const js = <T>(script: string) =>
     window.webContents.executeJavaScript(script) as Promise<T>;
   const until = async (predicate: () => Promise<unknown>, label: string) => {
+    progress(label);
     const end = Date.now() + 15000;
     while (Date.now() < end) {
       if (await predicate()) return;
@@ -32,6 +40,7 @@ export async function runDesktopSmoke(
   const shots = process.env.ARGENT_SCREENSHOT_PATH;
   if (shots) mkdirSync(dirname(shots), { recursive: true });
   const capture = async (name: string) => {
+    progress(`capture: ${name}`);
     if (!shots) return;
     // A modal can settle in the DOM while an occluded macOS window retains
     // an older compositor frame. Capture the visible, painted fixture window.
@@ -93,6 +102,307 @@ export async function runDesktopSmoke(
       (run) => run.task === message,
     )!;
   };
+
+  const createLocalWorkspace = async (button: string): Promise<Workspace> => {
+    await js(`document.querySelector(${JSON.stringify(button)}).click()`);
+    await until(
+      () =>
+        js(
+          `document.querySelector('#workspace-title').textContent === 'repository' && document.querySelector('#composer-agent-note').textContent.includes('Not a sandbox')`,
+        ),
+      "local workspace created from the chosen folder",
+    );
+    const local = (await call<Page<Workspace>>("listWorkspaces", [])).items[0]!;
+    assert.equal(local.provider, "local-worktree");
+    assert.equal(await text("#workspace-branch"), local.local!.branch);
+    assert.deepEqual(
+      await js(
+        `[document.querySelector('#permission-toggle').textContent.trim(), document.querySelector('#limit-select').value]`,
+      ),
+      ["Edits only", "1800000"],
+    );
+    await capture("local-workspace");
+    await js(`document.querySelector('#workspace-changes').click()`);
+    await until(
+      () =>
+        js(
+          `document.querySelector('#changes-status').textContent.includes('No changes')`,
+        ),
+      "empty local changes",
+    );
+    await js(`document.querySelector('#changes-close').click()`);
+
+    return local;
+  };
+
+  const checkCommands = async (local: Workspace) => {
+    // Review and approve the base commit's command configuration. Approval
+    // records a review: it creates no run and executes nothing.
+    const beforeApproval = await call("listRuns", [local.id]);
+    await js(
+      `document.querySelector('#workspace-commands').focus(); document.querySelector('#workspace-commands').click()`,
+    );
+    await until(
+      () =>
+        js(
+          `!document.querySelector('#commands-content').hidden && !document.querySelector('#commands-approve').disabled`,
+        ),
+      "command configuration shown for review",
+    );
+    assert.deepEqual(
+      await js(
+        `Array.from(document.querySelectorAll('#commands-list .command-action')).map(action => [action.querySelector('h3').textContent, ...Array.from(action.querySelectorAll('li'), item => item.textContent)])`,
+      ),
+      [
+        ["setup", '"node"', '"-e"', '"process.exit(0)"'],
+        [
+          "test",
+          '"node"',
+          '"-e"',
+          '"process.exit(0)"',
+          '"<img src=x onerror=window.untrustedCommand=true>"',
+        ],
+        ["run", '"node"', '"-e"', "\"console.log('run fixture')\""],
+      ],
+    );
+    assert.match(await text("#commands-approval"), /Not approved/);
+    assert.match(
+      await text("#commands-notice"),
+      /Approving records your review/,
+    );
+    assert.equal(
+      await js(
+        `!!window.untrustedCommand || !!document.querySelector('#commands-list img')`,
+      ),
+      false,
+      "configured arguments stay literal text",
+    );
+    await capture("command-review");
+    await js(`document.querySelector('#commands-approve').click()`);
+    await until(
+      () =>
+        js(
+          `document.querySelector('#commands-approval').textContent.startsWith('Approved ') && document.querySelector('#commands-approve').disabled`,
+        ),
+      "approval recorded and read back",
+    );
+    assert.equal(await text("#commands-approve"), "Approved");
+    assert.match(await text("#commands-status"), /Review the commit/);
+    assert.equal(
+      await js(
+        `document.documentElement.scrollWidth <= innerWidth && document.querySelector('#commands-dialog').getBoundingClientRect().right <= innerWidth`,
+      ),
+      true,
+      "the command dialog fits the window",
+    );
+    await capture("command-approved");
+    window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
+    window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
+    await until(
+      () => js(`!document.querySelector('#commands-dialog').open`),
+      "Escape closes the command configuration",
+    );
+    assert.equal(await js(`document.activeElement.id`), "workspace-commands");
+    assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
+    // Review a committed fixture through the real renderer and service.
+    writeFileSync(
+      join(local.local!.worktreePath, "review.txt"),
+      "<script>window.untrustedCandidate=true</script>\n\t\u202e\u200b\n",
+    );
+    for (const args of [
+      ["add", "review.txt"],
+      ["commit", "--quiet", "-m", "review fixture"],
+    ])
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.name=Argent Smoke",
+          "-c",
+          "user.email=smoke@example.invalid",
+          ...args,
+        ],
+        { cwd: local.local!.worktreePath, stdio: "ignore" },
+      );
+    await js(`document.querySelector('#workspace-commands').click()`);
+    await until(
+      () => js(`!document.querySelector('#commands-review').disabled`),
+      "candidate review available",
+    );
+    await js(`document.querySelector('#commands-review').click()`);
+    await until(
+      () =>
+        js(
+          `!document.querySelector('#candidate-content').hidden && !document.querySelector('#candidate-consent').disabled`,
+        ),
+      "complete committed review",
+    );
+    assert.match(await text("#candidate-files"), /review\.txt/);
+    assert.match(await text("#candidate-files"), /\\t\\u202e\\u200b/);
+    assert.equal(
+      await js(
+        `!!window.untrustedCandidate || !!document.querySelector('#candidate-files script')`,
+      ),
+      false,
+    );
+    assert.equal(
+      await js(
+        `document.documentElement.scrollWidth <= innerWidth && document.querySelector('#candidate-dialog').getBoundingClientRect().right <= innerWidth`,
+      ),
+      true,
+    );
+    await capture("candidate-review");
+    await js(`document.querySelector('#candidate-consent').click()`);
+    await until(
+      () =>
+        js(
+          `document.querySelector('#candidate-status').textContent.includes('Consent matches this reading')`,
+        ),
+      "consent recorded and freshly matched",
+    );
+    assert.equal(
+      await js(`document.querySelector('#candidate-consent').disabled`),
+      true,
+    );
+    assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
+    await capture("candidate-consented");
+    await js(`document.querySelector('#candidate-run').click()`);
+    await until(
+      () => js(`document.querySelector('#checks-dialog').open`),
+      "check result dialog",
+    );
+    await until(async () => {
+      if ((await text("#checks-status")).includes("Checks passed")) return true;
+      await js(`document.querySelector('#checks-refresh').click()`);
+      return false;
+    }, "setup and test passed");
+    assert.match(await text("#checks-result"), /setup.*exit 0/s);
+    assert.match(await text("#checks-result"), /test.*exit 0/s);
+    await capture("checks-passed");
+    await js(`document.querySelector('#checks-close').click()`);
+    await js(`document.querySelector('#workspace-commands').click()`);
+    await until(
+      () => js(`!document.querySelector('#commands-review').disabled`),
+      "review after check",
+    );
+    await js(`document.querySelector('#commands-review').click()`);
+    await until(
+      () => js(`!document.querySelector('#candidate-run').disabled`),
+      "consent after check",
+    );
+
+    // Run uses a separate review acknowledgement, checkout and result namespace.
+    await js(`document.querySelector('#candidate-close').click()`);
+    await js(`document.querySelector('#workspace-commands').click()`);
+    await until(
+      () => js(`!document.querySelector('#commands-review-run').disabled`),
+      "run review available",
+    );
+    await js(`document.querySelector('#commands-review-run').click()`);
+    await until(
+      () => js(`!document.querySelector('#candidate-consent').disabled`),
+      "run requires separate consent",
+    );
+    assert.equal(
+      await js(`document.querySelector('#candidate-run').disabled`),
+      true,
+    );
+    assert.match(await text("#candidate-notice"), /not test evidence/);
+    assert.match(await text("#candidate-files"), /run fixture/);
+    await js(`document.querySelector('#candidate-consent').click()`);
+    await until(
+      () => js(`!document.querySelector('#candidate-run').disabled`),
+      "run consent recorded",
+    );
+    await capture("run-consented");
+    await js(`document.querySelector('#candidate-run').click()`);
+    await until(
+      () => js(`document.querySelector('#checks-dialog').open`),
+      "run result dialog",
+    );
+    await until(async () => {
+      if ((await text("#checks-status")).includes("Run command succeeded"))
+        return true;
+      await js(`document.querySelector('#checks-refresh').click()`);
+      return false;
+    }, "setup and run succeeded");
+    assert.match(await text("#checks-status"), /not test evidence/);
+    assert.doesNotMatch(await text("#checks-status"), /Checks passed/);
+    assert.match(await text("#checks-result"), /run.*exit 0/s);
+    await capture("run-succeeded");
+    await js(`document.querySelector('#checks-close').click()`);
+    await js(`document.querySelector('#workspace-commands').click()`);
+    await until(
+      () => js(`!document.querySelector('#commands-review').disabled`),
+      "test review remains separate",
+    );
+    await js(`document.querySelector('#commands-review').click()`);
+    await until(
+      () => js(`!document.querySelector('#candidate-run').disabled`),
+      "test consent remains valid",
+    );
+
+    // A later commit must not inherit the earlier consent. Remove only this fixture.
+    unlinkSync(join(local.local!.worktreePath, "review.txt"));
+    for (const args of [
+      ["add", "review.txt"],
+      ["commit", "--quiet", "-m", "restore review fixture"],
+    ])
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "user.name=Argent Smoke",
+          "-c",
+          "user.email=smoke@example.invalid",
+          ...args,
+        ],
+        { cwd: local.local!.worktreePath, stdio: "ignore" },
+      );
+    await js(`document.querySelector('#candidate-refresh').click()`);
+    await until(
+      () =>
+        js(
+          `!document.querySelector('#candidate-consent').disabled && document.querySelector('#candidate-files').textContent.includes('No changes from the base')`,
+        ),
+      "new commit has no matching consent",
+    );
+
+    window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
+    window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
+    await until(
+      () => js(`!document.querySelector('#candidate-dialog').open`),
+      "Escape closes candidate review",
+    );
+    assert.equal(await js(`document.activeElement.id`), "workspace-commands");
+    await js(`document.querySelector('#workspace-checks').click()`);
+    await until(
+      () =>
+        js(
+          `document.querySelector('#checks-status').textContent.includes('stale')`,
+        ),
+      "later commit makes check stale",
+    );
+    await capture("checks-stale");
+    await js(`document.querySelector('#checks-close').click()`);
+  };
+
+  // Each suite starts in a fresh app and service with its own outer deadline.
+  if (suite === "commands") {
+    await ready();
+    await checkCommands(await createLocalWorkspace("#welcome-create"));
+    console.log(
+      `[ARGENT_SMOKE]${JSON.stringify({
+        passed: true,
+        suite,
+        commandConfigurationApproved: true,
+        candidateConsentRecorded: true,
+        separateRunConsentAndOutcome: true,
+        elapsedMs: Date.now() - started,
+      })}`,
+    );
+    return;
+  }
 
   // First launch: the welcome offers one decision.
   await ready();
@@ -422,228 +732,7 @@ export async function runDesktopSmoke(
   // A local repository with a fake Claude Code CLI (set by the harness).
   const before = (await call<Page<Workspace>>("listWorkspaces", [])).items
     .length;
-  await js(`document.querySelector('#new-workspace').click()`);
-  await until(
-    () =>
-      js(
-        `document.querySelector('#workspace-title').textContent === 'repository' && document.querySelector('#composer-agent-note').textContent.includes('Not a sandbox')`,
-      ),
-    "local workspace created from the chosen folder",
-  );
-  const local = (await call<Page<Workspace>>("listWorkspaces", [])).items[0]!;
-  assert.equal(local.provider, "local-worktree");
-  assert.equal(await text("#workspace-branch"), local.local!.branch);
-  assert.deepEqual(
-    await js(
-      `[document.querySelector('#permission-toggle').textContent.trim(), document.querySelector('#limit-select').value]`,
-    ),
-    ["Edits only", "1800000"],
-  );
-  await capture("local-workspace");
-  await js(`document.querySelector('#workspace-changes').click()`);
-  await until(
-    () =>
-      js(
-        `document.querySelector('#changes-status').textContent.includes('No changes')`,
-      ),
-    "empty local changes",
-  );
-  await js(`document.querySelector('#changes-close').click()`);
-
-  // Review and approve the base commit's command configuration. Approval
-  // records a review: it creates no run and executes nothing.
-  const beforeApproval = await call("listRuns", [local.id]);
-  await js(
-    `document.querySelector('#workspace-commands').focus(); document.querySelector('#workspace-commands').click()`,
-  );
-  await until(
-    () =>
-      js(
-        `!document.querySelector('#commands-content').hidden && !document.querySelector('#commands-approve').disabled`,
-      ),
-    "command configuration shown for review",
-  );
-  assert.deepEqual(
-    await js(
-      `Array.from(document.querySelectorAll('#commands-list .command-action')).map(action => [action.querySelector('h3').textContent, ...Array.from(action.querySelectorAll('li'), item => item.textContent)])`,
-    ),
-    [
-      ["setup", '"node"', '"-e"', '"process.exit(0)"'],
-      [
-        "test",
-        '"node"',
-        '"-e"',
-        '"process.exit(0)"',
-        '"<img src=x onerror=window.untrustedCommand=true>"',
-      ],
-    ],
-  );
-  assert.match(await text("#commands-approval"), /Not approved/);
-  assert.match(await text("#commands-notice"), /Approving records your review/);
-  assert.equal(
-    await js(
-      `!!window.untrustedCommand || !!document.querySelector('#commands-list img')`,
-    ),
-    false,
-    "configured arguments stay literal text",
-  );
-  await capture("command-review");
-  await js(`document.querySelector('#commands-approve').click()`);
-  await until(
-    () =>
-      js(
-        `document.querySelector('#commands-approval').textContent.startsWith('Approved ') && document.querySelector('#commands-approve').disabled`,
-      ),
-    "approval recorded and read back",
-  );
-  assert.equal(await text("#commands-approve"), "Approved");
-  assert.match(await text("#commands-status"), /Review the commit/);
-  assert.equal(
-    await js(
-      `document.documentElement.scrollWidth <= innerWidth && document.querySelector('#commands-dialog').getBoundingClientRect().right <= innerWidth`,
-    ),
-    true,
-    "the command dialog fits the window",
-  );
-  await capture("command-approved");
-  window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
-  window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
-  await until(
-    () => js(`!document.querySelector('#commands-dialog').open`),
-    "Escape closes the command configuration",
-  );
-  assert.equal(await js(`document.activeElement.id`), "workspace-commands");
-  assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
-  // Review a committed fixture through the real renderer and service.
-  writeFileSync(
-    join(local.local!.worktreePath, "review.txt"),
-    "<script>window.untrustedCandidate=true</script>\n\t\u202e\u200b\n",
-  );
-  for (const args of [
-    ["add", "review.txt"],
-    ["commit", "--quiet", "-m", "review fixture"],
-  ])
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Argent Smoke",
-        "-c",
-        "user.email=smoke@example.invalid",
-        ...args,
-      ],
-      { cwd: local.local!.worktreePath, stdio: "ignore" },
-    );
-  await js(`document.querySelector('#workspace-commands').click()`);
-  await until(
-    () => js(`!document.querySelector('#commands-review').disabled`),
-    "candidate review available",
-  );
-  await js(`document.querySelector('#commands-review').click()`);
-  await until(
-    () =>
-      js(
-        `!document.querySelector('#candidate-content').hidden && !document.querySelector('#candidate-consent').disabled`,
-      ),
-    "complete committed review",
-  );
-  assert.match(await text("#candidate-files"), /review\.txt/);
-  assert.match(await text("#candidate-files"), /\\t\\u202e\\u200b/);
-  assert.equal(
-    await js(
-      `!!window.untrustedCandidate || !!document.querySelector('#candidate-files script')`,
-    ),
-    false,
-  );
-  assert.equal(
-    await js(
-      `document.documentElement.scrollWidth <= innerWidth && document.querySelector('#candidate-dialog').getBoundingClientRect().right <= innerWidth`,
-    ),
-    true,
-  );
-  await capture("candidate-review");
-  await js(`document.querySelector('#candidate-consent').click()`);
-  await until(
-    () =>
-      js(
-        `document.querySelector('#candidate-status').textContent.includes('Consent matches this reading')`,
-      ),
-    "consent recorded and freshly matched",
-  );
-  assert.equal(
-    await js(`document.querySelector('#candidate-consent').disabled`),
-    true,
-  );
-  assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
-  await capture("candidate-consented");
-  await js(`document.querySelector('#candidate-run').click()`);
-  await until(
-    () => js(`document.querySelector('#checks-dialog').open`),
-    "check result dialog",
-  );
-  await until(async () => {
-    if ((await text("#checks-status")).includes("Checks passed")) return true;
-    await js(`document.querySelector('#checks-refresh').click()`);
-    return false;
-  }, "setup and test passed");
-  assert.match(await text("#checks-result"), /setup.*exit 0/s);
-  assert.match(await text("#checks-result"), /test.*exit 0/s);
-  await capture("checks-passed");
-  await js(`document.querySelector('#checks-close').click()`);
-  await js(`document.querySelector('#workspace-commands').click()`);
-  await until(
-    () => js(`!document.querySelector('#commands-review').disabled`),
-    "review after check",
-  );
-  await js(`document.querySelector('#commands-review').click()`);
-  await until(
-    () => js(`!document.querySelector('#candidate-run').disabled`),
-    "consent after check",
-  );
-
-  // A later commit must not inherit the earlier consent. Remove only this fixture.
-  unlinkSync(join(local.local!.worktreePath, "review.txt"));
-  for (const args of [
-    ["add", "review.txt"],
-    ["commit", "--quiet", "-m", "restore review fixture"],
-  ])
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Argent Smoke",
-        "-c",
-        "user.email=smoke@example.invalid",
-        ...args,
-      ],
-      { cwd: local.local!.worktreePath, stdio: "ignore" },
-    );
-  await js(`document.querySelector('#candidate-refresh').click()`);
-  await until(
-    () =>
-      js(
-        `!document.querySelector('#candidate-consent').disabled && document.querySelector('#candidate-files').textContent.includes('No changes from the base')`,
-      ),
-    "new commit has no matching consent",
-  );
-
-  window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
-  window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
-  await until(
-    () => js(`!document.querySelector('#candidate-dialog').open`),
-    "Escape closes candidate review",
-  );
-  assert.equal(await js(`document.activeElement.id`), "workspace-commands");
-  await js(`document.querySelector('#workspace-checks').click()`);
-  await until(
-    () =>
-      js(
-        `document.querySelector('#checks-status').textContent.includes('stale')`,
-      ),
-    "later commit makes check stale",
-  );
-  await capture("checks-stale");
-  await js(`document.querySelector('#checks-close').click()`);
+  const local = await createLocalWorkspace("#new-workspace");
   await js(`document.querySelector('#permission-toggle').click()`);
   assert.equal(
     await js(
@@ -797,6 +886,8 @@ export async function runDesktopSmoke(
   console.log(
     `[ARGENT_SMOKE]${JSON.stringify({
       passed: true,
+      suite,
+      elapsedMs: Date.now() - started,
       simulation: true,
       welcome: true,
       composerSendsDirectly: true,
@@ -815,8 +906,6 @@ export async function runDesktopSmoke(
       honestRecord: true,
       liveChanges: true,
       changesKeyboardClose: true,
-      commandConfigurationApproved: true,
-      candidateConsentRecorded: true,
       parallelWorkspace: true,
       workspaceId: workspace.id,
       verifiedRun: first.id,

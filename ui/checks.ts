@@ -10,6 +10,7 @@ let generation = 0,
   connected = false,
   pending = false;
 let view: LocalCheckView | null = null;
+let runAction = false;
 const dialog = () => byId<HTMLDialogElement>("checks-dialog");
 function clear() {
   generation++;
@@ -45,29 +46,40 @@ async function read() {
     id = workspaceId;
   status("Reading check state and current commit…");
   try {
-    const result = await api().latestCheck(id);
+    const result = await (runAction
+      ? api().latestRunAction(id)
+      : api().latestCheck(id));
     if (stale(version, id)) return;
+    if (
+      result &&
+      result.kind !== (runAction ? "local-run-action" : "local-check")
+    )
+      throw new Error(
+        "The service returned a different command action. Refresh to try again.",
+      );
     pending = false;
     view = result;
     if (!result) {
       status(
-        "No checks have run. Open Commands, review the commit and record consent, then choose Run checks.",
+        runAction
+          ? "No run command has started. Open Commands, review the commit for run, record separate consent, then choose Start run command."
+          : "No checks have run. Open Commands, review the commit and record consent, then choose Run checks.",
       );
       return;
     }
     const label = result.result
-      ? `${result.result.outcome === "passed" ? "Checks passed" : "Checks failed"}${result.freshness === "stale" ? " · stale" : result.freshness === "unknown" ? " · freshness not checked" : " · matches this reading"}`
+      ? `${runAction ? (result.result.outcome === "succeeded" ? "Run command succeeded · not test evidence" : "Run command failed · not test evidence") : result.result.outcome === "passed" ? "Checks passed" : "Checks failed"}${result.freshness === "stale" ? " · stale" : result.freshness === "unknown" ? " · freshness not checked" : " · matches this reading"}`
       : result.status === "needs_attention"
-        ? "Check interrupted · needs attention. The workspace stays blocked; no automatic retry."
+        ? `${runAction ? "Run command" : "Check"} interrupted · needs attention. The workspace stays blocked; no automatic retry.`
         : result.status === "failed"
-          ? "Check failed before evidence could be recorded."
-          : `Check ${result.status}`;
+          ? `${runAction ? "Run command" : "Check"} failed before a result could be recorded.`
+          : `${runAction ? "Run command" : "Check"} ${result.status}`;
     status(`${label}. Refresh to read again.`);
     const content = byId("checks-result");
     content.append(
       h("p", {
         class: "mono",
-        text: `Commit ${result.headSha}\nCheck ${result.id}`,
+        text: `Commit ${result.headSha}\n${runAction ? "Run command" : "Check"} ${result.id}`,
       }),
     );
     if (result.result) {
@@ -103,9 +115,12 @@ async function read() {
     status(readableError(error));
   }
 }
-export function openChecks() {
+export function openChecks(run = false) {
   if (!state.connected || !isLocal(currentWorkspace()) || dialog().open) return;
   clear();
+  runAction = run;
+  setText("checks-title", runAction ? "Run results" : "Check results");
+  setText("checks-cancel", runAction ? "Cancel run command" : "Cancel check");
   workspaceId = state.selectedWorkspace;
   connected = state.connected;
   dialog().showModal();
@@ -115,9 +130,14 @@ export function openChecks() {
 function close() {
   clear();
   dialog().close();
-  byId("workspace-checks").focus();
+  byId(runAction ? "workspace-run-action" : "workspace-checks").focus();
 }
 export function renderChecks() {
+  show("workspace-run-action", !!currentWorkspace());
+  enable(
+    "workspace-run-action",
+    state.connected && isLocal(currentWorkspace()),
+  );
   show("workspace-checks", !!currentWorkspace());
   enable("workspace-checks", state.connected && isLocal(currentWorkspace()));
   if (!dialog().open) return;
@@ -136,7 +156,10 @@ export function renderChecks() {
   }
 }
 export function wireChecks() {
-  byId("workspace-checks").addEventListener("click", openChecks);
+  byId("workspace-checks").addEventListener("click", () => openChecks());
+  byId("workspace-run-action").addEventListener("click", () =>
+    openChecks(true),
+  );
   byId("checks-refresh").addEventListener("click", () => void read());
   byId("checks-close").addEventListener("click", close);
   dialog().addEventListener("cancel", (event) => {
@@ -159,8 +182,11 @@ export function wireChecks() {
       check = view.id;
     pending = true;
     status("Requesting cancellation…");
-    void api()
-      .cancelCheck(id, check)
+    void (
+      runAction
+        ? api().cancelRunAction(id, check)
+        : api().cancelCheck(id, check)
+    )
       .then(async () => {
         if (stale(version, id)) return;
         pending = false;

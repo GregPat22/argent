@@ -41,6 +41,11 @@ is in development: explicit execution after consent, exclusive ownership,
 setup/test in a fresh checkout, and a desktop result with freshness checked on
 open or Refresh. Its [validation](specs/0013-local-mvp.md#desktop-setup-and-test-validation)
 separates fixture evidence from real-account and release gates.
+The [separate run-action integration](specs/0013-local-mvp.md#desktop-run-action-in-development)
+is in development: approved setup then run in a fresh checkout, with its own
+consent and a run-command result that is not test evidence.
+Its [validation record](specs/0013-local-mvp.md#desktop-run-action-validation)
+distinguishes native fixtures, repository checks and remaining release evidence.
 
 The [judging-changes report](specs/0018-judging-changes-report.md) is planned
 as work-queue item 4, after L1.4 shows its first result and before the draft

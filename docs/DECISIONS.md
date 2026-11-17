@@ -60,6 +60,27 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Run commands in a fresh checkout with separate consent — 17 November 2026
+
+Accepted within L1.4: the deferred `run` command executes against the exact
+reviewed commit in a fresh owned checkout, with approved setup first when
+configured. It requires separate setup/run consent. Existing setup/test consent
+never authorizes it and a run-command result never becomes test evidence.
+The editable workspace is not its execution directory.
+
+The integration is in development against main `df7eb14`. Reuse the existing
+bounded execution, manifest verification, exclusion, cancellation and uncertain
+cleanup contracts. The initial command has the same thirty-minute limit and
+counts/digests-only output record as checks; it supplies no interactive terminal,
+port discovery or live-editing server. The
+[acceptance contract](specs/0013-local-mvp.md#desktop-run-action-in-development)
+records action isolation, backward compatibility, validation and remaining
+walkthrough limits. Milestone order and the unsandboxed local security model
+are unchanged; L1.4 is not marked complete.
+Development implementation `d43001d`, with test-fixture correction `1713336`,
+is covered by the [validation record](specs/0013-local-mvp.md#desktop-run-action-validation),
+including the initial failed suite and unchanged-main comparison.
+
 ### Judging-changes report before the draft pull request — 16 November 2026
 
 Accepted product decision. It adds one item to the order of work before the
@@ -704,6 +725,15 @@ SQLite closure. CI failures at `6b49267`, `e57c4b7`, `2bdde47`, `ffbeef2` and
 `93a2df9` motivate these test-only changes. Preserve production lease/deadline
 checks and workflow failure notifications. Acceptance and validation limits are
 in [spec 0014](specs/0014-ci-test-determinism.md). Implemented in main `32748a5`.
+
+Native smoke follow-up in development, recorded 17 November 2026 at `806d8b1`:
+separate the workspace and command-consent walkthroughs into fresh, sequential
+app/service lifetimes with the existing per-process and predicate deadlines. A
+controlled screenshot delay reproduces cumulative exhaustion of the shared
+outer deadline; it does not establish the original hosted slowdown. Preserve
+all assertions and report suite/stage timing. Acceptance and validation limits
+are in the [native smoke follow-up](specs/0014-ci-test-determinism.md#native-desktop-smoke-suite-lifetimes-in-development).
+No production execution or consent rule changes.
 
 ### Local MVP first, Claude Code first — 7 November 2026
 

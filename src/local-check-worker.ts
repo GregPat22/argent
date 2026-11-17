@@ -67,7 +67,10 @@ export class LocalCheckWorker {
       );
       const phases: CheckPhase[] = [];
       const unchanged = () => verifyOwnedCheckout(checkout!, controller.signal);
-      for (const action of ["setup", "test"] as const) {
+      for (const action of [
+        "setup",
+        binding.action === "setup-run" ? "run" : "test",
+      ] as const) {
         const command = commands[action];
         if (!command) continue;
         controller.signal.throwIfAborted();
@@ -101,7 +104,10 @@ export class LocalCheckWorker {
         if (result.outcome !== "exited" || result.exitCode !== 0) break;
       }
       const evidence: CheckResult = {
-        policy: "argent-local-check-v1",
+        policy:
+          binding.action === "setup-run"
+            ? "argent-local-run-v1"
+            : "argent-local-check-v1",
         headSha: binding.headSha,
         treeId: binding.treeId,
         baseSha: binding.baseSha,
@@ -109,9 +115,12 @@ export class LocalCheckWorker {
         reviewIdentity: binding.reviewIdentity,
         consentId: job.consentId,
         outcome:
-          phases.at(-1)?.action === "test" &&
+          phases.at(-1)?.action ===
+            (binding.action === "setup-run" ? "run" : "test") &&
           phases.every((p) => p.outcome === "exited" && p.exitCode === 0)
-            ? "passed"
+            ? binding.action === "setup-run"
+              ? "succeeded"
+              : "passed"
             : "failed",
         phases,
       };

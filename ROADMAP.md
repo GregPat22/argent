@@ -184,12 +184,19 @@ is in development under the
       `7cebe40`). The [result validation](docs/specs/0013-local-mvp.md#desktop-setup-and-test-validation)
       records passing repository/native checks, security review and limits.
       Item 3 remains in development; this does not complete the whole milestone.
-- [ ] Implement the deferred `run` action after the setup/test result integration,
-      under the existing security model, and record the remaining L1.4 evidence.
+- [x] Implement the deferred `run` action after the setup/test result integration
+      (development implementation `d43001d`, test correction `1713336`), under
+      the [separate-consent acceptance contract](docs/specs/0013-local-mvp.md#desktop-run-action-in-development).
+      Its [validation record](docs/specs/0013-local-mvp.md#desktop-run-action-validation)
+      separates automated checks, native fixtures and repository evidence.
+- [ ] Record the remaining L1.4 exit evidence before marking item 3 complete.
 
 The setup/test integration has automated and native fixture evidence at
-`7cebe40`; a real-repository walkthrough remains unestablished. The next L1.4
-step is the deferred `run` action. PR creation and archive remain L1.5.
+`7cebe40`. The run integration remains in development: approved setup then run
+in a fresh exact-commit checkout, with separate consent and a result that is
+not test evidence. Programmatic repository checks do not establish a
+maintainer's real-repository desktop walkthrough. PR creation and archive
+remain L1.5.
 
 **The first-result integration requirement.** Accepted before implementation:
 the pieces above connect in one slice from approval to result: consent reachable from the

@@ -7,6 +7,8 @@ import { day, isLocal, plural, readableError, rejected } from "./model.js";
 import { currentWorkspace, state } from "./state.js";
 
 let generation = 0;
+let runAction = false;
+const command = () => (runAction ? "run" : "test");
 let workspaceId = "";
 let connected = false;
 let pending = false;
@@ -24,7 +26,7 @@ function clear(): void {
 }
 function eligible(shown: CandidateReviewView): boolean {
   return (
-    !!shown.configuration.config.commands.test &&
+    !!shown.configuration.config.commands[command()] &&
     !shown.files.some((file) => file.binary)
   );
 }
@@ -40,6 +42,7 @@ function status(message: string): void {
     state.connected && !pending && !!view && eligible(view) && !view.consent,
   );
   enable("candidate-run", state.connected && !pending && !!view?.consent);
+  setText("candidate-run", runAction ? "Start run command" : "Run checks");
   setText(
     "candidate-consent",
     view?.consent ? "Consent recorded" : "Record consent for this commit",
@@ -73,7 +76,7 @@ function display(shown: CandidateReviewView): void {
       text: `argent.json in this commit: ${shown.configurationState}. Commands below always come from the approved base. Argent cannot identify which changed files they execute, so review the complete change set.`,
     }),
   );
-  for (const action of ["setup", "test"] as const) {
+  for (const action of ["setup", command()] as const) {
     const command = shown.configuration.config.commands[action];
     if (!command) continue;
     content.append(
@@ -126,8 +129,8 @@ function display(shown: CandidateReviewView): void {
   setText(
     "candidate-consent-status",
     shown.consent
-      ? `Consent recorded ${day(shown.consent.createdAt)} and matches this reading. Run checks is a separate action.`
-      : "Consent applies only to these changes and this exact commit. It records your review; it does not start a check.",
+      ? `Consent recorded ${day(shown.consent.createdAt)} for setup and ${command()}, and matches this reading. Starting it is a separate action.`
+      : `Consent applies only to setup and ${command()} for these changes and this exact commit. It records your review; it does not start a command.`,
   );
   show("candidate-content", true);
 }
@@ -141,10 +144,13 @@ async function read(): Promise<void> {
   pending = true;
   status("Reading the complete committed changes…");
   try {
-    const shown = await api().candidateReview(id);
+    const shown = await (runAction
+      ? api().runCandidateReview(id)
+      : api().candidateReview(id));
     if (stale(version, id)) return;
     if (
       shown.kind !== "local-candidate-review" ||
+      shown.action !== (runAction ? "setup-run" : undefined) ||
       shown.workspaceId !== id ||
       shown.baseSha !== workspace!.local!.baseSha ||
       shown.executionAllowed !== false ||
@@ -157,12 +163,12 @@ async function read(): Promise<void> {
     pending = false;
     display(shown);
     status(
-      !shown.configuration.config.commands.test
-        ? "The approved configuration has no test command. Consent is unavailable."
+      !shown.configuration.config.commands[command()]
+        ? `The approved configuration has no ${command()} command. Consent is unavailable.`
         : shown.summary.binaryFiles
           ? "Binary or non-UTF-8 changes cannot receive consent. No partial review is accepted."
           : shown.consent
-            ? "Consent matches this reading. Run checks starts setup then test in a fresh checkout."
+            ? `Consent matches this reading. ${runAction ? "Start run command" : "Run checks"} starts setup then ${command()} in a fresh checkout.`
             : "Read the commands and every changed file before recording consent.",
     );
   } catch (error) {
@@ -185,7 +191,7 @@ async function consent(): Promise<void> {
     return;
   const id = shown.workspaceId,
     identity = shown.identity;
-  const name = `${id}:${identity}`;
+  const name = `${runAction ? "run" : "test"}:${id}:${identity}`;
   let key = keys.get(name);
   if (!key) {
     key = crypto.randomUUID();
@@ -196,7 +202,9 @@ async function consent(): Promise<void> {
   status("Recording consent for the displayed commit…");
   byId("candidate-close").focus();
   try {
-    await api().consentCandidate(id, identity, key);
+    await (runAction
+      ? api().consentRunCandidate(id, identity, key)
+      : api().consentCandidate(id, identity, key));
   } catch (error) {
     if (stale(version, id)) return;
     clear();
@@ -245,48 +253,63 @@ export function wireCandidate(): void {
     const id = view.workspaceId,
       consent = view.consent.id,
       version = generation;
-    const name = `${id}:${consent}`;
+    const name = `${runAction ? "run" : "test"}:${id}:${consent}`;
     let key = checkKeys.get(name);
     if (!key) {
       key = crypto.randomUUID();
       checkKeys.set(name, key);
     }
     pending = true;
-    status("Requesting setup and test for the reviewed commit…");
-    void api()
-      .runChecks(id, consent, key)
+    status(`Requesting setup and ${command()} for the reviewed commit…`);
+    void (
+      runAction
+        ? api().startRunAction(id, consent, key)
+        : api().runChecks(id, consent, key)
+    )
       .then(() => {
         if (stale(version, id)) return;
         // Preserve the key until the receipt is observed. A later explicit click
         // is a new check, never a retry of an uncertain request.
         checkKeys.delete(name);
         close();
-        openChecks();
+        openChecks(runAction);
       })
       .catch((error: unknown) => {
         if (stale(version, id)) return;
         pending = false;
         status(
-          `${readableError(error)} Open Checks or refresh before retrying. Retrying this request will not run it twice.`,
+          `${readableError(error)} Open ${runAction ? "Run results" : "Checks"} or refresh before retrying. Retrying this request will not run it twice.`,
         );
       });
   });
-  byId("commands-review").addEventListener("click", () => {
+  const open = (run: boolean) => {
     if (
       !state.connected ||
       !isLocal(currentWorkspace()) ||
       dialog().open ||
-      byId<HTMLButtonElement>("commands-review").disabled
+      byId<HTMLButtonElement>(run ? "commands-review-run" : "commands-review")
+        .disabled
     )
       return;
     byId("commands-close").click();
     clear();
+    runAction = run;
+    setText(
+      "candidate-title",
+      runAction ? "Review commit for run command" : "Review this commit",
+    );
+    setText(
+      "candidate-notice",
+      `Review every changed file before consenting to the approved setup and ${command()} commands for this commit. Commands can execute changed scripts. Local execution is not a sandbox. Recording consent runs nothing. ${runAction ? "Start run command" : "Run checks"} separately starts setup and ${command()} in a fresh checkout with a thirty-minute execution limit. Cancellation and cleanup may take longer.${runAction ? " Run results are not test evidence. Workspace edits are not used. Raw output is not retained." : ""}`,
+    );
     workspaceId = state.selectedWorkspace;
     connected = state.connected;
     dialog().showModal();
     byId("candidate-close").focus();
     void read();
-  });
+  };
+  byId("commands-review").addEventListener("click", () => open(false));
+  byId("commands-review-run").addEventListener("click", () => open(true));
   byId("candidate-refresh").addEventListener("click", () => void read());
   byId("candidate-consent").addEventListener("click", () => void consent());
   byId("candidate-close").addEventListener("click", close);

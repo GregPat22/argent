@@ -105,6 +105,15 @@
             Checks
           </button>
           <button
+            id="workspace-run-action"
+            class="button small"
+            aria-haspopup="dialog"
+            hidden
+            disabled
+          >
+            Run results
+          </button>
+          <button
             id="workspace-commands"
             class="button small"
             aria-haspopup="dialog"
@@ -415,7 +424,8 @@
         <span class="mono">argent.json</span> at the workspace's base commit and
         never from the worktree, so edits in the workspace do not change them.
         Approving records your review. Review and consent to an exact commit,
-        then choose Run checks to run setup and test.
+        then choose Run checks for setup and test, or review separately for the
+        run command.
       </p>
       <p
         id="commands-status"
@@ -440,7 +450,10 @@
           aria-label="Configured commands"
         ></div>
         <button id="commands-review" class="button" disabled>
-          Review committed changes
+          Review commit for checks
+        </button>
+        <button id="commands-review-run" class="button" disabled>
+          Review commit for run command
         </button>
         <div class="commands-approval">
           <p id="commands-approval"></p>

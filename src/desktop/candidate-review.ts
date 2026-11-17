@@ -49,8 +49,10 @@ function count(value: unknown, max = Number.MAX_SAFE_INTEGER): number {
 export function validateCandidateReview(
   value: unknown,
   workspaceId: string,
+  runAction = false,
 ): CandidateReviewView {
   const row = record(value, [
+    ...(runAction ? ["action"] : []),
     "kind",
     "workspaceId",
     "identity",
@@ -70,6 +72,7 @@ export function validateCandidateReview(
   if (
     row.kind !== "local-candidate-review" ||
     row.workspaceId !== workspaceId ||
+    (runAction && row.action !== "setup-run") ||
     row.policyVersion !== REVIEW_POLICY ||
     row.executionAllowed !== false ||
     row.tested !== false ||
@@ -179,7 +182,11 @@ export function validateCandidateReview(
   let consent: CandidateReviewView["consent"] = null;
   if (row.consent !== null) {
     const stored = record(row.consent, ["id", "createdAt"]);
-    if (binaryFiles || !configuration.config.commands.test) throw invalid();
+    if (
+      binaryFiles ||
+      !configuration.config.commands[runAction ? "run" : "test"]
+    )
+      throw invalid();
     consent = {
       id: text(stored.id, WORKSPACE_ID),
       createdAt: count(stored.createdAt),
@@ -187,6 +194,7 @@ export function validateCandidateReview(
   }
   return {
     kind: "local-candidate-review",
+    ...(runAction ? { action: "setup-run" as const } : {}),
     workspaceId,
     identity: text(row.identity, CANDIDATE_IDENTITY),
     policyVersion: REVIEW_POLICY,
@@ -213,8 +221,10 @@ export function validateCandidateConsentReceipt(
   value: unknown,
   workspaceId: string,
   reviewIdentity: string,
+  runAction = false,
 ): CandidateConsentReceiptView {
   const row = record(value, [
+    ...(runAction ? ["action"] : []),
     "kind",
     "workspaceId",
     "id",
@@ -228,6 +238,7 @@ export function validateCandidateConsentReceipt(
   if (
     row.kind !== "local-candidate-consent-receipt" ||
     row.workspaceId !== workspaceId ||
+    (runAction && row.action !== "setup-run") ||
     row.reviewIdentity !== reviewIdentity ||
     row.historical !== true ||
     row.executionAllowed !== false ||
@@ -236,6 +247,7 @@ export function validateCandidateConsentReceipt(
     throw invalid();
   return {
     kind: "local-candidate-consent-receipt",
+    ...(runAction ? { action: "setup-run" as const } : {}),
     workspaceId,
     id: text(row.id, WORKSPACE_ID),
     reviewIdentity: text(row.reviewIdentity, CANDIDATE_IDENTITY),

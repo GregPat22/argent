@@ -8,9 +8,15 @@ import { day, isLocal, plural, readableError, rejected } from "./model.js";
 import { currentWorkspace, state } from "./state.js";
 
 const ACTIONS = [
-  ["setup", "Runs first when you choose Run checks, in a fresh checkout."],
+  [
+    "setup",
+    "Runs first before checks or the run command, in a fresh checkout.",
+  ],
   ["test", "Decides the check result for the exact commit."],
-  ["run", "Kept with the configuration. Argent has no run action yet."],
+  [
+    "run",
+    "Runs in a fresh checkout after separate consent; its result is not test evidence.",
+  ],
 ] as const;
 
 let generation = 0;
@@ -54,6 +60,13 @@ function status(text: string): void {
     state.connected && isLocal(currentWorkspace()) && !pending,
   );
   enable("commands-review", state.connected && !!view?.approval && !pending);
+  enable(
+    "commands-review-run",
+    state.connected &&
+      !!view?.approval &&
+      !!view.configuration?.config.commands.run &&
+      !pending,
+  );
   const approvable = !!view?.configuration && !view.approval;
   setText(
     "commands-approve",

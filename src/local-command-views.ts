@@ -7,6 +7,8 @@ import type {
 /** A complete pinned review and consent matching this fresh reading only. */
 export interface CandidateReviewView {
   kind: "local-candidate-review";
+  /** Omitted for the original setup/test contract. */
+  action?: "setup-run";
   workspaceId: string;
   identity: string;
   policyVersion: typeof REVIEW_POLICY;
@@ -25,6 +27,8 @@ export interface CandidateReviewView {
 
 export interface CandidateConsentReceiptView {
   kind: "local-candidate-consent-receipt";
+  /** Omitted for the original setup/test contract. */
+  action?: "setup-run";
   workspaceId: string;
   id: string;
   reviewIdentity: string;

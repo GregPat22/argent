@@ -76,6 +76,9 @@ The next integration, also in development, connects that consent to approved
 setup/test in a fresh checkout and displays passed, failed or stale results.
 See the [result contract](docs/specs/0013-local-mvp.md#desktop-setup-and-test-results-in-development)
 for the limits and validation.
+The deferred `run` action is also in development, with separate consent and a
+fresh exact-commit checkout; its outcome is not test evidence. See its
+[acceptance contract](docs/specs/0013-local-mvp.md#desktop-run-action-in-development).
 
 ## Where it is going
 

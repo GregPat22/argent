@@ -69,6 +69,19 @@ export interface DesktopBridge {
   getWorkspace(id: string): Promise<Workspace>;
   workspaceChanges(id: string): Promise<WorkspaceChanges>;
   commandConfiguration(id: string): Promise<CommandConfigurationView>;
+  latestRunAction(id: string): Promise<LocalCheckView | null>;
+  startRunAction(
+    id: string,
+    consentId: string,
+    key: string,
+  ): Promise<LocalCheckView>;
+  cancelRunAction(id: string, runId: string): Promise<LocalCheckView>;
+  runCandidateReview(id: string): Promise<CandidateReviewView>;
+  consentRunCandidate(
+    id: string,
+    expectedReviewIdentity: string,
+    key: string,
+  ): Promise<CandidateConsentReceiptView>;
   latestCheck(id: string): Promise<LocalCheckView | null>;
   runChecks(
     id: string,

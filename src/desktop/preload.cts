@@ -21,6 +21,13 @@ const bridge: DesktopBridge = {
   commandConfiguration: (id) => invoke("commandConfiguration", [id]),
   approveCommandConfiguration: (id, expected, key) =>
     invoke("approveCommandConfiguration", [id, expected, key]),
+  latestRunAction: (id) => invoke("latestRunAction", [id]),
+  startRunAction: (id, consent, key) =>
+    invoke("startRunAction", [id, consent, key]),
+  cancelRunAction: (id, run) => invoke("cancelRunAction", [id, run]),
+  runCandidateReview: (id) => invoke("runCandidateReview", [id]),
+  consentRunCandidate: (id, expected, key) =>
+    invoke("consentRunCandidate", [id, expected, key]),
   latestCheck: (id) => invoke("latestCheck", [id]),
   runChecks: (id, consent, key) => invoke("runChecks", [id, consent, key]),
   cancelCheck: (id, check) => invoke("cancelCheck", [id, check]),

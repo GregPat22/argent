@@ -346,3 +346,63 @@ It also verifies inherited base URL, viewport, disabled JavaScript and reduced
 motion. The final diff preserves production code, existing assertions, timeouts
 and worker count. Hosted checks remain required before integration; local passes
 do not reproduce or explain the original Chromium context-startup failure.
+
+## Native desktop smoke suite lifetimes (in development)
+
+Investigation recorded 17 November 2026 at `806d8b1`, against main `df7eb14`.
+One hosted packaged-app smoke run exhausted its 75-second outer deadline;
+the pull-request run of the same commit passed. Both engine and website jobs
+passed. Unchanged main and the candidate both pass the packaged smoke locally.
+The failure log contains startup messages but no walkthrough progress, so it
+cannot identify the original slow operation.
+
+The single walkthrough shares one deadline across window/service recovery,
+local workspace inspection, and command approval, consent and execution. A
+controlled diagnostic adds 1,500 ms before each screenshot capture, retaining
+every assertion and the original deadlines. At `806d8b1` it reaches successful
+setup/test and setup/run results, then exhausts the outer deadline while
+capturing the local-session record. This demonstrates cumulative harness timing
+sensitivity, not the precise rendering conditions of the hosted failure.
+
+Acceptance for the test-only correction:
+
+1. Run the workspace and command-consent walkthroughs sequentially in fresh app
+   processes, each with its own temporary repository, fake CLI, service data and
+   75-second deadline. Keep the 15-second predicate deadlines, screenshots and
+   assertions. Do not retry failed suites or change production timeouts.
+2. Require a successful report naming each requested suite. The workspace suite
+   retains welcome/assets, navigation, window/service recovery, cancellation,
+   local execution, diff inspection and parallel workspaces. The command suite
+   retains approval, complete candidate review, separate setup/test and setup/run
+   consent, both execution outcomes and stale evidence after a later commit.
+3. Prove service survival after app exit for each suite, then stop that fixture's
+   service before starting the next suite. Await the owned app's exit after a
+   timeout and observe service process exit as well as connection-file removal.
+   Fail and preserve the fixture if shutdown cannot be confirmed within bounded
+   cleanup waits, including startup failure before a service identity is known;
+   never signal a PID from a connection record. Include suite, stage and elapsed
+   time in diagnostics so a timeout identifies the last operation.
+4. Repeat the controlled screenshot-delay comparison with unchanged deadlines;
+   require both suites to pass. Run development and packaged native smoke,
+   `npm run check`, review the actual diff and require hosted CI before merging.
+
+Local focused validation on 17 November 2026 passes development and packaged
+native smoke. With the same 1,500 ms capture delay, the workspace and command
+suites pass in approximately 46 and 40 seconds respectively. A syntax-tree
+comparison preserves all 79 existing assertions; diff review also preserves
+all captures and predicate waits. Live-child and authenticated HTTP probes show
+that an unconfirmed app kill or service exit previously deleted the fixture;
+the correction preserves it and refuses to start the next suite. Missing service
+identity after an early app failure also preserves the fixture. Cleanup requires
+both observed app exit and confirmed service shutdown.
+
+A clean checkout of `ada4e955a14d76f229d8b98dea72e430773fc77b`, with
+lockfile-installed dependencies, passes both development and packaged native
+smoke on 17 November 2026. Both suites confirm service survival after app exit
+and complete cleanup. Independent diff review found no remaining blocking issue.
+
+Full `npm run check` passes strict types, formatting, compilation and all 658
+tests with no failures, cancellations or skips. Final harness type/format checks
+and cleanup probes also pass. Hosted validation remains required before integration.
+These fixture checks use a fake agent and harmless commands; they do not certify
+real-account execution, signing, notarization, or release readiness.

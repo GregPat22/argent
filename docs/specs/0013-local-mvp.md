@@ -363,7 +363,9 @@ Argent creates as a detached linked worktree of the exact commit and verifies
 before use, so commands that call Git keep working. A test request runs the
 approved `setup` command, when one is configured, and then `test` in that same
 checkout, and records both. Running the `run` action is deferred until setup
-and test results work; the configuration schema is unchanged.
+and test results work; the configuration schema is unchanged. The
+[separate run-action contract](#desktop-run-action-in-development) now defines
+its next integration.
 
 Accepted on 16 November 2026: reading the commands at the base commit fixes
 which commands run, not what they do, because scripts, tests and dependencies
@@ -436,6 +438,126 @@ Setup/test that changes tracked files or leaves nonignored files cannot produce
 an exact-commit result. The first view exposes the latest check only; earlier
 records remain durable. `run`, crash reconciliation, real-account walkthroughs,
 PR creation and packaged/signed distribution remain outside this integration.
+
+#### Desktop run action (in development)
+
+Acceptance recorded 17 November 2026 against main `df7eb14`. The deferred
+`run` action uses a fresh exact-commit checkout and separate explicit consent.
+It runs the approved setup first, when configured, then the approved run
+command. It does not execute in the editable workspace or establish test evidence.
+
+1. **Separate consent.** Select setup/test or setup/run before reviewing the
+   complete committed text changes. Consent binds the selected action, exact
+   commit, review, configuration approval, workspace and actor. Existing
+   setup/test receipts retain their meaning and never authorize setup/run;
+   setup/run receipts never authorize checks. A run-only configuration can be
+   reviewed and consented to without a test command. A missing selected command
+   refuses consent and execution. Configuration approval itself runs nothing.
+2. **Explicit dispatch.** After matching setup/run consent, an explicit start
+   queues the command. Requests contain identifiers and an idempotency key,
+   never argv, paths, revisions, actor identities or executable overrides.
+   Repeated keys return history; changed action or payload conflicts. Reads,
+   reconnects, consent and approval never dispatch work. Standalone service mode
+   refuses the local execution routes.
+3. **Existing execution boundary.** Setup/run shares workspace exclusion with
+   agents, checks and dormant jobs, with transactional ownership and audit
+   events. It revalidates action-specific consent under a live lease, creates
+   an owned detached checkout of that exact commit and checks the immutable
+   manifest and repository/directory identities before and after each command.
+   Failed setup prevents run. Dormant jobs remain non-executable. No old consent
+   or result is upgraded into new authority.
+4. **Bounded lifetime and cleanup.** The existing thirty-minute deadline covers
+   preparation, setup, run and result acceptance. Commands use explicit argv,
+   the allowlisted environment, closed stdin, bounded output and the process
+   group supervisor. Explicit cancellation terminates owned processes. Cleanup
+   must settle before ownership is released; unconfirmed termination or removal
+   remains `needs_attention`, never retried automatically. Closing the dialog
+   or desktop does not cancel the durable job. A long-running command can be
+   cancelled or reach its deadline; this is not an interactive terminal or a
+   persistent development-server facility.
+5. **Distinct record.** A successful run command is labelled as a run-command
+   outcome, never checks passed or verification. Persist its action-specific
+   identity, exact commit/review/configuration/consent, ordered argv, stopping
+   outcome, timing and stdout/stderr counts and hashes. No raw output or URLs
+   discovered from output are retained or rendered. Preparation failure,
+   cancellation or an expired overall
+   deadline produces no successful result. Checks and run-command records are
+   read separately, so starting run cannot hide the latest test result.
+6. **Desktop behavior.** Display the selected purpose before consent and launch.
+   Show the latest run-command status and record separately from checks, with
+   explicit Refresh and cancellation. Freshness follows the same complete
+   review comparison as checks and is a point-in-time observation. Late replies
+   after purpose change, close, workspace change or disconnect cannot restore
+   consent or affect another action. Run-only configuration remains usable.
+7. **Evidence.** Real temporary Git, SQLite and harmless commands cover both
+   consent directions, run-only configuration, idempotency across actions,
+   setup/run ordering, setup failure, cancellation, ownership, stale results,
+   rollback and corruption. Bridge and renderer tests cover literal display,
+   bounds, distinct labels and stale replies. Native smoke must show a run
+   result without a test pass and preserve separate check evidence. Require the
+   full repository check and independent security review of the actual diff.
+
+Local execution remains unsandboxed, with the developer's filesystem and
+network privileges. This contract adds no port forwarding, browser launch,
+raw-output retention, live editing, process recovery or release authority.
+Real-repository walkthrough evidence and the complete L1.4 exit remain pending.
+
+#### Desktop run-action validation
+
+Development implementation `d43001d8bc3b68e8da9c589951bfe673cb0ff430`, with the
+test-fixture correction at `1713336919df0a7756799636fb19d95b9a71f75a`, validated
+17 November 2026 against main `df7eb14`:
+
+- The corrected implementation passed `npm run check` in a separate checkout
+  with dependencies installed from the lockfile: strict types, formatting, build
+  and all 658 tests, with no failures, cancellations or skips.
+- Independent security review found no blocking issue in the complete diff.
+  Action-specific consent policies, fingerprints, routes and result validation
+  prevent setup/test and setup/run authority or results crossing. Existing
+  setup/test bindings retain their serialized meaning. The same review approved
+  the subsequent test-only correction.
+- Focused store, worker, service, bridge and renderer checks cover both consent
+  directions, run-only configuration, setup failure, run failure, cancellation,
+  restart, stale results and distinct labels. The corrected candidate-desktop
+  suite passed all eight tests, including cancellation and error redaction for
+  both actions.
+- Native Electron smoke passed on the implementation's freshly built outputs
+  in a separate verification checkout. Harmless fixture commands show separate
+  setup/run consent and a successful run record explicitly labelled as not test
+  evidence, while preserving the previous check result. The captured consent
+  and result screens were visually inspected. Renderer isolation, reconnect,
+  window reopening and service survival checks also passed. No owned desktop
+  or service process remained after teardown. The later correction changes only
+  a test fixture, not the native code exercised here.
+- A programmatic integration exercise at `1713336` used this repository's own
+  committed `argent.json`, configuration approval and exact-commit consent.
+  The actual check worker created a fresh checkout, ran `npm ci` and
+  `npm run check`, and recorded both zero exits as passed/current evidence for
+  that commit. A later untracked workspace file made the result stale. The
+  owned verification checkout was removed and execution-process cleanup was
+  confirmed. This uses the real repository and commands, without a real agent
+  account; it is not a maintainer's desktop walkthrough.
+
+The initial full candidate run passed 657 tests and cancelled one: an existing
+HTTP disconnect fixture treated the last argument as the cancellation signal,
+but that argument now carries the selected action. This caused its ten-second
+wait to expire. Unchanged main passed its full 648-test check and a separate
+focused execution of the original test. The correction reads the explicit signal
+position, asserts its runtime type and following action, and tests both consent
+purposes. It preserves the deadline and all behavioral assertions.
+
+A programmatic check of this repository at `d43001d` also recorded a failed
+result: approved `npm ci` exited zero and approved
+`npm run check` exited one. Argent retained that failure for its exact commit
+and removed the owned verification checkout. The validation harness expected a
+pass and consequently failed too; it did not turn the command failure into a
+successful result. Raw command output was not retained by Argent.
+
+Limits: native commands are fixtures and no real agent account was used.
+Programmatic repository checks are separate from a maintainer completing the
+real desktop workflow. Packaged builds, website checks, signing, release,
+process recovery and the full L1 exit are not established by this change.
+Website source is unchanged. L1.4 remains in development.
 
 #### Desktop setup and test validation
 
