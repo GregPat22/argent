@@ -179,47 +179,54 @@ export class DesktopClient {
         );
         return validateCommandApprovalReceipt(value, args[0], expected);
       }
+      case "latestRunAction":
+      case "startRunAction":
+      case "cancelRunAction":
       case "latestCheck":
       case "runChecks":
       case "cancelCheck": {
-        const count =
-          method === "latestCheck" ? 1 : method === "runChecks" ? 3 : 2;
+        const runAction = [
+          "latestRunAction",
+          "startRunAction",
+          "cancelRunAction",
+        ].includes(method);
+        const reading =
+          method === "latestCheck" || method === "latestRunAction";
+        const starting = method === "runChecks" || method === "startRunAction";
+        const count = reading ? 1 : starting ? 3 : 2;
         if (args.length !== count || !args.every(uuid))
-          throw new DomainError(400, "Expected check identifiers");
+          throw new DomainError(400, "Expected command identifiers");
         const value = await serviceRequest(
           connection,
-          `/workspaces/${id()}/checks${method === "cancelCheck" ? `/${id(1)}/cancel` : ""}`,
-          method === "latestCheck" ? "GET" : "POST",
-          method === "latestCheck"
-            ? undefined
-            : method === "runChecks"
-              ? { consentId: args[1] }
-              : {},
-          method === "runChecks" ? (args[2] as string) : undefined,
+          `/workspaces/${id()}/${runAction ? "run-actions" : "checks"}${!reading && !starting ? `/${id(1)}/cancel` : ""}`,
+          reading ? "GET" : "POST",
+          reading ? undefined : starting ? { consentId: args[1] } : {},
+          starting ? (args[2] as string) : undefined,
           REVIEW_LIMITS.timeoutMs + 10000,
         );
-        const view = validateCheckView(value, args[0] as string);
-        if (
-          method !== "latestCheck" &&
-          (!view || (method === "cancelCheck" && view.id !== args[1]))
-        )
-          throw new DomainError(502, "Invalid check receipt");
+        const view = validateCheckView(value, args[0] as string, runAction);
+        if (!reading && (!view || (!starting && view.id !== args[1])))
+          throw new DomainError(502, "Invalid command receipt");
         return view;
       }
+      case "runCandidateReview":
       case "candidateReview": {
+        const runAction = method === "runCandidateReview";
         if (args.length !== 1 || !uuid(args[0]))
           throw new DomainError(400, "Expected one workspace identifier");
         const value = await serviceRequest(
           connection,
-          `/workspaces/${id()}/candidate-review`,
+          `/workspaces/${id()}/${runAction ? "run-candidate-review" : "candidate-review"}`,
           "GET",
           undefined,
           undefined,
           REVIEW_LIMITS.timeoutMs + 10000,
         );
-        return validateCandidateReview(value, args[0]);
+        return validateCandidateReview(value, args[0], runAction);
       }
+      case "consentRunCandidate":
       case "consentCandidate": {
+        const runAction = method === "consentRunCandidate";
         const expected = args[1];
         if (
           args.length !== 3 ||
@@ -234,13 +241,18 @@ export class DesktopClient {
           );
         const value = await serviceRequest(
           connection,
-          `/workspaces/${id()}/candidate-consents`,
+          `/workspaces/${id()}/${runAction ? "run-candidate-consents" : "candidate-consents"}`,
           "POST",
           { expectedReviewIdentity: expected },
           args[2],
           REVIEW_LIMITS.timeoutMs + 10000,
         );
-        return validateCandidateConsentReceipt(value, args[0], expected);
+        return validateCandidateConsentReceipt(
+          value,
+          args[0],
+          expected,
+          runAction,
+        );
       }
       case "getWorkspace":
         return serviceRequest(connection, `/workspaces/${id()}`);

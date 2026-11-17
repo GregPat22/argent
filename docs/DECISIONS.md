@@ -60,6 +60,24 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Run commands in a fresh checkout with separate consent — 17 November 2026
+
+Accepted within L1.4: the deferred `run` command executes against the exact
+reviewed commit in a fresh owned checkout, with approved setup first when
+configured. It requires separate setup/run consent. Existing setup/test consent
+never authorizes it and a run-command result never becomes test evidence.
+The editable workspace is not its execution directory.
+
+The integration is in development against main `df7eb14`. Reuse the existing
+bounded execution, manifest verification, exclusion, cancellation and uncertain
+cleanup contracts. The initial command has the same thirty-minute limit and
+counts/digests-only output record as checks; it supplies no interactive terminal,
+port discovery or live-editing server. The
+[acceptance contract](specs/0013-local-mvp.md#desktop-run-action-in-development)
+records action isolation, backward compatibility, validation and remaining
+walkthrough limits. Milestone order and the unsandboxed local security model
+are unchanged; L1.4 is not marked complete.
+
 ### Judging-changes report before the draft pull request — 16 November 2026
 
 Accepted product decision. It adds one item to the order of work before the

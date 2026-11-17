@@ -7,6 +7,7 @@ import {
 export function validateCheckView(
   value: unknown,
   workspaceId: string,
+  runAction = false,
 ): LocalCheckView | null {
   if (value === null) return null;
   const fail = () => {
@@ -16,7 +17,7 @@ export function validateCheckView(
     if (!value || typeof value !== "object") return fail();
     const v = value as LocalCheckView;
     if (
-      v.kind !== "local-check" ||
+      v.kind !== (runAction ? "local-run-action" : "local-check") ||
       v.workspaceId !== workspaceId ||
       typeof v.headSha !== "string" ||
       /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.exec(v.headSha)?.[0] !== v.headSha ||
@@ -38,14 +39,16 @@ export function validateCheckView(
     const result = v.result === null ? null : validateCheckResult(v.result);
     if (
       (result &&
-        (result.headSha !== v.headSha ||
+        (result.policy !==
+          (runAction ? "argent-local-run-v1" : "argent-local-check-v1") ||
+          result.headSha !== v.headSha ||
           v.status !==
-            (result.outcome === "passed" ? "completed" : "failed"))) ||
+            (result.outcome !== "failed" ? "completed" : "failed"))) ||
       (!result && (v.status === "completed" || v.freshness !== "unknown"))
     )
       return fail();
     return {
-      kind: "local-check",
+      kind: runAction ? "local-run-action" : "local-check",
       workspaceId,
       id,
       headSha: v.headSha,

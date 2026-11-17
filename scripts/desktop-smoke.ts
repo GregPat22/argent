@@ -36,13 +36,14 @@ const git = (...args: string[]) =>
 git("init", "--quiet", "--initial-branch=main");
 writeFileSync(join(repository, "README.md"), "# smoke\n");
 writeFileSync(join(repository, "delete-me.txt"), "to delete\n");
-// Reviewed in the desktop and never executed by this smoke run.
+// Harmless commands reviewed and executed through the desktop in fresh checkouts.
 writeFileSync(
   join(repository, "argent.json"),
   JSON.stringify({
     version: 1,
     commands: {
       setup: { argv: ["node", "-e", "process.exit(0)"] },
+      run: { argv: ["node", "-e", "console.log('run fixture')"] },
       test: {
         argv: [
           "node",

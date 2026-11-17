@@ -604,3 +604,90 @@ test("bridge validates exact inputs, bounded responses and the long review timeo
       /invalid/,
     );
 });
+
+test("run-only desktop review records separate consent and rejects responses for the other purpose", async (t) => {
+  const f = await fixture(t, false);
+  const shown = value<CandidateReviewView>(
+    await f.client.call("runCandidateReview", [f.workspace.id]),
+  );
+  assert.equal(shown.action, "setup-run");
+  assert.equal(shown.configuration.config.commands.test, undefined);
+  assert.equal(shown.consent, null);
+  assert.throws(
+    () => validateCandidateReview(shown, f.workspace.id),
+    /invalid/,
+  );
+  const checkReview = value<CandidateReviewView>(
+    await f.client.call("candidateReview", [f.workspace.id]),
+  );
+  assert.throws(
+    () => validateCandidateReview(checkReview, f.workspace.id, true),
+    /invalid/,
+  );
+  const key = randomUUID();
+  const receipt = value<CandidateConsentReceiptView>(
+    await f.client.call("consentRunCandidate", [
+      f.workspace.id,
+      shown.identity,
+      key,
+    ]),
+  );
+  assert.equal(receipt.action, "setup-run");
+  assert.deepEqual(
+    validateCandidateConsentReceipt(
+      receipt,
+      f.workspace.id,
+      shown.identity,
+      true,
+    ),
+    receipt,
+  );
+  assert.throws(
+    () =>
+      validateCandidateConsentReceipt(receipt, f.workspace.id, shown.identity),
+    /invalid/,
+  );
+  assert.equal(
+    (
+      await f.client.call("consentCandidate", [
+        f.workspace.id,
+        shown.identity,
+        key,
+      ])
+    ).ok,
+    false,
+  );
+  const reread = value<CandidateReviewView>(
+    await f.client.call("runCandidateReview", [f.workspace.id]),
+  );
+  assert.equal(reread.consent?.id, receipt.id);
+  assert.equal(
+    value<CandidateReviewView>(
+      await f.client.call("candidateReview", [f.workspace.id]),
+    ).consent,
+    null,
+  );
+  assert.deepEqual(f.counts(), [1, 1, 0, 0]);
+  assert.equal(existsSync(join(f.cwd, "executed")), false);
+  for (const [method, args] of [
+    ["runCandidateReview", [f.workspace.id, "HEAD"]],
+    ["consentRunCandidate", [f.workspace.id, shown.identity, key, ["node"]]],
+  ] as const)
+    assert.equal((await f.client.call(method, args)).ok, false);
+  const disabled = await fixture(t, false, false);
+  assert.equal(
+    (await disabled.client.call("runCandidateReview", [disabled.workspace.id]))
+      .ok,
+    false,
+  );
+  assert.equal(
+    (
+      await disabled.client.call("consentRunCandidate", [
+        disabled.workspace.id,
+        shown.identity,
+        key,
+      ])
+    ).ok,
+    false,
+  );
+});

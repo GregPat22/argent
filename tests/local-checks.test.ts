@@ -24,6 +24,7 @@ import { reviewLocalCommandCandidate } from "../src/local-command-review.js";
 import { LocalCheckWorker } from "../src/local-check-worker.js";
 import { makeServer } from "../src/http.js";
 import { inspectLocalCommandCandidate } from "../src/workspace-changes.js";
+import { validateCheckResult } from "../src/local-checks.js";
 import { validateCheckView } from "../src/desktop/checks.js";
 
 function git(cwd: string, ...args: string[]) {
@@ -45,6 +46,8 @@ async function fixture(
   t: TestContext,
   setup = 'require("node:fs").writeFileSync("deps", "ready")',
   testCode = 'if(require("node:fs").readFileSync("deps", "utf8") !== "ready") process.exit(9); console.log("tested");',
+  purpose: "setup-test" | "setup-run" = "setup-test",
+  runOnly = false,
 ) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "argent-check-"))),
     repo = join(root, "repo"),
@@ -58,13 +61,27 @@ async function fixture(
     JSON.stringify({
       version: 1,
       commands: {
-        setup: { argv: [process.execPath, "setup.cjs"] },
-        test: { argv: [process.execPath, "test.cjs"] },
+        ...(runOnly
+          ? {}
+          : {
+              setup: { argv: [process.execPath, "setup.cjs"] },
+              test: { argv: [process.execPath, "test.cjs"] },
+            }),
+        run: { argv: [process.execPath, "run.cjs"] },
       },
     }),
   );
   writeFileSync(join(repo, "setup.cjs"), setup);
-  writeFileSync(join(repo, "test.cjs"), testCode);
+  writeFileSync(
+    join(repo, "test.cjs"),
+    purpose === "setup-run" ? "throw new Error('test must not run')" : testCode,
+  );
+  writeFileSync(
+    join(repo, "run.cjs"),
+    purpose === "setup-run"
+      ? testCode
+      : "throw new Error('run must not execute')",
+  );
   writeFileSync(join(repo, ".gitignore"), "deps\n");
   writeFileSync(join(repo, "file.txt"), "original\n");
   mkdirSync(join(repo, "nested"));
@@ -102,6 +119,8 @@ async function fixture(
     "operator",
     review.identity,
     "consent",
+    undefined,
+    purpose,
   );
   const worker = new LocalCheckWorker(
     store,
@@ -109,8 +128,17 @@ async function fixture(
     10000,
   );
   const enqueue = (key = "check") =>
-    store.localChecks.enqueue(worktrees, id, "operator", consent.id, key);
-  const latest = () => store.localChecks.latest(worktrees, id, "operator");
+    store.localChecks.enqueue(
+      worktrees,
+      id,
+      "operator",
+      consent.id,
+      key,
+      undefined,
+      purpose,
+    );
+  const latest = () =>
+    store.localChecks.latest(worktrees, id, "operator", undefined, purpose);
   return {
     root,
     repo,
@@ -124,6 +152,7 @@ async function fixture(
     workspace,
     id,
     consent,
+    review,
     enqueue,
     latest,
     worker,
@@ -606,5 +635,306 @@ test("an identical accepted receipt wins even when a competing inspection return
     f.store.events(accepted.run.id).filter((e) => e.type === "check.queued")
       .length,
     1,
+  );
+});
+
+test("separate run consent executes setup then run in a fresh checkout without test evidence", async (t) => {
+  const f = await fixture(t, undefined, undefined, "setup-run");
+  assert.equal(f.consent.binding.action, "setup-run");
+  assert.equal(
+    f.consent.binding.policyVersion,
+    "argent-local-run-consent-full-display-v1",
+  );
+  const tests = await f.store.localCommandConsents.consent(
+    f.worktrees,
+    f.id,
+    "operator",
+    f.review.identity,
+    "test-consent",
+  );
+  assert.notEqual(tests.id, f.consent.id);
+  await assert.rejects(
+    f.store.localCommandConsents.consent(
+      f.worktrees,
+      f.id,
+      "operator",
+      f.review.identity,
+      "consent",
+    ),
+    /different payload/,
+  );
+  assert.equal(
+    await f.store.localCommandConsents.lookup(
+      f.worktrees,
+      f.id,
+      "operator",
+      f.consent.id,
+    ),
+    null,
+  );
+  await assert.rejects(
+    f.store.localChecks.enqueue(
+      f.worktrees,
+      f.id,
+      "operator",
+      f.consent.id,
+      "wrong-test",
+    ),
+    /matching/,
+  );
+  await assert.rejects(
+    f.store.localChecks.enqueue(
+      f.worktrees,
+      f.id,
+      "operator",
+      tests.id,
+      "wrong-run",
+      undefined,
+      "setup-run",
+    ),
+    /matching/,
+  );
+  writeFileSync(join(f.directory, "deps"), "workspace must stay untouched");
+  const job = await f.enqueue();
+  assert.equal(f.store.claim(5000), null);
+  assert.equal(f.store.claimCommandJob(5000), null);
+  assert.throws(
+    () => f.store.localChecks.view(job.run.id, f.id, "operator"),
+    /not found/,
+  );
+  await f.worker.tick();
+  const view = (await f.latest())!;
+  assert.equal(view.kind, "local-run-action");
+  assert.equal(view.status, "completed");
+  assert.equal(view.result?.policy, "argent-local-run-v1");
+  assert.equal(view.result?.outcome, "succeeded");
+  assert.deepEqual(
+    view.result?.phases.map((p) => p.action),
+    ["setup", "run"],
+  );
+  assert.equal(view.freshness, "current");
+  assert.equal(
+    await f.store.localChecks.latest(f.worktrees, f.id, "operator"),
+    null,
+  );
+  assert.deepEqual(validateCheckView(view, f.id, true), view);
+  assert.throws(() => validateCheckView(view, f.id), /Invalid/);
+  assert.throws(
+    () => validateCheckResult({ ...view.result, outcome: "passed" }),
+    /Invalid/,
+  );
+  assert.throws(
+    () =>
+      validateCheckResult({
+        ...view.result,
+        policy: "argent-local-check-v1",
+        outcome: "passed",
+      }),
+    /Invalid/,
+  );
+  assert.throws(
+    () =>
+      validateCheckResult({
+        ...view.result,
+        phases: view.result!.phases.map((p) => ({
+          ...p,
+          action: p.action === "run" ? "test" : p.action,
+        })),
+      }),
+    /Invalid/,
+  );
+  assert.equal(
+    readFileSync(join(f.directory, "deps"), "utf8"),
+    "workspace must stay untouched",
+  );
+  assert.equal(existsSync(join(f.verification, job.run.id)), false);
+  assert.equal(
+    f.store.events(job.run.id).filter((e) => e.type === "run-action.result")
+      .length,
+    1,
+  );
+  assert.equal(
+    f.store.events(job.run.id).filter((e) => e.type === "check.result").length,
+    0,
+  );
+  const restarted = new Store(f.database);
+  f.connections.push(restarted);
+  assert.equal(
+    restarted.localCommandConsents.get(tests.id).binding.policyVersion,
+    "argent-local-command-consent-full-display-v1",
+  );
+  assert.equal(
+    (
+      await restarted.localChecks.latest(
+        f.worktrees,
+        f.id,
+        "operator",
+        undefined,
+        "setup-run",
+      )
+    )?.result?.outcome,
+    "succeeded",
+  );
+  assert.equal((await f.enqueue()).run.id, job.run.id);
+  writeFileSync(join(f.directory, "file.txt"), "later edit");
+  assert.equal((await f.latest())?.freshness, "stale");
+  assert.equal((await f.enqueue()).run.id, job.run.id);
+  await assert.rejects(f.enqueue("new"));
+});
+
+test("run setup failure suppresses run and run failure retains a distinct failed outcome", async (t) => {
+  for (const setupFailure of [true, false]) {
+    const f = await fixture(
+      t,
+      setupFailure ? "process.exit(7)" : "console.log('setup')",
+      "process.exit(9)",
+      "setup-run",
+    );
+    await f.enqueue();
+    await f.worker.tick();
+    const result = (await f.latest())!.result!;
+    assert.equal(result.policy, "argent-local-run-v1");
+    assert.equal(result.outcome, "failed");
+    assert.deepEqual(
+      result.phases.map((p) => p.action),
+      setupFailure ? ["setup"] : ["setup", "run"],
+    );
+    assert.equal(result.phases.at(-1)!.exitCode, setupFailure ? 7 : 9);
+  }
+});
+
+test("run cancellation reaps the running command and never produces a successful result or replay", async (t) => {
+  const f = await fixture(
+    t,
+    "process.exit(0)",
+    'require("node:fs").writeFileSync("deps", "started"); setInterval(() => {}, 1000)',
+    "setup-run",
+  );
+  const job = await f.enqueue();
+  const running = f.worker.tick();
+  const deadline = Date.now() + 10000;
+  while (
+    !existsSync(join(f.verification, job.run.id, "deps")) &&
+    Date.now() < deadline
+  )
+    await delay(20);
+  assert.ok(existsSync(join(f.verification, job.run.id, "deps")));
+  f.store.cancel(job.run.id);
+  await running;
+  assert.equal((await f.latest())?.status, "cancelled");
+  assert.equal((await f.latest())?.result, null);
+  assert.equal(existsSync(join(f.verification, job.run.id)), false);
+  assert.equal(await f.worker.tick(), false);
+});
+
+test("run action service rejects check consent and cross-action cancellation, and exposes separate review receipts", async (t) => {
+  const f = await fixture(t, undefined, undefined, "setup-run");
+  const token = "t".repeat(32);
+  const server = makeServer(f.store, token, {
+    worktreeRoot: f.worktrees,
+    localCommandOperatorId: "operator",
+    localChecks: true,
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise<void>((resolve) => server.close(() => resolve())));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  const base = `http://127.0.0.1:${address.port}/workspaces/${f.id}`;
+  const headers = {
+    authorization: `Bearer ${token}`,
+    "content-type": "application/json",
+    "idempotency-key": randomUUID(),
+  };
+  const read = (await (
+    await fetch(base + "/run-candidate-review", { headers })
+  ).json()) as { action: string; consent: { id: string } };
+  assert.equal(read.action, "setup-run");
+  assert.equal(read.consent.id, f.consent.id);
+  const checkRead = (await (
+    await fetch(base + "/candidate-review", { headers })
+  ).json()) as { consent: unknown };
+  assert.equal(checkRead.consent, null);
+  const consent = await fetch(base + "/run-candidate-consents", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ expectedReviewIdentity: f.review.identity }),
+  });
+  assert.equal(consent.status, 200);
+  assert.equal(
+    ((await consent.json()) as { action: string }).action,
+    "setup-run",
+  );
+  const request = (path: string, body: object) =>
+    fetch(base + path, { method: "POST", headers, body: JSON.stringify(body) });
+  assert.equal(
+    (await request("/checks", { consentId: f.consent.id })).status,
+    409,
+  );
+  assert.equal(
+    (await request("/run-actions", { consentId: f.consent.id, argv: ["bad"] }))
+      .status,
+    400,
+  );
+  const response = await request("/run-actions", { consentId: f.consent.id });
+  assert.equal(response.status, 202);
+  const job = (await response.json()) as { id: string; kind: string };
+  assert.equal(job.kind, "local-run-action");
+  assert.equal((await request(`/checks/${job.id}/cancel`, {})).status, 404);
+  assert.equal(f.store.getRun(job.id).status, "queued");
+  assert.equal(
+    (await request(`/run-actions/${job.id}/cancel`, {})).status,
+    200,
+  );
+  assert.equal(f.store.getRun(job.id).status, "cancelled");
+  assert.equal(
+    (await request("/run-actions", { consentId: f.consent.id })).status,
+    202,
+  );
+  assert.equal(await f.worker.tick(), false);
+});
+
+test("a run-only configuration needs no test command and unsupported purposes are rejected", async (t) => {
+  const f = await fixture(t, undefined, "process.exit(0)", "setup-run", true);
+  await assert.rejects(
+    f.store.localCommandConsents.consent(
+      f.worktrees,
+      f.id,
+      "operator",
+      f.review.identity,
+      "test-consent",
+    ),
+    /no longer matches/,
+  );
+  await assert.rejects(
+    f.store.localChecks.enqueue(
+      f.worktrees,
+      f.id,
+      "operator",
+      f.consent.id,
+      "invalid",
+      undefined,
+      "wrong" as "setup-run",
+    ),
+    /Invalid command purpose/,
+  );
+  await assert.rejects(
+    f.store.localCommandConsents.consent(
+      f.worktrees,
+      f.id,
+      "operator",
+      f.review.identity,
+      "invalid",
+      undefined,
+      "wrong" as "setup-run",
+    ),
+    /Invalid command purpose/,
+  );
+  await f.enqueue();
+  await f.worker.tick();
+  const result = (await f.latest())!.result!;
+  assert.equal(result.outcome, "succeeded");
+  assert.deepEqual(
+    result.phases.map((p) => p.action),
+    ["run"],
   );
 });

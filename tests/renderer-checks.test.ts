@@ -45,6 +45,8 @@ async function launch() {
     resolve(value: LocalCheckView | null): void;
     reject(error: Error): void;
   }[] = [];
+  const runReads: typeof reads = [];
+  const runCancels: unknown[][] = [];
   let online = true,
     tick = () => {};
   const cancels: unknown[][] = [];
@@ -72,6 +74,19 @@ async function launch() {
         status: async () => ({ connected: online }),
         listWorkspaces: async () => ({ items: workspaces, nextCursor: null }),
         listRuns: async () => ({ items: [], nextCursor: null }),
+        latestRunAction: () =>
+          new Promise<LocalCheckView | null>((resolve, reject) =>
+            runReads.push({ resolve, reject }),
+          ),
+        cancelRunAction: async (...args: unknown[]) => {
+          runCancels.push(args);
+          return {
+            ...view(),
+            kind: "local-run-action",
+            status: "cancelled",
+            result: null,
+          };
+        },
         latestCheck: () =>
           new Promise<LocalCheckView | null>((resolve, reject) =>
             reads.push({ resolve, reject }),
@@ -104,6 +119,8 @@ async function launch() {
     element,
     reads,
     cancels,
+    runReads,
+    runCancels,
     disconnect: async () => {
       online = false;
       tick();
@@ -166,4 +183,42 @@ test("close and disconnect discard late check results; cancel is an explicit req
   await settle();
   assert.equal(app.element("checks-result").text, "");
   assert.match(app.element("checks-status").textContent, /Disconnected/);
+});
+
+test("run outcomes stay separate from test evidence and discard results from the other dialog purpose", async () => {
+  const app = await launch();
+  await app.open();
+  app.element("checks-close").click();
+  app.element("workspace-run-action").click();
+  app.reads[0]!.resolve(view());
+  await settle();
+  assert.equal(app.element("checks-result").text, "");
+  const run = view();
+  run.kind = "local-run-action";
+  run.result!.policy = "argent-local-run-v1";
+  run.result!.outcome = "succeeded";
+  run.result!.phases[0]!.action = "run";
+  app.runReads[0]!.resolve(run);
+  await settle();
+  assert.match(
+    app.element("checks-status").text,
+    /Run command succeeded.*not test evidence/,
+  );
+  assert.doesNotMatch(app.element("checks-status").text, /Checks passed/);
+  app.element("checks-refresh").click();
+  app.runReads[1]!.resolve({
+    ...run,
+    status: "running",
+    result: null,
+    freshness: "unknown",
+  });
+  await settle();
+  app.element("checks-cancel").click();
+  await settle();
+  assert.deepEqual(app.runCancels, [["one", "check"]]);
+  assert.equal(app.cancels.length, 0);
+  await app.disconnect();
+  app.runReads[2]!.resolve(run);
+  await settle();
+  assert.equal(app.element("checks-result").text, "");
 });

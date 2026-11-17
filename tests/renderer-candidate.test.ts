@@ -15,6 +15,7 @@ const config = {
     commands: {
       setup: { argv: ["npm", "ci"] },
       test: { argv: ["node", "test.js"] },
+      run: { argv: ["node", "serve.js"] },
     },
   },
   source: {
@@ -98,6 +99,9 @@ async function launch() {
   const reads: Deferred<CandidateReviewView>[] = [],
     writes: Deferred<CandidateConsentReceiptView>[] = [];
   const checkRequests: Deferred<unknown>[] = [];
+  const runReads: Deferred<CandidateReviewView>[] = [],
+    runWrites: Deferred<CandidateConsentReceiptView>[] = [],
+    runRequests: Deferred<unknown>[] = [];
   const workspaces = ["one", "two"].map((id) => ({
     id,
     provider: "local-worktree",
@@ -128,6 +132,19 @@ async function launch() {
           approval: { id: "approval", approvedAt: 1 },
           executionAllowed: false,
         }),
+        latestRunAction: async () => null,
+        runCandidateReview: (...args: unknown[]) =>
+          new Promise<CandidateReviewView>((resolve, reject) =>
+            runReads.push({ resolve, reject, args }),
+          ),
+        consentRunCandidate: (...args: unknown[]) =>
+          new Promise<CandidateConsentReceiptView>((resolve, reject) =>
+            runWrites.push({ resolve, reject, args }),
+          ),
+        startRunAction: (...args: unknown[]) =>
+          new Promise((resolve, reject) =>
+            runRequests.push({ resolve, reject, args }),
+          ),
         latestCheck: async () => null,
         runChecks: (...args: unknown[]) =>
           new Promise((resolve, reject) =>
@@ -166,12 +183,21 @@ async function launch() {
     reads,
     writes,
     checkRequests,
+    runReads,
+    runWrites,
+    runRequests,
     status: () => element("candidate-status").textContent,
     async open() {
       element("workspace-commands").click();
       await settle();
       assert.equal(element("commands-review").disabled, false);
       element("commands-review").click();
+    },
+    async openRun() {
+      element("workspace-commands").click();
+      await settle();
+      assert.equal(element("commands-review-run").disabled, false);
+      element("commands-review-run").click();
     },
     async show(shown = review()) {
       await app.open();
@@ -405,4 +431,60 @@ test("Run checks is explicit, consent-bound, duplicate-safe while pending and re
   await settle();
   assert.equal(app.element("candidate-dialog").open, false);
   assert.equal(app.element("checks-dialog").open, true);
+});
+
+test("run review requires its own receipt, rejects late check review and launches only the run action", async () => {
+  const app = await launch();
+  await app.open();
+  app.element("candidate-close").click();
+  await app.openRun();
+  app.reads[0]!.resolve({
+    ...review(),
+    consent: { id: "test-consent", createdAt: 1 },
+  });
+  await settle();
+  assert.equal(app.element("candidate-content").hidden, true);
+  const runReview = { ...review(), action: "setup-run" as const };
+  app.runReads[0]!.resolve(runReview);
+  await settle();
+  assert.match(app.element("candidate-files").text, /serve.js/);
+  assert.doesNotMatch(app.element("candidate-files").text, /"test.js"/);
+  assert.match(app.element("candidate-notice").text, /not test evidence/);
+  app.element("candidate-consent").click();
+  assert.equal(app.writes.length, 0);
+  assert.equal(app.runWrites.length, 1);
+  app.runWrites[0]!.resolve({ ...receipt, action: "setup-run" });
+  await settle();
+  assert.equal(app.element("candidate-run").disabled, true);
+  app.runReads[1]!.resolve({
+    ...runReview,
+    consent: { id: "run-consent", createdAt: 1 },
+  });
+  await settle();
+  assert.equal(app.runRequests.length, 0);
+  app.element("candidate-run").click();
+  app.element("candidate-run").fire("click");
+  assert.equal(app.checkRequests.length, 0);
+  assert.deepEqual(app.runRequests[0]!.args, ["one", "run-consent", "key-2"]);
+  app.runRequests[0]!.reject(new Error("Connection lost"));
+  await settle();
+  app.element("candidate-run").click();
+  assert.deepEqual(app.runRequests[1]!.args, app.runRequests[0]!.args);
+  app.runRequests[1]!.resolve({});
+  await settle();
+  assert.equal(app.element("checks-title").text, "Run results");
+  assert.equal(app.element("candidate-dialog").open, false);
+});
+
+test("run review rejects a response containing setup-test consent", async () => {
+  const app = await launch();
+  await app.openRun();
+  app.runReads[0]!.resolve({
+    ...review(),
+    consent: { id: "test-consent", createdAt: 1 },
+  });
+  await settle();
+  assert.equal(app.element("candidate-content").hidden, true);
+  assert.equal(app.element("candidate-run").disabled, true);
+  assert.match(app.status(), /different workspace or base/);
 });

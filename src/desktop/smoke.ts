@@ -476,6 +476,7 @@ export async function runDesktopSmoke(
         '"process.exit(0)"',
         '"<img src=x onerror=window.untrustedCommand=true>"',
       ],
+      ["run", '"node"', '"-e"', "\"console.log('run fixture')\""],
     ],
   );
   assert.match(await text("#commands-approval"), /Not approved/);
@@ -599,6 +600,57 @@ export async function runDesktopSmoke(
   await until(
     () => js(`!document.querySelector('#candidate-run').disabled`),
     "consent after check",
+  );
+
+  // Run uses a separate review acknowledgement, checkout and result namespace.
+  await js(`document.querySelector('#candidate-close').click()`);
+  await js(`document.querySelector('#workspace-commands').click()`);
+  await until(
+    () => js(`!document.querySelector('#commands-review-run').disabled`),
+    "run review available",
+  );
+  await js(`document.querySelector('#commands-review-run').click()`);
+  await until(
+    () => js(`!document.querySelector('#candidate-consent').disabled`),
+    "run requires separate consent",
+  );
+  assert.equal(
+    await js(`document.querySelector('#candidate-run').disabled`),
+    true,
+  );
+  assert.match(await text("#candidate-notice"), /not test evidence/);
+  assert.match(await text("#candidate-files"), /run fixture/);
+  await js(`document.querySelector('#candidate-consent').click()`);
+  await until(
+    () => js(`!document.querySelector('#candidate-run').disabled`),
+    "run consent recorded",
+  );
+  await capture("run-consented");
+  await js(`document.querySelector('#candidate-run').click()`);
+  await until(
+    () => js(`document.querySelector('#checks-dialog').open`),
+    "run result dialog",
+  );
+  await until(async () => {
+    if ((await text("#checks-status")).includes("Run command succeeded"))
+      return true;
+    await js(`document.querySelector('#checks-refresh').click()`);
+    return false;
+  }, "setup and run succeeded");
+  assert.match(await text("#checks-status"), /not test evidence/);
+  assert.doesNotMatch(await text("#checks-status"), /Checks passed/);
+  assert.match(await text("#checks-result"), /run.*exit 0/s);
+  await capture("run-succeeded");
+  await js(`document.querySelector('#checks-close').click()`);
+  await js(`document.querySelector('#workspace-commands').click()`);
+  await until(
+    () => js(`!document.querySelector('#commands-review').disabled`),
+    "test review remains separate",
+  );
+  await js(`document.querySelector('#commands-review').click()`);
+  await until(
+    () => js(`!document.querySelector('#candidate-run').disabled`),
+    "test consent remains valid",
   );
 
   // A later commit must not inherit the earlier consent. Remove only this fixture.
@@ -817,6 +869,7 @@ export async function runDesktopSmoke(
       changesKeyboardClose: true,
       commandConfigurationApproved: true,
       candidateConsentRecorded: true,
+      separateRunConsentAndOutcome: true,
       parallelWorkspace: true,
       workspaceId: workspace.id,
       verifiedRun: first.id,

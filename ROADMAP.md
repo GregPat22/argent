@@ -185,11 +185,14 @@ is in development under the
       records passing repository/native checks, security review and limits.
       Item 3 remains in development; this does not complete the whole milestone.
 - [ ] Implement the deferred `run` action after the setup/test result integration,
-      under the existing security model, and record the remaining L1.4 evidence.
+      under the [separate-consent acceptance contract](docs/specs/0013-local-mvp.md#desktop-run-action-in-development),
+      and record the remaining L1.4 evidence.
 
 The setup/test integration has automated and native fixture evidence at
 `7cebe40`; a real-repository walkthrough remains unestablished. The next L1.4
-step is the deferred `run` action. PR creation and archive remain L1.5.
+step is the deferred `run` action, in development: approved setup then run in
+a fresh exact-commit checkout, with separate consent and a result that is not
+test evidence. PR creation and archive remain L1.5.
 
 **The first-result integration requirement.** Accepted before implementation:
 the pieces above connect in one slice from approval to result: consent reachable from the

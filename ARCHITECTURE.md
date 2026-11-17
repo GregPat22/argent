@@ -730,3 +730,14 @@ uncertainty blocks subsequent work and never restarts a command. Evidence stores
 argv, outcomes, timing and stream digests/counts, with no raw output retention.
 The Checks dialog reads latest state explicitly; current/stale is a fresh
 hash-verified review comparison, not a watcher. No agent transcript becomes test evidence.
+
+### Run commands with separate consent (in development)
+
+The [run-action contract](docs/specs/0013-local-mvp.md#desktop-run-action-in-development)
+extends the same owned-checkout and worker path to approved setup followed by
+run. Consent and results identify the action explicitly; existing setup/test
+receipts remain limited to checks. A run-command result is a command outcome,
+not test evidence, and latest checks and run-command records are read separately.
+Workspace exclusion, pre-dispatch revalidation, immutable manifest checks,
+process supervision and conservative cleanup remain shared. The fixed bounded
+lifetime adds no interactive terminal, port discovery or persistent server.

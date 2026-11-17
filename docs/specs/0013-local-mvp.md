@@ -363,7 +363,9 @@ Argent creates as a detached linked worktree of the exact commit and verifies
 before use, so commands that call Git keep working. A test request runs the
 approved `setup` command, when one is configured, and then `test` in that same
 checkout, and records both. Running the `run` action is deferred until setup
-and test results work; the configuration schema is unchanged.
+and test results work; the configuration schema is unchanged. The
+[separate run-action contract](#desktop-run-action-in-development) now defines
+its next integration.
 
 Accepted on 16 November 2026: reading the commands at the base commit fixes
 which commands run, not what they do, because scripts, tests and dependencies
@@ -436,6 +438,69 @@ Setup/test that changes tracked files or leaves nonignored files cannot produce
 an exact-commit result. The first view exposes the latest check only; earlier
 records remain durable. `run`, crash reconciliation, real-account walkthroughs,
 PR creation and packaged/signed distribution remain outside this integration.
+
+#### Desktop run action (in development)
+
+Acceptance recorded 17 November 2026 against main `df7eb14`. The deferred
+`run` action uses a fresh exact-commit checkout and separate explicit consent.
+It runs the approved setup first, when configured, then the approved run
+command. It does not execute in the editable workspace or establish test evidence.
+
+1. **Separate consent.** Select setup/test or setup/run before reviewing the
+   complete committed text changes. Consent binds the selected action, exact
+   commit, review, configuration approval, workspace and actor. Existing
+   setup/test receipts retain their meaning and never authorize setup/run;
+   setup/run receipts never authorize checks. A run-only configuration can be
+   reviewed and consented to without a test command. A missing selected command
+   refuses consent and execution. Configuration approval itself runs nothing.
+2. **Explicit dispatch.** After matching setup/run consent, an explicit start
+   queues the command. Requests contain identifiers and an idempotency key,
+   never argv, paths, revisions, actor identities or executable overrides.
+   Repeated keys return history; changed action or payload conflicts. Reads,
+   reconnects, consent and approval never dispatch work. Standalone service mode
+   refuses the local execution routes.
+3. **Existing execution boundary.** Setup/run shares workspace exclusion with
+   agents, checks and dormant jobs, with transactional ownership and audit
+   events. It revalidates action-specific consent under a live lease, creates
+   an owned detached checkout of that exact commit and checks the immutable
+   manifest and repository/directory identities before and after each command.
+   Failed setup prevents run. Dormant jobs remain non-executable. No old consent
+   or result is upgraded into new authority.
+4. **Bounded lifetime and cleanup.** The existing thirty-minute deadline covers
+   preparation, setup, run and result acceptance. Commands use explicit argv,
+   the allowlisted environment, closed stdin, bounded output and the process
+   group supervisor. Explicit cancellation terminates owned processes. Cleanup
+   must settle before ownership is released; unconfirmed termination or removal
+   remains `needs_attention`, never retried automatically. Closing the dialog
+   or desktop does not cancel the durable job. A long-running command can be
+   cancelled or reach its deadline; this is not an interactive terminal or a
+   persistent development-server facility.
+5. **Distinct record.** A successful run command is labelled as a run-command
+   outcome, never checks passed or verification. Persist its action-specific
+   identity, exact commit/review/configuration/consent, ordered argv, stopping
+   outcome, timing and stdout/stderr counts and hashes. No raw output or URLs
+   discovered from output are retained or rendered. Preparation failure,
+   cancellation or an expired overall
+   deadline produces no successful result. Checks and run-command records are
+   read separately, so starting run cannot hide the latest test result.
+6. **Desktop behavior.** Display the selected purpose before consent and launch.
+   Show the latest run-command status and record separately from checks, with
+   explicit Refresh and cancellation. Freshness follows the same complete
+   review comparison as checks and is a point-in-time observation. Late replies
+   after purpose change, close, workspace change or disconnect cannot restore
+   consent or affect another action. Run-only configuration remains usable.
+7. **Evidence.** Real temporary Git, SQLite and harmless commands cover both
+   consent directions, run-only configuration, idempotency across actions,
+   setup/run ordering, setup failure, cancellation, ownership, stale results,
+   rollback and corruption. Bridge and renderer tests cover literal display,
+   bounds, distinct labels and stale replies. Native smoke must show a run
+   result without a test pass and preserve separate check evidence. Require the
+   full repository check and independent security review of the actual diff.
+
+Local execution remains unsandboxed, with the developer's filesystem and
+network privileges. This contract adds no port forwarding, browser launch,
+raw-output retention, live editing, process recovery or release authority.
+Real-repository walkthrough evidence and the complete L1.4 exit remain pending.
 
 #### Desktop setup and test validation
 

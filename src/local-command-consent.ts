@@ -9,6 +9,15 @@ import {
 import type { Store } from "./store.js";
 
 export const CONSENT_POLICY = "argent-local-command-consent-full-display-v1";
+export const RUN_CONSENT_POLICY = "argent-local-run-consent-full-display-v1";
+export type CommandPurpose = "setup-test" | "setup-run";
+export function commandPurpose(value: unknown): CommandPurpose {
+  if (value !== "setup-test" && value !== "setup-run")
+    throw new DomainError(400, "Invalid command purpose");
+  return value;
+}
+const consentPolicy = (action: CommandPurpose) =>
+  action === "setup-run" ? RUN_CONSENT_POLICY : CONSENT_POLICY;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const DIGEST = /^[a-f0-9]{64}$/;
 const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
@@ -20,8 +29,8 @@ const changed = () =>
 
 /** Compact audit binding; deliberately stores no repository text or diff. */
 export type LocalCommandConsentBinding = Readonly<{
-  policyVersion: typeof CONSENT_POLICY;
-  action: "setup-test";
+  policyVersion: typeof CONSENT_POLICY | typeof RUN_CONSENT_POLICY;
+  action: CommandPurpose;
   workspaceId: string;
   operatorId: string;
   reviewIdentity: string;
@@ -60,15 +69,23 @@ function fingerprint(
   workspaceId: string,
   operatorId: string,
   reviewIdentity: string,
+  action: CommandPurpose = "setup-test",
 ) {
   return hash(
-    JSON.stringify([CONSENT_POLICY, workspaceId, operatorId, reviewIdentity]),
+    JSON.stringify([
+      consentPolicy(action),
+      workspaceId,
+      operatorId,
+      reviewIdentity,
+    ]),
   );
 }
 
 export function consentBinding(
   review: LocalCommandCandidateReview,
+  action: CommandPurpose = "setup-test",
 ): LocalCommandConsentBinding {
+  commandPurpose(action);
   if (review.files.some((file) => file.binary))
     throw new DomainError(
       409,
@@ -76,8 +93,8 @@ export function consentBinding(
     );
   const observed = review.observation;
   return Object.freeze({
-    policyVersion: CONSENT_POLICY,
-    action: "setup-test",
+    policyVersion: consentPolicy(action),
+    action,
     workspaceId: observed.workspaceId,
     operatorId: observed.operatorId,
     reviewIdentity: review.identity,
@@ -123,8 +140,7 @@ function readBinding(
       Array.isArray(value) ||
       Object.keys(value).length !== keys.length ||
       keys.some((key) => !Object.hasOwn(value, key)) ||
-      value.policyVersion !== CONSENT_POLICY ||
-      value.action !== "setup-test" ||
+      value.policyVersion !== consentPolicy(commandPurpose(value.action)) ||
       value.reviewPolicyVersion !== REVIEW_POLICY
     )
       throw invalid();
@@ -222,7 +238,9 @@ export class LocalCommandConsentStore {
       approved.operatorId !== value.operatorId ||
       approved.descriptor.approvalCandidate.identity !==
         value.configurationIdentity ||
-      !approved.descriptor.config.commands.test
+      !approved.descriptor.config.commands[
+        value.action === "setup-run" ? "run" : "test"
+      ]
     )
       throw changed();
   }
@@ -245,6 +263,7 @@ export class LocalCommandConsentStore {
           value.workspaceId,
           value.operatorId,
           value.reviewIdentity,
+          value.action,
         ) ||
       row.type !== "candidate.consented" ||
       !Number.isSafeInteger(row.cursor) ||
@@ -294,7 +313,9 @@ export class LocalCommandConsentStore {
     workspaceId: string,
     operatorId: string,
     signal?: AbortSignal,
+    action: CommandPurpose = "setup-test",
   ) {
+    commandPurpose(action);
     identity(workspaceId, UUID, "workspace");
     requireString(operatorId, "operatorId", 128);
     signal?.throwIfAborted();
@@ -321,11 +342,15 @@ export class LocalCommandConsentStore {
       .prepare(
         "SELECT id FROM local_command_consents WHERE workspace_id = ? AND fingerprint = ? ORDER BY created_at DESC, id DESC LIMIT 1",
       )
-      .get(workspaceId, fingerprint(workspaceId, operatorId, review.identity));
+      .get(
+        workspaceId,
+        fingerprint(workspaceId, operatorId, review.identity, action),
+      );
     const receipt = row ? this.get(row.id as string) : null;
     if (
       receipt &&
-      JSON.stringify(receipt.binding) !== JSON.stringify(consentBinding(review))
+      JSON.stringify(receipt.binding) !==
+        JSON.stringify(consentBinding(review, action))
     )
       throw invalid();
     return { review, approved, receipt };
@@ -339,7 +364,9 @@ export class LocalCommandConsentStore {
     expectedReviewIdentity: string,
     requestKey: string,
     signal?: AbortSignal,
+    action: CommandPurpose = "setup-test",
   ): Promise<LocalCommandConsentReceipt> {
+    commandPurpose(action);
     identity(workspaceId, UUID, "workspace");
     requireString(operatorId, "operatorId", 128);
     identity(expectedReviewIdentity, DIGEST, "expected review");
@@ -348,6 +375,7 @@ export class LocalCommandConsentStore {
       workspaceId,
       operatorId,
       expectedReviewIdentity,
+      action,
     );
     const previous = this.duplicate(requestKey, expected);
     if (previous) return previous;
@@ -362,7 +390,7 @@ export class LocalCommandConsentStore {
       signal,
     );
     if (review.identity !== expectedReviewIdentity) throw changed();
-    const value = consentBinding(review);
+    const value = consentBinding(review, action);
     return this.transaction(() => {
       const duplicate = this.duplicate(requestKey, expected);
       if (duplicate) return duplicate;
@@ -404,18 +432,21 @@ export class LocalCommandConsentStore {
     operatorId: string,
     consentId: string,
     signal?: AbortSignal,
+    action: CommandPurpose = "setup-test",
   ): Promise<Readonly<{
     kind: "local-command-consent-match";
     receipt: LocalCommandConsentReceipt;
     review: LocalCommandCandidateReview;
     executionAllowed: false;
   }> | null> {
+    commandPurpose(action);
     identity(workspaceId, UUID, "workspace");
     requireString(operatorId, "operatorId", 128);
     const receipt = this.get(consentId);
     if (
       receipt.binding.workspaceId !== workspaceId ||
-      receipt.binding.operatorId !== operatorId
+      receipt.binding.operatorId !== operatorId ||
+      receipt.binding.action !== action
     )
       return null;
     signal?.throwIfAborted();
@@ -427,7 +458,7 @@ export class LocalCommandConsentStore {
       operatorId,
       signal,
     );
-    const value = consentBinding(review);
+    const value = consentBinding(review, action);
     this.idle(workspaceId);
     this.approval(value);
     signal?.throwIfAborted();

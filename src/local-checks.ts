@@ -6,7 +6,11 @@ import {
   requireString,
   type Run,
 } from "./domain.js";
-import { consentBinding } from "./local-command-consent.js";
+import {
+  consentBinding,
+  commandPurpose,
+  type CommandPurpose,
+} from "./local-command-consent.js";
 import { reviewLocalCommandCandidate } from "./local-command-review.js";
 import type { Store } from "./store.js";
 
@@ -21,7 +25,7 @@ export function checkId(value: unknown): string {
   return value;
 }
 export interface CheckPhase {
-  action: "setup" | "test";
+  action: "setup" | "test" | "run";
   argv: readonly string[];
   outcome: "exited" | "signaled" | "timed_out" | "output_limit";
   exitCode: number | null;
@@ -32,18 +36,18 @@ export interface CheckPhase {
   stderr: { bytes: number; sha256: string };
 }
 export interface CheckResult {
-  policy: "argent-local-check-v1";
+  policy: "argent-local-check-v1" | "argent-local-run-v1";
   headSha: string;
   treeId: string;
   baseSha: string;
   configurationIdentity: string;
   reviewIdentity: string;
   consentId: string;
-  outcome: "passed" | "failed";
+  outcome: "passed" | "succeeded" | "failed";
   phases: CheckPhase[];
 }
 export interface LocalCheckView {
-  kind: "local-check";
+  kind: "local-check" | "local-run-action";
   workspaceId: string;
   id: string;
   headSha: string;
@@ -66,9 +70,12 @@ export function validateCheckResult(value: unknown): CheckResult {
   };
   if (!value || typeof value !== "object") return fail();
   const v = value as CheckResult;
+  const runAction = v.policy === "argent-local-run-v1";
+  const terminal = runAction ? "run" : "test";
+  const success = runAction ? "succeeded" : "passed";
   if (
-    v.policy !== "argent-local-check-v1" ||
-    !["passed", "failed"].includes(v.outcome) ||
+    (!runAction && v.policy !== "argent-local-check-v1") ||
+    ![success, "failed"].includes(v.outcome) ||
     !Array.isArray(v.phases) ||
     v.phases.length < 1 ||
     v.phases.length > 2
@@ -82,9 +89,9 @@ export function validateCheckResult(value: unknown): CheckResult {
   const phases = v.phases.map((p, i): CheckPhase => {
     if (
       !p ||
-      (p.action !== "setup" && p.action !== "test") ||
+      (p.action !== "setup" && p.action !== terminal) ||
       (p.action === "setup" && i !== 0) ||
-      (i === 1 && p.action !== "test") ||
+      (i === 1 && p.action !== terminal) ||
       !Array.isArray(p.argv) ||
       p.argv.length < 1 ||
       p.argv.length > 64 ||
@@ -140,8 +147,8 @@ export function validateCheckResult(value: unknown): CheckResult {
   if (
     (phases.length === 2 &&
       (phases[0]!.action !== "setup" || phases[0]!.exitCode !== 0)) ||
-    (v.outcome === "passed" &&
-      (phases.at(-1)!.action !== "test" ||
+    (v.outcome === success &&
+      (phases.at(-1)!.action !== terminal ||
         phases.some((p) => p.outcome !== "exited" || p.exitCode !== 0))) ||
     (v.outcome === "failed" &&
       phases.every((p) => p.outcome === "exited" && p.exitCode === 0))
@@ -219,13 +226,18 @@ export class LocalCheckStore {
       this.store.runKind(id) !== "command" ||
       run.simulation ||
       run.permissionMode !== "edits" ||
-      run.task !== "Approved setup and test" ||
+      run.task !==
+        (consent.binding.action === "setup-run"
+          ? "Approved setup and run"
+          : "Approved setup and test") ||
       run.maxRuntimeMs !== 1800000 ||
       run.workspaceId !== consent.binding.workspaceId ||
       row.fingerprint !==
         hash(
           JSON.stringify([
-            "local-check-v1",
+            consent.binding.action === "setup-run"
+              ? "local-run-v1"
+              : "local-check-v1",
             run.workspaceId,
             consent.binding.operatorId,
             consent.id,
@@ -260,13 +272,20 @@ export class LocalCheckStore {
     consentId: string,
     key: string,
     signal?: AbortSignal,
+    action: CommandPurpose = "setup-test",
   ): Promise<LocalCheckJob> {
+    commandPurpose(action);
     checkId(workspaceId);
     checkId(consentId);
     requireString(operatorId, "operator", 128);
     requireString(key, "Idempotency-Key", 128);
     const fingerprint = hash(
-      JSON.stringify(["local-check-v1", workspaceId, operatorId, consentId]),
+      JSON.stringify([
+        action === "setup-run" ? "local-run-v1" : "local-check-v1",
+        workspaceId,
+        operatorId,
+        consentId,
+      ]),
     );
     const previous = this.duplicate(key, fingerprint);
     if (previous) return previous;
@@ -279,6 +298,7 @@ export class LocalCheckStore {
         operatorId,
         consentId,
         signal,
+        action,
       );
     } catch (error) {
       // Another identical request can reserve ownership while this read is
@@ -326,9 +346,17 @@ export class LocalCheckStore {
       this.db
         .prepare(
           `INSERT INTO runs (id,workspace_id,task,request_key,status,max_runtime_ms,created_at,simulation,permission_mode,kind)
-        VALUES (?,?,'Approved setup and test',?,'queued',1800000,?,0,'edits','command')`,
+        VALUES (?,?,?,?,'queued',1800000,?,0,'edits','command')`,
         )
-        .run(id, workspaceId, key, now);
+        .run(
+          id,
+          workspaceId,
+          action === "setup-run"
+            ? "Approved setup and run"
+            : "Approved setup and test",
+          key,
+          now,
+        );
       this.db
         .prepare(
           "INSERT INTO local_checks (run_id,version,consent_id,fingerprint) VALUES (?,1,?,?)",
@@ -336,7 +364,7 @@ export class LocalCheckStore {
         .run(id, consentId, fingerprint);
       this.event(
         id,
-        "check.queued",
+        action === "setup-run" ? "run-action.queued" : "check.queued",
         {
           consentId,
           headSha: match.receipt.binding.headSha,
@@ -372,7 +400,15 @@ export class LocalCheckStore {
           now + job.run.maxRuntimeMs,
           job.run.id,
         );
-      this.event(job.run.id, "check.claimed", { simulation: false }, now);
+      this.event(
+        job.run.id,
+        this.store.localCommandConsents.get(job.consentId).binding.action ===
+          "setup-run"
+          ? "run-action.claimed"
+          : "check.claimed",
+        { simulation: false },
+        now,
+      );
       return this.get(job.run.id);
     });
   }
@@ -406,7 +442,7 @@ export class LocalCheckStore {
     signal.throwIfAborted();
     this.assertOwned(id, token);
     if (
-      JSON.stringify(consentBinding(review)) !==
+      JSON.stringify(consentBinding(review, consent.binding.action)) !==
         JSON.stringify(consent.binding) ||
       JSON.stringify(this.store.localCommandConsents.get(job.consentId)) !==
         JSON.stringify(consent)
@@ -415,7 +451,12 @@ export class LocalCheckStore {
     const approval = this.store.localCommandApprovals.get(
       consent.binding.approvalId,
     );
-    if (!approval.descriptor.config.commands.test) throw invalid();
+    if (
+      !approval.descriptor.config.commands[
+        consent.binding.action === "setup-run" ? "run" : "test"
+      ]
+    )
+      throw invalid();
     return {
       binding: consent.binding,
       commands: approval.descriptor.config.commands,
@@ -430,6 +471,10 @@ export class LocalCheckStore {
         job.consentId,
       ).binding;
       if (
+        result.policy !==
+          (binding.action === "setup-run"
+            ? "argent-local-run-v1"
+            : "argent-local-check-v1") ||
         result.consentId !== job.consentId ||
         result.headSha !== binding.headSha ||
         result.treeId !== binding.treeId ||
@@ -458,13 +503,29 @@ export class LocalCheckStore {
         .prepare(
           "UPDATE runs SET status = ?,lease_token = NULL,lease_expires_at = NULL WHERE id = ?",
         )
-        .run(result.outcome === "passed" ? "completed" : "failed", id);
-      this.event(id, "check.result", { ...result, simulation: false }, now);
+        .run(result.outcome !== "failed" ? "completed" : "failed", id);
+      this.event(
+        id,
+        binding.action === "setup-run" ? "run-action.result" : "check.result",
+        { ...result, simulation: false },
+        now,
+      );
     });
   }
-  view(id: string, workspaceId: string, operatorId: string): LocalCheckView {
+  view(
+    id: string,
+    workspaceId: string,
+    operatorId: string,
+    action: CommandPurpose = "setup-test",
+  ): LocalCheckView {
+    commandPurpose(action);
     const job = this.get(id);
-    if (job.run.workspaceId !== workspaceId || job.operatorId !== operatorId)
+    if (
+      job.run.workspaceId !== workspaceId ||
+      job.operatorId !== operatorId ||
+      this.store.localCommandConsents.get(job.consentId).binding.action !==
+        action
+    )
       throw new DomainError(404, "Check not found");
     const row = this.db
       .prepare("SELECT result,result_sha256 FROM local_checks WHERE run_id = ?")
@@ -482,6 +543,10 @@ export class LocalCheckStore {
         job.consentId,
       ).binding;
       if (
+        result.policy !==
+          (binding.action === "setup-run"
+            ? "argent-local-run-v1"
+            : "argent-local-check-v1") ||
         result.consentId !== job.consentId ||
         result.headSha !== binding.headSha ||
         result.treeId !== binding.treeId ||
@@ -489,12 +554,12 @@ export class LocalCheckStore {
         result.configurationIdentity !== binding.configurationIdentity ||
         result.reviewIdentity !== binding.reviewIdentity ||
         job.run.status !==
-          (result.outcome === "passed" ? "completed" : "failed")
+          (result.outcome !== "failed" ? "completed" : "failed")
       )
         throw invalid();
     } else if (job.run.status === "completed") throw invalid();
     return {
-      kind: "local-check",
+      kind: action === "setup-run" ? "local-run-action" : "local-check",
       workspaceId,
       id,
       headSha: this.store.localCommandConsents.get(job.consentId).binding
@@ -510,15 +575,22 @@ export class LocalCheckStore {
     workspaceId: string,
     operatorId: string,
     signal?: AbortSignal,
+    action: CommandPurpose = "setup-test",
   ): Promise<LocalCheckView | null> {
+    commandPurpose(action);
     checkId(workspaceId);
     const row = this.db
       .prepare(
-        "SELECT r.id FROM runs r JOIN local_checks c ON c.run_id = r.id WHERE r.workspace_id = ? ORDER BY r.created_at DESC,r.id DESC LIMIT 1",
+        "SELECT r.id FROM runs r JOIN local_checks c ON c.run_id = r.id WHERE r.workspace_id = ? AND r.task = ? ORDER BY r.created_at DESC,r.id DESC LIMIT 1",
       )
-      .get(workspaceId);
+      .get(
+        workspaceId,
+        action === "setup-run"
+          ? "Approved setup and run"
+          : "Approved setup and test",
+      );
     if (!row) return null;
-    const view = this.view(row.id as string, workspaceId, operatorId);
+    const view = this.view(row.id as string, workspaceId, operatorId, action);
     if (!view.result) return view;
     // An active/uncertain writer cannot leave a currently reusable result.
     const busy = () =>

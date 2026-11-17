@@ -112,10 +112,10 @@ export function makeServer(
       } else if (
         parts[0] === "workspaces" &&
         ((parts.length === 3 &&
-          parts[2] === "checks" &&
+          (parts[2] === "checks" || parts[2] === "run-actions") &&
           (method === "GET" || method === "POST")) ||
           (parts.length === 5 &&
-            parts[2] === "checks" &&
+            (parts[2] === "checks" || parts[2] === "run-actions") &&
             parts[4] === "cancel" &&
             method === "POST"))
       ) {
@@ -127,6 +127,7 @@ export function makeServer(
           throw new DomainError(409, "Local checks are not enabled");
         if (url.searchParams.size)
           throw new DomainError(400, "Checks accept no query parameters");
+        const action = parts[2] === "run-actions" ? "setup-run" : "setup-test";
         const workspaceId = checkId(parts[1]),
           operator = options.localCommandOperatorId;
         const controller = new AbortController();
@@ -143,6 +144,7 @@ export function makeServer(
                 workspaceId,
                 operator,
                 controller.signal,
+                action,
               ),
             );
           } else {
@@ -151,12 +153,12 @@ export function makeServer(
               if (Object.keys(body).length)
                 throw new DomainError(400, "Expected an empty body");
               const id = checkId(parts[3]);
-              store.localChecks.view(id, workspaceId, operator);
+              store.localChecks.view(id, workspaceId, operator, action);
               store.cancel(id);
               send(
                 response,
                 200,
-                store.localChecks.view(id, workspaceId, operator),
+                store.localChecks.view(id, workspaceId, operator, action),
               );
             } else {
               if (
@@ -175,11 +177,17 @@ export function makeServer(
                   128,
                 ),
                 controller.signal,
+                action,
               );
               send(
                 response,
                 202,
-                store.localChecks.view(job.run.id, workspaceId, operator),
+                store.localChecks.view(
+                  job.run.id,
+                  workspaceId,
+                  operator,
+                  action,
+                ),
               );
             }
           }
@@ -189,9 +197,16 @@ export function makeServer(
       } else if (
         parts[0] === "workspaces" &&
         parts.length === 3 &&
-        ((parts[2] === "candidate-review" && method === "GET") ||
-          (parts[2] === "candidate-consents" && method === "POST"))
+        (((parts[2] === "candidate-review" ||
+          parts[2] === "run-candidate-review") &&
+          method === "GET") ||
+          ((parts[2] === "candidate-consents" ||
+            parts[2] === "run-candidate-consents") &&
+            method === "POST"))
       ) {
+        const action = parts[2]!.startsWith("run-")
+          ? "setup-run"
+          : "setup-test";
         if (!options.worktreeRoot || !options.localCommandOperatorId)
           throw new DomainError(409, "Local candidate review is not enabled");
         if (url.searchParams.size)
@@ -213,9 +228,11 @@ export function makeServer(
                 parts[1]!,
                 options.localCommandOperatorId,
                 controller.signal,
+                action,
               );
             send(response, 200, {
               kind: "local-candidate-review",
+              ...(action === "setup-run" ? { action } : {}),
               workspaceId: parts[1]!,
               identity: review.identity,
               policyVersion: review.policyVersion,
@@ -262,9 +279,11 @@ export function makeServer(
                 128,
               ),
               controller.signal,
+              action,
             );
             send(response, 200, {
               kind: "local-candidate-consent-receipt",
+              ...(action === "setup-run" ? { action } : {}),
               workspaceId: receipt.binding.workspaceId,
               id: receipt.id,
               reviewIdentity: receipt.binding.reviewIdentity,
