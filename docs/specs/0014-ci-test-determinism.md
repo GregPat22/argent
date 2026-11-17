@@ -396,6 +396,13 @@ the correction preserves it and refuses to start the next suite. Missing service
 identity after an early app failure also preserves the fixture. Cleanup requires
 both observed app exit and confirmed service shutdown.
 
-Full repository checks and hosted validation remain required before integration.
+A clean checkout of `ada4e955a14d76f229d8b98dea72e430773fc77b`, with
+lockfile-installed dependencies, passes both development and packaged native
+smoke on 17 November 2026. Both suites confirm service survival after app exit
+and complete cleanup. Independent diff review found no remaining blocking issue.
+
+Full `npm run check` passes strict types, formatting, compilation and all 658
+tests with no failures, cancellations or skips. Final harness type/format checks
+and cleanup probes also pass. Hosted validation remains required before integration.
 These fixture checks use a fake agent and harmless commands; they do not certify
 real-account execution, signing, notarization, or release readiness.
