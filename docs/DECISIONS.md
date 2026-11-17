@@ -726,6 +726,15 @@ SQLite closure. CI failures at `6b49267`, `e57c4b7`, `2bdde47`, `ffbeef2` and
 checks and workflow failure notifications. Acceptance and validation limits are
 in [spec 0014](specs/0014-ci-test-determinism.md). Implemented in main `32748a5`.
 
+Native smoke follow-up in development, recorded 17 November 2026 at `806d8b1`:
+separate the workspace and command-consent walkthroughs into fresh, sequential
+app/service lifetimes with the existing per-process and predicate deadlines. A
+controlled screenshot delay reproduces cumulative exhaustion of the shared
+outer deadline; it does not establish the original hosted slowdown. Preserve
+all assertions and report suite/stage timing. Acceptance and validation limits
+are in the [native smoke follow-up](specs/0014-ci-test-determinism.md#native-desktop-smoke-suite-lifetimes-in-development).
+No production execution or consent rule changes.
+
 ### Local MVP first, Claude Code first — 7 November 2026
 
 The project had real cloud provisioning on the critical path while every run was
