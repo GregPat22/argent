@@ -502,6 +502,63 @@ network privileges. This contract adds no port forwarding, browser launch,
 raw-output retention, live editing, process recovery or release authority.
 Real-repository walkthrough evidence and the complete L1.4 exit remain pending.
 
+#### Desktop run-action validation
+
+Development implementation `d43001d8bc3b68e8da9c589951bfe673cb0ff430`, with the
+test-fixture correction at `1713336919df0a7756799636fb19d95b9a71f75a`, validated
+17 November 2026 against main `df7eb14`:
+
+- The corrected implementation passed `npm run check` in a separate checkout
+  with dependencies installed from the lockfile: strict types, formatting, build
+  and all 658 tests, with no failures, cancellations or skips.
+- Independent security review found no blocking issue in the complete diff.
+  Action-specific consent policies, fingerprints, routes and result validation
+  prevent setup/test and setup/run authority or results crossing. Existing
+  setup/test bindings retain their serialized meaning. The same review approved
+  the subsequent test-only correction.
+- Focused store, worker, service, bridge and renderer checks cover both consent
+  directions, run-only configuration, setup failure, run failure, cancellation,
+  restart, stale results and distinct labels. The corrected candidate-desktop
+  suite passed all eight tests, including cancellation and error redaction for
+  both actions.
+- Native Electron smoke passed on the implementation's freshly built outputs
+  in a separate verification checkout. Harmless fixture commands show separate
+  setup/run consent and a successful run record explicitly labelled as not test
+  evidence, while preserving the previous check result. The captured consent
+  and result screens were visually inspected. Renderer isolation, reconnect,
+  window reopening and service survival checks also passed. No owned desktop
+  or service process remained after teardown. The later correction changes only
+  a test fixture, not the native code exercised here.
+- A programmatic integration exercise at `1713336` used this repository's own
+  committed `argent.json`, configuration approval and exact-commit consent.
+  The actual check worker created a fresh checkout, ran `npm ci` and
+  `npm run check`, and recorded both zero exits as passed/current evidence for
+  that commit. A later untracked workspace file made the result stale. The
+  owned verification checkout was removed and execution-process cleanup was
+  confirmed. This uses the real repository and commands, without a real agent
+  account; it is not a maintainer's desktop walkthrough.
+
+The initial full candidate run passed 657 tests and cancelled one: an existing
+HTTP disconnect fixture treated the last argument as the cancellation signal,
+but that argument now carries the selected action. This caused its ten-second
+wait to expire. Unchanged main passed its full 648-test check and a separate
+focused execution of the original test. The correction reads the explicit signal
+position, asserts its runtime type and following action, and tests both consent
+purposes. It preserves the deadline and all behavioral assertions.
+
+A programmatic check of this repository at `d43001d` also recorded a failed
+result: approved `npm ci` exited zero and approved
+`npm run check` exited one. Argent retained that failure for its exact commit
+and removed the owned verification checkout. The validation harness expected a
+pass and consequently failed too; it did not turn the command failure into a
+successful result. Raw command output was not retained by Argent.
+
+Limits: native commands are fixtures and no real agent account was used.
+Programmatic repository checks are separate from a maintainer completing the
+real desktop workflow. Packaged builds, website checks, signing, release,
+process recovery and the full L1 exit are not established by this change.
+Website source is unchanged. L1.4 remains in development.
+
 #### Desktop setup and test validation
 
 Development implementation `7cebe40058eec21275b073c3e983d022fef308c0`, validated

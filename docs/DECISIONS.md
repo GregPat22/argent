@@ -77,6 +77,9 @@ port discovery or live-editing server. The
 records action isolation, backward compatibility, validation and remaining
 walkthrough limits. Milestone order and the unsandboxed local security model
 are unchanged; L1.4 is not marked complete.
+Development implementation `d43001d`, with test-fixture correction `1713336`,
+is covered by the [validation record](specs/0013-local-mvp.md#desktop-run-action-validation),
+including the initial failed suite and unchanged-main comparison.
 
 ### Judging-changes report before the draft pull request — 16 November 2026
 
