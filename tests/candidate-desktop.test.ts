@@ -412,51 +412,76 @@ test(
   async (t) => {
     const f = await fixture(t);
     const shown = (await (await f.read()).json()) as CandidateReviewView;
-    for (const method of ["inspect", "consent"] as const) {
-      let entered!: () => void, finished!: () => void;
-      const started = new Promise<void>((resolve) => (entered = resolve)),
-        ended = new Promise<void>((resolve) => (finished = resolve));
-      const consents = f.store.localCommandConsents;
-      const original = consents[method];
-      // Intercept only the outer operation to observe the HTTP cancellation signal.
-      Object.assign(consents, {
-        [method]: async (...args: unknown[]) => {
-          const signal = args.at(-1) as AbortSignal;
-          entered();
-          await new Promise<void>((resolve) =>
-            signal.addEventListener("abort", () => resolve(), { once: true }),
-          );
-          finished();
-          signal.throwIfAborted();
-        },
-      });
-      const request = httpRequest(
-        `${f.origin}/workspaces/${f.workspace.id}/${method === "inspect" ? "candidate-review" : "candidate-consents"}`,
-        {
-          method: method === "inspect" ? "GET" : "POST",
-          headers: {
-            Authorization: `Bearer ${f.token}`,
-            "Idempotency-Key": randomUUID(),
+    for (const action of ["setup-test", "setup-run"] as const) {
+      const prefix = action === "setup-run" ? "run-" : "";
+      for (const method of ["inspect", "consent"] as const) {
+        let entered!: () => void,
+          rejected!: (error: unknown) => void,
+          finished!: () => void;
+        const started = new Promise<void>((resolve, reject) => {
+          entered = resolve;
+          rejected = reject;
+        });
+        const ended = new Promise<void>((resolve) => (finished = resolve));
+        const consents = f.store.localCommandConsents;
+        const original = consents[method];
+        // Signals have explicit argument positions; purpose follows the signal.
+        // Reject the waiting test too if this contract changes again.
+        Object.assign(consents, {
+          [method]: async (...args: unknown[]) => {
+            try {
+              const signalIndex = method === "inspect" ? 3 : 5;
+              const signal = args[signalIndex];
+              assert.ok(signal instanceof AbortSignal);
+              assert.equal(args[signalIndex + 1], action);
+              entered();
+              await new Promise<void>((resolve) =>
+                signal.addEventListener("abort", () => resolve(), {
+                  once: true,
+                }),
+              );
+              finished();
+              signal.throwIfAborted();
+            } catch (error) {
+              rejected(error);
+              throw error;
+            }
           },
-        },
-      );
-      request.on("error", () => {});
-      request.end(
-        method === "consent"
-          ? JSON.stringify({ expectedReviewIdentity: shown.identity })
-          : undefined,
-      );
-      await started;
-      request.destroy();
-      await ended;
-      Object.assign(consents, { [method]: original });
+        });
+        const request = httpRequest(
+          `${f.origin}/workspaces/${f.workspace.id}/${prefix}${method === "inspect" ? "candidate-review" : "candidate-consents"}`,
+          {
+            method: method === "inspect" ? "GET" : "POST",
+            headers: {
+              Authorization: `Bearer ${f.token}`,
+              "Idempotency-Key": randomUUID(),
+            },
+          },
+        );
+        request.on("error", () => {});
+        try {
+          request.end(
+            method === "consent"
+              ? JSON.stringify({ expectedReviewIdentity: shown.identity })
+              : undefined,
+          );
+          await started;
+          request.destroy();
+          await ended;
+        } finally {
+          request.destroy();
+          Object.assign(consents, { [method]: original });
+        }
+      }
     }
     f.store.localCommandConsents.inspect = async () => {
       throw new Error("private repository details");
     };
-    const response = await f.read();
-    assert.equal(response.status, 500);
-    assert.deepEqual(await response.json(), { error: "Internal error" });
+    for (const path of ["candidate-review", "run-candidate-review"]) {
+      const response = await f.request(`/workspaces/${f.workspace.id}/${path}`);
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), { error: "Internal error" });
+    }
     assert.deepEqual(f.counts(), [0, 0, 0, 0]);
   },
 );
