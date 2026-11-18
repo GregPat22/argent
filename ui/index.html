@@ -519,6 +519,9 @@
         Local execution is not a sandbox. Recording consent runs nothing. Run
         checks separately starts setup and test in a fresh checkout with a
         thirty-minute execution limit. Cancellation and cleanup may take longer.
+        Cancellation stops each command's process group; a process a command
+        starts in a new session, or one left running if the service stops
+        unexpectedly, is not stopped.
       </p>
       <p
         id="candidate-status"

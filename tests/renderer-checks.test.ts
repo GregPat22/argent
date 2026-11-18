@@ -222,3 +222,48 @@ test("run outcomes stay separate from test evidence and discard results from the
   await settle();
   assert.equal(app.element("checks-result").text, "");
 });
+
+test("a failed setup says the selected command never started, and interrupted work says it stays blocked", async () => {
+  const app = await launch();
+  await app.open();
+  const setupFailed = view();
+  setupFailed.status = "failed";
+  setupFailed.result!.outcome = "failed";
+  setupFailed.result!.phases[0]!.action = "setup";
+  setupFailed.result!.phases[0]!.exitCode = 7;
+  app.reads[0]!.resolve(setupFailed);
+  await settle();
+  assert.match(
+    app.element("checks-status").text,
+    /^Checks failed · setup failed, test did not run · matches this reading\. Refresh/,
+  );
+  app.element("checks-refresh").click();
+  app.reads[1]!.resolve({
+    ...view(),
+    status: "needs_attention",
+    result: null,
+    freshness: "unknown",
+  });
+  await settle();
+  const interrupted = app.element("checks-status").text;
+  assert.match(interrupted, /^Check interrupted · needs attention\./);
+  assert.match(interrupted, /commands may still be running/);
+  assert.match(interrupted, /planned, not available/);
+  assert.doesNotMatch(interrupted, /\.\./);
+  app.element("checks-close").click();
+  app.element("workspace-run-action").click();
+  const run = view();
+  run.kind = "local-run-action";
+  run.status = "failed";
+  run.result!.policy = "argent-local-run-v1";
+  run.result!.outcome = "failed";
+  run.result!.phases[0]!.action = "setup";
+  run.result!.phases[0]!.exitCode = 7;
+  app.runReads[0]!.resolve(run);
+  await settle();
+  assert.match(
+    app.element("checks-status").text,
+    /^Run command did not start · setup failed · not test evidence/,
+  );
+  assert.doesNotMatch(app.element("checks-status").text, /Run command failed/);
+});

@@ -26,6 +26,7 @@ import { makeServer } from "../src/http.js";
 import { inspectLocalCommandCandidate } from "../src/workspace-changes.js";
 import { validateCheckResult } from "../src/local-checks.js";
 import { validateCheckView } from "../src/desktop/checks.js";
+import { runWorkers } from "../src/worker-pool.js";
 
 function git(cwd: string, ...args: string[]) {
   return execFileSync(
@@ -282,9 +283,145 @@ test("queued cancellation, live cancellation and shutdown preserve no-replay sem
       shutdown ? "needs_attention" : "cancelled",
     );
     assert.equal((await f.latest())?.result, null);
+    // A confirmed stop is recorded as evidence; the state stays uncertain.
+    const settled = f.store.events(job.run.id).at(-1)!;
+    assert.deepEqual(settled, {
+      ...settled,
+      type: shutdown ? "command.needs_attention" : "command.cancelled",
+      data: shutdown
+        ? {
+            reason: "worker_shutdown",
+            processGroups: "confirmed-stopped",
+            verificationCheckout: "none-remaining",
+            simulation: false,
+          }
+        : { reason: "user_cancelled", simulation: false },
+    });
+    assert.equal(existsSync(join(f.verification, job.run.id)), false);
     assert.equal(await f.worker.tick(), false);
-    if (shutdown) await assert.rejects(f.enqueue("another"));
+    if (shutdown)
+      await assert.rejects(f.enqueue("another"), /active or uncertain work/);
   }
+});
+
+test("a cancellation observed only at result acceptance is recorded as the user's cancellation", async (t) => {
+  const f = await fixture(t, "process.exit(0)", "process.exit(0)");
+  const job = await f.enqueue();
+  const complete = f.store.localChecks.complete.bind(f.store.localChecks);
+  f.store.localChecks.complete = (...args) => {
+    f.store.cancel(job.run.id);
+    return complete(...args);
+  };
+  assert.equal(await f.worker.tick(), true);
+  assert.equal(f.store.getRun(job.run.id).status, "cancelled");
+  assert.deepEqual(f.store.events(job.run.id).at(-1)?.data, {
+    reason: "user_cancelled",
+    simulation: false,
+  });
+  assert.equal((await f.latest())?.result, null);
+  assert.equal(existsSync(join(f.verification, job.run.id)), false);
+});
+
+test("an unreadable queued check blocks only its own workspace and never stops dispatch", async (t) => {
+  const f = await fixture(t, "process.exit(0)", "process.exit(0)");
+  const poisoned = await f.enqueue("poisoned");
+  // A second workspace with its own repository, approval, consent and check.
+  const repo = join(f.root, "other");
+  mkdirSync(repo);
+  git(repo, "init", "--quiet", "--initial-branch=main");
+  writeFileSync(
+    join(repo, "argent.json"),
+    JSON.stringify({
+      version: 1,
+      commands: { test: { argv: [process.execPath, "-e", "0"] } },
+    }),
+  );
+  git(repo, "add", ".");
+  git(repo, "commit", "--quiet", "-m", "initial");
+  const other = await createLocalWorkspace(f.store, f.worktrees, repo);
+  const descriptor = (await readLocalCommandConfig(
+    f.store,
+    f.worktrees,
+    other.id,
+  ))!;
+  await f.store.localCommandApprovals.approve(
+    f.worktrees,
+    other.id,
+    "operator",
+    descriptor.approvalCandidate.identity,
+    "approve-other",
+  );
+  const review = await reviewLocalCommandCandidate(
+    f.store,
+    f.worktrees,
+    other.id,
+    "operator",
+  );
+  const consent = await f.store.localCommandConsents.consent(
+    f.worktrees,
+    other.id,
+    "operator",
+    review.identity,
+    "consent-other",
+  );
+  const healthy = await f.store.localChecks.enqueue(
+    f.worktrees,
+    other.id,
+    "operator",
+    consent.id,
+    "healthy",
+  );
+  f.db
+    .prepare("UPDATE local_checks SET fingerprint = ? WHERE run_id = ?")
+    .run("0".repeat(64), poisoned.run.id);
+  const before = f.store.events(poisoned.run.id);
+  // The service's own dispatch loop keeps running instead of exiting.
+  const shutdown = new AbortController();
+  const timer = setTimeout(() => shutdown.abort(), 3000);
+  t.after(() => clearTimeout(timer));
+  const dispatch = runWorkers(f.worker, shutdown.signal);
+  const end = Date.now() + 15000;
+  while (
+    f.store.getRun(healthy.run.id).status !== "completed" &&
+    Date.now() < end
+  )
+    await delay(20);
+  shutdown.abort();
+  await dispatch;
+  assert.equal(f.store.getRun(healthy.run.id).status, "completed");
+  assert.equal(
+    (await f.store.localChecks.latest(f.worktrees, other.id, "operator"))
+      ?.result?.outcome,
+    "passed",
+  );
+  // The unreadable job is untouched: still queued, never claimed, still
+  // blocking its workspace and still refused when read.
+  assert.equal(f.store.getRun(poisoned.run.id).status, "queued");
+  assert.deepEqual(f.store.events(poisoned.run.id), before);
+  assert.equal(f.store.localChecks.claim(5000), null);
+  await assert.rejects(f.latest(), /Invalid check record/);
+  assert.throws(
+    () => f.store.createRun(f.id, "agent", "agent-key"),
+    /active or uncertain work/,
+  );
+});
+
+test("a settlement write that loses ownership leaves reconciliation to mark uncertainty", async (t) => {
+  const lost = await fixture(t);
+  const lostJob = await lost.enqueue();
+  writeFileSync(join(lost.directory, "file.txt"), "changed after consent");
+  const finish = lost.store.finish.bind(lost.store);
+  lost.store.finish = (id, token, ...rest) => {
+    // Another writer expires the lease between the check and the write.
+    lost.db
+      .prepare("UPDATE runs SET lease_expires_at = 1 WHERE id = ?")
+      .run(id);
+    return finish(id, token, ...rest);
+  };
+  assert.equal(await lost.worker.tick(), true);
+  assert.equal(lost.store.getRun(lostJob.run.id).status, "running");
+  lost.store.reconcile();
+  assert.equal(lost.store.getRun(lostJob.run.id).status, "needs_attention");
 });
 
 test("claim expiry blocks late results and restart never reclaims an interrupted check", async (t) => {
@@ -866,9 +1003,11 @@ test("run action service rejects check consent and cross-action cancellation, an
   );
   const request = (path: string, body: object) =>
     fetch(base + path, { method: "POST", headers, body: JSON.stringify(body) });
-  assert.equal(
-    (await request("/checks", { consentId: f.consent.id })).status,
-    409,
+  const crossed = await request("/checks", { consentId: f.consent.id });
+  assert.equal(crossed.status, 409);
+  assert.match(
+    ((await crossed.json()) as { error: string }).error,
+    /^Checks require setup\/test consent/,
   );
   assert.equal(
     (await request("/run-actions", { consentId: f.consent.id, argv: ["bad"] }))
