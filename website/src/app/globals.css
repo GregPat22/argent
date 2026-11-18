@@ -892,7 +892,6 @@ html[data-entrance="pending"] .site-footer {
 
 /* Looping decorations rest while their section is off screen. */
 main > section:not([data-onscreen="true"]) .cta-drops i,
-main > section:not([data-onscreen="true"]) .problem-dash,
 main > section:not([data-onscreen="true"]) .hiw-pulse,
 main > section:not([data-onscreen="true"]) .roadmap-node,
 main
@@ -902,8 +901,7 @@ main
   animation-play-state: paused;
 }
 
-/* Statement: the three problems, each on its own plate. The glyph draws
-   itself once when the row arrives. */
+/* Statement: the silver atom and its halo. */
 .statement-atom {
   position: relative;
 }
@@ -919,73 +917,6 @@ main
     transparent 72%
   );
 }
-.problem-card {
-  position: relative;
-  border: 1px solid var(--color-hairline);
-  border-radius: 1.5rem;
-  padding: 1.5rem;
-  background: linear-gradient(
-    160deg,
-    rgb(238 241 245 / 0.035),
-    rgb(238 241 245 / 0) 55%
-  );
-  transition: border-color 300ms;
-}
-@media (min-width: 768px) {
-  .problem-card {
-    padding: 1.75rem;
-  }
-}
-.problem-glyph {
-  color: var(--color-sterling);
-  transition:
-    color 300ms,
-    transform 500ms var(--ease-liquid);
-}
-/* Drawn by default, so the glyphs survive without scripts; the list only
-   holds them back once it knows it can play them. */
-.problem-glyph > :not(.problem-dash) {
-  stroke-dasharray: 1;
-}
-.problem-dash {
-  stroke-dasharray: 3 4;
-}
-.problem-list[data-drawn="false"] .problem-glyph > :not(.problem-dash) {
-  stroke-dashoffset: 1;
-}
-.problem-list[data-drawn="true"] .problem-glyph > :not(.problem-dash) {
-  animation: problem-draw 1100ms var(--ease-out-quint) var(--glyph-delay, 0ms)
-    both;
-}
-.problem-list[data-drawn="true"] .problem-dash {
-  animation: problem-claim 2.6s calc(var(--glyph-delay, 0ms) + 900ms)
-    ease-in-out infinite;
-}
-@keyframes problem-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-}
-/* The claim keeps repeating itself; nothing ever backs it up. */
-@keyframes problem-claim {
-  0%,
-  100% {
-    opacity: 0.25;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-@media (hover: hover) {
-  .problem-card:hover {
-    border-color: var(--color-hairline-strong);
-  }
-  .problem-card:hover .problem-glyph {
-    color: var(--color-polished);
-    transform: translateY(-3px);
-  }
-}
-
 /* Journey: desktop → cloud → phone, scroll-linked. */
 .journey-track {
   position: relative;
@@ -1674,6 +1605,13 @@ main
   overflow: hidden;
   border-radius: inherit;
   pointer-events: none;
+}
+/* Defer the two large drops until the band approaches. WebKit samples the
+   small drops differently if it first decodes them after scrolling. */
+@media (scripting: enabled) {
+  #join:not([data-onscreen="true"]) .cta-drops > span:nth-child(-n + 2) {
+    content-visibility: auto;
+  }
 }
 /* The outer span holds the position and follows the pointer; the inner one
    is the metal and drifts on its own. */

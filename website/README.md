@@ -90,6 +90,9 @@ animate transforms/opacity rather than width/shadow.
   and starts lower when the browser reports a software renderer
   (`data-renderer="software"`); if even the lowest resolution cannot animate, it
   holds a still frame (`data-resting`). Do not exempt slow frames from it again.
+- The [browser rendering cost criteria](../docs/specs/0016-website-restyle.md#browser-rendering-cost-in-development)
+  cover canvas calculations, motion subscriptions and loading the two largest
+  closing drops near the viewport.
 - **Headline.** Each hero line sits in a reveal mask. The gradient line paints
   only inside its own box, so both the mask and that box carry extra bottom
   padding (cancelled by a negative margin) to keep descenders whole.
@@ -101,7 +104,7 @@ animate transforms/opacity rather than width/shadow.
   ([NIST data](https://physics.nist.gov/PhysRefData/Handbook/Tables/silvertable1.htm)).
   It stops offscreen and renders a still frame under reduced motion.
 - **Sections.** Below the hero, proof leads and plans come last: the conductor
-  statement (with the atom and the three problems, the unproven claim first),
+  statement with the silver atom,
   proof (the claim-versus-record slider, what is recorded today next to what is
   planned, and the four hallmarks), how it works, the agents, the open-source
   manifesto, the journey (desktop → remote workspace → phone), the roadmap
