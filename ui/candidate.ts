@@ -300,7 +300,7 @@ export function wireCandidate(): void {
     );
     setText(
       "candidate-notice",
-      `Review every changed file before consenting to the approved setup and ${command()} commands for this commit. Commands can execute changed scripts. Local execution is not a sandbox. Recording consent runs nothing. ${runAction ? "Start run command" : "Run checks"} separately starts setup and ${command()} in a fresh checkout with a thirty-minute execution limit. Cancellation and cleanup may take longer.${runAction ? " Run results are not test evidence. Workspace edits are not used. Raw output is not retained." : ""}`,
+      `Review every changed file before consenting to the approved setup and ${command()} commands for this commit. Commands can execute changed scripts. Local execution is not a sandbox. Recording consent runs nothing. ${runAction ? "Start run command" : "Run checks"} separately starts setup and ${command()} in a fresh checkout with a thirty-minute execution limit. Cancellation and cleanup may take longer. Cancellation stops each command's process group; a process a command starts in a new session, or one left running if the service stops unexpectedly, is not stopped.${runAction ? " Run results are not test evidence. Workspace edits are not used. Raw output is not retained." : ""}`,
     );
     workspaceId = state.selectedWorkspace;
     connected = state.connected;

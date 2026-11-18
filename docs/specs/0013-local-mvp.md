@@ -559,6 +559,71 @@ real desktop workflow. Packaged builds, website checks, signing, release,
 process recovery and the full L1 exit are not established by this change.
 Website source is unchanged. L1.4 remains in development.
 
+#### L1.4 review corrections
+
+Acceptance recorded 18 November 2026 against main `d8f63e2`, after a review of
+the merged setup/test and run-action integrations with temporary repositories
+and harmless commands. This changes no accepted state, transition, consent or
+uncertainty policy, and adds no milestone scope.
+
+1. **One unreadable check stays local.** A queued check whose stored record or
+   consent fails validation is never claimed and is not rewritten: it stays
+   queued, keeps its own workspace blocked and is still refused when read.
+   Claims continue with other workspaces' checks, and the service's dispatch
+   loop keeps running. Before this correction, one such row stopped the service
+   on every start and interrupted executions in other workspaces.
+2. **A confirmed stop is recorded, not resolved.** A service stop during a check
+   or run command still ends in `needs_attention`, as the
+   [state machine](../../ARCHITECTURE.md#persistence-and-execution) requires.
+   When termination of each command's process group and removal of the owned
+   checkout are both confirmed, the event also records
+   `processGroups: "confirmed-stopped"` and
+   `verificationCheckout: "none-remaining"`. Unconfirmed cleanup keeps
+   `check_cleanup_unconfirmed` without those fields. This is evidence for the
+   planned [process reconciliation](../../ROADMAP.md#work-queue) item, not a way
+   to unblock the workspace.
+3. **Settlement cannot stop the service.** If ownership expires between the
+   worker's ownership check and its final write, the refused write is
+   contained, and reconciliation records `needs_attention`.
+4. **Accurate labels.** A cancellation first observed at result acceptance
+   records `user_cancelled`. Enqueue refusals name the required consent
+   (`setup/test` or `setup/run`), and a busy workspace is reported as active or
+   uncertain work, not as a consent problem. A failed setup is headed "Checks
+   failed · setup failed, test did not run" or "Run command did not start ·
+   setup failed". Interrupted work says that commands may still be running
+   after an unexpected stop and that the workspace stays blocked because
+   recovery is planned, not available. The stop-service dialog says the same
+   instead of promising a review that does not exist.
+
+Limits, stated for both L1.4 contracts:
+
+- Supervision covers each command's process group. A process that a command
+  starts in a new session, such as a daemon, is outside that group: it can
+  outlive cancellation and even a passed or successful result. The candidate
+  notice says so.
+- If the service itself is killed, its commands keep running with no deadline.
+  After restart the job is `needs_attention`, and Argent never signals a PID
+  from a previous instance. The owned checkout then remains registered as a
+  detached linked worktree of the developer's repository, in the service's
+  `verification` data folder and named by the job ID; `git worktree list` in
+  the repository shows it. Remove it manually only after confirming that no
+  command from it is still running, with `git worktree remove --force <path>`.
+- Event types still combine action-specific names (`check.*`, `run-action.*`)
+  with shared `command.*` settlement names. The existing audit format is kept.
+
+Development validation, 18 November 2026, against main `d8f63e2`:
+`npm run check` passed strict types, formatting, build and all 662 tests, with
+no failures, cancellations or skips. Four new and two extended regressions
+cover one unreadable queued check beside a healthy check in another workspace
+under the real dispatch loop, the confirmed-stop evidence fields, a cancellation
+observed at result acceptance, a lost-ownership settlement, the action-specific
+refusal and the setup-failure and interrupted labels. All six fail on unchanged
+main and pass with the correction. Separate reproductions with real temporary
+repositories and harmless commands confirmed that an unrelated simulated agent
+run now completes beside an unreadable check, and that duplicate requests still
+create exactly one job. No real agent account, native smoke or packaged build
+was used; L1.4 remains in development.
+
 #### Desktop setup and test validation
 
 Development implementation `7cebe40058eec21275b073c3e983d022fef308c0`, validated

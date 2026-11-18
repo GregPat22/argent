@@ -194,7 +194,7 @@ else {
                   cancelId: 0,
                   message: "Stop the local execution service?",
                   detail:
-                    "Active runs, including Claude Code sessions, are stopped and will need review. Workspaces, worktrees and history are preserved.",
+                    "Active Claude Code runs, checks and run commands are stopped. Each workspace that had one then stays blocked: resuming interrupted work is planned, not available yet. Workspaces, worktrees and history are preserved.",
                 });
                 if (answer.response === 1) await client.call("stopService", []);
               },

@@ -67,13 +67,31 @@ async function read() {
       );
       return;
     }
+    const noun = runAction ? "Run command" : "Check";
+    // A failed setup means the selected command never started.
+    const setupOnly =
+      result.result?.outcome === "failed" &&
+      result.result.phases.at(-1)?.action === "setup";
+    const outcome = !result.result
+      ? ""
+      : runAction
+        ? setupOnly
+          ? "Run command did not start · setup failed · not test evidence"
+          : result.result.outcome === "succeeded"
+            ? "Run command succeeded · not test evidence"
+            : "Run command failed · not test evidence"
+        : setupOnly
+          ? "Checks failed · setup failed, test did not run"
+          : result.result.outcome === "passed"
+            ? "Checks passed"
+            : "Checks failed";
     const label = result.result
-      ? `${runAction ? (result.result.outcome === "succeeded" ? "Run command succeeded · not test evidence" : "Run command failed · not test evidence") : result.result.outcome === "passed" ? "Checks passed" : "Checks failed"}${result.freshness === "stale" ? " · stale" : result.freshness === "unknown" ? " · freshness not checked" : " · matches this reading"}`
+      ? `${outcome}${result.freshness === "stale" ? " · stale" : result.freshness === "unknown" ? " · freshness not checked" : " · matches this reading"}`
       : result.status === "needs_attention"
-        ? `${runAction ? "Run command" : "Check"} interrupted · needs attention. The workspace stays blocked; no automatic retry.`
+        ? `${noun} interrupted · needs attention. If the service stopped unexpectedly, its commands may still be running and its checkout may remain. The workspace stays blocked: recovery after an interruption is planned, not available. No automatic retry`
         : result.status === "failed"
-          ? `${runAction ? "Run command" : "Check"} failed before a result could be recorded.`
-          : `${runAction ? "Run command" : "Check"} ${result.status}`;
+          ? `${noun} failed before a result could be recorded`
+          : `${noun} ${result.status}`;
     status(`${label}. Refresh to read again.`);
     const content = byId("checks-result");
     content.append(

@@ -19,6 +19,8 @@ const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const DIGEST = /^[a-f0-9]{64}$/;
 const hash = (text: string) => createHash("sha256").update(text).digest("hex");
 const invalid = () => new DomainError(409, "Invalid check record");
+const busyError = () =>
+  new DomainError(409, "Workspace has changed or has active or uncertain work");
 export function checkId(value: unknown): string {
   if (typeof value !== "string" || UUID.exec(value)?.[0] !== value)
     throw new DomainError(400, "Expected an identifier");
@@ -204,6 +206,14 @@ export class LocalCheckStore {
       throw error;
     }
   }
+  /** Any active or uncertain writer of either kind in this workspace. */
+  private busy(workspaceId: string): boolean {
+    return !!this.db
+      .prepare(
+        "SELECT id FROM runs WHERE workspace_id = ? AND status IN ('queued','running','cancelling','needs_attention')",
+      )
+      .get(workspaceId);
+  }
   private event(id: string, type: string, data: object, now: number) {
     this.db
       .prepare(
@@ -305,6 +315,10 @@ export class LocalCheckStore {
       // awaiting Git. Its receipt wins over the now-busy inspection failure.
       const duplicate = this.duplicate(key, fingerprint);
       if (duplicate) return duplicate;
+      // Name the actual refusal; the consent store's own idle check would
+      // otherwise describe a busy workspace as a consent problem.
+      if (error instanceof DomainError && this.busy(workspaceId))
+        throw busyError();
       throw error;
     }
     if (!match) {
@@ -312,7 +326,9 @@ export class LocalCheckStore {
       if (duplicate) return duplicate;
       throw new DomainError(
         409,
-        "Checks require consent matching the current commit",
+        action === "setup-run"
+          ? "Run command requires setup/run consent matching the current commit"
+          : "Checks require setup/test consent matching the current commit",
       );
     }
     return this.transaction(() => {
@@ -324,11 +340,7 @@ export class LocalCheckStore {
         workspace.state !== "running" ||
         workspace.provider !== "local-worktree" ||
         JSON.stringify(workspace.local) !== local ||
-        this.db
-          .prepare(
-            "SELECT id FROM runs WHERE workspace_id = ? AND status IN ('queued','running','cancelling','needs_attention')",
-          )
-          .get(workspaceId) ||
+        this.busy(workspaceId) ||
         this.db
           .prepare(
             "SELECT workspace_id FROM lifecycle_workspaces WHERE workspace_id = ?",
@@ -337,10 +349,7 @@ export class LocalCheckStore {
         JSON.stringify(this.store.localCommandConsents.get(consentId)) !==
           JSON.stringify(match.receipt)
       )
-        throw new DomainError(
-          409,
-          "Workspace has changed or has active or uncertain work",
-        );
+        throw busyError();
       const id = randomUUID(),
         now = Date.now();
       this.db
@@ -378,18 +387,29 @@ export class LocalCheckStore {
   claim(leaseMs: number): LocalCheckJob | null {
     requireInteger(leaseMs, "leaseMs", 100, 60000);
     return this.transaction(() => {
-      const row = this.db
+      const rows = this.db
         .prepare(
           `SELECT r.id FROM runs r JOIN local_checks c ON c.run_id = r.id JOIN workspaces w ON w.id = r.workspace_id
         WHERE r.status = 'queued' AND w.state = 'running'
         AND NOT EXISTS (SELECT 1 FROM runs u WHERE u.workspace_id = r.workspace_id AND u.status = 'needs_attention')
         AND NOT EXISTS (SELECT 1 FROM lifecycle_workspaces l WHERE l.workspace_id = r.workspace_id)
-        ORDER BY r.created_at,r.id LIMIT 1`,
+        ORDER BY r.created_at,r.id`,
         )
-        .get();
-      if (!row) return null;
-      const job = this.get(row.id as string),
-        now = Date.now();
+        .all();
+      // An unreadable record fails closed for its own workspace only: it stays
+      // queued, is never claimed and keeps that workspace blocked, while
+      // other workspaces' checks proceed. Nothing about it is rewritten.
+      let job: LocalCheckJob | undefined;
+      for (const row of rows) {
+        try {
+          job = this.get(row.id as string);
+          break;
+        } catch (error) {
+          if (!(error instanceof DomainError)) throw error;
+        }
+      }
+      if (!job) return null;
+      const now = Date.now();
       this.db
         .prepare(
           "UPDATE runs SET status = 'running',lease_token = ?,lease_expires_at = ?,deadline_at = ?,command_claim_version = 2 WHERE id = ?",
@@ -593,13 +613,7 @@ export class LocalCheckStore {
     const view = this.view(row.id as string, workspaceId, operatorId, action);
     if (!view.result) return view;
     // An active/uncertain writer cannot leave a currently reusable result.
-    const busy = () =>
-      !!this.db
-        .prepare(
-          "SELECT id FROM runs WHERE workspace_id = ? AND status IN ('queued','running','cancelling','needs_attention')",
-        )
-        .get(workspaceId);
-    if (busy()) return { ...view, freshness: "stale" };
+    if (this.busy(workspaceId)) return { ...view, freshness: "stale" };
     try {
       const review = await reviewLocalCommandCandidate(
         this.store,
@@ -612,7 +626,7 @@ export class LocalCheckStore {
       return {
         ...view,
         freshness:
-          !busy() &&
+          !this.busy(workspaceId) &&
           review.identity === view.result.reviewIdentity &&
           observation.headSha === view.result.headSha &&
           observation.treeId === view.result.treeId &&

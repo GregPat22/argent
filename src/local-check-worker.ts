@@ -157,13 +157,30 @@ export class LocalCheckWorker {
             : current.status === "cancelling"
               ? "cancelled"
               : "failed";
-        this.store.finish(run.id, token, status, {
-          reason: uncertain
-            ? "check_cleanup_unconfirmed"
-            : typeof reason === "string"
-              ? reason
-              : "check_preparation_or_execution_failed",
-        });
+        try {
+          this.store.finish(run.id, token, status, {
+            reason: uncertain
+              ? "check_cleanup_unconfirmed"
+              : typeof reason === "string"
+                ? reason
+                : current.status === "cancelling"
+                  ? "user_cancelled"
+                  : "check_preparation_or_execution_failed",
+            // Evidence for later reconciliation, not a resolution: the state
+            // stays needs_attention. Confirmation covers each command's
+            // process group and the owned checkout, nothing outside them.
+            ...(status === "needs_attention" && !uncertain
+              ? {
+                  processGroups: "confirmed-stopped",
+                  verificationCheckout: "none-remaining",
+                }
+              : {}),
+          });
+        } catch (settle) {
+          // Ownership expired between the check and the write. Reconciliation
+          // marks it uncertain; one job must never stop the whole service.
+          if (!(settle instanceof DomainError)) throw settle;
+        }
       }
     } finally {
       clearInterval(heartbeat);

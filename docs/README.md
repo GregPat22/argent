@@ -46,6 +46,10 @@ is in development: approved setup then run in a fresh checkout, with its own
 consent and a run-command result that is not test evidence.
 Its [validation record](specs/0013-local-mvp.md#desktop-run-action-validation)
 distinguishes native fixtures, repository checks and remaining release evidence.
+The [L1.4 review corrections](specs/0013-local-mvp.md#l14-review-corrections)
+keep one unreadable check from stopping the service, record a confirmed stop as
+evidence without unblocking the workspace, and state the process-group and
+service-crash limits of both integrations.
 
 The [judging-changes report](specs/0018-judging-changes-report.md) is planned
 as work-queue item 4, after L1.4 shows its first result and before the draft
