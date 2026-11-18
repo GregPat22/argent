@@ -55,7 +55,7 @@ else {
         title: "Choose a Git repository",
         buttonLabel: "Create workspace",
         message:
-          "Argent creates a new branch in a private worktree. Your checkout is not changed.",
+          "Argent creates a separate worktree for the selected repository. If you chose Send, your message starts there with Edits only. Claude Code runs as you, outside a sandbox.",
         properties: ["openDirectory" as const],
       };
       const result = window
@@ -73,6 +73,7 @@ else {
       ["/styles.css", "text/css"],
       ["/argent-icon.webp", "image/webp"],
       ["/argent-wordmark.webp", "image/webp"],
+      ["/turned-silver.webp", "image/webp"],
     ]);
     for (const name of readdirSync(assets)) {
       if (/^[a-z0-9-]+\.js$/.test(name))

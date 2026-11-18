@@ -54,9 +54,8 @@ export function renderSidebar(): void {
     )?.activeElement?.getAttribute?.("data-workspace-id");
     list.replaceChildren();
     for (const group of groupWorkspaces(state.workspaces)) {
-      const rows = h("div", {
+      const rows = h("ul", {
         class: "repo-rows",
-        attrs: { role: "list" },
       });
       for (const workspace of group.items) {
         const selected = workspace.id === state.selectedWorkspace;
@@ -68,7 +67,6 @@ export function renderSidebar(): void {
             data: { workspaceId: workspace.id },
             attrs: {
               type: "button",
-              role: "listitem",
               "aria-current": selected ? "true" : undefined,
             },
             on: { click: () => actions.selectWorkspace(workspace.id) },
@@ -78,7 +76,7 @@ export function renderSidebar(): void {
         );
         if (workspace.state === "stopped")
           row.append(h("span", { class: "row-meta", text: "Stopped" }));
-        rows.append(row);
+        rows.append(h("li", {}, row));
       }
       const first = group.items[0]!;
       const head = h(
@@ -105,7 +103,6 @@ export function renderSidebar(): void {
               attrs: {
                 type: "button",
                 "aria-label": `New workspace from ${group.label}`,
-                disabled: !state.connected || state.mutationBusy,
               },
               on: { click: () => actions.newWorkspaceFrom(first.id) },
             },
@@ -131,6 +128,9 @@ export function renderSidebar(): void {
         ).querySelectorAll?.<HTMLElement>("[data-workspace-id]") ?? [])
           if (row.dataset.workspaceId === focused) row.focus();
   }
+  // The mutation lock can change while the repository rows stay identical.
+  for (const add of list.querySelectorAll<HTMLButtonElement>(".repo-add"))
+    add.disabled = !state.connected || state.mutationBusy;
   show("sidebar-empty", state.workspaces.length === 0);
   show("more-workspaces", !!state.workspaceCursor);
   enable("more-workspaces", state.connected && !state.mutationBusy);

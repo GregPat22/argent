@@ -5,6 +5,13 @@ recommendation that still needs a practical check. Neither label proves that a
 capability is implemented: see the [README](../README.md#what-works-today) for
 what works today and the [roadmap](../ROADMAP.md) for sequencing.
 
+Desktop refinements in development against main `9be273e`, 18 November 2026,
+apply the accepted silver visual language to first launch and workspace controls.
+The [desktop usability criteria](specs/0015-desktop-restyle.md#desktop-usability-refinements-in-development)
+cover drafting a first message before choosing a repository, picker cancellation,
+service recovery, focus, motion and the
+distinction between service availability and verification.
+
 Website consistency corrections are in development against main `c05fbf7`,
 14 November 2026. They apply the accepted rules and checked-links decisions to
 the existing website and preserve the headline, positioning and milestone order.

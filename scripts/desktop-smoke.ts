@@ -19,9 +19,12 @@ import {
 } from "../src/desktop/service-client.js";
 
 // Keep independent walkthroughs within the same per-process deadline.
-for (const suite of ["workspace", "commands"] as const) await runSuite(suite);
+for (const suite of ["welcome", "workspace", "commands"] as const)
+  await runSuite(suite);
 
-async function runSuite(suite: "workspace" | "commands"): Promise<void> {
+async function runSuite(
+  suite: "welcome" | "workspace" | "commands",
+): Promise<void> {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "argent-native-")));
   // A throwaway repository and a fake Claude Code CLI for the local-workspace flow.
   const repository = join(directory, "repository");

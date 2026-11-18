@@ -8,7 +8,11 @@ type Created = [string, string, number, string, string | undefined];
 // The composer sends straight to the service; these tests drive the compiled
 // renderer with a fake bridge and record every createRun request.
 async function launch(
-  options: { local?: boolean; state?: Workspace["state"] } = {},
+  options: {
+    local?: boolean;
+    state?: Workspace["state"];
+    firstLaunch?: boolean;
+  } = {},
 ) {
   const local = options.local ?? true;
   let workspace: Workspace = {
@@ -32,6 +36,9 @@ async function launch(
   };
   const runs: RunView[] = [];
   const created: Created[] = [];
+  let hasWorkspace = !options.firstLaunch;
+  let folderPicks = 0;
+  let cancelPicker = false;
   let failure: Error | null = null;
   let keys = 0;
   const { element, document } = fakeDocument();
@@ -43,9 +50,15 @@ async function launch(
       argent: {
         status: async () => ({ connected: true }),
         listWorkspaces: async () => ({
-          items: [{ ...workspace }],
+          items: hasWorkspace ? [{ ...workspace }] : [],
           nextCursor: null,
         }),
+        createLocalWorkspace: async () => {
+          folderPicks++;
+          if (cancelPicker) return null;
+          hasWorkspace = true;
+          return { ...workspace };
+        },
         getWorkspace: async () => ({ ...workspace }),
         listRuns: async () => ({
           items: runs.map((run) => ({ ...run })),
@@ -97,6 +110,12 @@ async function launch(
     composer,
     created,
     runs,
+    get folderPicks() {
+      return folderPicks;
+    },
+    cancelPicker(value: boolean) {
+      cancelPicker = value;
+    },
     failWith(error: Error | null) {
       failure = error;
     },
@@ -121,6 +140,42 @@ async function launch(
     },
   };
 }
+
+test("first message keeps the draft on picker cancellation and sends once after choosing a folder", async () => {
+  const ui = await launch({ firstLaunch: true });
+  const field = ui.element("welcome-input");
+  field.value = "Inspect the repository";
+  field.fire("input");
+  assert.equal(ui.element("welcome-send").disabled, false);
+  field.fire("keydown", { key: "Enter", shiftKey: true });
+  field.fire("keydown", { key: "Enter", isComposing: true });
+  assert.equal(ui.folderPicks, 0);
+
+  ui.cancelPicker(true);
+  field.fire("keydown", { key: "Enter" });
+  await settle();
+  assert.equal(field.value, "Inspect the repository");
+  assert.equal(field.focused, true);
+  assert.equal(ui.created.length, 0);
+
+  ui.cancelPicker(false);
+  ui.element("welcome-form").fire("submit");
+  ui.element("welcome-form").fire("submit");
+  await settle();
+  assert.equal(ui.folderPicks, 2);
+  assert.deepEqual(ui.created, [
+    ["workspace", "Inspect the repository", 1800000, "key-1", "edits"],
+  ]);
+});
+
+test("adding a repository explicitly carries the first draft and waits for Send", async () => {
+  const ui = await launch({ firstLaunch: true });
+  ui.element("welcome-input").value = "Draft for the workspace";
+  ui.element("welcome-create").click();
+  await settle();
+  assert.equal(ui.composer.value, "Draft for the workspace");
+  assert.equal(ui.created.length, 0);
+});
 
 test("Enter sends straight to the service with edits only and the default limit", async () => {
   const ui = await launch();
