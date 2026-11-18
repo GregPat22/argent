@@ -8,6 +8,7 @@ for (const file of [
   "argent-app-icon-macos.png",
   "argent-app-icon-macos-dark.png",
   "argent-wordmark.webp",
+  "turned-silver.webp",
 ])
   copyFileSync(`ui/${file}`, `dist/ui/${file}`);
 

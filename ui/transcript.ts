@@ -314,7 +314,10 @@ export function renderTranscript(): void {
       // The marks strike in once; later renders show them at rest.
       if (state.struck.delete(run.id)) fresh.signature = signature(run);
       if (item) item.element.replaceWith(fresh.element);
-      else added = true;
+      else {
+        fresh.element.className += " turn-enter";
+        added = true;
+      }
       item = fresh;
       rendered.set(run.id, item);
     } else if (isWorking(run.status)) {
