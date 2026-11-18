@@ -32,9 +32,13 @@ else {
       window?.focus();
     });
     await app.whenReady();
-    if (process.platform === "darwin")
+    // Packaged apps use their bundle icon so macOS retains its native masking.
+    // A raw Dock override bypasses that presentation while the app is running.
+    if (process.platform === "darwin" && !app.isPackaged)
       app.dock?.setIcon(
-        fileURLToPath(new URL("../../ui/argent-app-icon.png", import.meta.url)),
+        fileURLToPath(
+          new URL("../../ui/argent-app-icon-macos.png", import.meta.url),
+        ),
       );
     if (process.env.ARGENT_DESKTOP_SMOKE === "1")
       console.log("[ARGENT_STAGE] electron ready");

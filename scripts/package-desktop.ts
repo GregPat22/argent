@@ -28,7 +28,7 @@ for (const size of [16, 32, 128, 256, 512]) {
       "--resampleHeightWidth",
       pixels,
       pixels,
-      resolve("ui/argent-app-icon.png"),
+      resolve("ui/argent-app-icon-macos.png"),
       "--out",
       join(iconset, `icon_${size}x${size}${suffix}.png`),
     ]);
