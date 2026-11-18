@@ -1675,6 +1675,13 @@ main
   border-radius: inherit;
   pointer-events: none;
 }
+/* Defer the two large drops until the band approaches. WebKit samples the
+   small drops differently if it first decodes them after scrolling. */
+@media (scripting: enabled) {
+  #join:not([data-onscreen="true"]) .cta-drops > span:nth-child(-n + 2) {
+    content-visibility: auto;
+  }
+}
 /* The outer span holds the position and follows the pointer; the inner one
    is the metal and drifts on its own. */
 .cta-drops > span {

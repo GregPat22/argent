@@ -90,6 +90,9 @@ animate transforms/opacity rather than width/shadow.
   and starts lower when the browser reports a software renderer
   (`data-renderer="software"`); if even the lowest resolution cannot animate, it
   holds a still frame (`data-resting`). Do not exempt slow frames from it again.
+- The [browser rendering cost criteria](../docs/specs/0016-website-restyle.md#browser-rendering-cost-in-development)
+  cover canvas calculations, motion subscriptions and loading the two largest
+  closing drops near the viewport.
 - **Headline.** Each hero line sits in a reveal mask. The gradient line paints
   only inside its own box, so both the mask and that box carry extra bottom
   padding (cancelled by a negative margin) to keep descenders whole.

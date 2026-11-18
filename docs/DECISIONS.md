@@ -10,7 +10,10 @@ Website consistency corrections are in development against main `c05fbf7`,
 the existing website and preserve the headline, positioning and milestone order.
 The [acceptance contract](specs/0016-website-restyle.md#website-consistency-and-motion-corrections-in-development)
 also covers untested-record color, reduced-motion input, clipboard fallback and
-bounded animation costs. No execution, security or product decision changes.
+bounded animation costs. The
+[rendering cost follow-up](specs/0016-website-restyle.md#browser-rendering-cost-in-development)
+uses the existing artwork, motion and fallbacks as its baseline. No execution,
+security or product decision changes.
 
 | Decision                                                                | Status                                                                                                      | Rationale and consequence                                                                                                                                                                                                            | Revisit or completion evidence                                                                                                                                            |
 | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

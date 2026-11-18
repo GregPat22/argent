@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
 
 const QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -20,6 +20,12 @@ const subscribe = (notify: () => void) => {
 };
 
 /** Motion 14.10's hook snapshots at mount; canvas loops must also react live. */
-export function useReducedMotion() {
+export function useSystemReducedMotion() {
   return useSyncExternalStore(subscribe, snapshot, serverSnapshot);
+}
+
+export const ReducedMotionContext = createContext(false);
+
+export function useReducedMotion() {
+  return useContext(ReducedMotionContext);
 }

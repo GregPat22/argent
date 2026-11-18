@@ -1789,3 +1789,31 @@ test("plates catch the pointer's light and the closing band uses the hero's meta
     await drop.evaluate((el) => getComputedStyle(el).backgroundImage),
   ).toContain("/liquid/drop-large.webp");
 });
+
+test("large closing drops load when their band approaches the viewport", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const drops = new Set<string>();
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.startsWith("/liquid/")) drops.add(path);
+  });
+  await visit(page);
+  // The no-WebGL hero intentionally uses these same images immediately.
+  await expect(page.locator("#intro canvas")).toHaveAttribute(
+    "data-state",
+    "still",
+  );
+  expect(drops.has("/liquid/drop-large.webp")).toBe(false);
+  expect(drops.has("/liquid/drop-medium.webp")).toBe(false);
+  await page.locator("#join").scrollIntoViewIfNeeded();
+  await expect
+    .poll(() => [...drops].sort())
+    .toEqual([
+      "/liquid/drop-large.webp",
+      "/liquid/drop-medium.webp",
+      "/liquid/drop-pair.webp",
+      "/liquid/drop-small.webp",
+    ]);
+});

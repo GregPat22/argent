@@ -323,3 +323,45 @@ Validation on 12 November 2026, based on main `3f2181b`:
 These are local Chromium checks, including software WebGL, not deployed-site,
 Safari or Firefox validation. Integration and publication remain separate steps;
 no product capability or milestone status changes.
+
+## Browser rendering cost (in development)
+
+Use the production build at `9be273e` as the comparison point. Acceptance
+requires identical visible copy, links, desktop and phone section geometry,
+and settled artwork. Preserve the existing animation paths, timings, drawing
+order, quality governor, live reduced-motion response and fallbacks.
+
+Reuse fixed orbit geometry between atom frames and reuse liquid placements
+when all viewport and keep-out bounds match. Defer the two largest closing images until
+their band approaches the viewport. Preserve the initial loading of the smaller
+drops, which WebKit samples differently when it first decodes them on scroll.
+The hero fallback must be able to request its images immediately.
+
+Local comparison on 18 November 2026 against `9be273e`, using cold Chromium
+contexts, production builds and software WebGL. WebKit also ran the visual comparisons.
+
+- At 1440 × 900 and 390 × 844, the 11 sections and footer matched pixel for
+  pixel in Chromium and WebKit with reduced motion enabled. The visible text, links and measured
+  section and heading rectangles also matched.
+- Initial encoded response bodies fell from 460,175 to 417,326 bytes on desktop
+  and from 446,409 to 403,560 on the phone viewport. JavaScript grew by 408
+  compressed bytes. The two deferred images accounted for 43,286 bytes at both
+  widths and loaded on approach. The request regression observed both loading
+  at the top on the baseline.
+- The page registered one live reduced-motion change listener instead of 26
+  on a reduced-motion visit. The atom's settled draw made 630 sine and cosine
+  calls, down from 6,904. All 36 sampled atom frames matched at the pixel level
+  across multiple times, sizes and pixel ratios.
+- A replay of 7,200 liquid simulation steps, including pointer presses and a
+  viewport change, produced identical sphere buffers, engagement states and
+  reflection and ripple inputs. Eight sampled shader frames also matched at
+  the pixel level, including frames with an active ripple.
+
+The website typecheck, production build and repository check passed. An initial
+browser run timed out in five checks. The unchanged build also timed out in the
+hydration check and passed the other four. All five passed on a focused rerun
+of the refactor, followed by a full pass of all 71 browser checks at their
+original deadlines.
+
+These measurements cover the local production builds. Field load times,
+hardware GPU performance and Firefox require separate measurement.
