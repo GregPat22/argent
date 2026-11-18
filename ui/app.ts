@@ -5,7 +5,8 @@ import { renderChanges, wireChanges } from "./changes.js";
 import { renderCandidate, wireCandidate } from "./candidate.js";
 import { renderCommands, wireCommands } from "./commands.js";
 import { actions, api, hasBridge } from "./actions.js";
-import { renderComposer, wireComposer } from "./composer.js";
+import type { Workspace } from "../src/domain.js";
+import { renderComposer, sendMessage, wireComposer } from "./composer.js";
 import { byId, enable, setClass, setText, show } from "./dom.js";
 import { mergeHistory as merge } from "./history.js";
 import {
@@ -103,15 +104,34 @@ function renderHeader(): void {
   show("workspace-menu-button", !!workspace);
 }
 
+const welcomeInput = () => byId<HTMLTextAreaElement>("welcome-input");
+
+function renderWelcomeActions(): void {
+  const ready = state.connected && !state.mutationBusy;
+  enable("welcome-create", ready);
+  enable("welcome-demo", ready);
+  enable(
+    "welcome-send",
+    ready && !state.pending && !!welcomeInput().value?.trim(),
+  );
+  welcomeInput().readOnly = state.mutationBusy;
+}
+
+function focusComposer(): void {
+  byId(currentWorkspace() ? "composer-input" : "welcome-input").focus();
+}
+
 function render(): void {
   const workspace = currentWorkspace();
+  const enteringWelcome = loaded && !workspace && byId("welcome").hidden;
   show("welcome", loaded && !workspace);
+  if (enteringWelcome && document.activeElement === document.body)
+    welcomeInput().focus();
   show("workspace-content", !!workspace);
   show("workspace-header-copy", !!workspace);
   show("disconnected-banner", !state.connected && loaded);
   enable("reconnect-inline", !state.mutationBusy && hasBridge());
-  enable("welcome-create", state.connected && !state.mutationBusy);
-  enable("welcome-demo", state.connected && !state.mutationBusy);
+  renderWelcomeActions();
   renderSidebar();
   renderHeader();
   renderChanges();
@@ -289,15 +309,37 @@ function openDialog(id: string, focusId?: string): void {
   if (focusId) byId(focusId).focus();
 }
 
-function addRepository(): void {
-  if (!state.connected) return;
-  void mutate(async () => {
+function openCreatedWorkspace(workspace: Workspace, draft: string): void {
+  state.workspaces = merge(state.workspaces, [workspace]);
+  selectWorkspace(workspace.id);
+  if (draft) {
+    byId<HTMLTextAreaElement>("composer-input").value = draft;
+    welcomeInput().value = "";
+    renderComposer();
+  }
+  focusComposer();
+}
+
+async function chooseRepository(sendDraft: boolean): Promise<void> {
+  if (!state.connected || state.mutationBusy) return;
+  const fromWelcome = !currentWorkspace();
+  const draft = fromWelcome ? (welcomeInput().value ?? "") : "";
+  if (sendDraft && (!draft.trim() || state.pending)) return;
+
+  let createdId: string | undefined;
+  await mutate(async () => {
     const workspace = await api().createLocalWorkspace();
     if (!workspace) return;
-    state.workspaces = merge(state.workspaces, [workspace]);
-    selectWorkspace(workspace.id);
-    byId("composer-input").focus();
+    createdId = workspace.id;
+    openCreatedWorkspace(workspace, draft);
   });
+  if (sendDraft && createdId && state.selectedWorkspace === createdId)
+    await sendMessage();
+  else if (fromWelcome && !currentWorkspace()) welcomeInput().focus();
+}
+
+function addRepository(): void {
+  void chooseRepository(false);
 }
 
 function newWorkspaceFrom(id: string): void {
@@ -342,7 +384,7 @@ Object.assign(actions, {
   openSettings,
   openPalette,
   resolveRun,
-  focusComposer: () => byId("composer-input").focus(),
+  focusComposer,
 });
 
 wireChanges();
@@ -351,6 +393,19 @@ wireCommands();
 wireCandidate();
 wireComposer();
 wirePalette();
+
+welcomeInput().addEventListener("input", renderWelcomeActions);
+byId("welcome-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  void chooseRepository(true);
+});
+welcomeInput().addEventListener("keydown", (event) => {
+  const key = event as KeyboardEvent;
+  if (key.key !== "Enter" || key.isComposing || key.shiftKey || key.altKey)
+    return;
+  key.preventDefault();
+  if (!key.repeat) void chooseRepository(true);
+});
 
 for (const id of ["new-workspace", "welcome-create"])
   byId(id).addEventListener("click", addRepository);
@@ -390,16 +445,15 @@ byId<HTMLFormElement>("workspace-form").addEventListener("submit", (event) => {
   button.disabled = true;
   button.setAttribute("aria-busy", "true");
   formError("workspace-form-error");
+  const draft = currentWorkspace() ? "" : (welcomeInput().value ?? "");
   void (async () => {
     try {
       const workspace = await api().createWorkspace(
         byId<HTMLInputElement>("repository-input").value.trim(),
       );
-      state.workspaces = merge(state.workspaces, [workspace]);
       dialog("workspace-dialog").close();
       byId<HTMLInputElement>("repository-input").value = "";
-      selectWorkspace(workspace.id);
-      byId("composer-input").focus();
+      openCreatedWorkspace(workspace, draft);
     } catch (error) {
       formError("workspace-form-error", error);
     } finally {
@@ -518,7 +572,7 @@ document.addEventListener("keydown", (event) => {
         ? newWorkspaceFrom(state.selectedWorkspace)
         : addRepository(),
     ",": openSettings,
-    l: () => byId("composer-input").focus(),
+    l: focusComposer,
   };
   const shortcut = shortcuts[name];
   if (!shortcut || key.shiftKey) return;

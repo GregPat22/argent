@@ -12,7 +12,10 @@ export async function runDesktopSmoke(
   client: DesktopClient,
 ): Promise<void> {
   const suite = process.env.ARGENT_DESKTOP_SMOKE_SUITE;
-  assert.ok(suite === "workspace" || suite === "commands", "known smoke suite");
+  assert.ok(
+    suite === "welcome" || suite === "workspace" || suite === "commands",
+    "known smoke suite",
+  );
   const started = Date.now();
   const progress = (stage: string) =>
     console.log(
@@ -120,6 +123,18 @@ export async function runDesktopSmoke(
         `[document.querySelector('#permission-toggle').textContent.trim(), document.querySelector('#limit-select').value]`,
       ),
       ["Edits only", "1800000"],
+    );
+    assert.equal(
+      await js(`document.querySelector('.repo-add').disabled`),
+      false,
+      "the sidebar can create another workspace after the folder picker returns",
+    );
+    assert.equal(
+      await js(
+        `document.querySelector('li > button.workspace-row[aria-current="true"]:not([role])') !== null`,
+      ),
+      true,
+      "the selected workspace retains native button semantics",
     );
     await capture("local-workspace");
     await js(`document.querySelector('#workspace-changes').click()`);
@@ -388,6 +403,33 @@ export async function runDesktopSmoke(
   };
 
   // Each suite starts in a fresh app and service with its own outer deadline.
+  if (suite === "welcome") {
+    await ready();
+    const firstMessage = "Inspect this repository";
+    await js(`document.querySelector('#welcome-input').value = ${JSON.stringify(firstMessage)};
+      document.querySelector('#welcome-input').dispatchEvent(new Event('input'));
+      document.querySelector('#welcome-input').focus();`);
+    window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Return" });
+    window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Return" });
+    await until(
+      () => js(`document.querySelector('#transcript .record') !== null`),
+      "first message completes in the chosen local workspace",
+    );
+    const workspaces = (await call<Page<Workspace>>("listWorkspaces", []))
+      .items;
+    assert.equal(workspaces.length, 1);
+    assert.equal(workspaces[0]!.provider, "local-worktree");
+    const runs = (await call<Page<RunView>>("listRuns", [workspaces[0]!.id]))
+      .items;
+    assert.deepEqual(
+      runs.map((run) => [run.task, run.permissionMode, run.status]),
+      [[firstMessage, "edits", "completed"]],
+    );
+    console.log(
+      `[ARGENT_SMOKE]${JSON.stringify({ passed: true, suite, elapsedMs: Date.now() - started })}`,
+    );
+    return;
+  }
   if (suite === "commands") {
     await ready();
     await checkCommands(await createLocalWorkspace("#welcome-create"));
@@ -404,19 +446,44 @@ export async function runDesktopSmoke(
     return;
   }
 
-  // First launch: the welcome offers one decision.
+  // First launch: draft a message, choose a local repository or try the demo.
   await ready();
   await until(
     () => js(`!document.querySelector('#welcome').hidden`),
     "welcome",
   );
+  await js(`document.querySelector('.welcome-art').decode()`);
   await capture("welcome");
+  window.setSize(900, 620);
+  await capture("welcome-compact");
+  assert.equal(
+    await js(`['#welcome-input', '#welcome-create', '#welcome-demo', '#welcome-send'].every(selector => {
+      const rect = document.querySelector(selector).getBoundingClientRect();
+      return rect.width > 0 && rect.left >= 0 && rect.right <= innerWidth &&
+        rect.top >= 0 && rect.bottom <= innerHeight;
+    })`),
+    true,
+    "the first-message field and its actions fit the compact window",
+  );
+  await js(
+    `document.querySelector('#service-menu').click(); document.querySelector('#service-toggle').click(); document.querySelector('#service-stop-confirm').click()`,
+  );
+  await until(
+    () =>
+      js(`document.querySelector('#reconnect-inline').checkVisibility() &&
+      !document.querySelector('#reconnect-inline').disabled &&
+      document.querySelector('#welcome-create').disabled`),
+    "first-launch recovery remains accessible before choosing a repository",
+  );
+  await js(`document.querySelector('#reconnect-inline').click()`);
+  await ready();
+  window.setSize(1380, 900);
   assert.equal(
     await js(
       `Array.from(document.querySelectorAll('#welcome button')).filter(b => b.getClientRects().length).length`,
     ),
-    2,
-    "welcome shows the repository action and the demo link only",
+    3,
+    "welcome shows repository, scripted demo and send actions",
   );
 
   // Bundled fonts, icons and brand images load through the asset allowlist.
@@ -468,7 +535,10 @@ export async function runDesktopSmoke(
   );
   assert.equal(await js(`document.activeElement.id`), "settings-open");
 
-  // A scripted demo workspace, with form validation.
+  // Opening the scripted demo carries the draft without submitting it.
+  await js(
+    `document.querySelector('#welcome-input').value = 'Draft from welcome'; document.querySelector('#welcome-input').dispatchEvent(new Event('input'));`,
+  );
   await js(`document.querySelector('#welcome-demo').click()`);
   assert.equal(
     await js(`document.querySelector('#workspace-dialog').open`),
@@ -504,6 +574,14 @@ export async function runDesktopSmoke(
   assert.equal(
     await js(`document.querySelector('#permission-toggle').hidden`),
     true,
+  );
+  assert.equal(
+    await js(`document.querySelector('#composer-input').value`),
+    "Draft from welcome",
+  );
+  assert.equal(
+    (await call<Page<RunView>>("listRuns", [workspace.id])).items.length,
+    0,
   );
   await capture("demo-empty");
   await js(`document.querySelector('#workspace-changes').click()`);
@@ -587,6 +665,13 @@ export async function runDesktopSmoke(
       `getComputedStyle(document.querySelector('#settings-open')).transitionDuration`,
     ),
     "0s",
+  );
+  assert.equal(
+    await js(
+      `getComputedStyle(document.querySelector('#settings-dialog'), '::backdrop').animationName`,
+    ),
+    "none",
+    "the dialog backdrop also respects reduced motion",
   );
   await js(`document.querySelector('#settings-dialog').close()`);
   await window.webContents.debugger.sendCommand("Emulation.setEmulatedMedia", {

@@ -195,6 +195,19 @@ test("long turn history keeps first and last pages reachable while polling", asy
   assert.equal(messages(transcript)[0], "Message 1");
 });
 
+test("an activity refresh updates an existing turn without replaying its entrance", async () => {
+  const app = await launch();
+  const transcript = app.element("transcript");
+  assert.match(transcript.firstElementChild!.className, /\bturn-enter\b/);
+  app.append(1);
+  await app.poll();
+  assert.deepEqual(messages(transcript), ["Message 1"]);
+  assert.doesNotMatch(
+    transcript.firstElementChild!.className,
+    /\bturn-enter\b/,
+  );
+});
+
 test("real interrupted turns explain reconciliation without an abandon action", async () => {
   const app = await launch("needs_attention");
   const transcript = app.element("transcript");

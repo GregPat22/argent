@@ -16,23 +16,31 @@
     <div class="app-shell">
       <aside class="sidebar" aria-label="Repositories and workspaces">
         <div class="sidebar-top">
-          <button
-            id="search-nav"
-            class="icon-button"
-            aria-label="Search workspaces and actions"
-            title="Search (⌘K)"
-          >
-            <span class="icon icon-search" aria-hidden="true"></span>
-          </button>
+          <img
+            class="sidebar-mark"
+            src="./argent-icon.webp"
+            alt="Argent"
+            width="25"
+            height="25"
+          />
         </div>
+        <button
+          id="search-nav"
+          class="sidebar-search"
+          aria-label="Search workspaces and actions"
+          aria-haspopup="dialog"
+          title="Search workspaces and actions (⌘K)"
+        >
+          <span class="icon icon-search" aria-hidden="true"></span>
+          Search <kbd aria-hidden="true">⌘K</kbd>
+        </button>
         <nav class="sidebar-scroll" aria-label="Workspaces">
+          <h2 class="sidebar-heading">Workspaces</h2>
           <div id="workspace-list" class="workspace-list"></div>
           <button id="more-workspaces" class="text-button load-more" hidden>
             Show older workspaces
           </button>
-          <p id="sidebar-empty" class="sidebar-empty">
-            No repositories yet. Add one to give Claude Code its first branch.
-          </p>
+          <p id="sidebar-empty" class="sidebar-empty">No repositories yet.</p>
         </nav>
         <div class="sidebar-foot">
           <button id="new-workspace" class="add-repository">
@@ -44,7 +52,7 @@
               id="service-menu"
               class="service-button"
               popovertarget="service-popover"
-              aria-label="Local service status"
+              aria-labelledby="service-status"
             >
               <span
                 id="service-indicator"
@@ -87,40 +95,46 @@
             <span id="workspace-demo-tag" class="tag" hidden>Demo</span>
             <span id="workspace-state" class="pill" role="status" hidden></span>
           </div>
-          <button
-            id="workspace-changes"
-            class="button small"
-            aria-haspopup="dialog"
-            hidden
+          <div
+            class="workspace-tools"
+            role="group"
+            aria-label="Workspace inspection"
           >
-            Changes
-          </button>
-          <button
-            id="workspace-checks"
-            class="button small"
-            aria-haspopup="dialog"
-            hidden
-            disabled
-          >
-            Checks
-          </button>
-          <button
-            id="workspace-run-action"
-            class="button small"
-            aria-haspopup="dialog"
-            hidden
-            disabled
-          >
-            Run results
-          </button>
-          <button
-            id="workspace-commands"
-            class="button small"
-            aria-haspopup="dialog"
-            hidden
-          >
-            Commands
-          </button>
+            <button
+              id="workspace-changes"
+              class="button small"
+              aria-haspopup="dialog"
+              hidden
+            >
+              Changes
+            </button>
+            <button
+              id="workspace-checks"
+              class="button small"
+              aria-haspopup="dialog"
+              hidden
+              disabled
+            >
+              Checks
+            </button>
+            <button
+              id="workspace-run-action"
+              class="button small"
+              aria-haspopup="dialog"
+              hidden
+              disabled
+            >
+              Run results
+            </button>
+            <button
+              id="workspace-commands"
+              class="button small"
+              aria-haspopup="dialog"
+              hidden
+            >
+              Commands
+            </button>
+          </div>
           <button
             id="workspace-menu-button"
             class="icon-button header-menu"
@@ -151,33 +165,80 @@
           </div>
         </header>
 
+        <div class="service-notices">
+          <div
+            id="disconnected-banner"
+            class="notice notice-offline"
+            role="status"
+            hidden
+          >
+            <span class="icon icon-power" aria-hidden="true"></span>
+            <span
+              >The local service is offline. Your history is still here.</span
+            >
+            <button id="reconnect-inline" class="button small">
+              Reconnect
+            </button>
+          </div>
+          <div
+            id="error-banner"
+            class="notice notice-fault"
+            role="alert"
+            hidden
+          >
+            <span class="icon icon-circle-x" aria-hidden="true"></span>
+            <span id="error-text"></span>
+            <button
+              id="dismiss-error"
+              class="icon-button small"
+              aria-label="Dismiss error"
+            >
+              <span class="icon icon-x" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+
         <section id="welcome" class="welcome" hidden>
           <img
-            class="welcome-wordmark"
-            src="./argent-wordmark.webp"
-            alt="Argent"
-            width="320"
-            height="107"
+            class="welcome-art"
+            src="./turned-silver.webp"
+            alt=""
+            width="1536"
+            height="1024"
           />
-          <h2 class="welcome-title">
-            Assign a task.
-            <span class="polished">Review the changes.</span>
-          </h2>
-          <p class="welcome-text">
-            Pick a Git repository. Argent gives each workspace its own branch
-            and worktree, and Claude Code works there with your own sign-in.
-          </p>
-          <button id="welcome-create" class="button primary large">
-            <span class="icon icon-folder-plus" aria-hidden="true"></span>
-            Add a repository <kbd>⌘O</kbd>
-          </button>
-          <p class="welcome-note">
-            Your checkout is never changed. Claude Code runs as you, not in a
-            sandbox.
-          </p>
-          <button id="welcome-demo" class="text-button">
-            Or try a scripted demo first
-          </button>
+          <form
+            id="welcome-form"
+            class="composer welcome-composer"
+            aria-label="Start a conversation"
+          >
+            <label class="sr-only" for="welcome-input">First message</label>
+            <textarea
+              id="welcome-input"
+              rows="2"
+              maxlength="4000"
+              placeholder="What would you like to work on?"
+            ></textarea>
+            <div class="welcome-actions">
+              <button type="button" id="welcome-create" class="button small">
+                <span class="icon icon-folder-plus" aria-hidden="true"></span>
+                Add repository
+              </button>
+              <button type="button" id="welcome-demo" class="button small">
+                <span class="icon icon-flask-conical" aria-hidden="true"></span>
+                Scripted demo
+              </button>
+              <button
+                id="welcome-send"
+                type="submit"
+                class="send-button"
+                aria-label="Choose a repository and send"
+                title="Choose a repository and send (↵)"
+                disabled
+              >
+                <span class="icon icon-arrow-up" aria-hidden="true"></span>
+              </button>
+            </div>
+          </form>
         </section>
 
         <div id="workspace-content" class="workspace" hidden>
@@ -206,37 +267,6 @@
 
           <div class="dock">
             <div class="dock-column">
-              <div
-                id="disconnected-banner"
-                class="notice notice-offline"
-                role="status"
-                hidden
-              >
-                <span class="icon icon-power" aria-hidden="true"></span>
-                <span
-                  >The local service is offline. Your history is still
-                  here.</span
-                >
-                <button id="reconnect-inline" class="button small">
-                  Reconnect
-                </button>
-              </div>
-              <div
-                id="error-banner"
-                class="notice notice-fault"
-                role="alert"
-                hidden
-              >
-                <span class="icon icon-circle-x" aria-hidden="true"></span>
-                <span id="error-text"></span>
-                <button
-                  id="dismiss-error"
-                  class="icon-button small"
-                  aria-label="Dismiss error"
-                >
-                  <span class="icon icon-x" aria-hidden="true"></span>
-                </button>
-              </div>
               <div
                 id="pending-bar"
                 class="notice notice-attention"
@@ -449,12 +479,14 @@
           tabindex="0"
           aria-label="Configured commands"
         ></div>
-        <button id="commands-review" class="button" disabled>
-          Review commit for checks
-        </button>
-        <button id="commands-review-run" class="button" disabled>
-          Review commit for run command
-        </button>
+        <div class="commands-review-actions">
+          <button id="commands-review" class="button" disabled>
+            Review commit for checks
+          </button>
+          <button id="commands-review-run" class="button" disabled>
+            Review commit for run command
+          </button>
+        </div>
         <div class="commands-approval">
           <p id="commands-approval"></p>
           <button id="commands-approve" class="button primary" disabled>
@@ -563,7 +595,13 @@
           autocomplete="off"
           spellcheck="false"
         />
-        <kbd>esc</kbd>
+        <button
+          class="palette-close"
+          aria-label="Close search"
+          data-close-dialog
+        >
+          <kbd>esc</kbd>
+        </button>
       </div>
       <div id="workspace-search-results" class="search-results"></div>
       <p id="search-summary" class="palette-summary" role="status"></p>

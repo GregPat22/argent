@@ -141,3 +141,42 @@ Implementation evidence (9 November 2026, on top of main `32748a5`):
 - Limits: the record shows what Argent read from the worktree; there is still no
   changes view, test run or pull request. The sidebar shows live activity only
   for the open workspace.
+
+## Desktop usability refinements in development
+
+A heuristic review of main `9be273e` on 18 November 2026 found that first-launch
+service notices were inside the hidden conversation, workspace buttons had their
+native role overridden, and the repository's add-workspace button could retain
+the folder picker's busy state. The service indicator also used verification
+green for connectivity.
+
+Acceptance criteria for the desktop renderer:
+
+- First launch shows a message field over turned silver with Add repository
+  and Scripted demo. The field and its controls fit at 900×620 and 1380×900.
+  Enter opens the folder picker and sends the first message in the newly created
+  workspace with the normal edits-only defaults. Cancelling keeps the draft.
+  Selecting either repository action directly carries the draft into its composer
+  for editing. Shift+Enter inserts a line break.
+- Show offline and error notices before the first workspace exists. Reconnect
+  uses the existing service action. Repository workspace creation becomes
+  available when the folder picker finishes.
+- Give search a visible label and shortcut. Preserve native workspace buttons
+  inside list items, show keyboard focus in search results, and distinguish
+  the selected branch, ordinary availability and verified evidence.
+- Group the inspection actions and give the send and stop controls 40px targets.
+  Opening activity details animates their contents. Polling must not replay
+  the entrance of an existing turn. Reduced motion includes dialog backdrops.
+
+On 18 November 2026, native Electron walkthroughs passed with a fixture CLI
+and temporary repositories. Starting from the welcome field created one workspace
+and one completed edits-only run. A renderer regression covered cancelling the
+picker and resubmitting the preserved draft. Screenshots at both window sizes
+showed the field and its three actions together. The walkthrough also exercised
+first-launch reconnect, sidebar availability after repository selection, keyboard search,
+reduced motion and command review. A renderer regression covered activity updates
+during an existing turn. Two worker fixtures failed in the repository suite
+and in focused comparisons on unchanged main `9be273e`. The healthy dispatch
+job reached `needs_attention`, and the cancellation fixture missed its startup
+deadline. Task completion time and screen-reader use still require observation
+with users.

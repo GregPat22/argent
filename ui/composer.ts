@@ -128,7 +128,7 @@ export function renderComposer(): void {
   setClass(byId("composer-form"), "is-full", local && mode === "full");
 }
 
-async function send(): Promise<void> {
+export async function sendMessage(): Promise<void> {
   const workspace = currentWorkspace();
   if (!workspace || state.sending) return;
   const retrying = state.pending?.workspaceId === workspace.id;
@@ -201,7 +201,7 @@ function setPermission(mode: PermissionMode): void {
 export function wireComposer(): void {
   byId("composer-form").addEventListener("submit", (event) => {
     event.preventDefault();
-    void send();
+    void sendMessage();
   });
   input().addEventListener("input", () => {
     enable("composer-submit", gate().canSend);
@@ -211,9 +211,9 @@ export function wireComposer(): void {
     if (key.key !== "Enter" || key.isComposing || key.shiftKey || key.altKey)
       return;
     key.preventDefault();
-    void send();
+    void sendMessage();
   });
-  byId("pending-retry").addEventListener("click", () => void send());
+  byId("pending-retry").addEventListener("click", () => void sendMessage());
   byId("limit-select").addEventListener("change", () => {
     state.limits.set(
       state.selectedWorkspace,
