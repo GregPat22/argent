@@ -726,7 +726,12 @@ The worker revalidates complete review consent under its lease, creates an owned
 verification checkout, captures its manifest and checks that identity before and
 after setup and test. It reasserts ownership immediately before launch. Results
 and audit events commit together after confirmed process and checkout cleanup;
-uncertainty blocks subsequent work and never restarts a command. Evidence stores
+uncertainty blocks subsequent work and never restarts a command. A queued check
+whose stored record is unreadable stays queued and blocks only its own
+workspace; other claims and the service continue. A confirmed stop during a
+check still settles as `needs_attention` but records the confirmed
+process-group termination and checkout removal as evidence for later
+reconciliation. Evidence stores
 argv, outcomes, timing and stream digests/counts, with no raw output retention.
 The Checks dialog reads latest state explicitly; current/stale is a fresh
 hash-verified review comparison, not a watcher. No agent transcript becomes test evidence.
