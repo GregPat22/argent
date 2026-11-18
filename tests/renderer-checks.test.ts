@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { fakeDocument, loadRenderer, settle } from "./renderer-loader.js";
+import {
+  fakeDocument,
+  loadRenderer,
+  settle,
+  openWorkspace,
+} from "./renderer-loader.js";
 import type { LocalCheckView } from "../src/local-checks.js";
 
 function view(
@@ -98,10 +103,7 @@ async function launch() {
       },
     },
     localStorage: {
-      getItem: (key: string) =>
-        key === "argent.selection"
-          ? JSON.stringify({ workspaceId: "one" })
-          : null,
+      getItem: () => null,
       setItem() {},
       removeItem() {},
     },
@@ -115,6 +117,7 @@ async function launch() {
   });
   await settle();
   await settle();
+  await openWorkspace(element, "one");
   return {
     element,
     reads,

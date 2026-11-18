@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { RunView, Workspace } from "../src/domain.js";
-import { fakeDocument, loadRenderer, settle } from "./renderer-loader.js";
+import {
+  fakeDocument,
+  loadRenderer,
+  settle,
+  openWorkspace,
+} from "./renderer-loader.js";
 
 type Created = [string, string, number, string, string | undefined];
 
@@ -104,6 +109,7 @@ async function launch(
     },
   });
   await settle();
+  await openWorkspace(element);
   const composer = element("composer-input");
   return {
     element,

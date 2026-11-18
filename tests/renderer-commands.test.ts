@@ -5,7 +5,12 @@ import type {
   CommandConfigurationView,
 } from "../src/desktop/contracts.js";
 import type { Workspace } from "../src/domain.js";
-import { fakeDocument, loadRenderer, settle } from "./renderer-loader.js";
+import {
+  fakeDocument,
+  loadRenderer,
+  settle,
+  openWorkspace,
+} from "./renderer-loader.js";
 
 const base = "a".repeat(40);
 const identity = "c".repeat(64);
@@ -113,10 +118,7 @@ async function launch() {
     },
     document,
     localStorage: {
-      getItem: (key: string) =>
-        key === "argent.selection"
-          ? JSON.stringify({ workspaceId: "one" })
-          : null,
+      getItem: () => null,
       setItem() {},
       removeItem() {},
     },
@@ -129,6 +131,7 @@ async function launch() {
     },
   });
   await settle();
+  await openWorkspace(element, "one");
   const app = {
     element,
     reads,

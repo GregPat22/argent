@@ -6,6 +6,7 @@ import {
   loadRenderer,
   settle,
   type FakeElement,
+  openWorkspace,
 } from "./renderer-loader.js";
 
 async function launch(
@@ -85,6 +86,7 @@ async function launch(
     },
   });
   await settle();
+  await openWorkspace(element);
   return {
     element,
     run,

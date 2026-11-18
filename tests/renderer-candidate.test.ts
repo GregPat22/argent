@@ -4,7 +4,12 @@ import type {
   CandidateReviewView,
   CandidateConsentReceiptView,
 } from "../src/desktop/contracts.js";
-import { fakeDocument, loadRenderer, settle } from "./renderer-loader.js";
+import {
+  fakeDocument,
+  loadRenderer,
+  settle,
+  openWorkspace,
+} from "./renderer-loader.js";
 
 const base = "a".repeat(40),
   identity = "c".repeat(64);
@@ -162,10 +167,7 @@ async function launch() {
       addEventListener() {},
     },
     localStorage: {
-      getItem: (key: string) =>
-        key === "argent.selection"
-          ? JSON.stringify({ workspaceId: "one" })
-          : null,
+      getItem: () => null,
       setItem() {},
       removeItem() {},
     },
@@ -178,6 +180,7 @@ async function launch() {
     },
   });
   await settle();
+  await openWorkspace(element, "one");
   const app = {
     element,
     reads,

@@ -164,7 +164,6 @@ function selectWorkspace(id: string): void {
   state.runCursor = null;
   state.runPaging = false;
   resetTranscript();
-  persist();
   render();
   void refresh();
 }
@@ -191,29 +190,30 @@ async function refresh(): Promise<void> {
     if (version !== epoch) return;
     state.workspaces = merge(state.workspaces, page.items);
     if (!state.workspacePaging) state.workspaceCursor = page.nextCursor;
-    const workspaceId = state.selectedWorkspace || state.saved.workspaceId;
+    const workspaceId = state.selectedWorkspace || state.pending?.workspaceId;
     if (workspaceId && !page.items.some((item) => item.id === workspaceId)) {
       try {
-        const remembered = await api().getWorkspace(workspaceId);
+        const opened = await api().getWorkspace(workspaceId);
         if (version !== epoch) return;
-        state.workspaces = merge(state.workspaces, [remembered]);
+        state.workspaces = merge(state.workspaces, [opened]);
       } catch (error) {
         if (version !== epoch) return;
         if (
-          !state.selectedWorkspace &&
-          /^Request rejected \(404\):/.test(message(error))
+          state.selectedWorkspace ||
+          !/^Request rejected \(404\):/.test(message(error))
         )
-          delete state.saved.workspaceId;
-        else throw error;
+          throw error;
       }
     }
-    if (!state.selectedWorkspace && state.workspaces.length) {
-      state.selectedWorkspace = state.workspaces.some(
-        (item) => item.id === state.saved.workspaceId,
-      )
-        ? state.saved.workspaceId!
-        : state.workspaces[0]!.id;
-    }
+    // Each launch opens on the welcome screen, like a fresh window. The one
+    // exception is an uncertain submission: its workspace opens so the retry
+    // stays visible instead of silently blocking a new send.
+    if (
+      !state.selectedWorkspace &&
+      state.pending &&
+      state.workspaces.some((item) => item.id === state.pending!.workspaceId)
+    )
+      state.selectedWorkspace = state.pending.workspaceId;
     if (state.selectedWorkspace) {
       const runPage = await api().listRuns(state.selectedWorkspace);
       if (version !== epoch) return;

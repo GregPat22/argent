@@ -5,6 +5,10 @@ recommendation that still needs a practical check. Neither label proves that a
 capability is implemented: see the [README](../README.md#what-works-today) for
 what works today and the [roadmap](../ROADMAP.md) for sequencing.
 
+Each desktop launch opening on the welcome screen is in development against main
+`35ce8fb`, 18 November 2026. It replaces restoring the last selected workspace;
+see [the launch criteria](specs/0015-desktop-restyle.md#launch-opens-on-the-welcome-screen-in-development).
+
 Desktop refinements in development against main `9be273e`, 18 November 2026,
 apply the accepted silver visual language to first launch and workspace controls.
 The [desktop usability criteria](specs/0015-desktop-restyle.md#desktop-usability-refinements-in-development)
