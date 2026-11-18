@@ -32,6 +32,10 @@ else {
       window?.focus();
     });
     await app.whenReady();
+    if (process.platform === "darwin")
+      app.dock?.setIcon(
+        fileURLToPath(new URL("../../ui/argent-app-icon.png", import.meta.url)),
+      );
     if (process.env.ARGENT_DESKTOP_SMOKE === "1")
       console.log("[ARGENT_STAGE] electron ready");
     const directory = join(app.getPath("userData"), "execution");

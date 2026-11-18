@@ -50,6 +50,33 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
 10. Document remaining release requirements: signing/notarization, updates, other
     operating systems, and the real cloud MVP acceptance contract.
 
+## Native application icon (in development)
+
+Acceptance recorded 18 November 2026 against main `d8f63e2`:
+
+1. The desktop application uses the silver A on black in
+   `ui/argent-app-icon.png`, preserved without redrawing or cropping. Its SHA-256
+   is `b13a357596fbb3029b4c4d31e21a27d8d5d89b98721c2aa2ad0450a17d1e0989`.
+2. Packaging derives the standard macOS icon sizes with the system image tools
+   and embeds the resulting ICNS as the application's bundle icon. Every new
+   build uses the committed source; no Finder-only icon override is required.
+3. Development launches use the same artwork for the Dock icon. Existing
+   in-window and website marks retain their own transparent derivatives.
+4. Validate the repository check, native packaging, the bundle's icon reference
+   and embedded image sizes, and the installed application's displayed icon.
+   This does not establish signing, notarization, public distribution or any
+   additional execution capability.
+
+Native validation on 18 November 2026, based on main `d8f63e2` with this icon
+integration in development: packaging produced a valid ICNS referenced by
+`CFBundleIconFile`, with image entries through 1024 pixels. The packaged PNG
+matches the source digest above. The installed package launched, reconnected to
+existing history, and displayed the silver A on black in its native About
+dialog. The package remains unsigned, unnotarized and unpublished; this is not
+a new full desktop workflow or real-agent walkthrough. `npm run check` passed
+types, formatting, build and the full test suite without failures or skips.
+The full native smoke walkthrough and website checks were not rerun.
+
 ## Boundaries
 
 Review follow-up, 6 November 2026: the PR #1 review
