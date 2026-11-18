@@ -104,7 +104,7 @@ animate transforms/opacity rather than width/shadow.
   ([NIST data](https://physics.nist.gov/PhysRefData/Handbook/Tables/silvertable1.htm)).
   It stops offscreen and renders a still frame under reduced motion.
 - **Sections.** Below the hero, proof leads and plans come last: the conductor
-  statement (with the atom and the three problems, the unproven claim first),
+  statement with the silver atom,
   proof (the claim-versus-record slider, what is recorded today next to what is
   planned, and the four hallmarks), how it works, the agents, the open-source
   manifesto, the journey (desktop → remote workspace → phone), the roadmap

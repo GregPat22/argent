@@ -952,9 +952,6 @@ test("headings use Inter and product paragraphs describe the actual workflow", a
   await expect(statement).toContainText(
     "you hold the baton when it’s time to merge",
   );
-  await expect(page.locator("#statement")).toContainText(
-    "Without a conductor, agents are just noise",
-  );
   await expect(
     page.getByText("Silver connects. Argent coordinates.", { exact: false }),
   ).toHaveCount(0);
@@ -1422,10 +1419,11 @@ isolatedTest(
         .locator(".nav-links a")
         .evaluateAll((links) => links.map((link) => link.getAttribute("href"))),
     ).toEqual(["#hallmark", "#lifecycle", "#roadmap", "#faq"]);
-    // The first problem is the one the next section answers.
-    await expect(
-      page.locator("#statement .problem-card h3").first(),
-    ).toHaveText("“Done” is only a claim");
+    await expect(page.locator("#statement [data-silver-atom]")).toHaveCount(1);
+    await expect(page.locator("#statement")).not.toContainText(
+      "Without a conductor, agents are just noise",
+    );
+    await expect(page.locator("#statement").getByRole("list")).toHaveCount(0);
   },
 );
 
@@ -1649,40 +1647,6 @@ test("proof separates today's record from planned checks and strikes four hallma
   });
   expect(geometry.difference).toBeLessThan(2);
   expect(geometry.right).toBeLessThanOrEqual(360);
-});
-
-test("problem glyphs draw themselves once and stay visible without scripts", async ({
-  page,
-  browser,
-  baseURL,
-}) => {
-  await visit(page, "/");
-  const list = page.locator("#statement .problem-list");
-  await list.evaluate((el) =>
-    el.scrollIntoView({ block: "center", behavior: "instant" }),
-  );
-  await expect(list).toHaveAttribute("data-drawn", "true");
-  const strokes = list.locator(".problem-glyph > :not(.problem-dash)");
-  expect(await strokes.count()).toBeGreaterThanOrEqual(6);
-  // Every stroke ends fully drawn: an attribute selector once left them hidden.
-  for (const stroke of await strokes.all())
-    await expect(stroke).toHaveCSS("stroke-dashoffset", "0px", {
-      timeout: 10_000,
-    });
-
-  const context = await browser.newContext({
-    baseURL,
-    javaScriptEnabled: false,
-  });
-  const plain = await context.newPage();
-  try {
-    await plain.goto("/");
-    await expect(
-      plain.locator("#statement .problem-glyph > :not(.problem-dash)").first(),
-    ).toHaveCSS("stroke-dashoffset", "0px");
-  } finally {
-    await context.close();
-  }
 });
 
 test("how it works says which steps work today", async ({ page }) => {

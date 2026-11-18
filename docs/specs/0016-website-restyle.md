@@ -9,8 +9,8 @@ says.
 
 1. **Proof leads.** Section order is hero, statement, proof, how it works,
    agents, open source, journey, roadmap, FAQ, try it, join. What exists comes
-   before what is planned, and the navigation follows the same order. The first
-   of the three problems is the unproven claim, which the next section answers.
+   before what is planned, and the navigation follows the same order. The conductor
+   statement leads directly into the proof comparison.
 2. **The hero says one thing.** The paragraph states the promise once. Today's
    facts move to a status line under the actions: Claude Code runs today on
    Apple-silicon Macs; free and MIT; built from source, no download yet; the
@@ -65,7 +65,8 @@ says.
 4. Proof shows two labelled columns (works today, planned) and four plates with
    states struck, blank, blank, struck; plates are decorative and their meaning
    is in headings.
-5. The three problem glyphs end fully drawn, and are visible without scripts.
+5. The conductor statement retains its copy and silver atom. The three-card
+   problem row and its introductory line are removed in the follow-up.
 6. How-it-works plates read works today, works today, in development.
 7. At 390 px the journey stage stays pinned under the header while each step in
    turn becomes current, and nothing overflows horizontally.
@@ -365,3 +366,13 @@ original deadlines.
 
 These measurements cover the local production builds. Field load times,
 hardware GPU performance and Firefox require separate measurement.
+
+## Statement simplification (in development)
+
+The proof section follows the conductor copy and silver atom directly. Remove
+the intervening problem list, its introduction, spacing and glyph animations.
+The rendering comparisons above describe the page before this content edit.
+
+Validated on 18 November 2026 against the layout at `9be273e`. The local
+production build showed the atom followed by proof at 390 and 1440 px. The
+website typecheck, build and all 70 browser checks passed.
