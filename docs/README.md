@@ -126,6 +126,9 @@ timing and service-teardown regression criteria and evidence.
 
 ## Build and contribute
 
+The [native application icon contract](specs/0004-desktop-prototype.md#native-application-icon-in-development)
+tracks the silver A on black for macOS bundles and development Dock icons.
+
 - [README quick start](../README.md#quick-start) and [commands](../README.md#development).
 - [Contributing](../CONTRIBUTING.md): how to scope, implement, verify and review work.
 - [Engineering instructions](../AGENTS.md): mandatory repository rules, for people

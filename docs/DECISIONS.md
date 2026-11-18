@@ -60,6 +60,18 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Native application icon — 18 November 2026
+
+In development against main `d8f63e2`: apply the existing silver A identity to
+the macOS application icon, using its black-background artwork. Commit the PNG
+source and an editable native icon layout. Derive the ICNS from its committed
+rounded, padded macOS export during packaging with macOS system tools. Set the
+development Dock icon from the same source so development and installed builds
+have the same mark. Packaged launches retain the native bundle icon and macOS
+masking rather than overriding it with the raw PNG. This adds no dependency or execution capability; the
+website and in-window transparent marks are unchanged. See the
+[desktop icon contract](specs/0004-desktop-prototype.md#native-application-icon-in-development).
+
 ### Run commands in a fresh checkout with separate consent — 17 November 2026
 
 Accepted within L1.4: the deferred `run` command executes against the exact

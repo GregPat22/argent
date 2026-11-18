@@ -5,6 +5,7 @@ for (const file of [
   "index.html",
   "styles.css",
   "argent-icon.webp",
+  "argent-app-icon-macos.png",
   "argent-wordmark.webp",
 ])
   copyFileSync(`ui/${file}`, `dist/ui/${file}`);

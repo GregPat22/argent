@@ -15,6 +15,26 @@ const manifest = JSON.parse(readFileSync("package.json", "utf8")) as {
 };
 const stage = resolve(".data", `package-${Date.now()}`);
 mkdirSync(stage, { recursive: true });
+// Generate the native icon from the same artwork used by the development Dock.
+// Keep intermediates outside the staged application so they are not shipped.
+const iconset = `${stage}.iconset`;
+const icon = `${stage}.icns`;
+mkdirSync(iconset);
+for (const size of [16, 32, 128, 256, 512]) {
+  for (const scale of [1, 2]) {
+    const pixels = String(size * scale);
+    const suffix = scale === 2 ? "@2x" : "";
+    execFileSync("/usr/bin/sips", [
+      "--resampleHeightWidth",
+      pixels,
+      pixels,
+      resolve("ui/argent-app-icon-macos.png"),
+      "--out",
+      join(iconset, `icon_${size}x${size}${suffix}.png`),
+    ]);
+  }
+}
+execFileSync("/usr/bin/iconutil", ["-c", "icns", iconset, "-o", icon]);
 cpSync("dist/src", join(stage, "dist/src"), { recursive: true });
 cpSync("dist/ui", join(stage, "dist/ui"), { recursive: true });
 cpSync("LICENSE", join(stage, "LICENSE"));
@@ -42,6 +62,7 @@ const output = await packager({
   electronVersion: manifest.devDependencies.electron,
   appBundleId: "dev.argent.desktop",
   appVersion: manifest.version,
+  icon,
   overwrite: true,
   asar: false,
   download: {

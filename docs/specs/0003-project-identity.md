@@ -6,7 +6,8 @@
 - Official icon: the silver A, selected 6 November 2026. The
   [original and derivative record](../../website/public/brand/README.md)
   supersedes the earlier periodic-table Ag branding. Website/browser use is
-  implemented; native desktop packaging remains separate.
+  implemented; native desktop icon integration is in development under the
+  [desktop icon contract](0004-desktop-prototype.md#native-application-icon-in-development).
 - Repository: <https://github.com/GregPat22/argent>, public from the start to
   support the intended open-source community and self-hostable core.
 - Description: Open-source desktop app for AI coding agents in persistent

@@ -50,6 +50,57 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
 10. Document remaining release requirements: signing/notarization, updates, other
     operating systems, and the real cloud MVP acceptance contract.
 
+## Native application icon (in development)
+
+Acceptance recorded 18 November 2026 against main `d8f63e2`:
+
+1. The source artwork is the silver A on black in
+   `ui/argent-app-icon.png`, preserved without redrawing or cropping. Its SHA-256
+   is `b13a357596fbb3029b4c4d31e21a27d8d5d89b98721c2aa2ad0450a17d1e0989`.
+2. The editable `ui/Argent.icon` document places the original artwork at 90%
+   scale on the native canvas, with layer glass effects disabled. Its committed
+   macOS pre-Tahoe export, `ui/argent-app-icon-macos.png`, includes the native
+   rounded silhouette and transparent outer padding. The A occupies about 82%
+   of the tile width, without redrawing. Packaging derives the standard macOS
+   icon sizes from this export with the system image tools
+   and embeds the resulting ICNS as the application's bundle icon. Every new
+   build uses the committed source; no Finder-only icon override is required.
+3. Development launches use the same artwork for the Dock icon. Existing
+   in-window and website marks retain their own transparent derivatives.
+   Packaged launches leave the bundle icon under macOS control, including its
+   rounded presentation; they never replace it with a raw PNG Dock override.
+4. Validate the repository check, native packaging, the bundle's icon reference
+   and embedded image sizes, and the installed application's displayed icon.
+   This does not establish signing, notarization, public distribution or any
+   additional execution capability.
+
+Initial validation of `f9c5b92` on 18 November 2026, based on main `d8f63e2`: packaging produced a valid ICNS referenced by
+`CFBundleIconFile`, with image entries through 1024 pixels. The packaged PNG
+matches the source digest above. The installed package launched, reconnected to
+existing history, and displayed the silver A on black in its native About
+dialog. The package remains unsigned, unnotarized and unpublished; this is not
+a new full desktop workflow or real-agent walkthrough. `npm run check` passed
+types, formatting, build and the full test suite without failures or skips.
+The full native smoke walkthrough and website checks were not rerun.
+
+Follow-up to `f9c5b92`, 18 November 2026: the raw PNG Dock override also ran in
+the installed app, replacing the native icon presentation while running. Limit
+that override to unpackaged development launches. Keep the original artwork
+unchanged. Use the native-layout export for both
+ICNS sizes and development Dock images, rather than the unframed source.
+The editable document is an authoring asset; builds consume the committed PNG
+so CI does not require a newer Xcode or a new runtime dependency. See Apple's
+[app icon guidance](https://developer.apple.com/design/human-interface-guidelines/app-icons)
+and Electron's [Dock API](https://www.electronjs.org/docs/latest/api/dock/).
+
+The native export has a 1024-pixel canvas, transparent corners and an opaque
+tile bounded by pixels 100 through 923 on each axis. Its SHA-256 is
+`0dbbeedaabfef3a7962fd50651da89a45dfd3e8c048d1716781cea43ca96c458`.
+The rebuilt bundle and installed PNG match this export, the ICNS is valid,
+and the installed About dialog shows the rounded tile with the larger A.
+The final integration passed `npm run check` without failures or skips.
+The Dock itself was not available to automated screenshot inspection.
+
 ## Boundaries
 
 Review follow-up, 6 November 2026: the PR #1 review
