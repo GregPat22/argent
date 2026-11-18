@@ -4,7 +4,7 @@
 
 - Name: **Argent**.
 - Official icon: the silver A, selected 6 November 2026. The
-  [original and derivative record](../../website/public/brand/README.md)
+  [artwork sources and export recipe](../../website/public/brand/README.md)
   supersedes the earlier periodic-table Ag branding. Website/browser use is
   implemented; native desktop icon integration is in development under the
   [desktop icon contract](0004-desktop-prototype.md#native-application-icon-in-development).

@@ -52,6 +52,46 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
 
 ## Native application icon (in development)
 
+Appearance family in development, based on main `9be273e`, 18 November 2026.
+The following criteria extend the original single-appearance contract.
+
+1. The desktop and website marks derive from the same transparent silver A and
+   wordmark. Refer to the [artwork sources and export recipe](../../website/public/brand/README.md).
+2. A packaged app carries a named Argent asset catalog for light, dark, tinted
+   and clear presentations. An ICNS containing the padded default artwork from
+   16 through 1024 px serves older macOS versions. At 16 and 32 physical pixels,
+   darker faces keep the silhouette legible.
+3. An unpackaged launch selects its padded Dock image from the system light or
+   dark appearance and responds to appearance changes. A packaged launch leaves
+   selection to macOS. The catalog and ICNS can be packaged without Xcode.
+4. Inspect the six native renditions and the small icon sizes, verify both
+   bundle icon references and resources, and exercise the packaged launch.
+
+Local artwork validation on 18 November 2026 against the baseline above:
+Icon Composer rendered default, dark, tinted-light, tinted-dark, clear-light
+and clear-dark images. The packaged catalog contains the named Argent groups
+for system selection. AppKit resolved the packaged app to its graphite icon
+under the current appearance. The six renders were inspected separately from
+that bundle lookup. A checksum-verified ZIP extracted to a fresh directory
+contained the same catalog, classic icon and renderer assets as the updated
+installation. AppKit returned the graphite A for both the extracted bundle and
+the running installed app. System appearance switching on older macOS releases remains
+unverified.
+
+Both development and packaged smoke walkthroughs passed on the final artwork.
+Earlier packaged runs timed out in the service or command walkthrough; a
+packaged run on the unchanged baseline also timed out in the command walkthrough.
+The ICNS decoded to ten entries. Website type checking, production build and
+sharing-image checks passed. The navigation active-section check failed on
+both revisions. The repository check recorded a queued-check assertion failure
+and a disconnect timeout. The assertion also failed on the baseline; the
+disconnect test passed on both revisions when run individually. The
+active-section test subsequently passed locally. A later checkout-cancellation
+test also passed individually on both revisions after a transient failure.
+The final full repository check passed without failures or skips.
+
+### Original single-appearance validation
+
 Acceptance recorded 18 November 2026 against main `d8f63e2`:
 
 1. The source artwork is the silver A on black in

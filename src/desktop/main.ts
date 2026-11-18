@@ -4,6 +4,7 @@ import {
   dialog,
   ipcMain,
   Menu,
+  nativeTheme,
   protocol,
   session,
 } from "electron";
@@ -34,12 +35,18 @@ else {
     await app.whenReady();
     // Packaged apps use their bundle icon so macOS retains its native masking.
     // A raw Dock override bypasses that presentation while the app is running.
-    if (process.platform === "darwin" && !app.isPackaged)
-      app.dock?.setIcon(
-        fileURLToPath(
-          new URL("../../ui/argent-app-icon-macos.png", import.meta.url),
-        ),
-      );
+    if (process.platform === "darwin" && !app.isPackaged) {
+      const updateDockIcon = () => {
+        const artwork = nativeTheme.shouldUseDarkColors
+          ? "argent-app-icon-macos-dark.png"
+          : "argent-app-icon-macos.png";
+        app.dock?.setIcon(
+          fileURLToPath(new URL(`../../ui/${artwork}`, import.meta.url)),
+        );
+      };
+      updateDockIcon();
+      nativeTheme.on("updated", updateDockIcon);
+    }
     if (process.env.ARGENT_DESKTOP_SMOKE === "1")
       console.log("[ARGENT_STAGE] electron ready");
     const directory = join(app.getPath("userData"), "execution");

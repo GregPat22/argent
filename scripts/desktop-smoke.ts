@@ -4,6 +4,7 @@ import {
   chmodSync,
   mkdtempSync,
   mkdirSync,
+  readFileSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -17,6 +18,26 @@ import {
   isServiceAlive,
   serviceRequest,
 } from "../src/desktop/service-client.js";
+
+if (process.env.ARGENT_PACKAGED_EXECUTABLE) {
+  const contents = resolve(process.env.ARGENT_PACKAGED_EXECUTABLE, "../..");
+  const iconSetting = (key: string) =>
+    execFileSync(
+      "/usr/bin/plutil",
+      ["-extract", key, "raw", join(contents, "Info.plist")],
+      { encoding: "utf8" },
+    ).trim();
+  assert.equal(iconSetting("CFBundleIconName"), "Argent");
+  const resources = join(contents, "Resources");
+  assert.deepEqual(
+    readFileSync(join(resources, "Assets.car")),
+    readFileSync("ui/macos/Assets.car"),
+  );
+  const classic = readFileSync(
+    join(resources, iconSetting("CFBundleIconFile")),
+  );
+  assert.equal(classic.toString("ascii", 0, 4), "icns");
+}
 
 // Keep independent walkthroughs within the same per-process deadline.
 for (const suite of ["welcome", "workspace", "commands"] as const)
