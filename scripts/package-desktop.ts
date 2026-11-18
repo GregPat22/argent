@@ -28,7 +28,11 @@ for (const size of [16, 32, 128, 256, 512]) {
       "--resampleHeightWidth",
       pixels,
       pixels,
-      resolve("ui/argent-app-icon-macos.png"),
+      resolve(
+        size * scale <= 32
+          ? "ui/macos/argent-small.png"
+          : "ui/argent-app-icon-macos.png",
+      ),
       "--out",
       join(iconset, `icon_${size}x${size}${suffix}.png`),
     ]);
@@ -63,6 +67,8 @@ const output = await packager({
   appBundleId: "dev.argent.desktop",
   appVersion: manifest.version,
   icon,
+  extendInfo: { CFBundleIconName: "Argent" },
+  extraResource: resolve("ui/macos/Assets.car"),
   overwrite: true,
   asar: false,
   download: {

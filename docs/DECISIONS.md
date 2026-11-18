@@ -72,6 +72,12 @@ masking rather than overriding it with the raw PNG. This adds no dependency or e
 website and in-window transparent marks are unchanged. See the
 [desktop icon contract](specs/0004-desktop-prototype.md#native-application-icon-in-development).
 
+Appearance refinement in development, based on main `9be273e`: keep the silver A
+and native masking. A shared transparent foreground allows the system to apply
+light, dark, clear and tinted materials. Ship the compiled catalog with the
+classic ICNS so building the app does not require Icon Composer. Only the
+unpackaged Dock image follows Electron’s light/dark appearance directly.
+
 ### Run commands in a fresh checkout with separate consent — 17 November 2026
 
 Accepted within L1.4: the deferred `run` command executes against the exact

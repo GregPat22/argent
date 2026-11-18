@@ -1,36 +1,34 @@
-# Official Argent icon
+# Argent artwork
 
-The silver A became Argent’s official icon on 6 November 2026, superseding the
-periodic-table Ag mark for product branding.
+The silver A folds a single ribbon over an open counter. The crossbar rises
+toward the right leg. The wide ARGENT wordmark repeats the polished edges
+and satin faces across the six letters.
 
-`argent-icon-source.png` is the 1254 × 1254 RGBA source image, preserved byte for
-byte.
-SHA-256: `dfa3af25f5688e0053f8364a07ea4e5ee1dc10a9783d8db1951c343eb7f3ef49`.
+| Source                                                    | Uses                                                           |
+| --------------------------------------------------------- | -------------------------------------------------------------- |
+| [Transparent A](argent-icon-source.png)                   | Website and desktop marks, browser icons, native foreground    |
+| [Transparent wordmark](argent-wordmark-source.png)        | Navigation, footer and desktop welcome screen                  |
+| [Native icon document](../../../ui/Argent.icon/icon.json) | Light and dark tile materials, tint mask and clear appearances |
 
-Faithful size/format derivatives were generated with Sharp 0.35.5 from the
-existing website toolchain, preserving transparency without redrawing or cropping:
+The website uses 96 and 192 px WebP marks and 800 and 1600 px WebP wordmarks.
+The desktop renderer uses the same small WebPs. The browser ICO includes
+16, 32 and 48 px images. The touch icon uses the full-bleed graphite tile.
 
-- `argent-icon-96.webp` and `argent-icon-192.webp`: website marks, WebP quality 95,
-  alpha quality 100.
-- `src/app/icon.png`: 64px PNG favicon.
-- `src/app/apple-icon.png`: 180px PNG touch icon.
-- `src/app/favicon.ico`: a 32px PNG wrapped in a single-image ICO container.
+## Regenerate the artwork
 
-The source is the authority for future derivatives. Navbar, illustrated
-app marks and atom illustration use the same shared `ArgentMark` component.
-Desktop packaging remains separate; this landing-page change does not rebuild
-native application icons or release artifacts.
+With the website dependencies installed and Xcode with Icon Composer selected,
+run the following from the repository root after editing either master or the
+native document.
 
-## Footer wordmark
+```sh
+node website/scripts/render-brand.mjs
+```
 
-The wide silver ARGENT artwork replaced the typed footer wordmark.
-`argent-wordmark-source.png` is the 2172 × 724 RGBA source image, preserved
-byte for byte.
-SHA-256: `c34b759a729ac3751575b3b9ad9275dd09ed67ed325b4994d6e8f0ed48b3c139`.
-
-`argent-wordmark-800.webp` and `argent-wordmark-1600.webp` are faithful width
-derivatives, generated with Sharp 0.35.5, WebP quality 95 and alpha quality 100.
-The source's black matte is converted to transparency (alpha from the brightest
-channel, colour un-premultiplied) so the wordmark sits on any dark background.
-No redrawing or cropping was applied. The rendered footer image links to the
-page top; it is separate from the official A icon.
+The native document uses one transparent foreground over a pearl or graphite
+tile. Tinted appearances use its silhouette and the system tint. Clear
+appearances use the native material. The compiled catalog is checked in so
+packaging can use it on build hosts without Icon Composer. The development
+Dock exports and classic ICNS include an inset around the tile. At 16 and
+32 physical pixels the classic icon uses darker silver faces to keep the A
+legible in a Finder list. See the
+[native icon contract](../../../docs/specs/0004-desktop-prototype.md#native-application-icon-in-development).

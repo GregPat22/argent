@@ -215,8 +215,9 @@ runtime package or account is required. Recapture the hero after visible copy
 or artwork changes: use a 1440 × 756 viewport, a device scale factor of 5/6,
 reduced motion, and wait for fonts and the liquid field to render. Preserve
 the headline and status text without overlays or browser chrome.
-The navigation wordmark uses Next.js image optimization at its displayed size;
-the source artwork is unchanged.
+The navigation wordmark uses Next.js image optimization at its displayed size.
+The [artwork sources and export recipe](public/brand/README.md) cover the
+wordmark, silver A and appearance variants.
 
 Production is indexable by default. Vercel preview/development builds emit
 `noindex`, allow crawling so robots can read that directive, and omit sitemap
