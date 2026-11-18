@@ -28,37 +28,63 @@ export function SilverAtom() {
     let frame = 0;
     let last = 0;
     let visible = false;
-    const project = (
-      angle: number,
-      shell: number,
-      out: { x: number; y: number; z: number },
-    ) => {
-      const radius = 47 + shell * 20;
-      const phase = shell * 0.74 + time.current * 0.025;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
-      const tilt = 0.78 + shell * 0.21;
-      const z = y * Math.sin(tilt);
-      const flatY = y * Math.cos(tilt);
-      const depth = 1 + z / 750;
-      out.x = (x * Math.cos(phase) - flatY * Math.sin(phase)) * depth;
-      out.y = (x * Math.sin(phase) + flatY * Math.cos(phase)) * depth;
-      out.z = z;
-    };
+    // Tilt and perspective are fixed for each orbit. Only its rotation in the
+    // canvas plane changes with time.
+    const shells = SHELLS.map((count, index) => {
+      const radius = 47 + index * 20;
+      const tilt = 0.78 + index * 0.21;
+      const sinTilt = Math.sin(tilt);
+      const cosTilt = Math.cos(tilt);
+      const orbit = Array.from({ length: 101 }, (_, sample) => {
+        const angle = (sample / 100) * TAU;
+        const y = Math.sin(angle) * radius;
+        return {
+          x: Math.cos(angle) * radius,
+          flatY: y * cosTilt,
+          depth: 1 + (y * sinTilt) / 750,
+        };
+      });
+      return {
+        count,
+        radius,
+        sinTilt,
+        cosTilt,
+        orbit,
+        speed: (index % 2 ? -1 : 1) * (0.6 - index * 0.075),
+        sinPhase: 0,
+        cosPhase: 1,
+      };
+    });
     const point = { x: 0, y: 0, z: 0 };
+    const project = (angle: number, shell: (typeof shells)[number]) => {
+      const x = Math.cos(angle) * shell.radius;
+      const y = Math.sin(angle) * shell.radius;
+      const flatY = y * shell.cosTilt;
+      point.z = y * shell.sinTilt;
+      const depth = 1 + point.z / 750;
+      point.x = (x * shell.cosPhase - flatY * shell.sinPhase) * depth;
+      point.y = (x * shell.sinPhase + flatY * shell.cosPhase) * depth;
+    };
+    const halo = ctx.createRadialGradient(160, 160, 15, 160, 160, 135);
+    halo.addColorStop(0, "rgba(210,225,245,.075)");
+    halo.addColorStop(1, "rgba(210,225,245,0)");
     const draw = () => {
       ctx.clearRect(0, 0, 320, 320);
-      const halo = ctx.createRadialGradient(160, 160, 15, 160, 160, 135);
-      halo.addColorStop(0, "rgba(210,225,245,.075)");
-      halo.addColorStop(1, "rgba(210,225,245,0)");
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, 320, 320);
-      for (let shell = 0; shell < SHELLS.length; shell++) {
+      for (const [index, shell] of shells.entries()) {
+        const phase = index * 0.74 + time.current * 0.025;
+        shell.sinPhase = Math.sin(phase);
+        shell.cosPhase = Math.cos(phase);
         ctx.beginPath();
-        for (let sample = 0; sample <= 100; sample++) {
-          project((sample / 100) * TAU, shell, point);
-          if (sample === 0) ctx.moveTo(160 + point.x, 160 + point.y);
-          else ctx.lineTo(160 + point.x, 160 + point.y);
+        for (let sample = 0; sample < shell.orbit.length; sample++) {
+          const { x, flatY, depth } = shell.orbit[sample]!;
+          const px =
+            160 + (x * shell.cosPhase - flatY * shell.sinPhase) * depth;
+          const py =
+            160 + (x * shell.sinPhase + flatY * shell.cosPhase) * depth;
+          if (sample === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
         }
         ctx.strokeStyle = "rgba(184,199,218,.18)";
         ctx.lineWidth = 0.7;
@@ -66,39 +92,35 @@ export function SilverAtom() {
       }
       // Back electrons are dimmed; front electrons cast a short luminous trail.
       for (const front of [false, true]) {
-        for (let shell = 0; shell < SHELLS.length; shell++) {
-          const count = SHELLS[shell]!;
-          const speed = (shell % 2 ? -1 : 1) * (0.6 - shell * 0.075);
+        for (const [index, shell] of shells.entries()) {
+          const { count, speed } = shell;
           for (let electron = 0; electron < count; electron++) {
             const angle =
-              (electron / count) * TAU + time.current * speed + shell;
-            project(angle, shell, point);
+              (electron / count) * TAU + time.current * speed + index;
+            project(angle, shell);
             if (point.z >= 0 !== front) continue;
             const alpha = front ? 0.9 : 0.24;
-            const radius = shell === 4 ? 2.8 : front ? 1.75 : 1.15;
+            const radius = index === 4 ? 2.8 : front ? 1.75 : 1.15;
+            const x = 160 + point.x;
+            const y = 160 + point.y;
             if (front) {
               ctx.beginPath();
-              for (let sample = 0; sample < 10; sample++) {
-                project(
-                  angle - sample * 0.018 * Math.sign(speed),
-                  shell,
-                  point,
-                );
-                if (sample === 0) ctx.moveTo(160 + point.x, 160 + point.y);
-                else ctx.lineTo(160 + point.x, 160 + point.y);
+              ctx.moveTo(x, y);
+              for (let sample = 1; sample < 10; sample++) {
+                project(angle - sample * 0.018 * Math.sign(speed), shell);
+                ctx.lineTo(160 + point.x, 160 + point.y);
               }
-              ctx.strokeStyle = `rgba(205,222,245,${shell === 4 ? 0.36 : 0.12})`;
+              ctx.strokeStyle = `rgba(205,222,245,${index === 4 ? 0.36 : 0.12})`;
               ctx.lineWidth = radius * 0.8;
               ctx.stroke();
-              project(angle, shell, point);
             }
             ctx.beginPath();
-            ctx.arc(160 + point.x, 160 + point.y, radius, 0, TAU);
+            ctx.arc(x, y, radius, 0, TAU);
             ctx.fillStyle = `rgba(225,236,250,${alpha})`;
             ctx.fill();
-            if (shell === 4) {
+            if (index === 4) {
               ctx.beginPath();
-              ctx.arc(160 + point.x, 160 + point.y, 6, 0, TAU);
+              ctx.arc(x, y, 6, 0, TAU);
               ctx.fillStyle = "rgba(180,210,255,.12)";
               ctx.fill();
             }
@@ -106,11 +128,17 @@ export function SilverAtom() {
         }
       }
     };
+    let drawnSize = 0;
     const resize = () => {
       const ratio = Math.min(devicePixelRatio || 1, 2);
       const size = Math.min(canvas.getBoundingClientRect().width, 480);
-      canvas.width = Math.max(1, Math.round(size * ratio));
-      canvas.height = canvas.width;
+      const pixels = Math.max(1, Math.round(size * ratio));
+      if (pixels === drawnSize) return;
+      drawnSize = pixels;
+      if (canvas.width !== pixels || canvas.height !== pixels) {
+        canvas.width = pixels;
+        canvas.height = pixels;
+      }
       const scale = canvas.width / 320;
       ctx.setTransform(scale, 0, 0, scale, 0, 0);
       draw();

@@ -138,10 +138,13 @@ float map(vec3 p) {
   d += 0.011 * sin(p.x * 5.1 + uTime * 1.3) * sin(p.y * 4.3 - uTime * 1.1)
     * sin(p.z * 4.7 + uTime * 0.9);
   // A ring travelling outward from the last press.
-  float r = length(p - uRip.xyz);
   float age = uRip.w;
-  d -= 0.028 * exp(-age * 1.7) * exp(-pow((r - age * 0.9) * 3.2, 2.0))
-    * sin(r * 24.0 - age * 18.0);
+  float decay = exp(-age * 1.7);
+  if (decay > 0.0) {
+    float r = length(p - uRip.xyz);
+    d -= 0.028 * decay * exp(-pow((r - age * 0.9) * 3.2, 2.0))
+      * sin(r * 24.0 - age * 18.0);
+  }
   return d;
 }
 
@@ -542,6 +545,12 @@ function createField(introDelay = 0) {
   const clearance = (x: number, y: number) => {
     let best = { d: 1e3, nx: 0, ny: 0 };
     for (const r of rects) {
+      // The enclosing box gives a lower bound even for points inside it.
+      if (
+        Math.abs(x - r.cx) - r.hx >= best.d ||
+        Math.abs(y - r.cy) - r.hy >= best.d
+      )
+        continue;
       const hit = rectDistance(x, y, r);
       if (hit.d < best.d) best = hit;
     }
@@ -667,6 +676,24 @@ function createField(introDelay = 0) {
 
   /** Lay the field out around the copy for the current canvas shape. */
   const setLayout = (halfW: number, halfH: number, copy: Rect[]) => {
+    // Entrance transforms can move a box without resizing it. Keep sampling
+    // their positions, but resolve anchors and drop homes only for new bounds.
+    if (
+      placed &&
+      halfW === half[0] &&
+      halfH === half[1] &&
+      copy.length === rects.length &&
+      copy.every((rect, index) => {
+        const last = rects[index]!;
+        return (
+          rect.cx === last.cx &&
+          rect.cy === last.cy &&
+          rect.hx === last.hx &&
+          rect.hy === last.hy
+        );
+      })
+    )
+      return;
     half = [halfW, halfH];
     rects = copy;
     const wide = halfW / halfH >= 1.15;
@@ -863,8 +890,14 @@ function createField(introDelay = 0) {
         const dx = o.p[0] - drop.p[0];
         const dy = o.p[1] - drop.p[1];
         const dz = o.p[2] - drop.p[2];
-        const d = Math.hypot(dx, dy, dz) || 1e-4;
         const reach = drop.r + o.r + 0.14;
+        if (
+          Math.abs(dx) > reach ||
+          Math.abs(dy) > reach ||
+          Math.abs(dz) > reach
+        )
+          continue;
+        const d = Math.hypot(dx, dy, dz) || 1e-4;
         if (d > reach || d < (drop.r + o.r) * 0.5) continue;
         const pull = (1.8 * (1 - d / reach) * dt) / d;
         const wi = o.r / (drop.r + o.r);
@@ -1057,7 +1090,7 @@ export function LiquidSilver() {
       present: false,
       engaged: false,
     };
-    let client = { x: 0, y: 0, down: false, touch: false };
+    const client = { x: 0, y: 0, down: false, touch: false };
     // The section, not the canvas: the entrance scales the liquid layer, and a
     // transformed box would shift every keep-out zone while it plays.
     const frameRect = () => section.getBoundingClientRect();
@@ -1259,6 +1292,7 @@ export function LiquidSilver() {
         return;
       }
       if (frame) return;
+      rect = frameRect();
       last = performance.now();
       frame = requestAnimationFrame(loop);
       setState("animating");
@@ -1328,12 +1362,9 @@ export function LiquidSilver() {
     };
 
     const onMove = (event: PointerEvent) => {
-      client = {
-        x: event.clientX,
-        y: event.clientY,
-        down: client.down,
-        touch: event.pointerType === "touch",
-      };
+      client.x = event.clientX;
+      client.y = event.clientY;
+      client.touch = event.pointerType === "touch";
       input.present = true;
     };
     const onDown = (event: PointerEvent) => {
@@ -1351,7 +1382,7 @@ export function LiquidSilver() {
       client.down = false;
     };
     const onScroll = () => {
-      rect = frameRect();
+      if (state === "animating") rect = frameRect();
     };
     const onLost = (event: Event) => {
       event.preventDefault();

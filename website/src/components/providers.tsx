@@ -1,14 +1,19 @@
 "use client";
 
-import { useReducedMotion } from "@/lib/use-reduced-motion";
+import {
+  ReducedMotionContext,
+  useSystemReducedMotion,
+} from "@/lib/use-reduced-motion";
 import { MotionConfig } from "motion/react";
 import type { ReactNode } from "react";
 
 export function Providers({ children }: { children: ReactNode }) {
-  const reduce = useReducedMotion();
+  const reduce = useSystemReducedMotion();
   return (
-    <MotionConfig reducedMotion={reduce ? "always" : "never"}>
-      {children}
-    </MotionConfig>
+    <ReducedMotionContext value={reduce}>
+      <MotionConfig reducedMotion={reduce ? "always" : "never"}>
+        {children}
+      </MotionConfig>
+    </ReducedMotionContext>
   );
 }
