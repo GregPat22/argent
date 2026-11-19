@@ -190,6 +190,11 @@ is in development under the
       Its [validation record](docs/specs/0013-local-mvp.md#desktop-run-action-validation)
       separates automated checks, native fixtures and repository evidence.
 - [ ] Record the remaining L1.4 exit evidence before marking item 3 complete.
+      An automated [desktop walkthrough](docs/specs/0013-local-mvp.md#l14-desktop-walkthrough-evidence)
+      at `7054f4a` used a real agent and this repository's own commands, and
+      covered passed, stale, failed and cancelled results and the separate run
+      action. It awaits the maintainers' decision on whether it meets the exit;
+      item 3 stays **Next** until then.
 
 The setup/test integration has automated and native fixture evidence at
 `7cebe40`. The run integration remains in development: approved setup then run

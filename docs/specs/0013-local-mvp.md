@@ -624,6 +624,58 @@ run now completes beside an unreadable check, and that duplicate requests still
 create exactly one job. No real agent account, native smoke or packaged build
 was used; L1.4 remains in development.
 
+#### L1.4 desktop walkthrough evidence
+
+Recorded 19 November 2026 against main `7054f4a`, on macOS 27 with the
+signed-in official Claude Code CLI 2.1.325. The development desktop app was
+driven through its real interface: clicks, the composer, the
+dialogs and the Refresh buttons. Playwright did the clicking, and an
+automated agent drove it, not a person. Only the native folder picker was
+answered programmatically. The data folder was isolated and the repository a
+fresh local clone of `7054f4a`, so it used this repository's own `argent.json`
+(`npm ci`, then `npm run check`). Agent tasks used the `haiku` model alias at
+low effort through a local CLI launch override. That is test configuration, not
+a model picker. A second repository carried harmless setup, test and run
+commands to exercise the run action. Whether this counts as the maintainers'
+walkthrough for the L1.4 exit is their decision.
+
+| Step                       | Observed result                                                                                                                                                                                                                                                                       |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Configuration and approval | The Commands dialog showed `setup` `npm ci` and `test` `npm run check` read at base `7054f4a` within half a second, with no error text. Approving created no run.                                                                                                                     |
+| Real agent commit          | In full access, Claude Code added one comment line to `scripts/demo.ts` and committed it as `4e52241`. The permission returned to Edits only after the message, and the worktree was clean.                                                                                           |
+| Passed                     | After the complete committed review and consent, setup and test ran in a fresh checkout of `4e52241`: `npm ci` exit 0, `npm run check` exit 0 after about ten minutes. The desktop showed "Checks passed · matches this reading". The verification checkout was removed.              |
+| Stale                      | An untracked file in the workspace turned the same result into "Checks passed · stale" on the next Refresh.                                                                                                                                                                           |
+| Failed                     | Claude Code committed a deliberately unformatted Markdown line as `3ddc260`. Its own consent was required. `npm ci` exited 0 and `npm run check` exited 1. The desktop showed "Checks failed · matches this reading".                                                                 |
+| Cancelled                  | A second check of `3ddc260` reused that commit's consent. It was cancelled while running and showed as cancelled within five seconds, with no result. No verification checkout, registered worktree or command process remained.                                                      |
+| Separate run consent       | In the second repository, setup/test consent left the run command unauthorised, and run consent left the setup/test consent valid. Checks passed, and the run command then reported "Run command succeeded · not test evidence" while the Checks dialog still showed "Checks passed". |
+| Cancelled run              | A second run was cancelled five seconds in. It was recorded as `user_cancelled` about one second later, with no success, no remaining checkout and no remaining process.                                                                                                              |
+
+Defects:
+
+1. **Ligatures in the literal review.** The bundled monospace font drew `=>`
+   in a reviewed argument as an arrow, contrary to the character-for-character
+   display the review promises. Corrected with this record: ligatures are off
+   throughout the desktop, and the native smoke asserts this for the reviewed
+   arguments and the complete candidate review. Before the correction, the
+   new assertion failed.
+2. **A service from an older build is reused.** In a separate manual run, the
+   development app attached to a desktop service still running from an
+   earlier build in the same data folder. The Commands dialog then showed
+   "Route not found". Stopping that service and relaunching fixed it. The desktop
+   does not yet detect a service of a different build. Listed, not corrected.
+
+Observations for design review, not defects in the accepted contracts: the
+Checks dialog does not refresh on its own and shows no current command or
+elapsed time while a check runs, so it can say "Check queued" well after the
+check has started. The agent run's record still shows "No checks yet" for a
+commit whose checks passed. The agent is not told when a later message runs
+with a different permission mode: after an earlier refusal in Edits only, the
+model declined to retry the commit even in full access.
+
+Limits: no packaged build, signing, website check or process recovery is
+established here. The candidate commits are local to the walkthrough and are
+not on `main`. Draft pull requests and archive remain L1.5.
+
 #### Desktop setup and test validation
 
 Development implementation `7cebe40058eec21275b073c3e983d022fef308c0`, validated
