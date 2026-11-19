@@ -26,6 +26,17 @@
   font-style: normal;
   font-display: swap;
 }
+/*
+ * Commands, file names and diffs are shown character for character for
+ * review. JetBrains Mono's ligatures would draw "=>" as an arrow and "!=" as
+ * one sign, so they are off everywhere. Important, because every "font"
+ * shorthand would otherwise turn them back on.
+ */
+*,
+*::before,
+*::after {
+  font-variant-ligatures: none !important;
+}
 
 :root {
   color-scheme: dark;

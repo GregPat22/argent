@@ -192,6 +192,13 @@ export async function runDesktopSmoke(
       false,
       "configured arguments stay literal text",
     );
+    assert.equal(
+      await js(
+        `getComputedStyle(document.querySelector('#commands-list li')).fontVariantLigatures`,
+      ),
+      "none",
+      "reviewed arguments are not drawn with ligatures",
+    );
     await capture("command-review");
     await js(`document.querySelector('#commands-approve').click()`);
     await until(
@@ -254,6 +261,13 @@ export async function runDesktopSmoke(
     );
     assert.match(await text("#candidate-files"), /review\.txt/);
     assert.match(await text("#candidate-files"), /\\t\\u202e\\u200b/);
+    assert.equal(
+      await js(
+        `Array.from(document.querySelectorAll('#candidate-files, #candidate-files *')).every(element => getComputedStyle(element).fontVariantLigatures === 'none')`,
+      ),
+      true,
+      "reviewed commands and changes are not drawn with ligatures",
+    );
     assert.equal(
       await js(
         `!!window.untrustedCandidate || !!document.querySelector('#candidate-files script')`,
