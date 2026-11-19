@@ -180,3 +180,22 @@ and in focused comparisons on unchanged main `9be273e`. The healthy dispatch
 job reached `needs_attention`, and the cancellation fixture missed its startup
 deadline. Task completion time and screen-reader use still require observation
 with users.
+
+## Launch opens on the welcome screen (in development)
+
+Against main `35ce8fb`, 18 November 2026. Reopening Argent previously returned
+to the last selected workspace, or the newest one, so the welcome field only
+appeared before the first workspace existed.
+
+- Every launch, including a window reopened while the service keeps running,
+  shows the welcome screen. Saved workspaces stay in the sidebar and open on
+  selection; their runs and activity are read only then.
+- The renderer no longer stores the selected workspace, and it removes the
+  selection saved by earlier builds.
+- Exception: an uncertain submission reopens its workspace, so its retry bar
+  stays visible instead of silently disabling the welcome send.
+
+Renderer regressions cover a launch with an earlier saved selection and a launch
+with an uncertain submission. The native smoke closes the window during a run,
+reopens it on the welcome screen, then selects the workspace and finds the
+completed conversation.

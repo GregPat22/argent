@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Workspace, WorkspaceChanges } from "../src/domain.js";
-import { fakeDocument, loadRenderer, settle } from "./renderer-loader.js";
+import {
+  fakeDocument,
+  loadRenderer,
+  settle,
+  openWorkspace,
+} from "./renderer-loader.js";
 
 const workspace = (id: string): Workspace => ({
   id,
@@ -84,10 +89,7 @@ async function launch() {
     },
     document,
     localStorage: {
-      getItem: (key: string) =>
-        key === "argent.selection"
-          ? JSON.stringify({ workspaceId: "one" })
-          : null,
+      getItem: () => null,
       setItem() {},
       removeItem() {},
     },
@@ -100,6 +102,7 @@ async function launch() {
     },
   });
   await settle();
+  await openWorkspace(element, "one");
   return {
     element,
     requests,

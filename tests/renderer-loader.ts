@@ -152,3 +152,17 @@ export function fakeDocument() {
 
 export const settle = async (): Promise<void> =>
   new Promise((resolve) => setImmediate(resolve));
+
+/** Launch shows the welcome screen; open a workspace the way a person would. */
+export async function openWorkspace(
+  element: (id: string) => FakeElement,
+  id?: string,
+): Promise<void> {
+  const button = element("workspace-list").find((child) =>
+    id ? child.dataset.workspaceId === id : !!child.dataset.workspaceId,
+  );
+  if (!id && !button) return;
+  assert.ok(button, `workspace ${id} must be rendered`);
+  button.click();
+  await settle();
+}

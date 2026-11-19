@@ -40,7 +40,6 @@ export const state = {
   mutationBusy: false,
   sending: false,
   pending: null as Pending | null,
-  saved: {} as { workspaceId?: string },
   turns: new Map<string, TurnRecord>(),
   /** Last status seen for each run, to notice a run finishing while watched. */
   seen: new Map<string, RunStatus>(),
@@ -78,14 +77,8 @@ export function turnRecord(runId: string): TurnRecord {
 
 export function restore(): void {
   try {
-    const preferences: unknown = JSON.parse(
-      localStorage.getItem("argent.selection") ?? "{}",
-    );
-    if (preferences && typeof preferences === "object") {
-      const row = preferences as Record<string, unknown>;
-      if (typeof row.workspaceId === "string")
-        state.saved.workspaceId = row.workspaceId;
-    }
+    // Launch opens on the welcome screen; drop the selection earlier builds kept.
+    localStorage.removeItem("argent.selection");
     const value: unknown = JSON.parse(
       localStorage.getItem("argent.pending") ?? "null",
     );
@@ -115,12 +108,7 @@ export function restore(): void {
 }
 
 export function persist(): void {
-  state.saved = { workspaceId: state.selectedWorkspace };
   try {
-    localStorage.setItem(
-      "argent.selection",
-      JSON.stringify({ workspaceId: state.selectedWorkspace }),
-    );
     if (state.pending)
       localStorage.setItem("argent.pending", JSON.stringify(state.pending));
     else localStorage.removeItem("argent.pending");

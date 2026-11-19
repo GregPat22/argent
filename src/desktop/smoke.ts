@@ -729,7 +729,17 @@ export async function runDesktopSmoke(
   await until(
     () =>
       js(
-        `!!document.querySelector('[data-workspace-id]') && document.querySelector('#transcript').textContent.includes(${JSON.stringify(second.task)})`,
+        `!document.querySelector('#welcome').hidden && !!document.querySelector(${JSON.stringify(`[data-workspace-id="${workspace.id}"]`)})`,
+      ),
+    "reopened window starts on the welcome screen",
+  );
+  await js(
+    `document.querySelector(${JSON.stringify(`[data-workspace-id="${workspace.id}"]`)}).click()`,
+  );
+  await until(
+    () =>
+      js(
+        `document.querySelector('#transcript').textContent.includes(${JSON.stringify(second.task)})`,
       ),
     "persisted workspace and conversation restored",
   );

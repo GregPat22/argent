@@ -29,6 +29,8 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
    installed Node. Report unsigned/notarized status accurately.
 3. Reopening the app restores persisted workspaces, tasks and activity. A window
    close never silently cancels a run; expose explicit service lifecycle controls.
+   Since spec 0015's launch refinement, each launch opens on the welcome screen
+   with saved workspaces in the sidebar rather than reopening the last selection.
 4. Task execution remains owned by the service, with existing crash reconciliation,
    cancellation, limits and independent verification behavior intact.
 5. The renderer has no Node integration, arbitrary filesystem/process access or
@@ -37,7 +39,8 @@ Do not imply GitHub authorization, real coding-agent execution or a tested PR.
    Errors, empty states, disconnected state and verification outcomes are usable.
    A selected workspace beyond the first list page must refresh its authoritative
    state after another client stops or starts it, including after reconnect.
-   This applies to restored selections and selections from loaded older pages.
+   This applies to selections from loaded older pages and to a workspace
+   reopened for an uncertain submission.
    A response arriving after selection changes must not update the new selection;
    read failures remain visible and later polls can recover.
 7. The app makes simulation status visible. Unavailable real-cloud/agent/PR
