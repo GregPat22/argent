@@ -661,8 +661,8 @@ Defects:
 2. **A service from an older build is reused.** In a separate manual run, the
    development app attached to a desktop service still running from an
    earlier build in the same data folder. The Commands dialog then showed
-   "Route not found". Stopping that service and relaunching fixed it. The desktop
-   does not yet detect a service of a different build. Listed, not corrected.
+   "Route not found". Stopping that service and relaunching fixed it.
+   Corrected by the [service build check](#service-build-check) below.
 
 Observations for design review, not defects in the accepted contracts: the
 Checks dialog does not refresh on its own and shows no current command or
@@ -675,6 +675,54 @@ model declined to retry the commit even in full access.
 Limits: no packaged build, signing, website check or process recovery is
 established here. The candidate commits are local to the walkthrough and are
 not on `main`. Draft pull requests and archive remain L1.5.
+
+#### Service build check
+
+Acceptance recorded 19 November 2026 against main `c86c5b0`, correcting the
+second walkthrough defect. The detached service outlives the window by design,
+so a rebuilt or updated desktop can meet a service still running older code in
+the same data folder. This changes no state, transition, consent or
+uncertainty policy and adds no milestone scope.
+
+1. **A build identity.** The service and the desktop each compute a SHA-256
+   over every compiled module path and its bytes under the code they run,
+   once per process. The service reports it on its authenticated health
+   check. A plain compiler rebuild changes it, so no generated file can go
+   stale against the code that loads. It identifies a build for
+   compatibility; it is not an integrity proof.
+2. **Another build is named, not used.** A service that answers the health
+   challenge with its own instance identity but a different build, or none
+   (every service from before this check), is reported to the desktop as
+   another build. The desktop shows it as not connected: "A local service from
+   a different Argent build is still running. Stop it, then reconnect." The
+   bridge refuses every request to it except the stop request, so no route of
+   the other build is used.
+3. **Never replaced implicitly.** Starting or reconnecting does not launch a
+   second service against another build's live service, which would only
+   wait on its ownership lock, and does not stop it either: a stop interrupts
+   its runs and checks, so it stays the developer's choice. The banner button
+   and the service menu open the existing stop confirmation, and the stop
+   keeps its documented semantics: interrupted work stays `needs_attention`.
+   After the stop, Reconnect starts this build's service.
+4. **Unchanged otherwise.** A service of the same build connects as before; a
+   service that does not answer the challenge is treated as absent, as before.
+
+Development validation, 19 November 2026, against main `c86c5b0`:
+`npm run check` passed strict types, formatting, build and all 669 tests. New
+tests cover the build identity (paths and bytes of compiled modules only), a
+live service reporting a different build or none (reported as another build,
+`ensureService` refuses it without launching), and the bridge reporting
+`otherBuild`, refusing a request before it reaches the service, allowing
+only the stop, and connecting once the build matches. An existing startup test
+that stacked two `fetch` mocks, which leaked the first one into later tests in
+the same file, now replaces the mock instead. A native check launched this
+build's development desktop against a live service started from main
+`c86c5b0`'s build in an isolated data folder. That service reported no build.
+The window showed "Service offline" and the other-build banner with a "Stop
+it…" button, and the older service kept running with its record untouched.
+After the stop confirmation it exited; Reconnect then started a new service
+that reported this build, and the banner cleared. Playwright drove the window.
+No real agent, packaged build or service crash was used.
 
 #### Desktop setup and test validation
 

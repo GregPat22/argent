@@ -194,7 +194,9 @@ is in development under the
       at `7054f4a` used a real agent and this repository's own commands, and
       covered passed, stale, failed and cancelled results and the separate run
       action. It awaits the maintainers' decision on whether it meets the exit;
-      item 3 stays **Next** until then.
+      item 3 stays **Next** until then. Its second defect, a reused service
+      from an older build, is corrected by the
+      [service build check](docs/specs/0013-local-mvp.md#service-build-check).
 
 The setup/test integration has automated and native fixture evidence at
 `7cebe40`. The run integration remains in development: approved setup then run

@@ -61,6 +61,8 @@ export interface ServerOptions {
   localCommandOperatorId?: string;
   localChecks?: boolean;
   instanceId?: string;
+  /** Identity of the code this service runs; the desktop refuses another build. */
+  build?: string;
   onStop?: () => void;
 }
 
@@ -108,6 +110,7 @@ export function makeServer(
           milestone: options.instanceId ? "P1" : "M0",
           simulation: true,
           instanceId: options.instanceId ?? null,
+          build: options.build ?? null,
         });
       } else if (
         parts[0] === "workspaces" &&

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { DesktopClient } from "../src/desktop/bridge.js";
+import { requestTimeouts, sameBuildHealth } from "./service-health-fixture.js";
 import { validateWorkspaceChanges } from "../src/desktop/changes.js";
 import type { WorkspaceChanges } from "../src/domain.js";
 const id = "00000000-0000-4000-8000-000000000001";
@@ -46,6 +47,8 @@ test("changes bridge rejects extra arguments and paths; scopes its timeout and v
   const timeouts: number[] = [];
   const routes: string[] = [];
   globalThis.fetch = async (input, init) => {
+    const health = sameBuildHealth(input, id);
+    if (health) return health;
     routes.push(String(input));
     assert.equal(init?.method, "GET");
     return Response.json(response);
@@ -61,12 +64,12 @@ test("changes bridge rejects extra arguments and paths; scopes its timeout and v
     assert.equal(routes.length, 0);
     assert.equal((await client.call("workspaceChanges", [id])).ok, true);
     assert.match(routes[0]!, new RegExp(`/workspaces/${id}/changes$`));
-    assert.deepEqual(timeouts, [20000]);
+    assert.deepEqual(requestTimeouts(timeouts), [20000]);
     response = { ...value(), workspaceId: "other" };
     assert.equal((await client.call("workspaceChanges", [id])).ok, false);
     await client.call("getWorkspace", [id]);
     assert.equal(
-      timeouts.at(-1),
+      requestTimeouts(timeouts).at(-1),
       7000,
       "ordinary operations retain their timeout",
     );

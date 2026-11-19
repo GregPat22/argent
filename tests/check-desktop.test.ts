@@ -5,20 +5,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { DesktopClient } from "../src/desktop/bridge.js";
+import { sameBuildHealth } from "./service-health-fixture.js";
 
 test("check bridge accepts only exact identifiers and rebuilds responses without private fields", async (t) => {
   const root = mkdtempSync(join(tmpdir(), "argent-check-bridge-"));
   const workspaceId = randomUUID(),
     consent = randomUUID(),
     key = randomUUID(),
-    id = randomUUID();
+    id = randomUUID(),
+    instanceId = randomUUID();
   writeFileSync(
     join(root, "service.json"),
     JSON.stringify({
       version: 1,
       port: 1234,
       token: "a".repeat(64),
-      instanceId: randomUUID(),
+      instanceId,
       pid: 1,
     }),
   );
@@ -40,6 +42,8 @@ test("check bridge accepts only exact identifiers and rebuilds responses without
     leaseToken: "private",
   };
   globalThis.fetch = async (input, init) => {
+    const health = sameBuildHealth(input, instanceId);
+    if (health) return health;
     requests.push({ url: String(input), ...(init ? { init } : {}) });
     return Response.json(response);
   };
@@ -83,14 +87,15 @@ test("run bridge uses separate routes and rejects a check response", async (t) =
   const workspaceId = randomUUID(),
     consent = randomUUID(),
     key = randomUUID(),
-    id = randomUUID();
+    id = randomUUID(),
+    instanceId = randomUUID();
   writeFileSync(
     join(root, "service.json"),
     JSON.stringify({
       version: 1,
       port: 1234,
       token: "a".repeat(64),
-      instanceId: randomUUID(),
+      instanceId,
       pid: 1,
     }),
   );
@@ -102,6 +107,8 @@ test("run bridge uses separate routes and rejects a check response", async (t) =
   const requests: { url: string; init?: RequestInit }[] = [];
   let kind = "local-run-action";
   globalThis.fetch = async (input, init) => {
+    const health = sameBuildHealth(input, instanceId);
+    if (health) return health;
     requests.push({ url: String(input), ...(init ? { init } : {}) });
     return Response.json({
       kind,

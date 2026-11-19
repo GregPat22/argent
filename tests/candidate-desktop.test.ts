@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test, type TestContext } from "node:test";
 import { DesktopClient } from "../src/desktop/bridge.js";
+import { requestTimeouts, sameBuildHealth } from "./service-health-fixture.js";
 import {
   validateCandidateReview,
   validateCandidateConsentReceipt,
@@ -115,13 +116,14 @@ async function fixture(t: TestContext, testCommand = true, enabled = true) {
   const address = server.address();
   assert.ok(address && typeof address === "object");
   const origin = `http://127.0.0.1:${address.port}`;
+  const instanceId = randomUUID();
   writeFileSync(
     join(root, "service.json"),
     JSON.stringify({
       version: 1,
       port: address.port,
       token,
-      instanceId: randomUUID(),
+      instanceId,
       pid: process.pid,
     }),
   );
@@ -156,6 +158,7 @@ async function fixture(t: TestContext, testCommand = true, enabled = true) {
   });
   return {
     root,
+    instanceId,
     repo,
     worktrees,
     cwd,
@@ -498,6 +501,8 @@ test("bridge validates exact inputs, bounded responses and the long review timeo
   const calls: { url: string; init: RequestInit | undefined }[] = [],
     timeouts: number[] = [];
   globalThis.fetch = async (input, init) => {
+    const health = sameBuildHealth(input, f.instanceId);
+    if (health) return health;
     calls.push({ url: String(input), init });
     return Response.json(payload);
   };
@@ -538,7 +543,7 @@ test("bridge validates exact inputs, bounded responses and the long review timeo
         key,
       ]),
     );
-    assert.deepEqual(timeouts, [
+    assert.deepEqual(requestTimeouts(timeouts), [
       REVIEW_LIMITS.timeoutMs + 10000,
       REVIEW_LIMITS.timeoutMs + 10000,
     ]);

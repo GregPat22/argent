@@ -91,7 +91,11 @@ this single-host prototype. The original separate API/worker mode remains tested
 A separate SQLite ownership database holds an exclusive OS-backed lock while the
 service runs; process death releases it without relying on PID liveness. API and
 worker data use the main WAL database. The desktop reconnects to a service by
-private instance identity and health challenge, not just an open port.
+private instance identity and health challenge, not just an open port, and
+uses it only when its health check reports the desktop's own build: a
+SHA-256 of the compiled modules. A live service of another build is shown as
+such and only offered a stop
+([service build check](docs/specs/0013-local-mvp.md#service-build-check)).
 
 The first usable prototype must launch as a local desktop application, with
 workspace/task controls, activity history and verification details. The desktop
