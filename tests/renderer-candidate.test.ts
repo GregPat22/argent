@@ -45,7 +45,7 @@ const review = (workspaceId = "one"): CandidateReviewView => ({
   configurationState: "changed",
   configuration: config,
   approvalId: "approval",
-  judgingChanges: { testPaths: null, commandPaths: [0] },
+  judgingChanges: { testPaths: null, commandPaths: [0], scripts: null },
   summary: { files: 2, textFiles: 2, binaryFiles: 0 },
   files: [
     {
@@ -500,7 +500,7 @@ test("the report displays escaped renamed test paths and coverage limits before 
     shown.files[0]!,
     { ...shown.files[1]!, path: "new\nname.test.ts" },
   ];
-  shown.judgingChanges = { testPaths: [1], commandPaths: [0] };
+  shown.judgingChanges = { testPaths: [1], commandPaths: [0], scripts: null };
   await app.show(shown);
   const section = app
     .element("candidate-files")
@@ -516,4 +516,26 @@ test("the report displays escaped renamed test paths and coverage limits before 
   assert.ok(section.text.includes("1 changed configuration or workflow file"));
   assert.ok(section.text.includes("Not checkable"));
   assert.equal(app.element("candidate-consent").disabled, false);
+});
+
+test("npm script names stay literal and an unsummarised manifest stays visible", async () => {
+  const app = await launch(),
+    shown = review();
+  shown.files = [
+    { ...shown.files[0]!, path: "package.json" },
+    { ...shown.files[1]!, path: "other/package.json" },
+  ];
+  shown.judgingChanges = {
+    testPaths: null,
+    commandPaths: [],
+    scripts: [
+      { file: 0, entries: [{ name: "<b>\n\u202e", change: "added" }] },
+      { file: 1, entries: null },
+    ],
+  };
+  await app.show(shown);
+  const text = app.element("candidate-files").text;
+  assert.ok(text.includes('added · "<b>\\n\\u202e"'));
+  assert.match(text, /other\/package.json" · changed and not summarised/);
+  assert.doesNotMatch(text, /No npm script definitions changed/);
 });

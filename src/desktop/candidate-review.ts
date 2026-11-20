@@ -1,4 +1,16 @@
-import { changedPaths, isTestPath, isCommandPath } from "../judging-changes.js";
+import {
+  judgingChangeCount,
+  validJudgingChangeCount,
+  isManifest,
+  validFindingText,
+  type FileFindings,
+  type ScriptChange,
+  DETAIL_LIMIT,
+  FILE_DETAIL_LIMIT,
+  changedPaths,
+  isTestPath,
+  isCommandPath,
+} from "../judging-changes.js";
 import { DomainError } from "../domain.js";
 import { REVIEW_POLICY, REVIEW_LIMITS } from "../local-command-review.js";
 import type { LocalCommandReviewFile } from "../local-command-review.js";
@@ -44,6 +56,72 @@ function count(value: unknown, max = Number.MAX_SAFE_INTEGER): number {
   )
     throw invalid();
   return value;
+}
+
+function validateScriptFindings(
+  input: unknown,
+  files: readonly LocalCommandReviewFile[],
+): FileFindings<ScriptChange>[] | null {
+  const expected = changedPaths(files, isManifest);
+  if (input === null && !expected.length) return null;
+  if (!Array.isArray(input) || input.length !== expected.length)
+    throw invalid();
+  let remaining = DETAIL_LIMIT;
+  return expected.map((file, index) => {
+    const row = record(input[index], ["file", "entries"]);
+    if (row.file !== file) throw invalid();
+    if (row.entries === null) return { file, entries: null };
+    const change = files[file]!;
+    const oldManifest =
+      change.oldMode !== null && isManifest(change.previousPath ?? change.path);
+    const newManifest = change.newMode !== null && isManifest(change.path);
+    if (
+      !Array.isArray(row.entries) ||
+      row.entries.length > remaining ||
+      (oldManifest &&
+        (change.oldMode === "120000" || change.oldBytes! > 64 * 1024)) ||
+      (newManifest &&
+        (change.newMode === "120000" || change.newBytes! > 64 * 1024)) ||
+      change.binary
+    )
+      throw invalid();
+    remaining -= row.entries.length;
+    const moved = !!change.previousPath && oldManifest && newManifest;
+    let oldCount = 0,
+      newCount = 0;
+    let previous = "";
+    const entries = row.entries.map((item): ScriptChange => {
+      const pair = record(item, ["name", "change"]);
+      if (!validFindingText(pair.name) || pair.name <= previous)
+        throw invalid();
+      previous = pair.name;
+      const kind = pair.change;
+      if (
+        kind !== "added" &&
+        kind !== "removed" &&
+        kind !== "modified" &&
+        kind !== "moved"
+      )
+        throw invalid();
+      if ((kind === "moved") !== moved) throw invalid();
+      if (kind !== "added" && (!oldManifest || ++oldCount > FILE_DETAIL_LIMIT))
+        throw invalid();
+      if (
+        kind !== "removed" &&
+        (!newManifest || ++newCount > FILE_DETAIL_LIMIT)
+      )
+        throw invalid();
+      if (
+        oldManifest &&
+        newManifest &&
+        !moved &&
+        change.oldBlobId === change.newBlobId
+      )
+        throw invalid();
+      return { name: pair.name, change: kind };
+    });
+    return { file, entries };
+  });
 }
 
 /** Rebuild every field. Neither repository text nor unknown service fields gain authority. */
@@ -173,7 +251,11 @@ export function validateCandidateReview(
       configuration: entry.configuration as boolean,
     };
   });
-  const report = record(row.judgingChanges, ["testPaths", "commandPaths"]);
+  const report = record(row.judgingChanges, [
+    "testPaths",
+    "commandPaths",
+    "scripts",
+  ]);
   const validateIndices = (value: unknown, expected: number[]): number[] => {
     if (
       !Array.isArray(value) ||
@@ -191,6 +273,10 @@ export function validateCandidateReview(
   const paths = report.testPaths;
   if (paths === null && expected.length) throw invalid();
   const testPaths = paths === null ? null : validateIndices(paths, expected);
+  const scripts = validateScriptFindings(report.scripts, files);
+  const judgingChanges = { testPaths, commandPaths, scripts };
+  if (!validJudgingChangeCount(judgingChangeCount(judgingChanges)))
+    throw invalid();
   const summary = record(row.summary, ["files", "textFiles", "binaryFiles"]);
   const binaryFiles = files.filter((file) => file.binary).length;
   if (
@@ -226,7 +312,7 @@ export function validateCandidateReview(
     configuration,
     approvalId: text(row.approvalId, WORKSPACE_ID),
     files,
-    judgingChanges: { testPaths, commandPaths },
+    judgingChanges,
     summary: {
       files: files.length,
       textFiles: files.length - binaryFiles,

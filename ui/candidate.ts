@@ -114,9 +114,36 @@ function display(shown: CandidateReviewView): void {
     }),
   );
   appendPaths(commands);
+  const scripts = shown.judgingChanges.scripts;
   report.append(
     h("p", {
-      text: "Skipped tests, npm script definitions and dependencies · Not checkable in this report.",
+      text:
+        scripts === null
+          ? "npm scripts · Not checkable. Neither commit contains a package.json."
+          : "npm scripts · Compared script definitions in changed package.json files.",
+    }),
+  );
+  if (scripts && scripts.every((summary) => summary.entries?.length === 0))
+    report.append(h("p", { text: "No npm script definitions changed." }));
+  for (const { file, entries } of scripts ?? []) {
+    if (entries?.length === 0) continue;
+    report.append(
+      h("p", {
+        class: "mono",
+        text: `${changeName(shown.files[file]!)} · ${entries === null ? "changed and not summarised" : "npm scripts"}`,
+      }),
+    );
+    for (const entry of entries ?? [])
+      report.append(
+        h("p", {
+          class: "mono",
+          text: `${entry.change} · ${argumentText(entry.name)}`,
+        }),
+      );
+  }
+  report.append(
+    h("p", {
+      text: "Skipped tests and dependencies · Not checkable in this report.",
     }),
   );
   content.append(report);

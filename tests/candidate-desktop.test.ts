@@ -189,7 +189,11 @@ test("desktop reviews the complete pinned change set and records exact-commit co
   assert.equal(shown.files.length, 1);
   assert.match(shown.files[0]!.diff, /<script>untrusted/);
   assert.equal(shown.summary.textFiles, 1);
-  assert.deepEqual(shown.judgingChanges, { testPaths: null, commandPaths: [] });
+  assert.deepEqual(shown.judgingChanges, {
+    testPaths: null,
+    commandPaths: [],
+    scripts: null,
+  });
   assert.deepEqual(shown.configuration.config.commands.test!.argv, [
     "node",
     "marker.js",
@@ -727,4 +731,56 @@ test("run-only desktop review records separate consent and rejects responses for
     ).ok,
     false,
   );
+});
+
+test("bridge validates npm script references, kinds and ordered bounded names", async (t) => {
+  const f = await fixture(t);
+  writeFileSync(
+    join(f.cwd, "package.json"),
+    JSON.stringify({ scripts: { one: "true", two: "false" } }),
+  );
+  f.commit();
+  const shown = value<CandidateReviewView>(
+    await f.client.call("candidateReview", [f.workspace.id]),
+  );
+  assert.deepEqual(shown.judgingChanges.scripts, [
+    {
+      file: 1,
+      entries: [
+        { name: "one", change: "added" },
+        { name: "two", change: "added" },
+      ],
+    },
+  ]);
+  for (const corrupt of [
+    (x: any) => {
+      x.judgingChanges.scripts[0].entries = Array.from(
+        { length: 129 },
+        (_, i) => ({ name: String(i).padStart(3, "0"), change: "added" }),
+      );
+    },
+    (x: any) => {
+      const file = x.files[1];
+      Object.assign(file, {
+        previousPath: "old/package.json",
+        status: "renamed",
+        oldMode: file.newMode,
+        oldBytes: file.newBytes,
+        oldBlobId: file.newBlobId,
+      });
+    },
+    (x: any) => x.judgingChanges.scripts.pop(),
+    (x: any) => x.judgingChanges.scripts[0].file--,
+    (x: any) => x.judgingChanges.scripts[0].entries.reverse(),
+    (x: any) => (x.judgingChanges.scripts[0].entries[0].change = "modified"),
+    (x: any) => (x.judgingChanges.scripts[0].entries[0].name = "x".repeat(257)),
+    (x: any) => (x.judgingChanges.scripts[0].entries[0].command = "forged"),
+  ]) {
+    const bad = structuredClone(shown);
+    corrupt(bad);
+    assert.throws(
+      () => validateCandidateReview(bad, f.workspace.id),
+      /invalid/,
+    );
+  }
 });

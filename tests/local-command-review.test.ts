@@ -744,3 +744,79 @@ test("recognised command configuration and workflow changes retain both paths of
     ],
   );
 });
+
+test("npm script changes distinguish edited definitions, malformed and oversized manifests, and symbolic links", async (t) => {
+  const f = await fixture(t, {
+    "package.json":
+      '{"scripts":{"edit":"old","gone":"remove","same":"keep","__proto__":"a"}}',
+    "nested/package.json": "{}",
+    "moved/package.json": '{"scripts":{"carried":"true"}}',
+    "obsolete/package.json": '{"scripts":{"removed":"true"}}',
+  });
+  const at = (name: string) => join(f.directory, name);
+  writeFileSync(
+    at("package.json"),
+    '{"scripts":{"new":"added","same":"keep","edit":"new","__proto__":"b"}}',
+  );
+  writeFileSync(at("nested/package.json"), '{"scripts":null}');
+  mkdirSync(at("dest"));
+  renameSync(at("moved/package.json"), at("dest/package.json"));
+  renameSync(at("obsolete/package.json"), at("old.txt"));
+  for (const dir of ["big", "link", "bad", "metadata"]) mkdirSync(at(dir));
+  writeFileSync(
+    at("big/package.json"),
+    JSON.stringify({ description: "a".repeat(65536) }),
+  );
+  symlinkSync("../package.json", at("link/package.json"));
+  writeFileSync(at("bad/package.json"), "{");
+  writeFileSync(at("metadata/package.json"), '{"name":"fixture"}');
+  f.commit();
+  const review = await f.review();
+  const result = review.judgingChanges.scripts?.map(({ file, entries }) => [
+    review.files[file]!.path,
+    entries?.map((e) => [e.name, e.change]) ?? null,
+  ]);
+  assert.deepEqual(result, [
+    ["bad/package.json", null],
+    ["big/package.json", null],
+    ["dest/package.json", [["carried", "moved"]]],
+    ["link/package.json", null],
+    ["metadata/package.json", []],
+    ["nested/package.json", null],
+    ["old.txt", [["removed", "removed"]]],
+    [
+      "package.json",
+      [
+        ["__proto__", "modified"],
+        ["edit", "modified"],
+        ["gone", "removed"],
+        ["new", "added"],
+      ],
+    ],
+  ]);
+});
+
+test("script definition and report limits preserve a changed-file entry", async (t) => {
+  const f = await fixture(t);
+  const manifest = (n: number) =>
+    JSON.stringify({
+      scripts: Object.fromEntries(
+        Array.from({ length: n }, (_, i) => [`script-${i}`, "true"]),
+      ),
+    });
+  for (const [dir, size] of [
+    ["a", 129],
+    ["b", 128],
+    ["c", 128],
+    ["d", 1],
+  ] as const) {
+    mkdirSync(join(f.directory, dir));
+    writeFileSync(join(f.directory, dir, "package.json"), manifest(size));
+  }
+  f.commit();
+  const review = await f.review();
+  assert.deepEqual(
+    review.judgingChanges.scripts?.map((row) => row.entries?.length ?? null),
+    [null, 128, 128, null],
+  );
+});

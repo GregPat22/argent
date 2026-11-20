@@ -232,8 +232,33 @@ Acceptance against `97d45b4`, 20 November 2026:
 - The native smoke uses an added test path, exercises the before-consent
   report, and checks the same count at a passed result and after a new commit.
 
-Remaining acceptance includes skipped tests, npm script and dependency
-recognisers, partial file summaries and the maintainer trial.
+Development evidence at `e7a4398`, 20 November 2026: the full repository
+check passed. Native fixture smoke displayed an added test path before consent,
+then its count with the passed and stale check. The real-Git regression also
+changed the base while retaining the candidate commit and the recorded count.
+
+## npm script definitions (in development)
+
+Acceptance against `e7a4398`, 20 November 2026:
+
+- For each changed `package.json` at any depth, compare the own string entries
+  in its `scripts` object. Report a script's name and whether it was added,
+  removed, modified or moved with a renamed manifest. Show both paths for a
+  rename. Include script definitions without claiming a command reaches them.
+- Parse verified regular blobs as UTF-8 JSON. Each side is limited to 64 KiB,
+  128 script definitions and 256 UTF-8 bytes per name. Never evaluate a script.
+  A missing side or absent scripts member has no definitions. Invalid JSON,
+  invalid shapes, symlinks and limits produce one changed, unsummarised file.
+  The group allows 256 detailed entries in total; a file that would overflow
+  gets one unsummarised entry instead. Preserve the full-review refusal above
+  its own bounds. A complete report over 2,000 entries also blocks consent.
+  A repository with no manifest in either tree is not checkable.
+- The bridge validates the file references, ordered unique script names, change
+  kinds and limits. Render names with visible escapes before consent, alongside
+  the complete diff. Count each reported script or unsummarised file once.
+
+Remaining acceptance includes skipped tests, lock-file and source-setting
+recognisers and the maintainer trial.
 
 ## Exit evidence
 

@@ -8,10 +8,13 @@ import {
 } from "./domain.js";
 import {
   isTestPath,
+  judgingChangeCount,
+  validJudgingChangeCount,
   changedPaths,
   isCommandPath,
   type JudgingChanges,
 } from "./judging-changes.js";
+import { scriptFindings } from "./judging-content.js";
 import { git } from "./git.js";
 import { COMMAND_CONFIG_PATH } from "./local-command-config.js";
 import type { Store } from "./store.js";
@@ -298,11 +301,14 @@ export async function reviewLocalCommandCandidate(
     const recognizedTests =
       [...base.keys()].some(isTestPath) || [...head.keys()].some(isTestPath);
     const judgingChanges = Object.freeze({
+      scripts: scriptFindings(files, base, head),
       commandPaths: Object.freeze(changedPaths(files, isCommandPath)),
       testPaths: recognizedTests
         ? Object.freeze(changedPaths(files, isTestPath))
         : null,
     });
+    if (!validJudgingChangeCount(judgingChangeCount(judgingChanges)))
+      throw limit();
     const identity = createHash("sha256")
       .update(
         JSON.stringify([
