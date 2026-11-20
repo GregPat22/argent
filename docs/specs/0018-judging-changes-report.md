@@ -187,7 +187,29 @@ Validate the ordered references against both rename paths at the bridge, bind
 the report version into the digest, and preserve historical receipt decoding.
 The full review already refuses submodules; retain that refusal before consent.
 
-Remaining acceptance includes skipped tests, command and dependency
+Development evidence at `00ef222`, 20 November 2026: real temporary Git
+tests cover added, removed, modified and exactly renamed paths, symlinks and
+unrecognised repositories. Bridge and renderer fixtures cover invalid indices
+and visible escapes. The repository check and dedicated diff review passed.
+
+## Command configuration and workflow paths (in development)
+
+Acceptance against `00ef222`, 20 November 2026:
+
+- List changes to the root `argent.json` and to workflow YAML files directly
+  under the root `.github/workflows/`. At any depth, recognise `tsconfig.json`,
+  `.prettierignore`, and `jest.config`, `vitest.config` or `playwright.config`
+  with the extension `js`, `ts`, `cjs`, `mjs`, `cts` or `mts`.
+- Match either path of a rename, classify each changed file once within the
+  group and show its existing review metadata. The pinned base includes an
+  approved root configuration, so this recogniser always applies. An empty
+  list means no matching file changed.
+- The pre-implementation security review requires scanning only validated
+  names in the existing change list. Validate ordered references at the
+  bridge, display paths literally, and include this group in the consent
+  identity. A matching path does not establish that the command uses it.
+
+Remaining acceptance includes skipped tests, npm script and dependency
 recognisers, partial file summaries, result counts, native smoke and the
 maintainer trial.
 

@@ -94,19 +94,29 @@ function display(shown: CandidateReviewView): void {
           : `Tests · ${plural(tests.length, "changed test path")} (JavaScript and TypeScript test paths).`,
     }),
   );
-  for (const index of tests ?? []) {
-    const file = shown.files[index]!;
-    const link = file.oldMode === "120000" || file.newMode === "120000";
-    report.append(
-      h("p", {
-        class: "mono",
-        text: `${file.status} · ${changeName(file)}${link ? " · symbolic link" : ""}`,
-      }),
-    );
-  }
+  const appendPaths = (paths: readonly number[]) => {
+    for (const index of paths) {
+      const file = shown.files[index]!;
+      const link = file.oldMode === "120000" || file.newMode === "120000";
+      report.append(
+        h("p", {
+          class: "mono",
+          text: `${file.status} · ${changeName(file)}${link ? " · symbolic link" : ""}`,
+        }),
+      );
+    }
+  };
+  appendPaths(tests ?? []);
+  const commands = shown.judgingChanges.commandPaths;
   report.append(
     h("p", {
-      text: "Skipped tests, command definitions and dependencies · Not checkable in this report.",
+      text: `What the approved commands run · ${plural(commands.length, "changed configuration or workflow file")}. Checked the command file, recognised check configurations and GitHub Actions workflows.`,
+    }),
+  );
+  appendPaths(commands);
+  report.append(
+    h("p", {
+      text: "Skipped tests, npm script definitions and dependencies · Not checkable in this report.",
     }),
   );
   content.append(report);

@@ -45,7 +45,7 @@ const review = (workspaceId = "one"): CandidateReviewView => ({
   configurationState: "changed",
   configuration: config,
   approvalId: "approval",
-  judgingChanges: { testPaths: null },
+  judgingChanges: { testPaths: null, commandPaths: [0] },
   summary: { files: 2, textFiles: 2, binaryFiles: 0 },
   files: [
     {
@@ -500,7 +500,7 @@ test("the report displays escaped renamed test paths and coverage limits before 
     shown.files[0]!,
     { ...shown.files[1]!, path: "new\nname.test.ts" },
   ];
-  shown.judgingChanges = { testPaths: [1] };
+  shown.judgingChanges = { testPaths: [1], commandPaths: [0] };
   await app.show(shown);
   const section = app
     .element("candidate-files")
@@ -512,6 +512,8 @@ test("the report displays escaped renamed test paths and coverage limits before 
     ),
   );
   assert.ok(section.text.includes("1 changed test path"));
+  assert.ok(section.text.includes('modified · "argent.json"'));
+  assert.ok(section.text.includes("1 changed configuration or workflow file"));
   assert.ok(section.text.includes("Not checkable"));
   assert.equal(app.element("candidate-consent").disabled, false);
 });

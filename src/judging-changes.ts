@@ -3,6 +3,7 @@ import type { WorkspaceChange } from "./domain.js";
 export interface JudgingChanges {
   /** Indexes in review order. Null means neither tree has a recognised path. */
   readonly testPaths: readonly number[] | null;
+  readonly commandPaths: readonly number[];
 }
 
 const extension = /\.(?:[cm]?[jt]s|[jt]sx)$/;
@@ -13,10 +14,26 @@ export function isTestPath(path: string): boolean {
   return suffix.test(path) || (extension.test(path) && directory.test(path));
 }
 
-export function changedTestPaths(files: readonly WorkspaceChange[]): number[] {
+export function isCommandPath(path: string): boolean {
+  if (
+    path === "argent.json" ||
+    /^\.github\/workflows\/[^/]+\.ya?ml$/.test(path)
+  )
+    return true;
+  const name = path.slice(path.lastIndexOf("/") + 1);
+  return (
+    name === "tsconfig.json" ||
+    name === ".prettierignore" ||
+    /^(?:jest|vitest|playwright)\.config\.(?:[cm]?[jt]s)$/.test(name)
+  );
+}
+
+export function changedPaths(
+  files: readonly WorkspaceChange[],
+  matches: (path: string) => boolean,
+): number[] {
   return files.flatMap((file, index) =>
-    isTestPath(file.path) ||
-    (file.previousPath && isTestPath(file.previousPath))
+    matches(file.path) || (file.previousPath && matches(file.previousPath))
       ? [index]
       : [],
   );

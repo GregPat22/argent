@@ -1,4 +1,4 @@
-import { changedTestPaths } from "../judging-changes.js";
+import { changedPaths, isTestPath, isCommandPath } from "../judging-changes.js";
 import { DomainError } from "../domain.js";
 import { REVIEW_POLICY, REVIEW_LIMITS } from "../local-command-review.js";
 import type { LocalCommandReviewFile } from "../local-command-review.js";
@@ -173,17 +173,24 @@ export function validateCandidateReview(
       configuration: entry.configuration as boolean,
     };
   });
-  const report = record(row.judgingChanges, ["testPaths"]);
-  const expected = changedTestPaths(files);
+  const report = record(row.judgingChanges, ["testPaths", "commandPaths"]);
+  const validateIndices = (value: unknown, expected: number[]): number[] => {
+    if (
+      !Array.isArray(value) ||
+      value.length !== expected.length ||
+      expected.some((index, position) => value[position] !== index)
+    )
+      throw invalid();
+    return expected;
+  };
+  const commandPaths = validateIndices(
+    report.commandPaths,
+    changedPaths(files, isCommandPath),
+  );
+  const expected = changedPaths(files, isTestPath);
   const paths = report.testPaths;
-  if (
-    paths === null
-      ? expected.length !== 0
-      : !Array.isArray(paths) ||
-        paths.length !== expected.length ||
-        expected.some((index, position) => paths[position] !== index)
-  )
-    throw invalid();
+  if (paths === null && expected.length) throw invalid();
+  const testPaths = paths === null ? null : validateIndices(paths, expected);
   const summary = record(row.summary, ["files", "textFiles", "binaryFiles"]);
   const binaryFiles = files.filter((file) => file.binary).length;
   if (
@@ -219,7 +226,7 @@ export function validateCandidateReview(
     configuration,
     approvalId: text(row.approvalId, WORKSPACE_ID),
     files,
-    judgingChanges: { testPaths: paths === null ? null : expected },
+    judgingChanges: { testPaths, commandPaths },
     summary: {
       files: files.length,
       textFiles: files.length - binaryFiles,

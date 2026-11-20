@@ -711,3 +711,36 @@ test("judging changes distinguish recognised paths in both pinned trees from cha
   const withoutTests = await fixture(t);
   assert.equal((await withoutTests.review()).judgingChanges.testPaths, null);
 });
+
+test("recognised command configuration and workflow changes retain both paths of a rename", async (t) => {
+  const f = await fixture(t, {
+    ".github/workflows/ci.yml": "old workflow",
+    "site/vitest.config.mts": "old config",
+    "tsconfig.json": "{}",
+  });
+  assert.deepEqual((await f.review()).judgingChanges.commandPaths, []);
+  const at = (name: string) => join(f.directory, name);
+  renameSync(at(".github/workflows/ci.yml"), at("disabled"));
+  renameSync(at("site/vitest.config.mts"), at("site/playwright.config.ts"));
+  unlinkSync(at("tsconfig.json"));
+  writeFileSync(at(".github/workflows/new.yaml"), "new workflow");
+  mkdirSync(at("site/.github/workflows"), { recursive: true });
+  writeFileSync(at("site/.github/workflows/other.yml"), "outside root");
+  writeFileSync(at("site/argent.json"), "outside root");
+  writeFileSync(at("argent.json"), CONFIG + "\n");
+  f.commit();
+  const review = await f.review();
+  assert.deepEqual(
+    review.judgingChanges.commandPaths.map((i) => {
+      const { path, previousPath, status } = review.files[i]!;
+      return [path, previousPath, status];
+    }),
+    [
+      [".github/workflows/new.yaml", null, "added"],
+      ["argent.json", null, "modified"],
+      ["disabled", ".github/workflows/ci.yml", "renamed"],
+      ["site/playwright.config.ts", "site/vitest.config.mts", "renamed"],
+      ["tsconfig.json", null, "deleted"],
+    ],
+  );
+});

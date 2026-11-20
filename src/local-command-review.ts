@@ -8,7 +8,8 @@ import {
 } from "./domain.js";
 import {
   isTestPath,
-  changedTestPaths,
+  changedPaths,
+  isCommandPath,
   type JudgingChanges,
 } from "./judging-changes.js";
 import { git } from "./git.js";
@@ -297,8 +298,9 @@ export async function reviewLocalCommandCandidate(
     const recognizedTests =
       [...base.keys()].some(isTestPath) || [...head.keys()].some(isTestPath);
     const judgingChanges = Object.freeze({
+      commandPaths: Object.freeze(changedPaths(files, isCommandPath)),
       testPaths: recognizedTests
-        ? Object.freeze(changedTestPaths(files))
+        ? Object.freeze(changedPaths(files, isTestPath))
         : null,
     });
     const identity = createHash("sha256")
