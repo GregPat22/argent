@@ -269,7 +269,12 @@ first. The security model is unchanged.
   aside from the local service's startup path and the default check until M1
   resumes. Planned as its own change; how, and whether offline history export
   moves with it, is open. No milestone is removed.
-- The README becomes shorter once item 3 produces a real result to show.
+- The [shorter README](../README.md#reproduce-an-exact-commit-check) gives the
+  desktop steps for reproducing item 3's passing-to-stale result. The
+  [development reference](local-development.md) holds the standalone setup and
+  API, CLI tools and packaging instructions. The documentation review at
+  `0ab21ac` on 20 November 2026 checked the control labels, commands and
+  previous README anchors against the implementation and recorded walkthrough.
 
 ### Complete text review before candidate consent — 14 November 2026
 

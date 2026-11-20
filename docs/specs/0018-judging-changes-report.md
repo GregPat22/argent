@@ -450,6 +450,14 @@ with a letter or digit and continuing with letters, digits, dots, underscores
 or hyphens are recognised. Unsupported keys with punctuation, including
 credentials scoped to a URL, make a changed file unsummarised.
 
+Development evidence at `a8b6c26`, 20 November 2026: the real-Git fixtures
+covered changes on either side of a rename, literal assignments, symlinks and
+unsupported input. Desktop validation rejected extra values and unknown setting
+names. The full repository check and independent diff review passed. Native
+Electron smoke displayed the scoped registry setting before consent and the
+same five findings beside the passed and stale results. It used fixture
+commands and a local repository.
+
 The maintainer trial remains open. The complete review still refuses inputs beyond its own
 bounds and unsupported submodules before consent.
 
