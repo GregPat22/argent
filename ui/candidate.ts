@@ -107,6 +107,32 @@ function display(shown: CandidateReviewView): void {
     }
   };
   appendPaths(tests ?? []);
+  const skips = shown.judgingChanges.skips;
+  if (skips) {
+    report.append(
+      h("p", {
+        text: "Skip markers · Compared literal .skip calls and disabled-test aliases with quoted titles.",
+      }),
+    );
+    if (skips.every((file) => file.entries?.length === 0))
+      report.append(h("p", { text: "No new recognised skip markers." }));
+    for (const { file, entries } of skips) {
+      if (entries?.length === 0) continue;
+      report.append(
+        h("p", {
+          class: "mono",
+          text: `${changeName(shown.files[file]!)} · ${entries === null ? "skip markers not summarised" : "new skip markers"}`,
+        }),
+      );
+      for (const entry of entries ?? [])
+        report.append(
+          h("p", {
+            class: "mono",
+            text: `${entry.marker} · line ${entry.line}`,
+          }),
+        );
+    }
+  }
   const commands = shown.judgingChanges.commandPaths;
   report.append(
     h("p", {
@@ -143,7 +169,7 @@ function display(shown: CandidateReviewView): void {
   }
   report.append(
     h("p", {
-      text: "Skipped tests and dependencies · Not checkable in this report.",
+      text: "Dependencies · Not checkable in this report.",
     }),
   );
   content.append(report);

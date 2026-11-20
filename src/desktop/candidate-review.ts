@@ -9,6 +9,8 @@ import {
   FILE_DETAIL_LIMIT,
   changedPaths,
   isTestPath,
+  SKIP_MARKERS,
+  type SkipMarker,
   isCommandPath,
 } from "../judging-changes.js";
 import { DomainError } from "../domain.js";
@@ -58,11 +60,18 @@ function count(value: unknown, max = Number.MAX_SAFE_INTEGER): number {
   return value;
 }
 
-function validateScriptFindings(
+function validateFindings<T>(
   input: unknown,
   files: readonly LocalCommandReviewFile[],
-): FileFindings<ScriptChange>[] | null {
-  const expected = changedPaths(files, isManifest);
+  matches: (path: string) => boolean,
+  readEntries: (
+    items: unknown[],
+    change: LocalCommandReviewFile,
+    oldSide: boolean,
+    newSide: boolean,
+  ) => T[],
+): FileFindings<T>[] | null {
+  const expected = changedPaths(files, matches);
   if (input === null && !expected.length) return null;
   if (!Array.isArray(input) || input.length !== expected.length)
     throw invalid();
@@ -72,55 +81,84 @@ function validateScriptFindings(
     if (row.file !== file) throw invalid();
     if (row.entries === null) return { file, entries: null };
     const change = files[file]!;
-    const oldManifest =
-      change.oldMode !== null && isManifest(change.previousPath ?? change.path);
-    const newManifest = change.newMode !== null && isManifest(change.path);
+    const oldSide =
+      change.oldMode !== null && matches(change.previousPath ?? change.path);
+    const newSide = change.newMode !== null && matches(change.path);
     if (
       !Array.isArray(row.entries) ||
       row.entries.length > remaining ||
-      (oldManifest &&
+      change.binary ||
+      (oldSide &&
         (change.oldMode === "120000" || change.oldBytes! > 64 * 1024)) ||
-      (newManifest &&
-        (change.newMode === "120000" || change.newBytes! > 64 * 1024)) ||
-      change.binary
+      (newSide && (change.newMode === "120000" || change.newBytes! > 64 * 1024))
     )
       throw invalid();
     remaining -= row.entries.length;
-    const moved = !!change.previousPath && oldManifest && newManifest;
-    let oldCount = 0,
-      newCount = 0;
-    let previous = "";
-    const entries = row.entries.map((item): ScriptChange => {
-      const pair = record(item, ["name", "change"]);
-      if (!validFindingText(pair.name) || pair.name <= previous)
-        throw invalid();
-      previous = pair.name;
-      const kind = pair.change;
-      if (
-        kind !== "added" &&
-        kind !== "removed" &&
-        kind !== "modified" &&
-        kind !== "moved"
-      )
-        throw invalid();
-      if ((kind === "moved") !== moved) throw invalid();
-      if (kind !== "added" && (!oldManifest || ++oldCount > FILE_DETAIL_LIMIT))
-        throw invalid();
-      if (
-        kind !== "removed" &&
-        (!newManifest || ++newCount > FILE_DETAIL_LIMIT)
-      )
-        throw invalid();
-      if (
-        oldManifest &&
-        newManifest &&
-        !moved &&
-        change.oldBlobId === change.newBlobId
-      )
-        throw invalid();
-      return { name: pair.name, change: kind };
-    });
-    return { file, entries };
+    return {
+      file,
+      entries: readEntries(row.entries, change, oldSide, newSide),
+    };
+  });
+}
+
+function scriptEntries(
+  items: unknown[],
+  change: LocalCommandReviewFile,
+  oldManifest: boolean,
+  newManifest: boolean,
+): ScriptChange[] {
+  const moved = !!change.previousPath && oldManifest && newManifest;
+  let oldCount = 0,
+    newCount = 0;
+  let previous = "";
+  return items.map((item): ScriptChange => {
+    const pair = record(item, ["name", "change"]);
+    if (!validFindingText(pair.name) || pair.name <= previous) throw invalid();
+    previous = pair.name;
+    const kind = pair.change;
+    if (
+      kind !== "added" &&
+      kind !== "removed" &&
+      kind !== "modified" &&
+      kind !== "moved"
+    )
+      throw invalid();
+    if ((kind === "moved") !== moved) throw invalid();
+    if (kind !== "added" && (!oldManifest || ++oldCount > FILE_DETAIL_LIMIT))
+      throw invalid();
+    if (kind !== "removed" && (!newManifest || ++newCount > FILE_DETAIL_LIMIT))
+      throw invalid();
+    if (
+      oldManifest &&
+      newManifest &&
+      !moved &&
+      change.oldBlobId === change.newBlobId
+    )
+      throw invalid();
+    return { name: pair.name, change: kind };
+  });
+}
+
+function skipEntries(
+  items: unknown[],
+  change: LocalCommandReviewFile,
+  oldSide: boolean,
+  newSide: boolean,
+): SkipMarker[] {
+  if (
+    items.length > FILE_DETAIL_LIMIT ||
+    (items.length &&
+      (!newSide || (oldSide && change.oldBlobId === change.newBlobId)))
+  )
+    throw invalid();
+  let previous = 0;
+  return items.map((item) => {
+    const row = record(item, ["marker", "line"]);
+    const marker = SKIP_MARKERS.find((value) => value === row.marker);
+    const line = count(row.line, change.newBytes ?? 0);
+    if (!marker || line <= previous) throw invalid();
+    previous = line;
+    return { marker, line };
   });
 }
 
@@ -255,6 +293,7 @@ export function validateCandidateReview(
     "testPaths",
     "commandPaths",
     "scripts",
+    "skips",
   ]);
   const validateIndices = (value: unknown, expected: number[]): number[] => {
     if (
@@ -273,8 +312,15 @@ export function validateCandidateReview(
   const paths = report.testPaths;
   if (paths === null && expected.length) throw invalid();
   const testPaths = paths === null ? null : validateIndices(paths, expected);
-  const scripts = validateScriptFindings(report.scripts, files);
-  const judgingChanges = { testPaths, commandPaths, scripts };
+  const scripts = validateFindings(
+    report.scripts,
+    files,
+    isManifest,
+    scriptEntries,
+  );
+  const skips = validateFindings(report.skips, files, isTestPath, skipEntries);
+  if ((testPaths === null) !== (skips === null)) throw invalid();
+  const judgingChanges = { testPaths, commandPaths, scripts, skips };
   if (!validJudgingChangeCount(judgingChangeCount(judgingChanges)))
     throw invalid();
   const summary = record(row.summary, ["files", "textFiles", "binaryFiles"]);

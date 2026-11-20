@@ -45,7 +45,12 @@ const review = (workspaceId = "one"): CandidateReviewView => ({
   configurationState: "changed",
   configuration: config,
   approvalId: "approval",
-  judgingChanges: { testPaths: null, commandPaths: [0], scripts: null },
+  judgingChanges: {
+    testPaths: null,
+    commandPaths: [0],
+    skips: null,
+    scripts: null,
+  },
   summary: { files: 2, textFiles: 2, binaryFiles: 0 },
   files: [
     {
@@ -500,7 +505,12 @@ test("the report displays escaped renamed test paths and coverage limits before 
     shown.files[0]!,
     { ...shown.files[1]!, path: "new\nname.test.ts" },
   ];
-  shown.judgingChanges = { testPaths: [1], commandPaths: [0], scripts: null };
+  shown.judgingChanges = {
+    testPaths: [1],
+    commandPaths: [0],
+    skips: [{ file: 1, entries: null }],
+    scripts: null,
+  };
   await app.show(shown);
   const section = app
     .element("candidate-files")
@@ -528,6 +538,7 @@ test("npm script names stay literal and an unsummarised manifest stays visible",
   shown.judgingChanges = {
     testPaths: null,
     commandPaths: [],
+    skips: null,
     scripts: [
       { file: 0, entries: [{ name: "<b>\n\u202e", change: "added" }] },
       { file: 1, entries: null },
@@ -538,4 +549,21 @@ test("npm script names stay literal and an unsummarised manifest stays visible",
   assert.ok(text.includes('added · "<b>\\n\\u202e"'));
   assert.match(text, /other\/package.json" · changed and not summarised/);
   assert.doesNotMatch(text, /No npm script definitions changed/);
+});
+
+test("skip marker review identifies the changed file and candidate source line", async () => {
+  const app = await launch(),
+    shown = review();
+  shown.files = [{ ...shown.files[0]!, path: "<sample>.test.ts" }];
+  shown.judgingChanges = {
+    testPaths: [0],
+    commandPaths: [],
+    scripts: null,
+    skips: [{ file: 0, entries: [{ line: 12, marker: "test.skip" }] }],
+  };
+  await app.show(shown);
+  assert.match(
+    app.element("candidate-files").text,
+    /"<sample>\.test\.ts" · new skip markers.*test\.skip · line 12/s,
+  );
 });

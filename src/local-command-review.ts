@@ -7,14 +7,13 @@ import {
   type WorkspaceChange,
 } from "./domain.js";
 import {
-  isTestPath,
   judgingChangeCount,
   validJudgingChangeCount,
   changedPaths,
   isCommandPath,
   type JudgingChanges,
 } from "./judging-changes.js";
-import { scriptFindings } from "./judging-content.js";
+import { scriptFindings, skipFindings } from "./judging-content.js";
 import { git } from "./git.js";
 import { COMMAND_CONFIG_PATH } from "./local-command-config.js";
 import type { Store } from "./store.js";
@@ -298,14 +297,12 @@ export async function reviewLocalCommandCandidate(
     signal.throwIfAborted();
 
     const binaryFiles = files.filter((file) => file.binary).length;
-    const recognizedTests =
-      [...base.keys()].some(isTestPath) || [...head.keys()].some(isTestPath);
+    const skips = skipFindings(files, base, head);
     const judgingChanges = Object.freeze({
+      skips,
       scripts: scriptFindings(files, base, head),
       commandPaths: Object.freeze(changedPaths(files, isCommandPath)),
-      testPaths: recognizedTests
-        ? Object.freeze(changedPaths(files, isTestPath))
-        : null,
+      testPaths: skips && Object.freeze(skips.map((summary) => summary.file)),
     });
     if (!validJudgingChangeCount(judgingChangeCount(judgingChanges)))
       throw limit();

@@ -179,7 +179,9 @@ review against `37f5dc8` on 20 November 2026. Test-path evidence at
 are recorded in spec 0018. The [result-count contract](specs/0018-judging-changes-report.md#result-count-in-development)
 ties the count to the same consent and freshness as the check. The experiment
 remains open. The [npm script contract](specs/0018-judging-changes-report.md#npm-script-definitions-in-development)
-records the parsing limits and the unsummarised-file fallback.
+records the parsing limits and the unsummarised-file fallback. The
+[skip-marker contract](specs/0018-judging-changes-report.md#newly-introduced-test-skip-markers-in-development)
+defines which textual declarations the report compares.
 
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many

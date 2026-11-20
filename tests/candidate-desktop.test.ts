@@ -192,6 +192,7 @@ test("desktop reviews the complete pinned change set and records exact-commit co
   assert.deepEqual(shown.judgingChanges, {
     testPaths: null,
     commandPaths: [],
+    skips: null,
     scripts: null,
   });
   assert.deepEqual(shown.configuration.config.commands.test!.argv, [
@@ -775,6 +776,34 @@ test("bridge validates npm script references, kinds and ordered bounded names", 
     (x: any) => (x.judgingChanges.scripts[0].entries[0].change = "modified"),
     (x: any) => (x.judgingChanges.scripts[0].entries[0].name = "x".repeat(257)),
     (x: any) => (x.judgingChanges.scripts[0].entries[0].command = "forged"),
+  ]) {
+    const bad = structuredClone(shown);
+    corrupt(bad);
+    assert.throws(
+      () => validateCandidateReview(bad, f.workspace.id),
+      /invalid/,
+    );
+  }
+});
+
+test("skip markers cross the bridge only for recognised test paths with valid line numbers", async (t) => {
+  const f = await fixture(t);
+  writeFileSync(join(f.cwd, "unit.test.js"), '\nxit("fixture", fn);\n');
+  f.commit();
+  const shown = value<CandidateReviewView>(
+    await f.client.call("candidateReview", [f.workspace.id]),
+  );
+  assert.deepEqual(shown.judgingChanges.skips, [
+    { file: 1, entries: [{ marker: "xit", line: 2 }] },
+  ]);
+  for (const corrupt of [
+    (x: any) => (x.judgingChanges.skips[0].entries[0].line = 0),
+    (x: any) => (x.judgingChanges.skips[0].entries[0].line = 1000),
+    (x: any) =>
+      (x.judgingChanges.skips[0].entries[0].marker = "caller-defined"),
+    (x: any) =>
+      x.judgingChanges.skips[0].entries.push({ marker: "xit", line: 2 }),
+    (x: any) => (x.judgingChanges.skips = null),
   ]) {
     const bad = structuredClone(shown);
     corrupt(bad);

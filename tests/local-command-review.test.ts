@@ -820,3 +820,46 @@ test("script definition and report limits preserve a changed-file entry", async 
     [null, 128, 128, null],
   );
 });
+
+test("new textual skip markers preserve duplicate counts and distinct titles across both committed sides", async (t) => {
+  const f = await fixture(t, {
+    "unit.test.ts": 'test.skip("previous", fn);\nit.skip("keep", fn);\n',
+    "old.spec.js": 'describe.skip("moved", fn);',
+  });
+  const at = (name: string) => join(f.directory, name);
+  writeFileSync(
+    at("unit.test.ts"),
+    [
+      'test("previous", fn);',
+      '  it.skip("keep", fn);',
+      'it.skip("keep", fn);',
+      'test.skip("different", fn);',
+      "  test.describe.skip('suite', fn);",
+      '// xit("comment", fn);',
+    ].join("\r\n"),
+  );
+  renameSync(at("old.spec.js"), at("new.spec.cjs"));
+  writeFileSync(at("dynamic.test.js"), "test.skip(title, fn);");
+  writeFileSync(at("binary.test.js"), Buffer.from([0, 1]));
+  f.commit();
+  const review = await f.review();
+  assert.deepEqual(
+    review.judgingChanges.skips?.map(({ file, entries }) => [
+      review.files[file]!.path,
+      entries,
+    ]),
+    [
+      ["binary.test.js", null],
+      ["dynamic.test.js", null],
+      ["new.spec.cjs", []],
+      [
+        "unit.test.ts",
+        [
+          { marker: "it.skip", line: 3 },
+          { marker: "test.skip", line: 4 },
+          { marker: "test.describe.skip", line: 5 },
+        ],
+      ],
+    ],
+  );
+});

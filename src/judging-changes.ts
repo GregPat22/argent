@@ -6,6 +6,19 @@ export interface FileFindings<T> {
   readonly file: number;
   readonly entries: readonly T[] | null;
 }
+export const SKIP_MARKERS = [
+  "test.skip",
+  "it.skip",
+  "describe.skip",
+  "test.describe.skip",
+  "xit",
+  "xtest",
+  "xdescribe",
+] as const;
+export interface SkipMarker {
+  readonly marker: (typeof SKIP_MARKERS)[number];
+  readonly line: number;
+}
 export interface ScriptChange {
   readonly name: string;
   readonly change: "added" | "removed" | "modified" | "moved";
@@ -23,16 +36,21 @@ export function validFindingText(value: unknown): value is string {
 export interface JudgingChanges {
   /** Indexes in review order. Null means neither tree has a recognised path. */
   readonly testPaths: readonly number[] | null;
+  readonly skips: readonly FileFindings<SkipMarker>[] | null;
   readonly scripts: readonly FileFindings<ScriptChange>[] | null;
   readonly commandPaths: readonly number[];
+}
+
+function countFindings(files: readonly FileFindings<unknown>[] | null): number {
+  return files?.reduce((n, file) => n + (file.entries?.length ?? 1), 0) ?? 0;
 }
 
 export function judgingChangeCount(report: JudgingChanges): number {
   return (
     (report.testPaths?.length ?? 0) +
     report.commandPaths.length +
-    (report.scripts?.reduce((n, file) => n + (file.entries?.length ?? 1), 0) ??
-      0)
+    countFindings(report.scripts) +
+    countFindings(report.skips)
   );
 }
 

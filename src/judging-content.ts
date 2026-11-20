@@ -3,6 +3,8 @@ import type { Entry } from "./workspace-changes.js";
 import {
   changedPaths,
   isManifest,
+  isTestPath,
+  type SkipMarker,
   type FileFindings,
   type ScriptChange,
   DETAIL_LIMIT,
@@ -33,6 +35,7 @@ export function contentFindings<T>(
       const next = matches(change.path) ? head.get(change.path) : undefined;
       let entries: T[] | null = null;
       if (
+        !change.binary &&
         [old, next].every(
           (side) =>
             !side ||
@@ -109,5 +112,49 @@ export function scriptFindings(
       if (change) changes.push(Object.freeze({ name, change }));
     }
     return changes;
+  });
+}
+
+// Match the documented declaration spellings, without evaluating repository code.
+const call =
+  /^[ \t]*(test\.describe\.skip|(?:test|it|describe)\.skip|xit|xtest|xdescribe)[ \t]*\([ \t]*/;
+const literalTitle = /^(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')[ \t]*(?=,|\))/;
+
+function skipMarkers(bytes?: Buffer): (SkipMarker & { key: string })[] | null {
+  if (!bytes) return [];
+  const markers: (SkipMarker & { key: string })[] = [];
+  const lines = bytes.toString("utf8").split(/\r\n|[\n\r\u2028\u2029]/);
+  for (const [index, line] of lines.entries()) {
+    const found = call.exec(line);
+    if (!found) continue;
+    const marker = found[1]!;
+    const title = literalTitle.exec(line.slice(found[0].length))?.[0].trimEnd();
+    if (!title || markers.length >= FILE_DETAIL_LIMIT) return null;
+    markers.push({
+      marker: marker as SkipMarker["marker"],
+      line: index + 1,
+      key: marker + ":" + title,
+    });
+  }
+  return markers;
+}
+
+export function skipFindings(
+  files: readonly WorkspaceChange[],
+  base: ReadonlyMap<string, Entry>,
+  head: ReadonlyMap<string, Entry>,
+) {
+  return contentFindings(files, base, head, isTestPath, (old, next) => {
+    const before = skipMarkers(old),
+      after = skipMarkers(next);
+    if (!before || !after) return null;
+    const counts = new Map<string, number>();
+    for (const { key } of before) counts.set(key, (counts.get(key) ?? 0) + 1);
+    return after.flatMap(({ key, marker, line }) => {
+      const count = counts.get(key) ?? 0;
+      if (!count) return [Object.freeze({ marker, line })];
+      counts.set(key, count - 1);
+      return [];
+    });
   });
 }

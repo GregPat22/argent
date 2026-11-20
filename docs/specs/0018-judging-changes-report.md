@@ -257,8 +257,35 @@ Acceptance against `e7a4398`, 20 November 2026:
   kinds and limits. Render names with visible escapes before consent, alongside
   the complete diff. Count each reported script or unsummarised file once.
 
-Remaining acceptance includes skipped tests, lock-file and source-setting
-recognisers and the maintainer trial.
+Development evidence at `3a0688b`, 20 November 2026: real-Git tests covered
+manifest edits, moves, missing sides, malformed JSON, symlinks and bounds.
+Dedicated review tightened the bridge's per-side limits and rename validation.
+The focused regressions and full repository check passed.
+
+## Newly introduced test skip markers (in development)
+
+Acceptance against `3a0688b`, 20 November 2026:
+
+- In recognised test files, look for these literal calls at the start of a
+  line after optional spaces or tabs: `test.skip`, `it.skip`, `describe.skip`
+  (Node, Jest, Vitest and Mocha conventions), `test.describe.skip` (Playwright),
+  and `xit`, `xtest`, `xdescribe` (disabled test or suite aliases). Match a
+  single- or double-quoted title on the same line. An encountered call in this
+  set with an unreadable title makes the file unsummarised.
+- Compare occurrences by marker and literal title within each file. Moving a
+  declaration down the file or renaming the file within the recognised paths
+  adds no marker. Removing a different skipped title cannot mask a new one.
+  Show each new marker and its candidate line number. These are textual
+  markers: the same spelling in a multiline example can match. Other
+  spellings, aliases, conditional options and skipped runtime results are
+  outside this recogniser.
+- Read only the existing pinned blob bytes. Apply the content limits above,
+  including at most 128 markers per side and 256 new markers per group.
+  Invalid text, a symlink or a bound yields a visible unsummarised marker
+  check. Count each new marker or unsummarised check alongside the file entry.
+
+Remaining acceptance includes lock-file and source-setting recognisers and the
+maintainer trial.
 
 ## Exit evidence
 
