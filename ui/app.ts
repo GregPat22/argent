@@ -130,6 +130,13 @@ function render(): void {
   show("workspace-content", !!workspace);
   show("workspace-header-copy", !!workspace);
   show("disconnected-banner", !state.connected && loaded);
+  setText(
+    "disconnected-text",
+    state.otherBuild
+      ? "A local service from a different Argent build is still running. Stop it, then reconnect."
+      : "The local service is offline. Your history is still here.",
+  );
+  setText("reconnect-inline", state.otherBuild ? "Stop it…" : "Reconnect");
   enable("reconnect-inline", !state.mutationBusy && hasBridge());
   renderWelcomeActions();
   renderSidebar();
@@ -181,6 +188,7 @@ async function refresh(): Promise<void> {
     const status = await api().status();
     if (version !== epoch) return;
     state.connected = status.connected;
+    state.otherBuild = status.otherBuild;
     if (!state.connected) {
       loaded = true;
       render();
@@ -514,20 +522,28 @@ byId<HTMLFormElement>("resolve-form").addEventListener("submit", (event) => {
 
 function reconnect(): void {
   void mutate(async () => {
-    state.connected = (await api().startService()).connected;
+    const status = await api().startService();
+    state.connected = status.connected;
+    state.otherBuild = status.otherBuild;
   });
+}
+// A service of another build is never stopped implicitly: stopping interrupts
+// its work, so the developer confirms it in the same dialog as any stop.
+function reconnectOrStop(): void {
+  if (state.connected || state.otherBuild) openDialog("stop-dialog");
+  else reconnect();
 }
 byId("service-toggle").addEventListener("click", () => {
   byId("service-popover").hidePopover?.();
-  if (state.connected) openDialog("stop-dialog");
-  else reconnect();
+  reconnectOrStop();
 });
-byId("reconnect-inline").addEventListener("click", reconnect);
+byId("reconnect-inline").addEventListener("click", reconnectOrStop);
 byId("service-stop-confirm").addEventListener("click", () => {
   dialog("stop-dialog").close();
   void mutate(async () => {
     await api().stopService();
     state.connected = false;
+    state.otherBuild = false;
   });
 });
 byId("more-workspaces").addEventListener("click", () => {

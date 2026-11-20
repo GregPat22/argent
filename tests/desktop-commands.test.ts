@@ -16,6 +16,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { test, type TestContext } from "node:test";
 import { DesktopClient } from "../src/desktop/bridge.js";
+import { requestTimeouts, sameBuildHealth } from "./service-health-fixture.js";
 import {
   validateCommandApprovalReceipt,
   validateCommandConfiguration,
@@ -96,6 +97,8 @@ test("command bridge accepts only a workspace, the reviewed identity and a reque
   const timeouts: number[] = [];
   const requests: { url: string; init: RequestInit | undefined }[] = [];
   globalThis.fetch = async (input, init) => {
+    const health = sameBuildHealth(input, id);
+    if (health) return health;
     requests.push({ url: String(input), init });
     return Response.json(response);
   };
@@ -155,7 +158,7 @@ test("command bridge accepts only a workspace, the reviewed identity and a reque
     );
     const headers = requests[1]!.init?.headers as Record<string, string>;
     assert.equal(headers["Idempotency-Key"], key);
-    assert.deepEqual(timeouts, [20000, 20000]);
+    assert.deepEqual(requestTimeouts(timeouts), [20000, 20000]);
 
     // A receipt for another identity or workspace is not the one requested.
     const changed = receipt();

@@ -191,7 +191,7 @@ test("detached service persists across clients, deduplicates startup, and expose
     const status = await client.call("status", []);
     assert.deepEqual(status, {
       ok: true,
-      value: { connected: true, engine: "local" },
+      value: { connected: true, otherBuild: false, engine: "local" },
     });
     assert.equal(JSON.stringify(status).includes(connection.token), false);
     assert.equal(

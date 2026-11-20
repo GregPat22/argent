@@ -149,15 +149,18 @@ function renderService(): void {
     "service-detail",
     state.connected
       ? `Runs keep going when you close this window.${state.syncedAt ? " Updated just now." : ""}`
-      : "Nothing runs until the service is back. Your history is still here.",
+      : state.otherBuild
+        ? "A service from a different Argent build is still running. Stop it, then reconnect to start this build's service."
+        : "Nothing runs until the service is back. Your history is still here.",
   );
+  const stoppable = state.connected || state.otherBuild;
   const toggle = byId<HTMLButtonElement>("service-toggle");
-  toggle.textContent = state.connected ? "Stop service…" : "Reconnect";
+  toggle.textContent = stoppable ? "Stop service…" : "Reconnect";
   toggle.disabled = state.mutationBusy || !window.argent;
-  setClass(toggle, "danger", state.connected);
+  setClass(toggle, "danger", stoppable);
   toggle.setAttribute(
     "aria-label",
-    state.connected
+    stoppable
       ? "Stop local execution service"
       : "Reconnect to local execution service",
   );

@@ -1,19 +1,34 @@
 import assert from "node:assert/strict";
 import childProcess, { ChildProcess } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { once } from "node:events";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { createServer } from "node:http";
 import { syncBuiltinESMExports } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { test, type TestContext } from "node:test";
+import { test, type Mock, type TestContext } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
+import { DesktopClient } from "../src/desktop/bridge.js";
+import { buildIdentity, treeIdentity } from "../src/desktop/build-identity.js";
 import {
   ensureService,
   isServiceAlive,
+  OTHER_BUILD_MESSAGE,
+  probeService,
   serviceRequest,
   type ServiceConnection,
 } from "../src/desktop/service-client.js";
+import { DomainError } from "../src/domain.js";
 
 const script = fileURLToPath(
   new URL("../src/desktop/service-main.js", import.meta.url),
@@ -193,7 +208,12 @@ async function fakeFixture(
     globalThis,
     "fetch",
     async () =>
-      new Response(JSON.stringify({ instanceId: connection.instanceId })),
+      new Response(
+        JSON.stringify({
+          instanceId: connection.instanceId,
+          build: buildIdentity(),
+        }),
+      ),
   );
   try {
     await run(directory, child, signals, publish);
@@ -286,15 +306,20 @@ test("a disappearing selected owner fails after contender cleanup without anothe
     t,
     async (directory, _child, signals) => {
       let probes = 0;
-      t.mock.method(globalThis, "fetch", async () => {
-        probes++;
-        return new Response(
-          JSON.stringify({
-            instanceId: "00000000-0000-4000-8000-000000000001",
-          }),
-          { status: probes === 1 ? 200 : 503 },
-        );
-      });
+      // Replace the fixture's mock rather than stacking a second one: stacked
+      // method mocks restore to the first mock and leak it into later tests.
+      (globalThis.fetch as Mock<typeof fetch>).mock.mockImplementation(
+        async () => {
+          probes++;
+          return new Response(
+            JSON.stringify({
+              instanceId: "00000000-0000-4000-8000-000000000001",
+              build: buildIdentity(),
+            }),
+            { status: probes === 1 ? 200 : 503 },
+          );
+        },
+      );
       await assert.rejects(ensureService(directory), /stopped during startup/);
       assert.equal(probes, 2);
       assert.deepEqual(signals, ["SIGTERM"]);
@@ -322,4 +347,152 @@ test("a signaling error with a spawned PID does not prove contender exit", async
     },
     { publish: true, exitOn: null },
   );
+});
+
+test("build identity covers every compiled module's path and bytes, and nothing else", () => {
+  const directory = mkdtempSync(join(tmpdir(), "argent-build-identity-"));
+  try {
+    mkdirSync(join(directory, "desktop"));
+    writeFileSync(join(directory, "a.js"), "export const a = 1;");
+    writeFileSync(join(directory, "desktop", "b.cjs"), "module.exports = 2;");
+    const first = treeIdentity(directory);
+    assert.match(first, /^[a-f0-9]{64}$/);
+    assert.equal(treeIdentity(directory), first);
+    writeFileSync(join(directory, "a.js.map"), "{}");
+    writeFileSync(join(directory, "notes.txt"), "not code");
+    assert.equal(treeIdentity(directory), first, "only modules count");
+    writeFileSync(join(directory, "a.js"), "export const a = 2;");
+    const changed = treeIdentity(directory);
+    assert.notEqual(changed, first);
+    renameSync(join(directory, "a.js"), join(directory, "c.js"));
+    assert.notEqual(treeIdentity(directory), changed, "paths count");
+    writeFileSync(join(directory, "c.js"), "export const a = 1;");
+    renameSync(join(directory, "c.js"), join(directory, "a.js"));
+    assert.equal(treeIdentity(directory), first);
+    writeFileSync(join(directory, "desktop", "d.js"), "");
+    assert.notEqual(treeIdentity(directory), first, "added modules count");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+async function otherBuildFixture(
+  t: TestContext,
+  run: (fixture: {
+    directory: string;
+    routes: string[];
+    setBuild: (build: string | undefined) => void;
+    connection: ServiceConnection;
+  }) => Promise<void>,
+): Promise<void> {
+  const directory = mkdtempSync(join(tmpdir(), "argent-other-build-"));
+  const token = "b".repeat(64);
+  const instanceId = randomUUID();
+  let build: string | undefined = "0".repeat(64);
+  const routes: string[] = [];
+  const server = createServer((request, response) => {
+    assert.equal(request.headers.authorization, `Bearer ${token}`);
+    const route = request.url ?? "";
+    response.setHeader("Content-Type", "application/json");
+    if (route === "/health") {
+      response.end(
+        JSON.stringify({
+          status: "ok",
+          instanceId,
+          ...(build === undefined ? {} : { build }),
+        }),
+      );
+      return;
+    }
+    routes.push(`${request.method} ${route}`);
+    response.end(
+      JSON.stringify(
+        route === "/service/stop"
+          ? { stopping: true }
+          : { items: [], nextCursor: null },
+      ),
+    );
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const connection: ServiceConnection = {
+    version: 1,
+    port: address.port,
+    token,
+    instanceId,
+    pid: process.pid,
+  };
+  writeFileSync(join(directory, "service.json"), JSON.stringify(connection));
+  let launches = 0;
+  const restore = replaceSpawn((() => {
+    launches++;
+    throw new Error("a service of another build must not cause a launch");
+  }) as typeof childProcess.spawn);
+  try {
+    await run({
+      directory,
+      routes,
+      setBuild: (value) => {
+        build = value;
+      },
+      connection,
+    });
+    assert.equal(launches, 0);
+  } finally {
+    restore();
+    t.mock.restoreAll();
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+test("a live service of another build is reported as such and never replaced by a launch", async (t) => {
+  await otherBuildFixture(t, async ({ directory, setBuild, connection }) => {
+    for (const build of ["0".repeat(64), undefined]) {
+      setBuild(build);
+      assert.equal(await probeService(connection), "other-build");
+      assert.equal(await isServiceAlive(connection), false);
+      await assert.rejects(ensureService(directory), (error: unknown) => {
+        assert.ok(error instanceof DomainError);
+        assert.equal(error.status, 409);
+        assert.equal(error.message, OTHER_BUILD_MESSAGE);
+        return true;
+      });
+    }
+    assert.equal(
+      await probeService({ ...connection, instanceId: randomUUID() }),
+      "absent",
+      "an unproven instance is not reported as another build",
+    );
+    setBuild(buildIdentity());
+    assert.equal(await probeService(connection), "current");
+    assert.deepEqual(await ensureService(directory), connection);
+  });
+});
+
+test("the desktop bridge only stops a service of another build", async (t) => {
+  await otherBuildFixture(t, async ({ directory, routes, setBuild }) => {
+    const client = new DesktopClient(directory);
+    for (const method of ["status", "startService"])
+      assert.deepEqual(await client.call(method, []), {
+        ok: true,
+        value: { connected: false, otherBuild: true, engine: "local" },
+      });
+    const refused = await client.call("listWorkspaces", []);
+    assert.equal(refused.ok, false);
+    assert.match(refused.ok ? "" : refused.error, /different Argent build/);
+    assert.deepEqual(routes, [], "no route of the other build is used");
+    assert.equal((await client.call("stopService", [])).ok, true);
+    assert.deepEqual(routes, ["POST /service/stop"]);
+    setBuild(buildIdentity());
+    assert.deepEqual(await client.call("status", []), {
+      ok: true,
+      value: { connected: true, otherBuild: false, engine: "local" },
+    });
+    assert.equal((await client.call("listWorkspaces", [])).ok, true);
+    assert.deepEqual(routes.at(-1), "GET /workspaces");
+  });
 });

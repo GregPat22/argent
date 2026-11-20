@@ -37,6 +37,8 @@ export const state = {
   workspacePaging: false,
   runPaging: false,
   connected: false,
+  /** A service from a different Argent build is running: stop it to continue. */
+  otherBuild: false,
   mutationBusy: false,
   sending: false,
   pending: null as Pending | null,

@@ -13,6 +13,7 @@ import { LocalCheckWorker } from "../local-check-worker.js";
 import { runWorkers } from "../worker-pool.js";
 import { DatabaseSync } from "node:sqlite";
 import type { ServiceConnection } from "./service-client.js";
+import { buildIdentity } from "./build-identity.js";
 
 const paths = dataPaths();
 const directory = dirname(paths.database);
@@ -51,6 +52,7 @@ try {
     localCommandOperatorId: "local-desktop",
     localChecks: true,
     instanceId,
+    build: buildIdentity(),
     onStop: () => shutdown.abort(),
   });
   const worker = new Worker(

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { DomainError } from "../domain.js";
+import { buildIdentity } from "./build-identity.js";
 
 export interface ServiceConnection {
   version: 1;
@@ -79,21 +80,45 @@ export async function serviceRequest(
   return value;
 }
 
-export async function isServiceAlive(
+export const OTHER_BUILD_MESSAGE =
+  "The local service still running was started by a different Argent build. Stop it, then reconnect to start this build's service.";
+
+/**
+ * `current`: this instance answers the health challenge and runs the same
+ * build as this process. `other-build`: it answers, but runs different code,
+ * so its routes and responses cannot be trusted to match this client.
+ * `absent`: no live instance answered.
+ */
+export type ServiceProbe = "current" | "other-build" | "absent";
+
+export const HEALTH_TIMEOUT_MS = 700;
+
+export async function probeService(
   connection: ServiceConnection,
-): Promise<boolean> {
+): Promise<ServiceProbe> {
   try {
     const response = await fetch(`http://127.0.0.1:${connection.port}/health`, {
       headers: { Authorization: `Bearer ${connection.token}` },
-      signal: AbortSignal.timeout(700),
+      signal: AbortSignal.timeout(HEALTH_TIMEOUT_MS),
       redirect: "error",
     });
-    if (!response.ok) return false;
-    const health = (await response.json()) as { instanceId?: unknown };
-    return health.instanceId === connection.instanceId;
+    if (!response.ok) return "absent";
+    const health = (await response.json()) as {
+      instanceId?: unknown;
+      build?: unknown;
+    };
+    if (health.instanceId !== connection.instanceId) return "absent";
+    // A service from before build reporting sends no build: also another build.
+    return health.build === buildIdentity() ? "current" : "other-build";
   } catch {
-    return false;
+    return "absent";
   }
+}
+
+export async function isServiceAlive(
+  connection: ServiceConnection,
+): Promise<boolean> {
+  return (await probeService(connection)) === "current";
 }
 
 function pick(names: string[]): Record<string, string> {
@@ -176,7 +201,14 @@ export async function ensureService(
 ): Promise<ServiceConnection> {
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   const current = readConnection(directory);
-  if (current && (await isServiceAlive(current))) return current;
+  if (current) {
+    const probe = await probeService(current);
+    if (probe === "current") return current;
+    // A launch here would only wait on the running owner's lock. Never stop
+    // it implicitly: that interrupts its work, so it stays the developer's choice.
+    if (probe === "other-build")
+      throw new DomainError(409, OTHER_BUILD_MESSAGE);
+  }
   const script = fileURLToPath(new URL("./service-main.js", import.meta.url));
   // The bundled Electron executable supplies Node; no global Node installation is required.
   const child = spawn(process.execPath, [script], {
@@ -211,8 +243,13 @@ export async function ensureService(
       if (startup.error)
         throw new Error("Could not launch the local execution service");
       const connection = readConnection(directory);
-      if (connection && (await isServiceAlive(connection))) {
-        if (connection.pid === child.pid && !startup.exited) {
+      const probe = connection ? await probeService(connection) : "absent";
+      if (connection && probe !== "absent") {
+        if (
+          probe === "current" &&
+          connection.pid === child.pid &&
+          !startup.exited
+        ) {
           transferred = true;
           child.unref();
           return connection;
@@ -220,7 +257,10 @@ export async function ensureService(
         // A concurrent launcher won. Dispose our own contender even if it has
         // not reached SQLite yet, then ensure the selected owner is still live.
         await startup.dispose();
-        if (await isServiceAlive(connection)) return connection;
+        const selected = await probeService(connection);
+        if (selected === "current") return connection;
+        if (selected === "other-build")
+          throw new DomainError(409, OTHER_BUILD_MESSAGE);
         throw new Error("The local service stopped during startup");
       }
       await delay(100);

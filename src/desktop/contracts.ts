@@ -21,6 +21,8 @@ export type {
 
 export interface ServiceStatus {
   connected: boolean;
+  /** A live service of a different Argent build holds the data folder. */
+  otherBuild: boolean;
   engine: "local";
 }
 
