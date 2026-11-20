@@ -177,7 +177,9 @@ function display(shown: CandidateReviewView): void {
     }),
   );
   if (packages && packages.every((file) => file.entries?.length === 0))
-    report.append(h("p", { text: "No recognised package versions changed." }));
+    report.append(
+      h("p", { text: "No recognised package or install-script changes." }),
+    );
   for (const { file, entries } of packages ?? []) {
     if (entries?.length === 0) continue;
     report.append(
@@ -190,14 +192,14 @@ function display(shown: CandidateReviewView): void {
       report.append(
         h("p", {
           class: "mono",
-          text: `${entry.change} · ${argumentText(entry.location)} · ${entry.before === null ? "absent" : argumentText(entry.before)} → ${entry.after === null ? "absent" : argumentText(entry.after)}`,
+          text: `${entry.change} · ${argumentText(entry.location)} · ${entry.before === null ? "absent" : argumentText(entry.before)} → ${entry.after === null ? "absent" : argumentText(entry.after)}${entry.newInstallScript ? " · newly declares an install script" : ""}`,
         }),
       );
     }
   }
   report.append(
     h("p", {
-      text: "Install scripts and package sources · Not checkable in this report.",
+      text: "Package sources · Not checkable in this report.",
     }),
   );
   content.append(report);

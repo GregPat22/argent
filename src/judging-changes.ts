@@ -25,6 +25,7 @@ export interface ScriptChange {
 }
 export interface PackageChange {
   readonly location: string;
+  readonly newInstallScript: boolean;
   readonly change: "added" | "removed" | "modified" | "moved";
   readonly before: string | null;
   readonly after: string | null;

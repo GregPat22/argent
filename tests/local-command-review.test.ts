@@ -962,3 +962,60 @@ test("a local link cannot mask changed or missing target version metadata", asyn
     ]);
   }
 });
+
+test("new install scripts are visible at unchanged versions and validated on linked targets", async (t) => {
+  const lock = (packages: Record<string, unknown>) =>
+    JSON.stringify({ lockfileVersion: 3, packages: { "": {}, ...packages } });
+  const common = {
+    "node_modules/keep": { version: "1", hasInstallScript: true },
+    "node_modules/link": { link: true, resolved: "local" },
+  };
+  const f = await fixture(t, {
+    "package-lock.json": lock({
+      ...common,
+      local: { version: "1" },
+      "node_modules/edit": { version: "2", hasInstallScript: false },
+      "node_modules/remove": { version: "1", hasInstallScript: true },
+    }),
+  });
+  const after = {
+    ...common,
+    local: { version: "1", hasInstallScript: true },
+    "node_modules/add": { version: "0", hasInstallScript: true },
+    "node_modules/edit": { version: "2", hasInstallScript: true },
+    "node_modules/remove": { version: "1" },
+  };
+  const path = join(f.directory, "package-lock.json");
+  writeFileSync(path, lock(after));
+  f.commit();
+  assert.deepEqual(
+    (await f.review()).judgingChanges.packages?.[0]?.entries?.map((p) => [
+      p.location,
+      p.before,
+      p.after,
+      p.newInstallScript,
+    ]),
+    [
+      ["node_modules/add", null, "0", true],
+      ["node_modules/edit", "2", "2", true],
+      ["node_modules/link", "1", "1", true],
+    ],
+  );
+  for (const override of [
+    { local: { version: "1", hasInstallScript: "false" } },
+    {
+      "node_modules/link": {
+        ...common["node_modules/link"],
+        hasInstallScript: false,
+      },
+    },
+    { "node_modules/other": { version: "1", hasInstallScript: 1 } },
+  ]) {
+    writeFileSync(path, lock({ ...after, ...override }));
+    f.commit();
+    assert.equal(
+      (await f.review()).judgingChanges.packages?.[0]?.entries,
+      null,
+    );
+  }
+});

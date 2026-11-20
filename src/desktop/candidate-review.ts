@@ -174,9 +174,17 @@ function packageEntries(
   const moved = oldSide && newSide && !!change.previousPath;
   let previous = "";
   return items.map((item) => {
-    const row = record(item, ["location", "change", "before", "after"]);
-    const { location, before, after } = row;
+    const row = record(item, [
+      "location",
+      "change",
+      "before",
+      "after",
+      "newInstallScript",
+    ]);
+    const { location, before, after, newInstallScript } = row;
     if (
+      typeof newInstallScript !== "boolean" ||
+      (newInstallScript && (after === null || moved)) ||
       !validInstallation(location) ||
       location <= previous ||
       !(before === null || (oldSide && validFindingText(before))) ||
@@ -196,11 +204,11 @@ function packageEntries(
     if (
       row.change !== kind ||
       (moved && (kind !== "moved" || before !== after)) ||
-      (kind === "modified" && before === after) ||
+      (kind === "modified" && before === after && !newInstallScript) ||
       (oldSide && newSide && !moved && change.oldBlobId === change.newBlobId)
     )
       throw invalid();
-    return { location, change: kind, before, after };
+    return { location, change: kind, before, after, newInstallScript };
   });
 }
 

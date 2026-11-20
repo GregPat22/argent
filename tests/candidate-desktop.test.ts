@@ -834,6 +834,7 @@ test("bridge validates lockfile package locations, both versions and change kind
       entries: [
         {
           location: "node_modules/sample",
+          newInstallScript: false,
           change: "added",
           before: null,
           after: "1",
@@ -844,6 +845,7 @@ test("bridge validates lockfile package locations, both versions and change kind
   for (const extra of [
     { location: "../node_modules/sample" },
     { location: "node_modules/@scope" },
+    { newInstallScript: "true" },
     { change: "moved" },
     { before: "old" },
     { after: null },

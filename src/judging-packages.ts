@@ -8,8 +8,12 @@ import {
   type PackageChange,
 } from "./judging-changes.js";
 
-function installations(bytes?: Buffer): Map<string, string> | null {
-  const result = new Map<string, string>();
+interface Installation {
+  version: string;
+  installScript: boolean;
+}
+function installations(bytes?: Buffer): Map<string, Installation> | null {
+  const result = new Map<string, Installation>();
   if (!bytes) return result;
   const lock = jsonObject(bytes);
   if (
@@ -25,12 +29,15 @@ function installations(bytes?: Buffer): Map<string, string> | null {
   for (const [location, metadata] of records) {
     if (
       !object(metadata) ||
+      (Object.hasOwn(metadata, "hasInstallScript") &&
+        typeof metadata.hasInstallScript !== "boolean") ||
       (Object.hasOwn(metadata, "link") && typeof metadata.link !== "boolean")
     )
       return null;
     if (!location.split("/").includes("node_modules")) continue;
     if (!validInstallation(location)) return null;
     let version = metadata.version;
+    let installScript = metadata.hasInstallScript === true;
     if (metadata.link === true) {
       if (
         typeof metadata.resolved !== "string" ||
@@ -43,13 +50,16 @@ function installations(bytes?: Buffer): Map<string, string> | null {
       if (
         !object(target) ||
         target.link === true ||
-        (version !== undefined && version !== target.version)
+        (version !== undefined && version !== target.version) ||
+        (Object.hasOwn(metadata, "hasInstallScript") &&
+          installScript !== (target.hasInstallScript === true))
       )
         return null;
       version = target.version;
+      installScript = target.hasInstallScript === true;
     }
     if (!validFindingText(version)) return null;
-    result.set(location, version);
+    result.set(location, { version, installScript });
   }
   return result;
 }
@@ -67,8 +77,12 @@ export function packageFindings(
     for (const location of [
       ...new Set([...before.keys(), ...after.keys()]),
     ].sort()) {
-      const a = before.get(location) ?? null,
-        b = after.get(location) ?? null;
+      const oldPackage = before.get(location),
+        newPackage = after.get(location);
+      const a = oldPackage?.version ?? null,
+        b = newPackage?.version ?? null;
+      const newInstallScript =
+        newPackage?.installScript === true && !oldPackage?.installScript;
       const change =
         a === null
           ? "added"
@@ -76,11 +90,19 @@ export function packageFindings(
             ? "removed"
             : moved
               ? "moved"
-              : a !== b
+              : a !== b || newInstallScript
                 ? "modified"
                 : null;
       if (change)
-        entries.push(Object.freeze({ location, change, before: a, after: b }));
+        entries.push(
+          Object.freeze({
+            location,
+            change,
+            before: a,
+            after: b,
+            newInstallScript,
+          }),
+        );
     }
     return entries;
   });

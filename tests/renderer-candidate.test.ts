@@ -588,6 +588,7 @@ test("package locations and both lockfile versions use literal text and visible 
           {
             location: "node_modules/<b>\u202e",
             change: "modified",
+            newInstallScript: true,
             before: 'one"',
             after: "two\n",
           },
@@ -602,6 +603,10 @@ test("package locations and both lockfile versions use literal text and visible 
       .text.includes(
         'modified · "node_modules/<b>\\u202e" · "one\\"" → "two\\n"',
       ),
+  );
+  assert.match(
+    app.element("candidate-files").text,
+    /newly declares an install script/,
   );
   assert.doesNotMatch(app.element("candidate-files").text, /\u202e/);
 });

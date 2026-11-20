@@ -310,8 +310,27 @@ Acceptance against `a78d386`, 20 November 2026:
   lockfile. An absent lockfile in both trees means not checkable. A lockfile
   with only unrelated metadata changes has zero recognised version changes.
 
-Remaining acceptance includes install scripts, resolved package sources,
-committed npm source settings and the maintainer trial.
+Development evidence at `2c5945b`, 20 November 2026: the full check passed.
+The dedicated review found that an inline version or malformed link flag could
+hide target changes. Real-Git tests cover missing and conflicting target
+metadata, invalid flags on either record, and scoped and nested installations.
+
+## Newly declared install scripts (in development)
+
+Acceptance against `2c5945b`, 20 November 2026:
+
+- Treat a lock record's boolean `hasInstallScript` as npm's declaration of an
+  install lifecycle script. Flag a new package with the declaration or an
+  existing installation whose flag becomes true, even at the same version.
+  The flag gives no information about script contents or execution.
+- Read the recorded target's flag for local links. Reject conflicting inline
+  flags and malformed field types with an unsummarised file. An unchanged
+  true flag or a removed declaration alone does not add a finding. Show one
+  entry per installation, including its versions, with the new declaration
+  alongside any reported version change. The count includes that entry once.
+
+Remaining acceptance includes resolved package sources, committed npm source
+settings and the maintainer trial.
 
 ## Exit evidence
 
