@@ -2,7 +2,7 @@ import type { LocalCheckView } from "../src/desktop/contracts.js";
 import { api } from "./actions.js";
 import { argumentText } from "./commands.js";
 import { byId, enable, h, setText, show } from "./dom.js";
-import { isLocal, readableError } from "./model.js";
+import { isLocal, plural, readableError } from "./model.js";
 import { currentWorkspace, state } from "./state.js";
 
 let generation = 0,
@@ -94,6 +94,17 @@ async function read() {
           : `${noun} ${result.status}`;
     status(`${label}. Refresh to read again.`);
     const content = byId("checks-result");
+    if (result.result && !runAction) {
+      const count = result.result.judgingChangeCount;
+      content.append(
+        h("p", {
+          text:
+            count === undefined
+              ? "Judging-change count not recorded for this check."
+              : plural(count, "reported judging change"),
+        }),
+      );
+    }
     content.append(
       h("p", {
         class: "mono",

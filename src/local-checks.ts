@@ -11,6 +11,7 @@ import {
   commandPurpose,
   type CommandPurpose,
 } from "./local-command-consent.js";
+import { validJudgingChangeCount } from "./judging-changes.js";
 import { reviewLocalCommandCandidate } from "./local-command-review.js";
 import type { Store } from "./store.js";
 
@@ -47,6 +48,7 @@ export interface CheckResult {
   consentId: string;
   outcome: "passed" | "succeeded" | "failed";
   phases: CheckPhase[];
+  judgingChangeCount?: number;
 }
 export interface LocalCheckView {
   kind: "local-check" | "local-run-action";
@@ -76,6 +78,8 @@ export function validateCheckResult(value: unknown): CheckResult {
   const terminal = runAction ? "run" : "test";
   const success = runAction ? "succeeded" : "passed";
   if (
+    (Object.hasOwn(v, "judgingChangeCount") &&
+      (runAction || !validJudgingChangeCount(v.judgingChangeCount))) ||
     (!runAction && v.policy !== "argent-local-check-v1") ||
     ![success, "failed"].includes(v.outcome) ||
     !Array.isArray(v.phases) ||
@@ -166,6 +170,9 @@ export function validateCheckResult(value: unknown): CheckResult {
     consentId: v.consentId,
     outcome: v.outcome,
     phases,
+    ...(v.judgingChangeCount === undefined
+      ? {}
+      : { judgingChangeCount: v.judgingChangeCount }),
   };
 }
 
@@ -513,6 +520,10 @@ export class LocalCheckStore {
         )
       )
         throw invalid();
+      // The count comes only from the durable consent for this exact review.
+      if (result.judgingChangeCount !== undefined) throw invalid();
+      if (binding.judgingChangeCount !== undefined)
+        result.judgingChangeCount = binding.judgingChangeCount;
       const payload = JSON.stringify(result);
       this.db
         .prepare(
@@ -567,6 +578,7 @@ export class LocalCheckStore {
           (binding.action === "setup-run"
             ? "argent-local-run-v1"
             : "argent-local-check-v1") ||
+        result.judgingChangeCount !== binding.judgingChangeCount ||
         result.consentId !== job.consentId ||
         result.headSha !== binding.headSha ||
         result.treeId !== binding.treeId ||

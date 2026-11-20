@@ -228,11 +228,11 @@ export async function runDesktopSmoke(
     assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
     // Review a committed fixture through the real renderer and service.
     writeFileSync(
-      join(local.local!.worktreePath, "review.txt"),
+      join(local.local!.worktreePath, "review.test.js"),
       "<script>window.untrustedCandidate=true</script>\n\t\u202e\u200b\n",
     );
     for (const args of [
-      ["add", "review.txt"],
+      ["add", "review.test.js"],
       ["commit", "--quiet", "-m", "review fixture"],
     ])
       execFileSync(
@@ -259,7 +259,8 @@ export async function runDesktopSmoke(
         ),
       "complete committed review",
     );
-    assert.match(await text("#candidate-files"), /review\.txt/);
+    assert.match(await text("#candidate-files"), /review\.test\.js/);
+    assert.match(await text("#candidate-files"), /1 changed test path/);
     assert.match(await text("#candidate-files"), /\\t\\u202e\\u200b/);
     assert.equal(
       await js(
@@ -307,6 +308,7 @@ export async function runDesktopSmoke(
     }, "setup and test passed");
     assert.match(await text("#checks-result"), /setup.*exit 0/s);
     assert.match(await text("#checks-result"), /test.*exit 0/s);
+    assert.match(await text("#checks-result"), /1 reported judging change/);
     await capture("checks-passed");
     await js(`document.querySelector('#checks-close').click()`);
     await js(`document.querySelector('#workspace-commands').click()`);
@@ -372,9 +374,9 @@ export async function runDesktopSmoke(
     );
 
     // A later commit must not inherit the earlier consent. Remove only this fixture.
-    unlinkSync(join(local.local!.worktreePath, "review.txt"));
+    unlinkSync(join(local.local!.worktreePath, "review.test.js"));
     for (const args of [
-      ["add", "review.txt"],
+      ["add", "review.test.js"],
       ["commit", "--quiet", "-m", "restore review fixture"],
     ])
       execFileSync(
@@ -412,6 +414,7 @@ export async function runDesktopSmoke(
         ),
       "later commit makes check stale",
     );
+    assert.match(await text("#checks-result"), /1 reported judging change/);
     await capture("checks-stale");
     await js(`document.querySelector('#checks-close').click()`);
   };

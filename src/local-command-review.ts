@@ -309,7 +309,7 @@ export async function reviewLocalCommandCandidate(
           REVIEW_POLICY,
           observation.identity,
           configuration,
-          "judging-changes-v1",
+          "judging-changes-v2",
           judgingChanges,
           files.map((file) => [
             file.path,

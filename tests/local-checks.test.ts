@@ -227,6 +227,7 @@ test("nonzero setup prevents test; nonzero test records failed exact-commit evid
     await f.worker.tick();
     const view = (await f.latest())!;
     assert.equal(view.result?.outcome, "failed");
+    assert.equal(view.result.judgingChangeCount, 0);
     assert.equal(view.freshness, "current");
     assert.equal(view.result?.phases.length, setupFailure ? 1 : 2);
     assert.equal(view.result?.phases.at(-1)?.exitCode, setupFailure ? 7 : 9);
@@ -1075,5 +1076,67 @@ test("a run-only configuration needs no test command and unsupported purposes ar
   assert.deepEqual(
     result.phases.map((p) => p.action),
     ["run"],
+  );
+});
+
+test("a result keeps its consented judging count after the base changes; mismatched stored counts fail closed", async (t) => {
+  const f = await fixture(t);
+  writeFileSync(join(f.directory, "new.test.ts"), "export {};\n");
+  git(f.directory, "add", ".");
+  git(f.directory, "commit", "--quiet", "-m", "test fixture");
+  const review = await reviewLocalCommandCandidate(
+    f.store,
+    f.worktrees,
+    f.id,
+    "operator",
+  );
+  const consent = await f.store.localCommandConsents.consent(
+    f.worktrees,
+    f.id,
+    "operator",
+    review.identity,
+    "test change",
+  );
+  assert.equal(consent.binding.judgingChangeCount, 1);
+  const job = await f.store.localChecks.enqueue(
+    f.worktrees,
+    f.id,
+    "operator",
+    consent.id,
+    "counted",
+  );
+  assert.equal(await f.worker.tick(), true);
+  const view = (await f.latest())!;
+  assert.equal(view.freshness, "current");
+  assert.equal(view.result?.judgingChangeCount, 1);
+  assert.equal(
+    f.store.events(job.run.id).find((e) => e.type === "check.result")?.data
+      .judgingChangeCount,
+    1,
+  );
+  f.db
+    .prepare("UPDATE local_worktrees SET base_sha=? WHERE workspace_id=?")
+    .run(view.headSha, f.id);
+  const later = (await f.latest())!;
+  assert.equal(later.freshness, "stale");
+  assert.equal(later.result?.judgingChangeCount, 1);
+  for (const value of [-1, 0.5, "1", 2001])
+    assert.throws(() =>
+      validateCheckView(
+        { ...view, result: { ...view.result, judgingChangeCount: value } },
+        f.id,
+      ),
+    );
+  const payload = JSON.stringify({ ...view.result, judgingChangeCount: 0 });
+  f.db
+    .prepare("UPDATE local_checks SET result=?, result_sha256=? WHERE run_id=?")
+    .run(
+      payload,
+      createHash("sha256").update(payload).digest("hex"),
+      job.run.id,
+    );
+  assert.throws(
+    () => f.store.localChecks.view(job.run.id, f.id, "operator"),
+    /Invalid check record/,
   );
 });

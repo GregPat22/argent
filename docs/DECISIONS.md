@@ -176,7 +176,9 @@ The [candidate test-path contract](specs/0018-judging-changes-report.md#candidat
 records the first increment in development and its pre-implementation security
 review against `37f5dc8` on 20 November 2026. Test-path evidence at
 `00ef222` and the subsequent [command configuration and workflow path contract](specs/0018-judging-changes-report.md#command-configuration-and-workflow-paths-in-development)
-are recorded in spec 0018. The experiment remains open.
+are recorded in spec 0018. The [result-count contract](specs/0018-judging-changes-report.md#result-count-in-development)
+ties the count to the same consent and freshness as the check. The experiment
+remains open.
 
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many

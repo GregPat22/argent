@@ -6,6 +6,20 @@ export interface JudgingChanges {
   readonly commandPaths: readonly number[];
 }
 
+export function judgingChangeCount(report: JudgingChanges): number {
+  return (report.testPaths?.length ?? 0) + report.commandPaths.length;
+}
+
+// At most two path entries per file within the 1,000-file full-review limit.
+export function validJudgingChangeCount(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= 0 &&
+    value <= 2000
+  );
+}
+
 const extension = /\.(?:[cm]?[jt]s|[jt]sx)$/;
 const suffix = /\.(?:test|spec)\.(?:[cm]?[jt]s|[jt]sx)$/;
 const directory = /(?:^|\/)(?:tests?|__tests__)\//;

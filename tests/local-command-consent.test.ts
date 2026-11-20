@@ -626,10 +626,9 @@ test("a receipt from before judging changes stays historical for the same untouc
   );
   assert.notEqual(legacy, review.identity);
   const current = await f.consent(review.identity);
-  const payload = JSON.stringify({
-    ...current.binding,
-    reviewIdentity: legacy,
-  });
+  const legacyBinding = { ...current.binding, reviewIdentity: legacy };
+  delete legacyBinding.judgingChangeCount;
+  const payload = JSON.stringify(legacyBinding);
   const fingerprint = digest(
     JSON.stringify([CONSENT_POLICY, f.workspace.id, "operator", legacy]),
   );

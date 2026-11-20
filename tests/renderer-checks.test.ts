@@ -146,6 +146,7 @@ test("check results show literal commands, explicit freshness and read only on r
     app.element("checks-status").textContent,
     /Checks passed.*matches this reading/,
   );
+  assert.match(app.element("checks-result").text, /count not recorded/);
   assert.match(app.element("checks-result").text, /<script>\\n\\u202e/);
   assert.match(
     app.element("checks-result").text,
@@ -153,12 +154,15 @@ test("check results show literal commands, explicit freshness and read only on r
   );
   app.element("checks-refresh").fire("click");
   assert.equal(app.element("checks-result").text, "");
-  app.reads[1]!.resolve(view("stale"));
+  const stale = view("stale");
+  stale.result!.judgingChangeCount = 3;
+  app.reads[1]!.resolve(stale);
   await settle();
   assert.match(
     app.element("checks-status").textContent,
     /Checks passed.*stale/,
   );
+  assert.match(app.element("checks-result").text, /3 reported judging changes/);
   assert.equal(app.element("checks-cancel").disabled, true);
 });
 

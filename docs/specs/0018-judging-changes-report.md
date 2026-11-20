@@ -209,9 +209,31 @@ Acceptance against `00ef222`, 20 November 2026:
   bridge, display paths literally, and include this group in the consent
   identity. A matching path does not establish that the command uses it.
 
+Development evidence at `97d45b4`, 20 November 2026: the real-Git, bridge
+and renderer tests for configuration and workflow paths passed in the full
+repository check. The dedicated diff review covered both sides of renames
+and the use of pinned file metadata.
+
+## Result count (in development)
+
+Acceptance against `97d45b4`, 20 November 2026:
+
+- Count the entries shown across the groups at review time. A file can have
+  entries in more than one group. Zero means no entries from the applied
+  recognisers. A group without coverage contributes no entries.
+- Bind the count to the setup/test consent. Copy it from that receipt when
+  persisting the result and its event in the same transaction. Reject a
+  result whose count disagrees with the receipt. The check commands cannot
+  provide the count.
+- Display the count alongside passed and failed checks, with the existing
+  freshness reading applying to both. A later base or commit preserves the
+  original count and marks the pair stale. Preserve historical results with
+  no count as “count not recorded”. Separate run actions carry no test count.
+- The native smoke uses an added test path, exercises the before-consent
+  report, and checks the same count at a passed result and after a new commit.
+
 Remaining acceptance includes skipped tests, npm script and dependency
-recognisers, partial file summaries, result counts, native smoke and the
-maintainer trial.
+recognisers, partial file summaries and the maintainer trial.
 
 ## Exit evidence
 
