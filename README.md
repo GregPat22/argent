@@ -1,8 +1,8 @@
 # Argent
 
 **An open-source desktop app for Claude Code in local Git worktrees.** Follow
-live sessions, inspect changes and keep a durable record of each run. Independent
-test checks and draft pull requests carrying that evidence are in development.
+live sessions, inspect changes and run approved checks against an exact commit.
+Draft pull requests carrying that evidence are planned.
 You decide what gets merged.
 
 > **Status: early prototype.** The durable engine and the macOS desktop app work
@@ -11,7 +11,7 @@ You decide what gets merged.
 > Local execution is **not a sandbox**: the agent runs as you. The Changes panel
 > shows current files and a bounded diff against the workspace base. The Commands
 > dialog shows a repository's check commands for review and records your
-> approval. Exact-commit setup/test results are in development; pull requests
+> approval. Argent records exact-commit setup/test results. Pull requests
 > and cloud workspaces are planned; GitHub-URL workspaces
 > remain a scripted simulation. Everything below says which parts are
 > real and which are planned.
@@ -61,24 +61,13 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   binary files. Open Changes or press Refresh to read again. Live changes are
   not test evidence. See the
   [acceptance contract](docs/specs/0013-local-mvp.md#desktop-changes-acceptance).
-- **Review of the check commands** (part of L1.4): the Commands dialog shows
-  the `setup`, `test` and `run` commands from `argent.json` at the workspace's
-  base commit, every argument in full, and records your approval for that
-  repository and those exact bytes. Approval records a review, not a test result.
-  Exact-commit setup/test results are in development. See the
-  [acceptance contract](docs/specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development).
-
-Candidate review and consent are in development as the next desktop integration:
-review every committed change, then record consent for that exact commit and
-the approved base commands. This still runs nothing and produces no test result.
-See the [candidate review contract](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development).
-The next integration, also in development, connects that consent to approved
-setup/test in a fresh checkout and displays passed, failed or stale results.
-See the [result contract](docs/specs/0013-local-mvp.md#desktop-setup-and-test-results-in-development)
-for the limits and validation.
-The deferred `run` action is also in development, with separate consent and a
-fresh exact-commit checkout; its outcome is not test evidence. See its
-[acceptance contract](docs/specs/0013-local-mvp.md#desktop-run-action-in-development).
+- **Exact-commit checks** (L1.4). Open Commands to review and approve the
+  repository’s `argent.json` from the workspace base. Review the committed
+  changes, record consent for that commit and choose **Run checks**. Argent
+  runs the configured setup (if present) and test in a fresh checkout. Open **Checks** or choose
+  **Refresh** to see whether the result still matches the workspace.
+  A configured **run** command requires separate consent and has its own
+  result. See the [manual walkthrough](docs/specs/0013-local-mvp.md#l14-manual-walkthrough).
 
 ## Where it is going
 
@@ -122,7 +111,7 @@ merging are explicitly out of scope for now.
 ## Principles
 
 - **An agent's claim is not proof.** Argent records local changes itself today.
-  Planned trusted checks will run against the exact commit and record their
+  Approved checks run against the exact commit and record their
   results separately from what the agent says. A planned report will say
   whether that commit changed what judges it, because a pass means less when
   the commit also rewrote its own tests or check scripts.

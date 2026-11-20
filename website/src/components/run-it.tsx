@@ -82,7 +82,7 @@ const WAYS: Way[] = [
       },
       {
         kind: "output",
-        text: "limitations   Not a sandbox. Trusted tests and pull requests are planned.",
+        text: "limitations   Not a sandbox. Exact-commit checks require consent. Draft pull requests are planned.",
       },
     ],
   },

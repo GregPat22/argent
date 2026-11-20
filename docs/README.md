@@ -11,8 +11,8 @@ The offline [history CLI](specs/0012-portable-history.md) exports and restores
 simulation history only. Export of real Claude Code transcripts and Git changes
 remains planned. Public capability descriptions follow the
 [website copy contract](specs/0016-website-restyle.md#capability-copy-acceptance--12-november-2026):
-one branch per workspace, local results recorded rather than tested, and explicit
-labels for planned verification.
+one branch per workspace, a Git record for each agent run, a separate result
+for approved checks and explicit labels for illustrative verification.
 
 The [local hardening contract](specs/0013-local-mvp.md#local-execution-hardening)
 and [delivery regression gates](specs/0004-desktop-prototype.md#delivery-regression-gates)
@@ -24,28 +24,11 @@ cancellation correction is integrated in main `707ae8b`, completing work-queue
 item 1. L1.3 now supplies a read-only changes panel; its
 [implementation evidence](specs/0013-local-mvp.md#l13-implementation-evidence)
 records service/renderer regression tests and the native desktop flow at
-`37ea780`. Trusted checks (L1.4) are next, and the complete local MVP remains open.
-The roadmap's [L1.4 progress](../ROADMAP.md#l14-progress) table lists every
-piece built so far, with its commit and contract, and what remains. The
-desktop app includes
-[review and approval of the command configuration](specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development).
-The setup/test result integration remains in development.
-[Internal candidate consent](specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development)
-is in development. It records an acknowledgement for one complete text review;
-binary changes and reviews above the display limits cannot be consented to.
-[Service and desktop candidate-consent controls](specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development)
-are in development: full committed text changes, explicit consent and a fresh
-matching read. Consent itself runs nothing and records no test result.
-The [setup/test result integration](specs/0013-local-mvp.md#desktop-setup-and-test-results-in-development)
-is in development: explicit execution after consent, exclusive ownership,
-setup/test in a fresh checkout, and a desktop result with freshness checked on
-open or Refresh. Its [validation](specs/0013-local-mvp.md#desktop-setup-and-test-validation)
-separates fixture evidence from real-account and release gates.
-The [separate run-action integration](specs/0013-local-mvp.md#desktop-run-action-in-development)
-is in development: approved setup then run in a fresh checkout, with its own
-consent and a run-command result that is not test evidence.
-Its [validation record](specs/0013-local-mvp.md#desktop-run-action-validation)
-distinguishes native fixtures, repository checks and remaining release evidence.
+`37ea780`. The [manual L1.4 walkthrough](specs/0013-local-mvp.md#l14-manual-walkthrough)
+at `e4518a4` verifies exact-commit checks and separate run consent.
+The [roadmap](../ROADMAP.md#l14-progress) lists the implementation history.
+Open the Checks dialog or refresh it to read the latest result and freshness.
+
 The [L1.4 review corrections](specs/0013-local-mvp.md#l14-review-corrections)
 keep one unreadable check from stopping the service, record a confirmed stop as
 evidence without unblocking the workspace, and state the process-group and
@@ -58,7 +41,7 @@ the desktop from using a still-running service of a different Argent build and
 leaves stopping it to the developer.
 
 The [judging-changes report](specs/0018-judging-changes-report.md) is planned
-as work-queue item 4, after L1.4 shows its first result and before the draft
+as the next work-queue item, before the draft
 pull request. For an exact commit it will say whether the commit changed its
 tests, what the approved commands run or its dependencies. Nothing of it is
 implemented; its detailed acceptance contract and security review come first.
@@ -108,7 +91,7 @@ recorded revision.
 | [0010 Live repository pilot gates](specs/0010-live-repository-pilot-gates.md)             | The credential, authorization and isolation gates before live repository access.      |
 | [0011 GitHub device sign-in pilot](specs/0011-github-device-pilot.md)                     | Implemented opt-in read-only pilot, not connected to the desktop.                     |
 | [0012 Portable history](specs/0012-portable-history.md)                                   | Implemented offline export and read-only restore, with commands.                      |
-| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | Critical path: L1.1–L1.3 implemented; trusted checks and later slices planned.        |
+| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | L1.1–L1.4 implemented, including exact-commit checks. Later slices are planned.       |
 | [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.        |
 | [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks.   |
 | [0018 Judging-changes report](specs/0018-judging-changes-report.md)                       | Planned: whether a commit changed what judges it. Work-queue item 4; not implemented. |

@@ -56,7 +56,7 @@ const PROMISES: {
   },
   {
     title: "Rules say what enforces them.",
-    body: "A rule is guidance, a check, a gate or a prevention control. Argent offers no prevention control today: local execution is not a sandbox. Trusted checks are in development; further rule types are planned after release.",
+    body: "A rule is guidance, a check, a gate or a prevention control. Argent offers no prevention control today: local execution is not a sandbox. Argent runs approved checks for the exact commit. Further rule types are planned after release.",
     status: "policy",
     subject: "Project rules",
   },

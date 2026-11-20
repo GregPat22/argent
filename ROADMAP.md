@@ -1,6 +1,6 @@
 # Roadmap
 
-Last reviewed 16 November 2026. Milestones are sequenced by demonstrated behavior,
+Last reviewed 20 November 2026. Milestones are sequenced by demonstrated behavior,
 not dates: each one ends with evidence, and nothing is advertised before it works.
 Planning does not authorize spending, publication or foundation replacement.
 
@@ -16,8 +16,7 @@ repository: whether they keep using a capability decides whether it stays.
 Argent collected itself: the exact commit, the checks Argent ran and what
 changed. An agent saying "done, all tests pass" is a sentence, not a result.
 Separate workspaces and several agents are how Argent works, not what sets it
-apart. The checks in L1.4 are therefore the centre of the remaining local work:
-until they land, a finished run is recorded but not tested, and the app says so.
+apart. L1.4 records results for checks run on an exact commit after explicit consent.
 
 **Rules named by what enforces them.** A project rule is guidance given to the
 agent, a check Argent runs afterwards, a gate that blocks a step until a check
@@ -36,7 +35,7 @@ workspace added, whichever agent wrote it.
 **What sets Argent apart.** Three things, in the order they are built, none of
 them a count of agents or terminals:
 
-1. **Checks Argent runs itself** (L1.4, in development): each workspace shows a
+1. **Checks Argent runs itself** (L1.4, implemented): each workspace shows a
    result for its exact commit (passed, failed or stale) before a pull request
    exists. The point is the state of every workspace at a glance, without
    reading each transcript. A planned
@@ -48,8 +47,7 @@ them a count of agents or terminals:
 3. **One set of project rules for every agent** (planned): approved by a person
    and read from a state the agent cannot change, whichever agent runs.
 
-None of these works yet beyond review and approval of the command
-configuration; the [README](README.md#what-works-today) says what does.
+See the [manual check walkthrough](docs/specs/0013-local-mvp.md#l14-manual-walkthrough) for the evidence behind the first item.
 
 Argent is an independently usable desktop app with a familiar layout:
 repository and workspace navigation, agent sessions and a composer, files, diffs
@@ -95,7 +93,7 @@ The desktop says so plainly. See [spec 0013](docs/specs/0013-local-mvp.md).
 | L1.1 worktree workspaces + Claude Code | Implemented.                                                                                                                                 | Create a branch/worktree from a local repository; run Claude Code in it with a live transcript, follow-up turns and acknowledged cancel; record the resulting commit and diff as evidence.                                                                                                                                                                                                                                                                                                                                                                                  |
 | L1.2 desktop on real execution         | Implemented; real-CLI walkthrough recorded in spec 0013.                                                                                     | Choose a local repository, create/select workspaces, see the agent's transcript, send follow-ups, choose the permission mode and cancel, in the desktop app.                                                                                                                                                                                                                                                                                                                                                                                                                |
 | L1.3 changes panel                     | Implemented. Read-only changed-file list and bounded unified diff; live, not tested.                                                         | Real changed-file list and diff for the workspace against its base.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| L1.4 setup, run and test actions       | In development. The desktop shows the command configuration for review and records its approval; actions and results remain planned.         | Per-repository reviewed commands with bounded output, read from a configuration the agent cannot change; a test result recorded for the exact commit as evidence, separate from what the agent says.                                                                                                                                                                                                                                                                                                                                                                        |
+| L1.4 setup, run and test actions       | Implemented. Manual desktop walkthrough at `e4518a4`.                                                                                        | Per-repository reviewed commands with bounded output, read from a configuration the agent cannot change; a test result recorded for the exact commit as evidence, separate from what the agent says.                                                                                                                                                                                                                                                                                                                                                                        |
 | Judging-changes report                 | Planned. Starts after the first L1.4 result, before L1.5. Needs its detailed acceptance contract and security review.                        | [Spec 0018](docs/specs/0018-judging-changes-report.md): for the exact commit, Argent reports whether it changed its tests, what the approved commands run (scripts, check configuration, workflow definitions) or its dependencies, computed from the committed difference without running repository code. Shown in the candidate review before consent and next to the result; not checkable where Argent has no recogniser. A check and a consent gate, not a prevention control and not a security scan. Kept only if the maintainers keep using it on this repository. |
 | L1.5 draft pull request and archive    | Planned.                                                                                                                                     | Commit, push and open a draft pull request through the developer's own `gh`, with Argent's evidence record, including the judging-changes report, in its description; merge stays a human action. Archive removes the worktree only when it is safe.                                                                                                                                                                                                                                                                                                                        |
 | Customer/auth compatibility            | Alongside L1.                                                                                                                                | Dated provider/auth/deployment matrix. No demand assumed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -130,8 +128,8 @@ builds a path or runs Git gets a dedicated security review against the
 | --- | ---------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Real run with the official CLI                 | Done (`707ae8b`)  | A maintainer's signed-in Claude Code CLI. A maintainer performs it by hand.            | A maintainer completes real tasks in the desktop app on this repository: one in edits-only mode, one in full access, one cancelled mid-run, two workspaces in parallel. The walkthrough is recorded in spec 0013 by commit, with every defect found either fixed or listed.                                                                                                                                                                                 |
 | 2   | L1.3 changes panel                             | Done (`37ea780`)  | Item 1.                                                                                | The desktop shows the workspace's changed files and a bounded diff against its base, read through the service with trusted Git; untracked, renamed, deleted and binary files are handled; tests cover path traversal and oversized diffs.                                                                                                                                                                                                                   |
-| 3   | L1.4 setup, run and test actions               | **Next**          | Item 2. Security review.                                                               | Commands come from a reviewed per-repository configuration the agent cannot change; a test result is recorded as evidence for the exact commit, separate from what the agent says; a later change marks it stale.                                                                                                                                                                                                                                           |
-| 4   | Judging-changes report                         | Planned           | Item 3 showing its first result. Its detailed acceptance contract and security review. | [Spec 0018](docs/specs/0018-judging-changes-report.md): the candidate review shows, before consent, whether the exact commit changed its tests, what the approved commands run or its dependencies; the result shows the count and both go stale together; anything Argent cannot read is shown as not checkable; the maintainers have used it on real tasks in this repository and recorded whether it stays. First scope: npm, JavaScript and TypeScript. |
+| 3   | L1.4 setup, run and test actions               | Done (`e4518a4`)  | Item 2. Security review.                                                               | Commands come from a reviewed per-repository configuration the agent cannot change; a test result is recorded as evidence for the exact commit, separate from what the agent says; a later change marks it stale.                                                                                                                                                                                                                                           |
+| 4   | Judging-changes report                         | **Next**          | Item 3 showing its first result. Its detailed acceptance contract and security review. | [Spec 0018](docs/specs/0018-judging-changes-report.md): the candidate review shows, before consent, whether the exact commit changed its tests, what the approved commands run or its dependencies; the result shows the count and both go stale together; anything Argent cannot read is shown as not checkable; the maintainers have used it on real tasks in this repository and recorded whether it stays. First scope: npm, JavaScript and TypeScript. |
 | 5   | L1.5 draft pull request and archive            | Planned           | Item 4. The developer's own `gh` sign-in.                                              | Commit, push and a draft pull request through `gh`, with Argent's evidence record, including the judging-changes report, in its description and the URL recorded; an unknown outcome becomes `needs_attention` and is never retried; archive removes only a worktree Argent created, only when clean or explicitly discarded.                                                                                                                               |
 | 6   | Process reconciliation after a crash           | Planned           | Items 1 to 5 may expose more cases.                                                    | After a hard service crash, Argent proves by process identity whether the earlier agent has stopped, and only then lets the developer continue the workspace. Required by the [hardening contract](docs/specs/0013-local-mvp.md#local-execution-hardening).                                                                                                                                                                                                 |
 | 7   | First-run guidance                             | Planned           | Item 1.                                                                                | When the `claude` CLI is missing, too old or not signed in, the desktop app says which and how to fix it, before a task is accepted.                                                                                                                                                                                                                                                                                                                        |
@@ -148,9 +146,7 @@ at `37ea780`: see the
 
 ## L1.4 progress
 
-Item 3 is **Next** and not complete. The groundwork below is implemented and
-tested. Desktop review and exact-commit consent are integrated; the setup/test
-result integration below remains in development.
+Item 3 is complete. The table records the implementation history.
 
 | Piece                                            | Commit    | Contract                                                                                                                 |
 | ------------------------------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -167,43 +163,13 @@ result integration below remains in development.
 | Desktop review and approval of the configuration | `bfeb63a` | [Desktop](docs/specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development), a development commit   |
 | Internal candidate-consent storage, no execution | `2920f29` | [Consent](docs/specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development), a development commit       |
 
-The [internal candidate-consent step](docs/specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development)
-is in development: durable acknowledgements bound to a complete text review of
-one exact commit, with no binary or oversized-review exceptions. It has no
-execution entry point and never permits execution. Service and desktop integration
-is in development under the
-[candidate-review contract](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development).
+The subsequent desktop integrations added exact-commit consent (`6dd4968`),
+setup/test results (`7cebe40`) and the separate run action (`d43001d`).
 
-- [x] Implement the reachable candidate-review and consent flow (development
-      implementation `6dd4968`): display the complete committed text changes and
-      record exact-commit consent; no command dispatch or test result.
-      [Validation](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-validation)
-      records the checks and limits.
-- [x] Connect exclusive executable ownership, setup/test dispatch and
-      passed/failed/stale results to that desktop flow (development implementation
-      `7cebe40`). The [result validation](docs/specs/0013-local-mvp.md#desktop-setup-and-test-validation)
-      records passing repository/native checks, security review and limits.
-      Item 3 remains in development; this does not complete the whole milestone.
-- [x] Implement the deferred `run` action after the setup/test result integration
-      (development implementation `d43001d`, test correction `1713336`), under
-      the [separate-consent acceptance contract](docs/specs/0013-local-mvp.md#desktop-run-action-in-development).
-      Its [validation record](docs/specs/0013-local-mvp.md#desktop-run-action-validation)
-      separates automated checks, native fixtures and repository evidence.
-- [ ] Record the remaining L1.4 exit evidence before marking item 3 complete.
-      An automated [desktop walkthrough](docs/specs/0013-local-mvp.md#l14-desktop-walkthrough-evidence)
-      at `7054f4a` used a real agent and this repository's own commands, and
-      covered passed, stale, failed and cancelled results and the separate run
-      action. It awaits the maintainers' decision on whether it meets the exit;
-      item 3 stays **Next** until then. Its second defect, a reused service
-      from an older build, is corrected by the
-      [service build check](docs/specs/0013-local-mvp.md#service-build-check).
-
-The setup/test integration has automated and native fixture evidence at
-`7cebe40`. The run integration remains in development: approved setup then run
-in a fresh exact-commit checkout, with separate consent and a result that is
-not test evidence. Programmatic repository checks do not establish a
-maintainer's real-repository desktop walkthrough. PR creation and archive
-remain L1.5.
+- [x] Record the L1.4 exit evidence. The [manual desktop walkthrough](docs/specs/0013-local-mvp.md#l14-manual-walkthrough)
+      at `e4518a4` covers passed, stale, failed and cancelled checks, plus
+      separate consent, success and cancellation for the run action.
+      Item 4 is next. The walkthrough also records open usability questions.
 
 **The first-result integration requirement.** Accepted before implementation:
 the pieces above connect in one slice from approval to result: consent reachable from the
@@ -219,7 +185,7 @@ to the result, so it has nothing to add to before them. The
 commands come only from the approved configuration at the base commit and run
 only after consent to the exact commit.
 
-Already implemented: L1.1, L1.2, L1.3, the
+Already implemented: L1.1 through L1.4, the
 [local hardening](docs/specs/0013-local-mvp.md#local-execution-hardening) and
 the [desktop restyle](docs/specs/0015-desktop-restyle.md).
 
@@ -237,7 +203,7 @@ existing scope. See the [design todo](docs/specs/0013-local-mvp.md#human-trigger
 
 | Item                                            | Status                                                            | Done when                                                                                                                                                                                                                                                                                               |
 | ----------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Argent's own `argent.json`                      | Done with this change.                                            | This repository carries its own `setup` and `test` commands, so a maintainer reviews and approves them in the desktop app today and gets Argent's own result for Argent's commits as soon as item 3 runs commands. Until then the file runs nothing.                                                    |
+| Argent's own `argent.json`                      | Done with this change.                                            | This repository carries its own `setup` and `test` commands, so a maintainer reviews and approves them in the desktop app and obtains an independent result for the reviewed commit. Executing those commands requires review and consent to the exact commit.                                          |
 | Suggested commands without a configuration file | Planned, after item 3 produces results. Spec and security review. | For a repository with no `argent.json`, Argent proposes the usual `setup` and `test` commands for the project type it recognises, read at the base commit. The developer reviews and approves them like any other configuration; nothing runs unapproved, and a repository's own file always wins.      |
 | Simulated cloud groundwork out of the main path | Planned, in its own change, not while item 3 is in flight.        | The cloud lifecycle, custody and GitHub pilot simulations no longer load when the local service starts and no longer run in the default check. No milestone is removed: M1 resumes from that code. How it is set aside, and whether offline history export moves with it, is decided before the change. |
 | A shorter README                                | Planned, with the first working result of item 3.                 | The front page states what works, the beliefs and one real result a developer can reproduce; reference material (local API, standalone configuration, offline history, pilot) moves under `docs/`, with every link kept working.                                                                        |

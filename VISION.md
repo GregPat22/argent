@@ -100,7 +100,7 @@ Whether they keep using a capability decides whether it stays.
 
 Claude Code runs in local worktrees, and the desktop changes panel shows
 current changed files and a bounded diff against the workspace base. Live diffs are
-observations of current files, not checks or immutable evidence. Trusted test
-execution, the judging-changes report and draft pull requests remain the next
+observations of current files, not checks or immutable evidence. Argent runs approved checks against an exact commit after consent.
+The judging-changes report and draft pull requests are the next
 local MVP steps. Links between workspaces, further rule types and shared rule
 sets do not exist.
