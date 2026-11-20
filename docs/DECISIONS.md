@@ -191,7 +191,9 @@ The [native report fixture](specs/0018-judging-changes-report.md#native-report-a
 ties entries in all three groups to the displayed result count. Cumulative
 review at `fe3acf2` identified the [exact-rename validation requirement](specs/0018-judging-changes-report.md#exact-rename-validation-at-the-desktop-bridge-in-development)
 for a moved finding. The [review deadline contract](specs/0018-judging-changes-report.md#deadline-during-report-construction-in-development)
-covers the final synchronous report computation before consent.
+covers the final synchronous report computation before consent. The
+[local source path contract](specs/0018-judging-changes-report.md#windows-package-source-paths-in-development)
+also covers Windows path spellings in committed lockfiles.
 
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many

@@ -1035,6 +1035,13 @@ test("npm source changes are reported independently of versions without returnin
       },
     });
   const registry = "https://registry.npmjs.org/sample/-/sample-1.tgz";
+  const windowsPaths = {
+    "win-current": ".\\private-source.tgz",
+    "win-drive": "C:\\private-source.tgz",
+    "win-parent": "..\\private-source.tgz",
+    "win-root": "\\private-source.tgz",
+    "win-unc": "\\\\example.invalid\\share\\private-source.tgz",
+  };
   const f = await fixture(t, {
     "package-lock.json": lock({
       url: registry,
@@ -1054,6 +1061,7 @@ test("npm source changes are reported independently of versions without returnin
       same: "https://example.invalid/new.tgz",
       untouched: registry,
       added: "./local.tgz",
+      ...windowsPaths,
     }),
   );
   f.commit();
@@ -1086,6 +1094,13 @@ test("npm source changes are reported independently of versions without returnin
         "modified",
         { before: "npm registry URL", after: "HTTP(S) URL" },
       ],
+      ...Object.keys(windowsPaths)
+        .sort()
+        .map((name) => [
+          "node_modules/" + name,
+          "added",
+          { before: null, after: "local path" },
+        ]),
     ],
   );
   assert.doesNotMatch(

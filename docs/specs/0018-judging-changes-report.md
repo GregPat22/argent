@@ -396,6 +396,18 @@ the deadline blocks a new consent with the existing timeout reason and
 creates no receipt or event. Exercise the boundary during manifest parsing
 in a real Git fixture and allow a complete review just inside the limit.
 
+Development evidence at `4003002`, 20 November 2026: advancing a monotonic
+clock during a real Git manifest comparison reached the existing timeout
+without writing consent or an event. The just-inside-limit review, existing
+cancellation tests, full repository check and native fixture passed.
+
+## Windows package-source paths (in development)
+
+Acceptance against `4003002`, 20 November 2026: recognise explicit Windows
+current-directory, parent-directory, rooted, drive and UNC paths in the
+committed lockfile on every host. Display the local path category. Classify
+only the recorded text, without resolving the path or opening a share.
+
 Remaining acceptance includes committed npm source settings and the
 maintainer trial. The complete review still refuses inputs beyond its own
 bounds and unsupported submodules before consent.

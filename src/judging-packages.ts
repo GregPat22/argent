@@ -23,7 +23,7 @@ function sourceKind(value: string | null, link: boolean): PackageSource | null {
     !/^(?:file:|link:|[a-z]:[\\/])/i.test(value)
   )
     return null;
-  if (link || /^(?:file:|link:|\.{1,2}\/|\/|[a-z]:[\\/])/i.test(value))
+  if (link || /^(?:file:|link:|\.{1,2}[\\/]|[\\/]|[a-z]:[\\/])/i.test(value))
     return "local path";
   if (
     /^(?:git(?:\+[a-z0-9.-]+)?:|ssh:|git@|github:|gitlab:|bitbucket:|gist:)/i.test(
