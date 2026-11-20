@@ -313,6 +313,8 @@ export function validateCandidateReview(
   } catch {
     throw invalid();
   }
+  const destinations = new Set(changes.files.map((file) => file.path));
+  const renameSources = new Set<string>();
   let blobBytes = 0;
   const files = changes.files.map((file): LocalCommandReviewFile => {
     const entry = record(file, [
@@ -341,6 +343,16 @@ export function validateCandidateReview(
     };
     const old = side(entry.oldMode, entry.oldBlobId, entry.oldBytes);
     const next = side(entry.newMode, entry.newBlobId, entry.newBytes);
+    if (file.previousPath !== null) {
+      if (
+        destinations.has(file.previousPath) ||
+        renameSources.has(file.previousPath) ||
+        old.blob !== next.blob ||
+        file.oldMode !== file.newMode
+      )
+        throw invalid();
+      renameSources.add(file.previousPath);
+    }
     // The service loads one blob for exact renames and mode-only changes.
     if (old.blob !== null && old.blob === next.blob && old.bytes !== next.bytes)
       throw invalid();

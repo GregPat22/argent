@@ -867,3 +867,39 @@ test("bridge validates lockfile package locations, both versions and change kind
     );
   }
 });
+
+test("candidate bridge accepts an exact rename into a recognised path and rejects inconsistent source metadata", async (t) => {
+  const f = await fixture(t);
+  renameSync(join(f.cwd, "marker.js"), join(f.cwd, "jest.config.js"));
+  f.commit();
+  const shown = value<CandidateReviewView>(
+    await f.client.call("candidateReview", [f.workspace.id]),
+  );
+  const index = shown.files.findIndex((file) => file.path === "jest.config.js");
+  const rename = shown.files[index]!;
+  assert.equal(rename.previousPath, "marker.js");
+  assert.deepEqual(shown.judgingChanges.commandPaths, [index]);
+  for (const patch of [
+    { previousPath: rename.path },
+    { previousPath: "notes.txt" },
+    { oldBlobId: "0".repeat(shown.headSha.length) },
+    { newMode: "100755" as const },
+    { oldBytes: rename.oldBytes! + 1 },
+  ]) {
+    const files = shown.files.map((file, i) =>
+      i === index ? { ...file, ...patch } : file,
+    );
+    assert.throws(
+      () => validateCandidateReview({ ...shown, files }, f.workspace.id),
+      /invalid/,
+    );
+  }
+  const duplicate = shown.files.map((file) =>
+    file.path === "notes.txt" ? { ...rename, path: file.path } : file,
+  );
+  assert.throws(
+    () =>
+      validateCandidateReview({ ...shown, files: duplicate }, f.workspace.id),
+    /invalid/,
+  );
+});

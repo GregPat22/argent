@@ -369,6 +369,19 @@ four entries beside the passed check. Restoring the base contents in a new
 commit must leave that same count beside the stale result. The existing
 approved fixture commands run without installing the example package.
 
+Development evidence at `fe3acf2`, 20 November 2026: the native fixture
+displayed all four entries and retained the count beside passed and stale
+results. The repository check passed. No model account was used.
+
+## Exact rename validation at the desktop bridge (in development)
+
+Acceptance against `fe3acf2`, 20 November 2026: a moved finding relies on
+an exact rename in the full review. The bridge must require matching blob
+identities, sizes and modes, a distinct destination and one occurrence of
+each source. A source cannot also be a changed destination. Reject inconsistent
+responses before showing the report for consent. A real exact rename into a
+recognised path must still appear.
+
 Remaining acceptance includes committed npm source settings and the
 maintainer trial. The complete review still refuses inputs beyond its own
 bounds and unsupported submodules before consent.
