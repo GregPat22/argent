@@ -218,7 +218,7 @@ type Mark = {
  * Each mark is punched into its own plate, the way hallmarks sit on silver:
  * the shape is the recess the punch leaves, the symbol stands proud inside it.
  * The desktop app strikes the maker's mark and the date letter today; the
- * standard and assay marks wait for checks, so their plates are only scribed.
+ * separate check result identifies the approved commands and their outcome.
  */
 const MARKS: Mark[] = [
   {
@@ -345,8 +345,8 @@ function Hallmarks() {
               {mark.body}
             </p>
             <StatusTag
-              status={mark.struck ? "live" : "planned"}
-              subject={mark.struck ? "Struck" : "Not struck"}
+              status="live"
+              subject={mark.struck ? "Run record" : "Check result"}
               className="mt-auto self-start"
             />
           </li>
@@ -398,19 +398,20 @@ export function Hallmark() {
           </p>
         </div>
         <div>
-          <StatusTag status="planned" subject="Test results" />
+          <StatusTag status="live" subject="Test results" />
           <p className="mt-4 max-w-[34rem] text-[0.9375rem] leading-relaxed text-sterling">
-            Checks that Argent runs itself against that exact commit, and a
-            draft pull request that carries the result, arrive with the local
-            MVP.
+            After you approve the commands and review the commit, Argent runs
+            the checks in a fresh checkout and records the result. Draft pull
+            requests carrying that result are planned.
           </p>
         </div>
       </div>
 
       <div className="mt-20 md:mt-24">
         <p className="text-sm text-sterling-dim">
-          The four marks of a complete record. The app strikes two of them
-          today:
+          The agent run records who did the work and which commit it reached.
+          The separate check result records the approved commands and their
+          outcome.
         </p>
         <Hallmarks />
       </div>

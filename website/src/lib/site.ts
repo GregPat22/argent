@@ -1,7 +1,7 @@
 export const SITE_URL = "https://argent.build";
 export const SITE_TITLE = "Argent: AI coding agents you can verify";
 export const SITE_DESCRIPTION =
-  "Open-source desktop app for Claude Code in local Git worktrees. Review changes and durable run records. Early prototype; trusted checks planned.";
+  "Open-source desktop app for Claude Code in local Git worktrees. Run approved exact-commit checks and review durable run records.";
 
 export const REPO_URL = "https://github.com/GregPat22/argent";
 export const DOCS_URL = `${REPO_URL}#readme`;

@@ -115,7 +115,7 @@ const STEPS: {
   },
   {
     title: "Review the evidence. Then merge.",
-    body: "See the real diff and the test results recorded for the exact commit, separate from what the agent says. Argent opens a draft pull request; merging is always your call.",
+    body: "See the real diff and the test results recorded for the exact commit, separate from what the agent says. Draft pull requests are planned. Merging is always your call.",
     object: <EvidenceObject />,
     status: "next",
   },

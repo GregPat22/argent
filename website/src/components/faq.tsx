@@ -17,10 +17,11 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         . It runs Claude Code on your local repositories, each workspace in its
         own branch and Git worktree, with your own sign-in. Follow-up tasks
         reuse that workspace. It is early and not a sandbox. Its changes panel
-        shows current files and a bounded diff; trusted tests and pull requests
-        are planned. Today it runs on Macs with Apple silicon; Windows, Linux
-        and Intel Mac builds have not been made or tested. Star and watch the
-        repository to hear when signed downloads land.
+        shows current files and a bounded diff. Argent runs approved checks
+        against the exact commit. Draft pull requests are planned. Today it runs
+        on Macs with Apple silicon; Windows, Linux and Intel Mac builds have not
+        been made or tested. Star and watch the repository to hear when signed
+        downloads land.
       </>
     ),
   },
@@ -102,10 +103,10 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         workspace its own branch and worktree, keeps a durable record of every
         run and records what changed itself instead of trusting the agent. The
         changes panel shows current files and a bounded diff; it is not test
-        evidence. Next are trusted tests for the exact commit and a draft pull
-        request you merge yourself. It is open source, built for more than one
-        agent, and designed to continue on a machine that stays on and on your
-        phone.
+        evidence. After consent, Argent runs approved checks in a fresh checkout
+        of the exact commit. A draft pull request carrying that result is
+        planned. It is open source, built for more than one agent, and designed
+        to continue on a machine that stays on and on your phone.
       </>
     ),
   },
@@ -115,12 +116,12 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
       <>
         Rules are named by what enforces them: guidance given to an agent, a
         check Argent runs, a gate that blocks a step, or a prevention control.
-        Today Argent offers no prevention control, and trusted checks are in
-        development. As the first update after release, the planned checked
-        links experiment warns when two workspaces change the same paths and
-        tests a trial merge of their exact commits. A link grants no access and
-        carries no messages between agents. Further project rules follow; shared
-        rule sets remain a longer-term goal.
+        Today Argent offers no prevention control, and runs approved checks
+        after consent to the exact commit. As the first update after release,
+        the planned checked links experiment warns when two workspaces change
+        the same paths and tests a trial merge of their exact commits. A link
+        grants no access and carries no messages between agents. Further project
+        rules follow; shared rule sets remain a longer-term goal.
       </>
     ),
   },

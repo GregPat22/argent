@@ -5,6 +5,14 @@ silver field are unchanged. No capability, milestone or priority changes: this
 spec changes how the page presents what [the roadmap](../../ROADMAP.md) already
 says.
 
+## Capability copy after L1.4
+
+The [manual walkthrough](0013-local-mvp.md#l14-manual-walkthrough) on
+20 November 2026 at `e4518a4` supersedes the earlier status labels for
+trusted checks below. Public copy distinguishes the agent run record from the
+separate exact-commit check result. Both work today. Draft pull requests and
+the illustrated combined verification record remain planned.
+
 ## Decisions
 
 1. **Proof leads.** Section order is hero, statement, proof, how it works,

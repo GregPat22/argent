@@ -51,7 +51,7 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
 - When the roadmap or capabilities change, update the hero, the roadmap section
   and the FAQ together.
 - A branch and worktree belong to a workspace; follow-up tasks reuse it. Local
-  execution is not a sandbox. A finished local run is recorded, not tested.
+  execution is not a sandbox. An agent run records changes. Separately approved checks produce test evidence for an exact commit.
 - History export and read-only restore currently cover simulation history only.
   Export of real Claude Code transcripts and Git changes is planned.
 - Planned verification examples carry an explicit label inside the card so a

@@ -3,7 +3,7 @@
 Status: the M0 engine, the P1 local desktop prototype and the P2 desktop shell are
 implemented. The desktop app runs Claude Code in local worktrees
 ([spec 0013](docs/specs/0013-local-mvp.md), slices L1.1 and L1.2), with a read-only
-changes panel (L1.3). GitHub-URL workspaces and cloud work remain simulated. The managed architecture below is
+changes panel (L1.3) and exact-commit checks (L1.4). GitHub-URL workspaces and cloud work remain simulated. The managed architecture below is
 the proposed later target.
 No upstream fork, cloud deployment or paid resource is configured.
 
@@ -33,9 +33,8 @@ flowchart LR
 M0 implements the control API, durable SQLite store and independent worker with
 local simulation adapters. P1 adds the installed desktop client and local download
 page source. L1.1 and L1.2 add Claude Code in local worktrees. Real cloud
-workspaces and the GitHub PR broker remain M1 targets. Verification checks a
-simulation artifact or records local Git evidence; executing trusted repository
-tests remains planned.
+workspaces and the GitHub PR broker remain M1 targets. Agent runs record simulation or local Git evidence. Separately approved local checks
+execute in a fresh checkout and persist their results for the exact commit.
 
 ## Persistence and execution
 
@@ -488,7 +487,7 @@ replaces a verification record. See the
 
 The internal, read-only `local-command-config.ts` module is implemented at
 `914323d962b031f4e44e9c0047c626c5800e6643`, with validation recorded on
-11 November 2026. L1.4 remains incomplete. The reader derives owned workspace
+11 November 2026. The reader derives owned workspace
 identity from the store and reads the fixed
 `argent.json` blob at the exact stored base through trusted Git. It validates a
 bounded versioned schema of argument arrays and returns immutable commands,
@@ -523,24 +522,23 @@ sibling workspaces and newer bases. It supplies a point-in-time match, not a
 portable grant or permission to dispatch. Approval has no worker entry point and
 never queues work; it is reached only through the local service routes and the
 desktop dialog below. Existing history exports and restores
-exclude its authority. Bounded action execution, exact-commit test evidence and
-stale result display remain planned. Before a result qualifies as verification,
+exclude its authority. The executable local checks described below consume separately reviewed commit consent. Before a result qualifies as verification,
 command-defining and test changes must be compared to the trusted base and
 surfaced for human review; freezing argv alone is insufficient.
 
-### Configuration approval service (in development)
+### Configuration approval service
 
-Configuration approval service integration is in development under the
+The configuration approval service implements the
 [service acceptance contract](docs/specs/0013-local-mvp.md#configuration-approval-service-acceptance-in-development).
-The planned authenticated GET reads configuration and its approval from one
-source observation; POST supplies only the expected digest and idempotency key
-to the existing transaction. The service owns the stable single-user actor,
+The authenticated GET reads configuration and its approval from one
+source observation. POST takes the displayed `expectedCandidateIdentity` in the
+body and the request key in the `Idempotency-Key` header. The service owns the stable single-user actor,
 independent of its rotating bearer token. Receipts remain historical and cannot
 dispatch work. Standalone mode stays disabled. The service step adds no
 renderer bridge; the desktop step below does. The accepted execution and
 candidate-review contracts are unchanged.
 
-### Desktop configuration approval (in development)
+### Desktop configuration approval
 
 The desktop's Commands dialog uses those two routes under the
 [desktop acceptance contract](docs/specs/0013-local-mvp.md#desktop-configuration-approval-acceptance-in-development).
@@ -572,13 +570,8 @@ with an error; graceful downgrade and older-client interpretation are not
 supported. This marker never authorizes execution. The existing worker must
 claim only agents and guard the kind before selecting an adapter. Public agent
 lists and routes, artifacts and portable simulation history must exclude command
-jobs. No dispatcher, enqueue endpoint, desktop action, completion result or
-verification evidence is included. Future execution still needs fresh approval
-validation under ownership and the separately reviewed candidate/verification
-contract; it must not silently activate dormant version-1 records.
-Persisted deadlines are ownership metadata only: no command runner exists to
-enforce runtime or abort configured processes. Lease-expiry reconciliation
-retains its existing uncertainty semantics.
+jobs. Dormant version-1 records cannot execute. The local worker runs only the
+separately authorized executable jobs described below.
 
 ### Internal exact-commit candidate observation
 
@@ -595,8 +588,8 @@ live display contract remains unchanged.
 
 The returned object explicitly has no human review, no tests and no permission
 to execute. It is a bounded point-in-time observation, not an atomic snapshot.
-Ignored dependencies and build outputs remain excluded; a future verification
-runner still needs a fresh owned checkout and complete candidate review. No
+Ignored dependencies and build outputs remain excluded; the verification
+worker requires a fresh owned checkout and complete candidate review. No
 receipt, job, endpoint, desktop control or runnable plan is created.
 
 Trusted Git transport denial uses an empty `GIT_ALLOW_PROTOCOL` allowlist, which
@@ -627,14 +620,12 @@ reported as unchanged, changed or removed. Argent does not guess which changed
 files a command executes, so the complete change set is the review. The review
 identity binds the observation and every changed entry.
 
-It is not consent, a receipt, a job or a runnable plan, and it has no API,
-desktop or worker entry point. Any failure, overflow, cancellation or deadline
-yields no review. Consent bound to a review identity, a fresh owned checkout,
-bounded execution and exact-commit results remain planned.
+Any failure, overflow, cancellation or deadline yields no review. The
+service uses the complete review to bind consent to the exact commit.
 
 ### Internal candidate consent
 
-In development under the
+Implemented under the
 [consent acceptance contract](docs/specs/0013-local-mvp.md#internal-candidate-consent-acceptance-in-development).
 `local-command-consent.ts` recomputes the pinned review and accepts only the
 identity the trusted caller says was displayed. Every changed entry must be
@@ -648,15 +639,15 @@ returns validated history, even if the worktree is gone. A fresh match requires
 another complete review; a different commit or unclean worktree cannot reuse
 consent. New consent also requires an idle running workspace, checked again in
 the write transaction. Receipts and matches explicitly forbid execution.
-Service and desktop integration is in development under the
+The service and desktop implement the
 [desktop candidate-review contract](docs/specs/0013-local-mvp.md#desktop-candidate-review-and-consent-acceptance-in-development).
 An explicit GET obtains one fresh review and checks for a matching historical
 receipt; POST records only the displayed review identity. Both use the stable
 service actor and omit it from the desktop response. The bridge rebuilds bounded
 display fields, and the renderer shows the complete escaped text change set
 before enabling consent. Reconnect does not inspect repositories or replay consent.
-No worker consumes consent. Future dispatch must obtain
-exclusive ownership, revalidate and create a fresh verification checkout; a
+At dispatch the worker obtains
+exclusive ownership, revalidates consent and creates a fresh verification checkout; a
 point-in-time match cannot fence later repository writes. Checksums detect
 corruption, not host-owner tampering.
 
@@ -672,11 +663,8 @@ It counts and hashes both output streams, retains a bounded tail, stops at a
 total output limit or the deadline, and returns an immutable observation of the
 outcome. Cancellation and unconfirmed termination return no result.
 
-Nothing calls it: there is no configuration, approval, review, job, worker,
-API or desktop path to the runner, and dormant command jobs remain forbidden to
-execute. Its result is labelled untested and is not evidence about a commit.
-Connecting it requires consent bound to a review identity, a fresh owned
-checkout, exact-commit result handling and an independent security review.
+The local check worker calls the runner for each approved command. It binds
+the observed outcomes to the commit after verification and cleanup.
 
 ### Internal verification checkout
 
@@ -701,9 +689,9 @@ Git's removal of that one worktree; Argent deletes nothing recursively itself
 and prunes no other worktree.
 
 A checkout is not isolation: a command there runs as the developer and shares
-the repository's Git directory. A trusted check will run `setup`, when
-configured, and then `test` in one such checkout. Nothing calls this module
-yet, and a checkout left by a crash stays until durable ownership exists.
+the repository's Git directory. The local check worker runs `setup`, when
+configured, and then `test` or the separately approved `run` in one such checkout.
+An interruption can leave a checkout behind for reconciliation.
 
 ### Clean-commit check bounds
 
@@ -717,7 +705,7 @@ so its bounds protect time and not memory: 50,000 files, 2 GiB in total,
 own smaller limits because it holds and displays what it reads. The pinned
 review applies its 1,000-path limit to changed paths only.
 
-### Executable local checks (in development)
+### Executable local checks
 
 The [desktop result contract](docs/specs/0013-local-mvp.md#desktop-setup-and-test-results-in-development)
 connects consent to the local worker. `LocalCheckStore` owns versioned check
@@ -740,7 +728,7 @@ argv, outcomes, timing and stream digests/counts, with no raw output retention.
 The Checks dialog reads latest state explicitly; current/stale is a fresh
 hash-verified review comparison, not a watcher. No agent transcript becomes test evidence.
 
-### Run commands with separate consent (in development)
+### Run commands with separate consent
 
 The [run-action contract](docs/specs/0013-local-mvp.md#desktop-run-action-in-development)
 extends the same owned-checkout and worker path to approved setup followed by

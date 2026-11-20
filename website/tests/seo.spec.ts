@@ -30,7 +30,7 @@ test.describe("crawler-visible HTML", () => {
     await expect(description).toHaveCount(1);
     const content = await description.getAttribute("content");
     expect(content).toContain("Claude Code in local Git worktrees");
-    expect(content).toContain("trusted checks planned");
+    expect(content).toContain("exact-commit checks");
     expect(content!.length).toBeLessThanOrEqual(160);
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
     await expect(page.locator('head link[rel="canonical"]')).toHaveCount(1);
@@ -82,7 +82,7 @@ test.describe("crawler-visible HTML", () => {
       "https://x.com/Argent_build",
     ]);
     expect(app.description).toContain(
-      "Early prototype; trusted checks planned",
+      "Run approved exact-commit checks and review durable run records.",
     );
     for (const key of [
       "offers",
@@ -102,7 +102,7 @@ test.describe("crawler-visible HTML", () => {
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.locator("h1")).toBeVisible();
     await expect(page.locator(".hero-status")).toContainText(
-      "trusted checks planned",
+      "exact-commit checks",
     );
     await expect(page.locator("#faq details")).toHaveCount(9);
     for (const details of await page.locator("#faq details").all()) {
@@ -141,7 +141,7 @@ test.describe("crawler-visible HTML", () => {
     ).toHaveAttribute("content", "630");
     await expect(page.locator('meta[property="og:image:alt"]')).toHaveAttribute(
       "content",
-      /trusted checks planned/i,
+      /exact-commit checks/i,
     );
     await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute(
       "content",

@@ -1448,7 +1448,7 @@ test("hero states the promise once and today's facts under the actions", async (
     await expect(status).toContainText("Free and MIT");
     await expect(status).toContainText("built from source, no download yet");
     await expect(status).toContainText(
-      "Live changes panel · trusted checks planned",
+      "Live changes panel · exact-commit checks",
     );
     // The liquid keeps clear of it, and it fits the first screen.
     await expect(status).toHaveAttribute("data-liquid-avoid");
@@ -1475,7 +1475,7 @@ for (const javaScriptEnabled of [true, false]) {
       await page.goto("/");
       const hero = page.locator("#intro");
       await expect(hero).toContainText("Each workspace has its own branch");
-      await expect(hero).toContainText("trusted checks planned");
+      await expect(hero).toContainText("exact-commit checks");
       await expect(page.locator("#lifecycle")).toContainText(
         "Follow-up tasks reuse that workspace",
       );
@@ -1596,7 +1596,7 @@ test("the pill and the compact logo rest apart at phone and tablet widths", asyn
   }
 });
 
-test("proof separates today's record from planned checks and strikes four hallmarks", async ({
+test("proof separates the agent run record from approved checks and strikes four hallmarks", async ({
   page,
 }) => {
   await visit(page, "/");
@@ -1605,9 +1605,11 @@ test("proof separates today's record from planned checks and strikes four hallma
   await expect(ledger).toHaveCount(2);
   await expect(ledger.nth(0)).toContainText("Works today");
   await expect(ledger.nth(0)).toContainText("not a test result");
-  await expect(ledger.nth(1)).toContainText("Planned");
-  await expect(ledger.nth(1)).toContainText("arrive with the local MVP");
-  await expect(section).toContainText("The app strikes two of them today");
+  await expect(ledger.nth(1)).toContainText("Works today");
+  await expect(ledger.nth(1)).toContainText("fresh checkout");
+  await expect(section).toContainText(
+    "The separate check result records the approved commands",
+  );
   const list = section.locator(".mark-list");
   const plates = list.locator(".mark-plate");
   await expect(plates).toHaveCount(4);
@@ -1631,9 +1633,9 @@ test("proof separates today's record from planned checks and strikes four hallma
   ).toEqual(["struck", "blank", "blank", "struck"]);
   const items = list.locator("li");
   await expect(items.nth(0)).toContainText("Works today");
-  await expect(items.nth(1)).toContainText("Not struck");
-  await expect(items.nth(1)).toContainText("Planned");
-  await expect(items.nth(2)).toContainText("Planned");
+  await expect(items.nth(1)).toContainText("Check result");
+  await expect(items.nth(1)).toContainText("Works today");
+  await expect(items.nth(2)).toContainText("Works today");
   await expect(items.nth(3)).toContainText("Works today");
   await expect(plates.nth(1).locator(".mark-relief-line")).toBeHidden();
   // The marks are decoration; their meaning is in the headings beside them.

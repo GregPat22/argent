@@ -2,8 +2,8 @@
 
 Recorded 7 November 2026, based on main `ffbeef2`.
 Status: L1.1 (engine), L1.2 (desktop), L1.3 (changes panel) and the local
-execution hardening are implemented; trusted checks (L1.4) and later slices are
-planned. L1.3 implementation evidence is recorded below. The real-CLI walkthrough
+execution hardening are implemented. Exact-commit checks and the separate run
+action (L1.4) are verified in the [manual walkthrough](#l14-manual-walkthrough). L1.3 implementation evidence is recorded below. The real-CLI walkthrough
 gate is complete,
 with its cancellation correction integrated in main `707ae8b`;
 [development walkthrough evidence](#development-walkthrough-evidence) is recorded
@@ -147,8 +147,8 @@ What Argent guarantees in local mode:
   cancellation, the disabled path, API gating and the migration, using a fake CLI
   and real temporary repositories.
 - Real-CLI evidence: see the [development walkthrough](#development-walkthrough-evidence)
-  and its integration limits. L1.3 now provides the diff view; test commands
-  and archiving remain planned. A conversation whose CLI process died before
+  and its integration limits. L1.3 provides the diff view and L1.4 adds
+  approved checks. Archiving remains planned. A conversation whose CLI process died before
   announcing its session is not recovered automatically.
 
 #### Failure-summary regression (in development)
@@ -346,26 +346,16 @@ is established by this evidence.
 
 ### L1.4 setup, run and test actions
 
-Commands read from a reviewed per-repository configuration file, run with the
-same process rules, bounded output and deadlines. A test result is recorded as
-evidence for the exact commit. This slice is the centre of the remaining local
-work, because it is where a run can first end as verified instead of recorded.
-The agent must not be able to change the checks that judge it: the
-configuration is read from the workspace's base commit, never from the
-worktree, the developer approves its commands once per repository, and a
-changed configuration needs a fresh approval. A result counts only while its
-recorded commit is the workspace's current commit and the worktree is clean;
-any later change shows it as stale. This is the first time Argent itself
-launches repository code, so it needs its own security review.
+The developer approves the commands in `argent.json` at the workspace base
+and reviews the committed changes before consenting to a check. A change to
+the base configuration requires fresh approval. Argent creates a detached
+verification worktree at the reviewed commit, verifies it, then runs the
+configured setup (if present) and test under bounded output and deadlines.
 
-Accepted on 12 November 2026: a trusted check runs in a fresh checkout that
-Argent creates as a detached linked worktree of the exact commit and verifies
-before use, so commands that call Git keep working. A test request runs the
-approved `setup` command, when one is configured, and then `test` in that same
-checkout, and records both. Running the `run` action is deferred until setup
-and test results work; the configuration schema is unchanged. The
-[separate run-action contract](#desktop-run-action-in-development) now defines
-its next integration.
+The check result is separate from the agent run record. Opening or refreshing
+Checks reads whether the result still matches the workspace. The
+[run action](#desktop-run-action-in-development) requires separate consent and
+produces its own outcome. See the [manual walkthrough](#l14-manual-walkthrough).
 
 Accepted on 16 November 2026: reading the commands at the base commit fixes
 which commands run, not what they do, because scripts, tests and dependencies
@@ -636,8 +626,7 @@ fresh local clone of `7054f4a`, so it used this repository's own `argent.json`
 (`npm ci`, then `npm run check`). Agent tasks used the `haiku` model alias at
 low effort through a local CLI launch override. That is test configuration, not
 a model picker. A second repository carried harmless setup, test and run
-commands to exercise the run action. Whether this counts as the maintainers'
-walkthrough for the L1.4 exit is their decision.
+commands to exercise the run action. The later [manual walkthrough](#l14-manual-walkthrough) supplies the L1.4 exit evidence.
 
 | Step                       | Observed result                                                                                                                                                                                                                                                                       |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -675,6 +664,32 @@ model declined to retry the commit even in full access.
 Limits: no packaged build, signing, website check or process recovery is
 established here. The candidate commits are local to the walkthrough and are
 not on `main`. Draft pull requests and archive remain L1.5.
+
+#### L1.4 manual walkthrough
+
+On 20 November 2026 a maintainer exercised the desktop built from main
+`e4518a4`, using a fresh clone of Argent and its signed-in Claude Code
+workflow. The repository's approved base configuration supplied `npm ci`
+and `npm run check`. The following candidate commits were local to the
+walkthrough.
+
+| Action                    | Desktop observation                                                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Review and run checks     | A one-comment change at `99797f3` received exact-commit consent. Setup and test both exited 0.                                                                                              |
+| Edit after passing        | After an uncommitted edit, Refresh showed the same passing result as stale.                                                                                                                 |
+| Check a new commit        | The deliberate TypeScript error at `060f0f3` required fresh consent. Setup exited 0 and the check exited 2. The result matched that commit.                                                 |
+| Cancel a check            | A new attempt on `060f0f3` reused its recorded consent and ended as cancelled, without a test result.                                                                                       |
+| Run with separate consent | In a second local repository, passing checks left the run command disabled until its own consent was recorded. Its success left the passing test result intact. A second run was cancelled. |
+
+These observations satisfy work-queue item 3. They cover a local development
+build. Packaging, crash recovery and draft pull requests have separate exit criteria.
+
+Usability observations for design review: a one-line addition appeared inside
+two full copies of the file. Check progress and freshness required manual
+refreshes. The disabled **Consent recorded** control drew attention away from
+**Run checks**, and stream digests took up space beside the outcome. Open design
+questions include how to show the changed lines, keep the next action visible
+and update status automatically while preserving review of the exact commit.
 
 #### Service build check
 
