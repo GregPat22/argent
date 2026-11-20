@@ -102,12 +102,14 @@ export async function reviewLocalCommandCandidate(
   operatorId: string,
   requestedSignal?: AbortSignal,
 ): Promise<LocalCommandCandidateReview> {
+  const deadline = performance.now() + REVIEW_LIMITS.timeoutMs;
+  const timeout = () => new DomainError(408, "Candidate review timed out");
   const controller = new AbortController();
   const signal = requestedSignal
     ? AbortSignal.any([requestedSignal, controller.signal])
     : controller.signal;
   const timer = setTimeout(
-    () => controller.abort(new DomainError(408, "Candidate review timed out")),
+    () => controller.abort(timeout()),
     REVIEW_LIMITS.timeoutMs,
   );
   try {
@@ -329,6 +331,8 @@ export async function reviewLocalCommandCandidate(
         ]),
       )
       .digest("hex");
+    // The timer cannot fire during synchronous classification and hashing.
+    if (performance.now() >= deadline) throw timeout();
     return Object.freeze({
       kind: "local-command-candidate-review",
       version: 1,

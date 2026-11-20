@@ -190,7 +190,8 @@ shows category changes without copying the package address into the report.
 The [native report fixture](specs/0018-judging-changes-report.md#native-report-across-all-three-groups-in-development)
 ties entries in all three groups to the displayed result count. Cumulative
 review at `fe3acf2` identified the [exact-rename validation requirement](specs/0018-judging-changes-report.md#exact-rename-validation-at-the-desktop-bridge-in-development)
-for a moved finding.
+for a moved finding. The [review deadline contract](specs/0018-judging-changes-report.md#deadline-during-report-construction-in-development)
+covers the final synchronous report computation before consent.
 
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many

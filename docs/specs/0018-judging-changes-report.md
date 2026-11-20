@@ -382,6 +382,20 @@ each source. A source cannot also be a changed destination. Reject inconsistent
 responses before showing the report for consent. A real exact rename into a
 recognised path must still appear.
 
+Development evidence at `7de3b2f`, 20 November 2026: the real-Git bridge
+test accepted a rename into a recognised check configuration and rejected
+conflicting paths, blob identities, modes and sizes. The dedicated review
+and full repository check passed.
+
+## Deadline during report construction (in development)
+
+Acceptance against `7de3b2f`, 20 November 2026: the candidate review's
+existing time limit covers synchronous report classification and hashing.
+Check elapsed monotonic time after computing the review identity. Reaching
+the deadline blocks a new consent with the existing timeout reason and
+creates no receipt or event. Exercise the boundary during manifest parsing
+in a real Git fixture and allow a complete review just inside the limit.
+
 Remaining acceptance includes committed npm source settings and the
 maintainer trial. The complete review still refuses inputs beyond its own
 bounds and unsupported submodules before consent.
