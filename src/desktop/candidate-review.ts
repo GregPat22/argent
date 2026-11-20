@@ -3,12 +3,14 @@ import {
   validJudgingChangeCount,
   isManifest,
   isLockfile,
+  isNpmrc,
+  isRegistrySetting,
   validInstallation,
   type PackageChange,
   PACKAGE_SOURCES,
   validFindingText,
   type FileFindings,
-  type ScriptChange,
+  type NamedChange,
   DETAIL_LIMIT,
   FILE_DETAIL_LIMIT,
   changedPaths,
@@ -105,19 +107,20 @@ function validateFindings<T>(
   });
 }
 
-function scriptEntries(
+function namedEntries(
   items: unknown[],
   change: LocalCommandReviewFile,
-  oldManifest: boolean,
-  newManifest: boolean,
-): ScriptChange[] {
-  const moved = !!change.previousPath && oldManifest && newManifest;
+  oldSide: boolean,
+  newSide: boolean,
+  validName: (value: unknown) => value is string = validFindingText,
+): NamedChange[] {
+  const moved = !!change.previousPath && oldSide && newSide;
   let oldCount = 0,
     newCount = 0;
   let previous = "";
-  return items.map((item): ScriptChange => {
+  return items.map((item): NamedChange => {
     const pair = record(item, ["name", "change"]);
-    if (!validFindingText(pair.name) || pair.name <= previous) throw invalid();
+    if (!validName(pair.name) || pair.name <= previous) throw invalid();
     previous = pair.name;
     const kind = pair.change;
     if (
@@ -128,16 +131,11 @@ function scriptEntries(
     )
       throw invalid();
     if ((kind === "moved") !== moved) throw invalid();
-    if (kind !== "added" && (!oldManifest || ++oldCount > FILE_DETAIL_LIMIT))
+    if (kind !== "added" && (!oldSide || ++oldCount > FILE_DETAIL_LIMIT))
       throw invalid();
-    if (kind !== "removed" && (!newManifest || ++newCount > FILE_DETAIL_LIMIT))
+    if (kind !== "removed" && (!newSide || ++newCount > FILE_DETAIL_LIMIT))
       throw invalid();
-    if (
-      oldManifest &&
-      newManifest &&
-      !moved &&
-      change.oldBlobId === change.newBlobId
-    )
+    if (oldSide && newSide && !moved && change.oldBlobId === change.newBlobId)
       throw invalid();
     return { name: pair.name, change: kind };
   });
@@ -387,6 +385,7 @@ export function validateCandidateReview(
     "scripts",
     "skips",
     "packages",
+    "registrySettings",
   ]);
   const validateIndices = (value: unknown, expected: number[]): number[] => {
     if (
@@ -409,7 +408,7 @@ export function validateCandidateReview(
     report.scripts,
     files,
     isManifest,
-    scriptEntries,
+    namedEntries,
   );
   const skips = validateFindings(report.skips, files, isTestPath, skipEntries);
   if ((testPaths === null) !== (skips === null)) throw invalid();
@@ -419,7 +418,21 @@ export function validateCandidateReview(
     isLockfile,
     packageEntries,
   );
-  const judgingChanges = { testPaths, commandPaths, scripts, skips, packages };
+  const registrySettings = validateFindings(
+    report.registrySettings,
+    files,
+    isNpmrc,
+    (items, change, oldSide, newSide) =>
+      namedEntries(items, change, oldSide, newSide, isRegistrySetting),
+  );
+  const judgingChanges = {
+    testPaths,
+    commandPaths,
+    scripts,
+    skips,
+    packages,
+    registrySettings,
+  };
   if (!validJudgingChangeCount(judgingChangeCount(judgingChanges)))
     throw invalid();
   const summary = record(row.summary, ["files", "textFiles", "binaryFiles"]);

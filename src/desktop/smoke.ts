@@ -228,6 +228,7 @@ export async function runDesktopSmoke(
     assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
     // Review a committed fixture through the real renderer and service.
     const reviewFiles = {
+      ".npmrc": "@sample:registry=https://registry.invalid/fixture\n",
       "review.test.js":
         '// <script>window.untrustedCandidate=true</script>\n//\t\u202e\u200b\ntest.skip("example", () => {});\n',
       "package.json": JSON.stringify({ scripts: { check: "node --version" } }),
@@ -276,6 +277,8 @@ export async function runDesktopSmoke(
     assert.match(await text("#candidate-files"), /review\.test\.js/);
     const report = await text("#candidate-files section");
     assert.match(report, /Judging changes/);
+    assert.match(report, /added · "@sample:registry"/);
+    assert.doesNotMatch(report, /registry\.invalid/);
     assert.match(report, /1 changed test path/);
     assert.match(report, /test\.skip · line 3/);
     assert.match(report, /added · "check"/);
@@ -333,7 +336,7 @@ export async function runDesktopSmoke(
     assert.match(await text("#checks-result"), /test.*exit 0/s);
     assert.equal(
       await text("#checks-result > p:first-child"),
-      "4 reported judging changes",
+      "5 reported judging changes",
     );
     await capture("checks-passed");
     await js(`document.querySelector('#checks-close').click()`);
@@ -443,7 +446,7 @@ export async function runDesktopSmoke(
     );
     assert.equal(
       await text("#checks-result > p:first-child"),
-      "4 reported judging changes",
+      "5 reported judging changes",
     );
     await capture("checks-stale");
     await js(`document.querySelector('#checks-close').click()`);

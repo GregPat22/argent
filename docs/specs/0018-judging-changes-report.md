@@ -423,8 +423,34 @@ Scoped package names and longer unprefixed paths remain outside this
 recogniser. Show only the category and compare the literal reference without
 contacting a host.
 
-Remaining acceptance includes committed npm source settings and the
-maintainer trial. The complete review still refuses inputs beyond its own
+## Committed npm registry settings (in development)
+
+Acceptance against `9bb7a4c`, 20 November 2026:
+
+- Compare simple `registry`, `replace-registry-host` and `@scope:registry` assignments in committed
+  files named `.npmrc` at any depth. Report the setting name and change kind
+  for additions, removals, modifications and exact moves. The comparison uses
+  literal trimmed values. It does not establish npm's effective configuration.
+- Support UTF-8 lines, whole-line comments, blank lines and simple unquoted
+  assignments. Ambiguous syntax, duplicate registry keys, links and the
+  existing content or entry limits produce a changed, unsummarised file.
+  A file containing other simple settings alone yields no registry finding.
+  Absence in both trees is shown as not checkable.
+- Use the pinned blobs, the existing finding counts and the existing complete
+  review. Do not read the user's npm configuration, expand environment
+  references or contact any registry. The report carries validated setting
+  names and change kinds only. The complete diff still shows the committed
+  text. Native fixture smoke must show a registry setting before consent and
+  its contribution to the count beside passed and stale results.
+
+Pre-implementation security review against `9bb7a4c` required the reader and
+desktop bridge to allow the same setting names, reject extra fields and bind
+the new report format to consent. Only lower-case ASCII scopes beginning
+with a letter or digit and continuing with letters, digits, dots, underscores
+or hyphens are recognised. Unsupported keys with punctuation, including
+credentials scoped to a URL, make a changed file unsummarised.
+
+The maintainer trial remains open. The complete review still refuses inputs beyond its own
 bounds and unsupported submodules before consent.
 
 ## Exit evidence

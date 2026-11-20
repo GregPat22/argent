@@ -1145,3 +1145,77 @@ test("npm source changes are reported independently of versions without returnin
     );
   }
 });
+
+test("committed npm settings compare literal assignments and follow both sides of exact renames", async (t) => {
+  const f = await fixture(t, {
+    ".npmrc":
+      "registry=https://old.invalid/\n@scope:registry=${OLD}\nreplace-registry-host=always\n",
+    "old/.npmrc": "@move:registry=original\n",
+    incoming: "registry=incoming\n",
+    "outgoing/.npmrc": "registry=outgoing\n",
+    "unchanged/.npmrc": "registry=stable\n",
+  });
+  assert.deepEqual((await f.review()).judgingChanges.registrySettings, []);
+  const at = (name: string) => join(f.directory, name);
+  writeFileSync(
+    at(".npmrc"),
+    " ; comment\r\nregistry = https://new.invalid/path?a=b\r\n@new:registry=${UNEXPANDED}\r\n@scope:registry=${NEW}\r\n",
+  );
+  for (const dir of ["nested", "moved", "other"]) mkdirSync(at(dir));
+  renameSync(at("incoming"), at("nested/.npmrc"));
+  renameSync(at("outgoing/.npmrc"), at("outgoing.txt"));
+  renameSync(at("old/.npmrc"), at("moved/.npmrc"));
+  writeFileSync(at("other/.npmrc"), "fund=false\n# registry=ignored\n");
+  f.commit();
+  const review = await f.review();
+  const rows = review.judgingChanges.registrySettings!;
+  assert.deepEqual(
+    rows.map(({ file, entries }) => [
+      review.files[file]!.path,
+      entries?.map((entry) => [entry.name, entry.change]),
+    ]),
+    [
+      [
+        ".npmrc",
+        [
+          ["@new:registry", "added"],
+          ["@scope:registry", "modified"],
+          ["registry", "modified"],
+          ["replace-registry-host", "removed"],
+        ],
+      ],
+      ["moved/.npmrc", [["@move:registry", "moved"]]],
+      ["nested/.npmrc", [["registry", "added"]]],
+      ["other/.npmrc", []],
+      ["outgoing.txt", [["registry", "removed"]]],
+    ],
+  );
+  assert.doesNotMatch(JSON.stringify(rows), /invalid|UNEXPANDED|\$\{NEW\}/);
+});
+
+test("ambiguous, oversized and linked npm settings files keep a visible unsummarised entry", async (t) => {
+  const f = await fixture(t);
+  assert.equal((await f.review()).judgingChanges.registrySettings, null);
+  const values = [
+    "[section]\nregistry=one\n",
+    "registry=one\nregistry=two\n",
+    "registry[]=one\n",
+    "registry='quoted'\n",
+    "registry=one\\\nfund=false\n",
+    "//registry.invalid/:_authToken=opaque\n",
+    "registry=one\ntorn-line",
+    "registry=" + "a".repeat(65536),
+    Array.from({ length: 129 }, (_, i) => `@s${i}:registry=x`).join("\n"),
+    Buffer.from([0xff]),
+  ];
+  for (const [index, value] of values.entries()) {
+    const dir = join(f.directory, String(index));
+    mkdirSync(dir);
+    writeFileSync(join(dir, ".npmrc"), value);
+  }
+  symlinkSync("file.txt", join(f.directory, ".npmrc"));
+  f.commit();
+  const rows = (await f.review()).judgingChanges.registrySettings!;
+  assert.equal(rows.length, values.length + 1);
+  assert.ok(rows.every(({ entries }) => entries === null));
+});

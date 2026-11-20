@@ -195,7 +195,10 @@ covers the final synchronous report computation before consent. The
 [local source path contract](specs/0018-judging-changes-report.md#windows-package-source-paths-in-development)
 also covers Windows path spellings in committed lockfiles. The [GitHub
 shorthand contract](specs/0018-judging-changes-report.md#github-package-source-shorthand-in-development)
-identifies bare owner and repository references.
+identifies bare owner and repository references. The
+[committed npm settings contract](specs/0018-judging-changes-report.md#committed-npm-registry-settings-in-development)
+covers registry assignments in pinned project configuration. The report
+compares values privately and displays setting names and change kinds.
 
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many
