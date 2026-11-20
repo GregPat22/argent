@@ -95,6 +95,7 @@ recorded revision.
 | [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.      |
 | [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks. |
 | [0018 Judging-changes report](specs/0018-judging-changes-report.md)                       | In development. Candidate review and result counts are implemented. Trial pending.  |
+| [0019 Suggested commands](specs/0019-suggested-commands.md)                               | Direct approval design accepted. Implementation planned.                            |
 
 [0017 Website SEO](specs/0017-website-seo.md) defines search metadata, crawl files,
 structured data, social previews and deployment validation. The implementation
