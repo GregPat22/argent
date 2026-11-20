@@ -353,8 +353,25 @@ Acceptance against `9b6a1d4`, 20 November 2026:
   over 4 KiB makes the changed file unsummarised. No package safety or
   registry-trust judgment follows from a source category.
 
+Development evidence at `7ed3c5f`, 20 November 2026: real-Git tests covered
+registry-to-URL, Git and local path changes, and changes between two URLs at
+the same version. The dedicated review extended invalid-reference coverage
+to C1 controls. The full repository check passed.
+
+## Native report across all three groups (in development)
+
+Acceptance against `7ed3c5f`, 20 November 2026: in a local fixture with no
+model account, display an added test path, a new skip marker, an npm script
+definition and an added package before consent. The package's source and
+install declaration share the package entry. Check the report section itself
+so the full diff cannot satisfy these assertions. After consent, show exactly
+four entries beside the passed check. Restoring the base contents in a new
+commit must leave that same count beside the stale result. The existing
+approved fixture commands run without installing the example package.
+
 Remaining acceptance includes committed npm source settings and the
-maintainer trial.
+maintainer trial. The complete review still refuses inputs beyond its own
+bounds and unsupported submodules before consent.
 
 ## Exit evidence
 

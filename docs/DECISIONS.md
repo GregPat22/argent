@@ -187,6 +187,8 @@ compares installations by their location in each committed lockfile. Its
 [install-script contract](specs/0018-judging-changes-report.md#newly-declared-install-scripts-in-development)
 uses the declaration in npm's lock metadata. The [resolved-source contract](specs/0018-judging-changes-report.md#resolved-package-sources-in-development)
 shows category changes without copying the package address into the report.
+The [native report fixture](specs/0018-judging-changes-report.md#native-report-across-all-three-groups-in-development)
+ties entries in all three groups to the displayed result count.
 
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many
