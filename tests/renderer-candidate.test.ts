@@ -589,6 +589,7 @@ test("package locations and both lockfile versions use literal text and visible 
             location: "node_modules/<b>\u202e",
             change: "modified",
             newInstallScript: true,
+            resolution: { before: "npm registry URL", after: "Git reference" },
             before: 'one"',
             after: "two\n",
           },
@@ -607,6 +608,10 @@ test("package locations and both lockfile versions use literal text and visible 
   assert.match(
     app.element("candidate-files").text,
     /newly declares an install script/,
+  );
+  assert.match(
+    app.element("candidate-files").text,
+    /npm registry URL → Git reference/,
   );
   assert.doesNotMatch(app.element("candidate-files").text, /\u202e/);
 });

@@ -835,6 +835,7 @@ test("bridge validates lockfile package locations, both versions and change kind
         {
           location: "node_modules/sample",
           newInstallScript: false,
+          resolution: null,
           change: "added",
           before: null,
           after: "1",
@@ -846,6 +847,12 @@ test("bridge validates lockfile package locations, both versions and change kind
     { location: "../node_modules/sample" },
     { location: "node_modules/@scope" },
     { newInstallScript: "true" },
+    { resolution: { before: "npm registry URL", after: "Git reference" } },
+    { resolution: { before: null, after: "caller-controlled" } },
+    { resolution: { before: null, after: "not recorded" } },
+    {
+      resolution: { before: null, after: "local path", address: "unexpected" },
+    },
     { change: "moved" },
     { before: "old" },
     { after: null },

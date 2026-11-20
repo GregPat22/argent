@@ -329,8 +329,32 @@ Acceptance against `2c5945b`, 20 November 2026:
   entry per installation, including its versions, with the new declaration
   alongside any reported version change. The count includes that entry once.
 
-Remaining acceptance includes resolved package sources, committed npm source
-settings and the maintainer trial.
+Development evidence at `9b6a1d4`, 20 November 2026: real-Git fixtures
+covered same-version declarations, new packages, unchanged flags and linked
+target metadata. Independent review and the complete repository check passed.
+
+## Resolved package sources (in development)
+
+Acceptance against `9b6a1d4`, 20 November 2026:
+
+- Compare each installed package's literal `resolved` value, independently of
+  its version. Flag a changed reference even within the same category, and
+  name the source for a new installation that records one. An installation
+  with both a version and a resolution change still counts once.
+- Display only source categories: the npm registry URL, another HTTP(S) URL
+  (which may be a custom registry), a Git reference, a local path, another
+  reference, or no recorded reference. Classify explicit Git protocols and
+  hosted-Git shorthand, and linked installs, file references and explicit
+  relative or absolute paths. A usual tarball URL change during a version
+  update is still a changed lockfile resolution.
+- Compare references as bounded strings without exposing them as report
+  fields, expanding them, reading paths or contacting a host. An invalid
+  field type, a control character, a malformed HTTP(S) URL or a reference
+  over 4 KiB makes the changed file unsummarised. No package safety or
+  registry-trust judgment follows from a source category.
+
+Remaining acceptance includes committed npm source settings and the
+maintainer trial.
 
 ## Exit evidence
 

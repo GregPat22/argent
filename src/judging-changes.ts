@@ -23,7 +23,20 @@ export interface ScriptChange {
   readonly name: string;
   readonly change: "added" | "removed" | "modified" | "moved";
 }
+export const PACKAGE_SOURCES = [
+  "npm registry URL",
+  "HTTP(S) URL",
+  "Git reference",
+  "local path",
+  "other reference",
+  "not recorded",
+] as const;
+export type PackageSource = (typeof PACKAGE_SOURCES)[number];
 export interface PackageChange {
+  readonly resolution: Readonly<{
+    before: PackageSource | null;
+    after: PackageSource;
+  }> | null;
   readonly location: string;
   readonly newInstallScript: boolean;
   readonly change: "added" | "removed" | "modified" | "moved";

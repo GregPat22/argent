@@ -1019,3 +1019,91 @@ test("new install scripts are visible at unchanged versions and validated on lin
     );
   }
 });
+
+test("npm source changes are reported independently of versions without returning raw references", async (t) => {
+  const lock = (sources: Record<string, unknown>) =>
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {},
+        ...Object.fromEntries(
+          Object.entries(sources).map(([name, resolved]) => [
+            "node_modules/" + name,
+            { version: "1", resolved },
+          ]),
+        ),
+      },
+    });
+  const registry = "https://registry.npmjs.org/sample/-/sample-1.tgz";
+  const f = await fixture(t, {
+    "package-lock.json": lock({
+      url: registry,
+      git: registry,
+      path: registry,
+      same: "https://example.invalid/old.tgz",
+      untouched: registry,
+    }),
+  });
+  const path = join(f.directory, "package-lock.json");
+  writeFileSync(
+    path,
+    lock({
+      url: "https://example.invalid/private-source.tgz",
+      git: "git+ssh://example.invalid/private-source.git#ref",
+      path: "file:../private-source",
+      same: "https://example.invalid/new.tgz",
+      untouched: registry,
+      added: "./local.tgz",
+    }),
+  );
+  f.commit();
+  const report = (await f.review()).judgingChanges;
+  assert.deepEqual(
+    report.packages?.[0]?.entries?.map((e) => [
+      e.location,
+      e.change,
+      e.resolution,
+    ]),
+    [
+      ["node_modules/added", "added", { before: null, after: "local path" }],
+      [
+        "node_modules/git",
+        "modified",
+        { before: "npm registry URL", after: "Git reference" },
+      ],
+      [
+        "node_modules/path",
+        "modified",
+        { before: "npm registry URL", after: "local path" },
+      ],
+      [
+        "node_modules/same",
+        "modified",
+        { before: "HTTP(S) URL", after: "HTTP(S) URL" },
+      ],
+      [
+        "node_modules/url",
+        "modified",
+        { before: "npm registry URL", after: "HTTP(S) URL" },
+      ],
+    ],
+  );
+  assert.doesNotMatch(
+    JSON.stringify(report),
+    /private-source|example\.invalid/,
+  );
+  for (const resolved of [
+    42,
+    "https://",
+    "x".repeat(4097),
+    "https://example.invalid/\nfixture",
+    "https://example.invalid/\u0085fixture",
+  ]) {
+    writeFileSync(path, lock({ url: resolved }));
+    f.commit();
+    assert.equal(
+      (await f.review()).judgingChanges.packages?.[0]?.entries,
+      null,
+    );
+  }
+});

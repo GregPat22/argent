@@ -6,12 +6,42 @@ import {
   validInstallation,
   validFindingText,
   type PackageChange,
+  type PackageSource,
 } from "./judging-changes.js";
 
 interface Installation {
   version: string;
   installScript: boolean;
+  reference: string | null;
+  source: PackageSource;
 }
+function sourceKind(value: string | null, link: boolean): PackageSource | null {
+  if (value === null) return "not recorded";
+  if (
+    link &&
+    /^[a-z][a-z0-9+.-]*:/i.test(value) &&
+    !/^(?:file:|link:|[a-z]:[\\/])/i.test(value)
+  )
+    return null;
+  if (link || /^(?:file:|link:|\.{1,2}\/|\/|[a-z]:[\\/])/i.test(value))
+    return "local path";
+  if (
+    /^(?:git(?:\+[a-z0-9.-]+)?:|ssh:|git@|github:|gitlab:|bitbucket:|gist:)/i.test(
+      value,
+    )
+  )
+    return "Git reference";
+  if (/^https?:/i.test(value)) {
+    if (!/^https?:\/\/[^/]/i.test(value) || /[\s\\]/.test(value)) return null;
+    const url = URL.parse(value);
+    if (!url) return null;
+    return url.origin === "https://registry.npmjs.org"
+      ? "npm registry URL"
+      : "HTTP(S) URL";
+  }
+  return "other reference";
+}
+
 function installations(bytes?: Buffer): Map<string, Installation> | null {
   const result = new Map<string, Installation>();
   if (!bytes) return result;
@@ -29,6 +59,13 @@ function installations(bytes?: Buffer): Map<string, Installation> | null {
   for (const [location, metadata] of records) {
     if (
       !object(metadata) ||
+      (Object.hasOwn(metadata, "resolved") &&
+        (typeof metadata.resolved !== "string" ||
+          !metadata.resolved ||
+          Buffer.byteLength(metadata.resolved) > 4096 ||
+          /[\u0000-\u001f\u007f-\u009f\uD800-\uDFFF]/u.test(
+            metadata.resolved,
+          ))) ||
       (Object.hasOwn(metadata, "hasInstallScript") &&
         typeof metadata.hasInstallScript !== "boolean") ||
       (Object.hasOwn(metadata, "link") && typeof metadata.link !== "boolean")
@@ -59,7 +96,11 @@ function installations(bytes?: Buffer): Map<string, Installation> | null {
       installScript = target.hasInstallScript === true;
     }
     if (!validFindingText(version)) return null;
-    result.set(location, { version, installScript });
+    const reference =
+      typeof metadata.resolved === "string" ? metadata.resolved : null;
+    const source = sourceKind(reference, metadata.link === true);
+    if (!source) return null;
+    result.set(location, { version, installScript, reference, source });
   }
   return result;
 }
@@ -83,6 +124,17 @@ export function packageFindings(
         b = newPackage?.version ?? null;
       const newInstallScript =
         newPackage?.installScript === true && !oldPackage?.installScript;
+      const resolution =
+        newPackage &&
+        (oldPackage
+          ? oldPackage.reference !== newPackage.reference ||
+            oldPackage.source !== newPackage.source
+          : newPackage.reference !== null)
+          ? Object.freeze({
+              before: oldPackage?.source ?? null,
+              after: newPackage.source,
+            })
+          : null;
       const change =
         a === null
           ? "added"
@@ -90,7 +142,7 @@ export function packageFindings(
             ? "removed"
             : moved
               ? "moved"
-              : a !== b || newInstallScript
+              : a !== b || newInstallScript || resolution
                 ? "modified"
                 : null;
       if (change)
@@ -101,6 +153,7 @@ export function packageFindings(
             before: a,
             after: b,
             newInstallScript,
+            resolution,
           }),
         );
     }

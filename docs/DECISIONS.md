@@ -185,7 +185,8 @@ defines which textual declarations the report compares. The [npm lockfile
 contract](specs/0018-judging-changes-report.md#npm-lockfile-package-versions-in-development)
 compares installations by their location in each committed lockfile. Its
 [install-script contract](specs/0018-judging-changes-report.md#newly-declared-install-scripts-in-development)
-uses the declaration in npm's lock metadata.
+uses the declaration in npm's lock metadata. The [resolved-source contract](specs/0018-judging-changes-report.md#resolved-package-sources-in-development)
+shows category changes without copying the package address into the report.
 
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many

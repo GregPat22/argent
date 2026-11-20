@@ -5,6 +5,7 @@ import {
   isLockfile,
   validInstallation,
   type PackageChange,
+  PACKAGE_SOURCES,
   validFindingText,
   type FileFindings,
   type ScriptChange,
@@ -180,6 +181,7 @@ function packageEntries(
       "before",
       "after",
       "newInstallScript",
+      "resolution",
     ]);
     const { location, before, after, newInstallScript } = row;
     if (
@@ -192,6 +194,24 @@ function packageEntries(
       (before === null && after === null)
     )
       throw invalid();
+    let resolution: PackageChange["resolution"] = null;
+    if (row.resolution !== null) {
+      const source = record(row.resolution, ["before", "after"]);
+      const oldSource = PACKAGE_SOURCES.find((kind) => kind === source.before);
+      const newSource = PACKAGE_SOURCES.find((kind) => kind === source.after);
+      if (
+        !newSource ||
+        !newSide ||
+        after === null ||
+        moved ||
+        (before === null
+          ? source.before !== null || newSource === "not recorded"
+          : !oldSource ||
+            (oldSource === "not recorded" && newSource === "not recorded"))
+      )
+        throw invalid();
+      resolution = { before: oldSource ?? null, after: newSource };
+    }
     previous = location;
     const kind =
       before === null
@@ -204,11 +224,21 @@ function packageEntries(
     if (
       row.change !== kind ||
       (moved && (kind !== "moved" || before !== after)) ||
-      (kind === "modified" && before === after && !newInstallScript) ||
+      (kind === "modified" &&
+        before === after &&
+        !newInstallScript &&
+        !resolution) ||
       (oldSide && newSide && !moved && change.oldBlobId === change.newBlobId)
     )
       throw invalid();
-    return { location, change: kind, before, after, newInstallScript };
+    return {
+      location,
+      change: kind,
+      before,
+      after,
+      newInstallScript,
+      resolution,
+    };
   });
 }
 
