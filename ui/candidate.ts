@@ -167,9 +167,37 @@ function display(shown: CandidateReviewView): void {
         }),
       );
   }
+  const packages = shown.judgingChanges.packages;
   report.append(
     h("p", {
-      text: "Dependencies · Not checkable in this report.",
+      text:
+        packages === null
+          ? "Dependencies · Not checkable. Neither commit contains an npm lockfile."
+          : "Dependencies · Compared installed packages in changed npm v2/v3 lockfiles.",
+    }),
+  );
+  if (packages && packages.every((file) => file.entries?.length === 0))
+    report.append(h("p", { text: "No recognised package versions changed." }));
+  for (const { file, entries } of packages ?? []) {
+    if (entries?.length === 0) continue;
+    report.append(
+      h("p", {
+        class: "mono",
+        text: `${changeName(shown.files[file]!)} · ${entries === null ? "changed and not summarised" : "packages"}`,
+      }),
+    );
+    for (const entry of entries ?? []) {
+      report.append(
+        h("p", {
+          class: "mono",
+          text: `${entry.change} · ${argumentText(entry.location)} · ${entry.before === null ? "absent" : argumentText(entry.before)} → ${entry.after === null ? "absent" : argumentText(entry.after)}`,
+        }),
+      );
+    }
+  }
+  report.append(
+    h("p", {
+      text: "Install scripts and package sources · Not checkable in this report.",
     }),
   );
   content.append(report);

@@ -284,8 +284,34 @@ Acceptance against `3a0688b`, 20 November 2026:
   Invalid text, a symlink or a bound yields a visible unsummarised marker
   check. Count each new marker or unsummarised check alongside the file entry.
 
-Remaining acceptance includes lock-file and source-setting recognisers and the
-maintainer trial.
+Development evidence at `a78d386`, 20 November 2026: real Git fixtures
+covered duplicate titles, exchanging skipped tests, unchanged renames, invalid
+text and dynamic titles. Bridge and renderer regressions and the full check
+passed. The dedicated review covered marker bounds and the shared findings
+reader.
+
+## npm lockfile package versions (in development)
+
+Acceptance against `a78d386`, 20 November 2026:
+
+- Compare the `packages` map of changed npm v2/v3 `package-lock.json` files,
+  including nested projects. Match installed packages by the complete lockfile
+  location ending in `node_modules/name` or `node_modules/@scope/name`. This
+  distinguishes multiple installations. Read a local link's version from its
+  recorded target entry when available. The root package and workspace source
+  records are not additional installed packages.
+- List added, removed, version-changed and moved installations. Show their
+  lockfile path, installation name/location and both recorded versions, with
+  an absent side labelled. Never read a local link from disk. Apply the
+  existing 64 KiB side and 256-entry group bounds, with at most 1,024 package
+  records per side and 256 UTF-8 bytes per displayed field.
+- Invalid or unsupported formats, unusable version metadata, symbolic links,
+  malformed installations and overflow produce one changed, unsummarised
+  lockfile. An absent lockfile in both trees means not checkable. A lockfile
+  with only unrelated metadata changes has zero recognised version changes.
+
+Remaining acceptance includes install scripts, resolved package sources,
+committed npm source settings and the maintainer trial.
 
 ## Exit evidence
 

@@ -60,21 +60,24 @@ export function contentFindings<T>(
   );
 }
 
-function object(value: unknown): value is Record<string, unknown> {
+export function object(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function scripts(bytes: Buffer | undefined): Map<string, string> | null {
-  const result = new Map<string, string>();
-  if (!bytes) return result;
-  let manifest: unknown;
+export function jsonObject(bytes: Buffer): Record<string, unknown> | null {
   try {
-    manifest = JSON.parse(
+    const value: unknown = JSON.parse(
       new TextDecoder("utf-8", { fatal: true }).decode(bytes),
     );
+    return object(value) ? value : null;
   } catch {
     return null;
   }
+}
+function scripts(bytes: Buffer | undefined): Map<string, string> | null {
+  const result = new Map<string, string>();
+  if (!bytes) return result;
+  const manifest = jsonObject(bytes);
   if (!object(manifest)) return null;
   if (!Object.hasOwn(manifest, "scripts")) return result;
   if (!object(manifest.scripts)) return null;

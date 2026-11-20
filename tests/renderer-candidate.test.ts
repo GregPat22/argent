@@ -49,6 +49,7 @@ const review = (workspaceId = "one"): CandidateReviewView => ({
     testPaths: null,
     commandPaths: [0],
     skips: null,
+    packages: null,
     scripts: null,
   },
   summary: { files: 2, textFiles: 2, binaryFiles: 0 },
@@ -509,6 +510,7 @@ test("the report displays escaped renamed test paths and coverage limits before 
     testPaths: [1],
     commandPaths: [0],
     skips: [{ file: 1, entries: null }],
+    packages: null,
     scripts: null,
   };
   await app.show(shown);
@@ -539,6 +541,7 @@ test("npm script names stay literal and an unsummarised manifest stays visible",
     testPaths: null,
     commandPaths: [],
     skips: null,
+    packages: null,
     scripts: [
       { file: 0, entries: [{ name: "<b>\n\u202e", change: "added" }] },
       { file: 1, entries: null },
@@ -558,6 +561,7 @@ test("skip marker review identifies the changed file and candidate source line",
   shown.judgingChanges = {
     testPaths: [0],
     commandPaths: [],
+    packages: null,
     scripts: null,
     skips: [{ file: 0, entries: [{ line: 12, marker: "test.skip" }] }],
   };
@@ -566,4 +570,38 @@ test("skip marker review identifies the changed file and candidate source line",
     app.element("candidate-files").text,
     /"<sample>\.test\.ts" · new skip markers.*test\.skip · line 12/s,
   );
+});
+
+test("package locations and both lockfile versions use literal text and visible escapes", async () => {
+  const app = await launch(),
+    shown = review();
+  shown.files = [{ ...shown.files[0]!, path: "<p>/package-lock.json" }];
+  shown.judgingChanges = {
+    testPaths: null,
+    commandPaths: [],
+    scripts: null,
+    skips: null,
+    packages: [
+      {
+        file: 0,
+        entries: [
+          {
+            location: "node_modules/<b>\u202e",
+            change: "modified",
+            before: 'one"',
+            after: "two\n",
+          },
+        ],
+      },
+    ],
+  };
+  await app.show(shown);
+  assert.ok(
+    app
+      .element("candidate-files")
+      .text.includes(
+        'modified · "node_modules/<b>\\u202e" · "one\\"" → "two\\n"',
+      ),
+  );
+  assert.doesNotMatch(app.element("candidate-files").text, /\u202e/);
 });

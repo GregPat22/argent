@@ -193,6 +193,7 @@ test("desktop reviews the complete pinned change set and records exact-commit co
     testPaths: null,
     commandPaths: [],
     skips: null,
+    packages: null,
     scripts: null,
   });
   assert.deepEqual(shown.configuration.config.commands.test!.argv, [
@@ -807,6 +808,50 @@ test("skip markers cross the bridge only for recognised test paths with valid li
   ]) {
     const bad = structuredClone(shown);
     corrupt(bad);
+    assert.throws(
+      () => validateCandidateReview(bad, f.workspace.id),
+      /invalid/,
+    );
+  }
+});
+
+test("bridge validates lockfile package locations, both versions and change kind", async (t) => {
+  const f = await fixture(t);
+  writeFileSync(
+    join(f.cwd, "package-lock.json"),
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: { "": {}, "node_modules/sample": { version: "1" } },
+    }),
+  );
+  f.commit();
+  const shown = value<CandidateReviewView>(
+    await f.client.call("candidateReview", [f.workspace.id]),
+  );
+  assert.deepEqual(shown.judgingChanges.packages, [
+    {
+      file: 1,
+      entries: [
+        {
+          location: "node_modules/sample",
+          change: "added",
+          before: null,
+          after: "1",
+        },
+      ],
+    },
+  ]);
+  for (const extra of [
+    { location: "../node_modules/sample" },
+    { location: "node_modules/@scope" },
+    { change: "moved" },
+    { before: "old" },
+    { after: null },
+    { after: "x".repeat(257) },
+    { resolved: "unexpected" },
+  ]) {
+    const bad = structuredClone(shown);
+    Object.assign(bad.judgingChanges.packages![0]!.entries![0]!, extra);
     assert.throws(
       () => validateCandidateReview(bad, f.workspace.id),
       /invalid/,

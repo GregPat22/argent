@@ -23,6 +23,27 @@ export interface ScriptChange {
   readonly name: string;
   readonly change: "added" | "removed" | "modified" | "moved";
 }
+export interface PackageChange {
+  readonly location: string;
+  readonly change: "added" | "removed" | "modified" | "moved";
+  readonly before: string | null;
+  readonly after: string | null;
+}
+export const isLockfile = (path: string) =>
+  path === "package-lock.json" || path.endsWith("/package-lock.json");
+export function validInstallation(value: unknown): value is string {
+  if (!validFindingText(value)) return false;
+  const parts = value.split("/");
+  if (parts.some((part) => !part || part === "." || part === ".."))
+    return false;
+  const index = parts.lastIndexOf("node_modules");
+  if (index < 0) return false;
+  const name = parts.slice(index + 1);
+  return (
+    (name.length === 1 && !name[0]!.startsWith("@")) ||
+    (name.length === 2 && name[0]!.startsWith("@") && name[0]!.length > 1)
+  );
+}
 export const isManifest = (path: string) =>
   path === "package.json" || path.endsWith("/package.json");
 export function validFindingText(value: unknown): value is string {
@@ -37,6 +58,7 @@ export interface JudgingChanges {
   /** Indexes in review order. Null means neither tree has a recognised path. */
   readonly testPaths: readonly number[] | null;
   readonly skips: readonly FileFindings<SkipMarker>[] | null;
+  readonly packages: readonly FileFindings<PackageChange>[] | null;
   readonly scripts: readonly FileFindings<ScriptChange>[] | null;
   readonly commandPaths: readonly number[];
 }
@@ -49,6 +71,7 @@ export function judgingChangeCount(report: JudgingChanges): number {
   return (
     (report.testPaths?.length ?? 0) +
     report.commandPaths.length +
+    countFindings(report.packages) +
     countFindings(report.scripts) +
     countFindings(report.skips)
   );

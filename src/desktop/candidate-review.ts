@@ -2,6 +2,9 @@ import {
   judgingChangeCount,
   validJudgingChangeCount,
   isManifest,
+  isLockfile,
+  validInstallation,
+  type PackageChange,
   validFindingText,
   type FileFindings,
   type ScriptChange,
@@ -162,6 +165,45 @@ function skipEntries(
   });
 }
 
+function packageEntries(
+  items: unknown[],
+  change: LocalCommandReviewFile,
+  oldSide: boolean,
+  newSide: boolean,
+): PackageChange[] {
+  const moved = oldSide && newSide && !!change.previousPath;
+  let previous = "";
+  return items.map((item) => {
+    const row = record(item, ["location", "change", "before", "after"]);
+    const { location, before, after } = row;
+    if (
+      !validInstallation(location) ||
+      location <= previous ||
+      !(before === null || (oldSide && validFindingText(before))) ||
+      !(after === null || (newSide && validFindingText(after))) ||
+      (before === null && after === null)
+    )
+      throw invalid();
+    previous = location;
+    const kind =
+      before === null
+        ? "added"
+        : after === null
+          ? "removed"
+          : moved
+            ? "moved"
+            : "modified";
+    if (
+      row.change !== kind ||
+      (moved && (kind !== "moved" || before !== after)) ||
+      (kind === "modified" && before === after) ||
+      (oldSide && newSide && !moved && change.oldBlobId === change.newBlobId)
+    )
+      throw invalid();
+    return { location, change: kind, before, after };
+  });
+}
+
 /** Rebuild every field. Neither repository text nor unknown service fields gain authority. */
 export function validateCandidateReview(
   value: unknown,
@@ -294,6 +336,7 @@ export function validateCandidateReview(
     "commandPaths",
     "scripts",
     "skips",
+    "packages",
   ]);
   const validateIndices = (value: unknown, expected: number[]): number[] => {
     if (
@@ -320,7 +363,13 @@ export function validateCandidateReview(
   );
   const skips = validateFindings(report.skips, files, isTestPath, skipEntries);
   if ((testPaths === null) !== (skips === null)) throw invalid();
-  const judgingChanges = { testPaths, commandPaths, scripts, skips };
+  const packages = validateFindings(
+    report.packages,
+    files,
+    isLockfile,
+    packageEntries,
+  );
+  const judgingChanges = { testPaths, commandPaths, scripts, skips, packages };
   if (!validJudgingChangeCount(judgingChangeCount(judgingChanges)))
     throw invalid();
   const summary = record(row.summary, ["files", "textFiles", "binaryFiles"]);

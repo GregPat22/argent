@@ -863,3 +863,102 @@ test("new textual skip markers preserve duplicate counts and distinct titles acr
     ],
   );
 });
+
+test("npm lockfile changes compare versions by complete installation location and preserve unreadable files", async (t) => {
+  const lock = (packages: Record<string, unknown>, lockfileVersion = 3) =>
+    JSON.stringify({ lockfileVersion, packages: { "": {}, ...packages } });
+  const f = await fixture(t, {
+    "package-lock.json": lock(
+      {
+        "node_modules/@scope/a": { version: "1" },
+        "node_modules/dep/node_modules/@scope/a": { version: "7" },
+        "node_modules/gone": { version: "old" },
+      },
+      2,
+    ),
+    "bad/package-lock.json": "{}",
+    "moved/package-lock.json": lock({
+      "node_modules/fixture": { version: "1" },
+    }),
+  });
+  const at = (name: string) => join(f.directory, name);
+  writeFileSync(
+    at("package-lock.json"),
+    lock({
+      "node_modules/@scope/a": { version: "2" },
+      "node_modules/dep/node_modules/@scope/a": { version: "7" },
+      "node_modules/added": { version: "3" },
+      "node_modules/workspace": { link: true, resolved: "modules/workspace" },
+      "modules/workspace": { version: "4" },
+    }),
+  );
+  mkdirSync(at("new"));
+  renameSync(at("moved/package-lock.json"), at("new/package-lock.json"));
+  writeFileSync(at("bad/package-lock.json"), "{");
+  for (const name of ["legacy", "oversize", "link", "malformed"])
+    mkdirSync(at(name));
+  writeFileSync(at("legacy/package-lock.json"), lock({}, 1));
+  writeFileSync(
+    at("oversize/package-lock.json"),
+    lock({ comment: { padding: "x".repeat(65536) } }),
+  );
+  symlinkSync("../package-lock.json", at("link/package-lock.json"));
+  writeFileSync(
+    at("malformed/package-lock.json"),
+    lock({ "node_modules/pkg": { version: 42 } }),
+  );
+  f.commit();
+  const review = await f.review();
+  assert.deepEqual(
+    review.judgingChanges.packages?.map(({ file, entries }) => [
+      review.files[file]!.path,
+      entries?.map((e) => [e.location, e.change, e.before, e.after]) ?? null,
+    ]),
+    [
+      ["bad/package-lock.json", null],
+      ["legacy/package-lock.json", null],
+      ["link/package-lock.json", null],
+      ["malformed/package-lock.json", null],
+      ["new/package-lock.json", [["node_modules/fixture", "moved", "1", "1"]]],
+      ["oversize/package-lock.json", null],
+      [
+        "package-lock.json",
+        [
+          ["node_modules/@scope/a", "modified", "1", "2"],
+          ["node_modules/added", "added", null, "3"],
+          ["node_modules/gone", "removed", "old", null],
+          ["node_modules/workspace", "added", null, "4"],
+        ],
+      ],
+    ],
+  );
+});
+
+test("a local link cannot mask changed or missing target version metadata", async (t) => {
+  const lock = (target: unknown, link: unknown = true) =>
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {},
+        "node_modules/local": {
+          link,
+          resolved: "packages/local",
+          version: "1",
+        },
+        ...(target ? { "packages/local": target } : {}),
+      },
+    });
+  const f = await fixture(t, { "package-lock.json": lock({ version: "1" }) });
+  for (const [target, link] of [
+    [{ version: "2" }, true],
+    [null, true],
+    [{ version: "1", link: "true" }, true],
+    [{ version: "1" }, "true"],
+  ] as const) {
+    writeFileSync(join(f.directory, "package-lock.json"), lock(target, link));
+    f.commit();
+    assert.deepEqual((await f.review()).judgingChanges.packages, [
+      { file: 0, entries: null },
+    ]);
+  }
+});

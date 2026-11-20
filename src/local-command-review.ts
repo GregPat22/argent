@@ -14,6 +14,7 @@ import {
   type JudgingChanges,
 } from "./judging-changes.js";
 import { scriptFindings, skipFindings } from "./judging-content.js";
+import { packageFindings } from "./judging-packages.js";
 import { git } from "./git.js";
 import { COMMAND_CONFIG_PATH } from "./local-command-config.js";
 import type { Store } from "./store.js";
@@ -300,6 +301,7 @@ export async function reviewLocalCommandCandidate(
     const skips = skipFindings(files, base, head);
     const judgingChanges = Object.freeze({
       skips,
+      packages: packageFindings(files, base, head),
       scripts: scriptFindings(files, base, head),
       commandPaths: Object.freeze(changedPaths(files, isCommandPath)),
       testPaths: skips && Object.freeze(skips.map((summary) => summary.file)),
