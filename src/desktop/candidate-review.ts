@@ -1,3 +1,4 @@
+import { changedTestPaths } from "../judging-changes.js";
 import { DomainError } from "../domain.js";
 import { REVIEW_POLICY, REVIEW_LIMITS } from "../local-command-review.js";
 import type { LocalCommandReviewFile } from "../local-command-review.js";
@@ -65,6 +66,7 @@ export function validateCandidateReview(
     "approvalId",
     "files",
     "summary",
+    "judgingChanges",
     "consent",
     "executionAllowed",
     "tested",
@@ -171,6 +173,17 @@ export function validateCandidateReview(
       configuration: entry.configuration as boolean,
     };
   });
+  const report = record(row.judgingChanges, ["testPaths"]);
+  const expected = changedTestPaths(files);
+  const paths = report.testPaths;
+  if (
+    paths === null
+      ? expected.length !== 0
+      : !Array.isArray(paths) ||
+        paths.length !== expected.length ||
+        expected.some((index, position) => paths[position] !== index)
+  )
+    throw invalid();
   const summary = record(row.summary, ["files", "textFiles", "binaryFiles"]);
   const binaryFiles = files.filter((file) => file.binary).length;
   if (
@@ -206,6 +219,7 @@ export function validateCandidateReview(
     configuration,
     approvalId: text(row.approvalId, WORKSPACE_ID),
     files,
+    judgingChanges: { testPaths: paths === null ? null : expected },
     summary: {
       files: files.length,
       textFiles: files.length - binaryFiles,

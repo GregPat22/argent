@@ -45,6 +45,7 @@ const review = (workspaceId = "one"): CandidateReviewView => ({
   configurationState: "changed",
   configuration: config,
   approvalId: "approval",
+  judgingChanges: { testPaths: null },
   summary: { files: 2, textFiles: 2, binaryFiles: 0 },
   files: [
     {
@@ -490,4 +491,27 @@ test("run review rejects a response containing setup-test consent", async () => 
   assert.equal(app.element("candidate-content").hidden, true);
   assert.equal(app.element("candidate-run").disabled, true);
   assert.match(app.status(), /different workspace or base/);
+});
+
+test("the report displays escaped renamed test paths and coverage limits before consent", async () => {
+  const app = await launch();
+  const shown = review();
+  shown.files = [
+    shown.files[0]!,
+    { ...shown.files[1]!, path: "new\nname.test.ts" },
+  ];
+  shown.judgingChanges = { testPaths: [1] };
+  await app.show(shown);
+  const section = app
+    .element("candidate-files")
+    .children.find((e) => e.text.includes("Judging changes"));
+  assert.ok(section);
+  assert.ok(
+    section.text.includes(
+      'renamed · "old\\"name" → "new\\nname.test.ts" · symbolic link',
+    ),
+  );
+  assert.ok(section.text.includes("1 changed test path"));
+  assert.ok(section.text.includes("Not checkable"));
+  assert.equal(app.element("candidate-consent").disabled, false);
 });

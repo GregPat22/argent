@@ -608,3 +608,40 @@ test(
     }
   },
 );
+
+test("a receipt from before judging changes stays historical for the same untouched commit", async (t) => {
+  const f = await fixture(t);
+  const review = await f.review();
+  assert.deepEqual(review.files, []);
+  const digest = (value: string) =>
+    createHash("sha256").update(value).digest("hex");
+  // Original review encoding for an empty change set.
+  const legacy = digest(
+    JSON.stringify([
+      review.policyVersion,
+      review.observation.identity,
+      review.configuration,
+      [],
+    ]),
+  );
+  assert.notEqual(legacy, review.identity);
+  const current = await f.consent(review.identity);
+  const payload = JSON.stringify({
+    ...current.binding,
+    reviewIdentity: legacy,
+  });
+  const fingerprint = digest(
+    JSON.stringify([CONSENT_POLICY, f.workspace.id, "operator", legacy]),
+  );
+  f.db
+    .prepare(
+      "UPDATE local_command_consents SET payload=?, payload_sha256=?, fingerprint=? WHERE id=?",
+    )
+    .run(payload, digest(payload), fingerprint, current.id);
+  assert.equal(
+    f.store.localCommandConsents.get(current.id).binding.reviewIdentity,
+    legacy,
+  );
+  assert.equal(await f.lookup(current.id), null);
+  await assert.rejects(f.consent(legacy, "new-request"), rejected(409));
+});

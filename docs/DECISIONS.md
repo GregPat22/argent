@@ -172,6 +172,10 @@ catch a dishonest agent. A group Argent cannot read is shown as not checkable,
 never as unchanged. Local execution is still not a sandbox, and the report
 sees only what was committed.
 
+The [candidate test-path contract](specs/0018-judging-changes-report.md#candidate-test-paths-in-development)
+records the first increment in development and its pre-implementation security
+review against `37f5dc8` on 20 November 2026. The experiment remains open.
+
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many
 tests ran on the base commit. No vulnerability scanner or integration with one

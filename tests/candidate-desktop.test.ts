@@ -189,6 +189,7 @@ test("desktop reviews the complete pinned change set and records exact-commit co
   assert.equal(shown.files.length, 1);
   assert.match(shown.files[0]!.diff, /<script>untrusted/);
   assert.equal(shown.summary.textFiles, 1);
+  assert.deepEqual(shown.judgingChanges, { testPaths: null });
   assert.deepEqual(shown.configuration.config.commands.test!.argv, [
     "node",
     "marker.js",
@@ -591,6 +592,10 @@ test("bridge validates exact inputs, bounded responses and the long review timeo
     (x) => (x.actor = "forged"),
     (x) => (x.configuration.config.commands.test.argv = "npm test"),
     (x) => (x.configuration.source.baseSha = "f".repeat(40)),
+    (x) => delete x.judgingChanges,
+    (x) => (x.judgingChanges.extra = true),
+    (x) => (x.judgingChanges.testPaths = [0]),
+    (x) => (x.files[0].path = "changed.test.js"),
     (x) => x.summary.files++,
     (x) => x.summary.binaryFiles++,
     (x) => (x.files[0].path = "../file"),

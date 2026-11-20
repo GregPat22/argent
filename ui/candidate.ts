@@ -63,6 +63,12 @@ function diffText(text: string): string {
     .map((line) => argumentText(line).slice(1, -1))
     .join("\n");
 }
+function changeName(file: CandidateReviewView["files"][number]): string {
+  return file.previousPath
+    ? `${argumentText(file.previousPath)} → ${argumentText(file.path)}`
+    : argumentText(file.path);
+}
+
 function display(shown: CandidateReviewView): void {
   const content = byId("candidate-files");
   content.append(
@@ -76,6 +82,34 @@ function display(shown: CandidateReviewView): void {
       text: `argent.json in this commit: ${shown.configurationState}. Commands below always come from the approved base. Argent cannot identify which changed files they execute, so review the complete change set.`,
     }),
   );
+  const tests = shown.judgingChanges.testPaths;
+  const report = h(
+    "section",
+    { class: "command-action" },
+    h("h3", { text: "Judging changes" }),
+    h("p", {
+      text:
+        tests === null
+          ? "Tests · Not checkable. Neither commit contains a recognised JavaScript or TypeScript test path."
+          : `Tests · ${plural(tests.length, "changed test path")} (JavaScript and TypeScript test paths).`,
+    }),
+  );
+  for (const index of tests ?? []) {
+    const file = shown.files[index]!;
+    const link = file.oldMode === "120000" || file.newMode === "120000";
+    report.append(
+      h("p", {
+        class: "mono",
+        text: `${file.status} · ${changeName(file)}${link ? " · symbolic link" : ""}`,
+      }),
+    );
+  }
+  report.append(
+    h("p", {
+      text: "Skipped tests, command definitions and dependencies · Not checkable in this report.",
+    }),
+  );
+  content.append(report);
   for (const action of ["setup", command()] as const) {
     const command = shown.configuration.config.commands[action];
     if (!command) continue;
@@ -100,9 +134,7 @@ function display(shown: CandidateReviewView): void {
     }),
   );
   for (const file of shown.files) {
-    const name = file.previousPath
-      ? `${argumentText(file.previousPath)} → ${argumentText(file.path)}`
-      : argumentText(file.path);
+    const name = changeName(file);
     content.append(
       h(
         "section",

@@ -677,3 +677,37 @@ test("a Git-directory redirect after observation cannot hide changed test code",
   calls = 0;
   await assert.rejects(f.review(), rejected(409));
 });
+
+test("judging changes distinguish recognised paths in both pinned trees from changed test paths", async (t) => {
+  const f = await fixture(t, {
+    "gone.test.ts": "removed\n",
+    "old.spec.mts": "rename\n",
+    "tests/unit/helper.cjs": "old\n",
+    "source.js": "now a test\n",
+  });
+  assert.deepEqual((await f.review()).judgingChanges.testPaths, []);
+  const at = (name: string) => join(f.directory, name);
+  unlinkSync(at("gone.test.ts"));
+  renameSync(at("old.spec.mts"), at("renamed.txt"));
+  renameSync(at("source.js"), at("new.spec.tsx"));
+  writeFileSync(at("tests/unit/helper.cjs"), "new\n");
+  writeFileSync(at("not.test.js.txt"), "unrelated\n");
+  symlinkSync("missing-target", at("link.test.jsx"));
+  f.commit();
+  const review = await f.review();
+  assert.deepEqual(
+    review.judgingChanges.testPaths?.map((i) => {
+      const { status, previousPath, path } = review.files[i]!;
+      return [status, previousPath, path];
+    }),
+    [
+      ["deleted", null, "gone.test.ts"],
+      ["added", null, "link.test.jsx"],
+      ["renamed", "source.js", "new.spec.tsx"],
+      ["renamed", "old.spec.mts", "renamed.txt"],
+      ["modified", null, "tests/unit/helper.cjs"],
+    ],
+  );
+  const withoutTests = await fixture(t);
+  assert.equal((await withoutTests.review()).judgingChanges.testPaths, null);
+});

@@ -6,6 +6,11 @@ import {
   UncertainExecutionError,
   type WorkspaceChange,
 } from "./domain.js";
+import {
+  isTestPath,
+  changedTestPaths,
+  type JudgingChanges,
+} from "./judging-changes.js";
 import { git } from "./git.js";
 import { COMMAND_CONFIG_PATH } from "./local-command-config.js";
 import type { Store } from "./store.js";
@@ -58,6 +63,7 @@ export type LocalCommandCandidateReview = Readonly<{
   /** The candidate's own copy of the configuration file, compared to the base. */
   configuration: "unchanged" | "changed" | "removed";
   files: readonly LocalCommandReviewFile[];
+  judgingChanges: JudgingChanges;
   summary: Readonly<{ files: number; textFiles: number; binaryFiles: number }>;
   /** Binary content has an identity and a size; it was never displayed. */
   binaryContent: "identity-only";
@@ -288,12 +294,21 @@ export async function reviewLocalCommandCandidate(
     signal.throwIfAborted();
 
     const binaryFiles = files.filter((file) => file.binary).length;
+    const recognizedTests =
+      [...base.keys()].some(isTestPath) || [...head.keys()].some(isTestPath);
+    const judgingChanges = Object.freeze({
+      testPaths: recognizedTests
+        ? Object.freeze(changedTestPaths(files))
+        : null,
+    });
     const identity = createHash("sha256")
       .update(
         JSON.stringify([
           REVIEW_POLICY,
           observation.identity,
           configuration,
+          "judging-changes-v1",
+          judgingChanges,
           files.map((file) => [
             file.path,
             file.previousPath,
@@ -316,6 +331,7 @@ export async function reviewLocalCommandCandidate(
       commandSource: "approved-base-configuration",
       configuration,
       files: Object.freeze(files),
+      judgingChanges,
       summary: Object.freeze({
         files: files.length,
         textFiles: files.length - binaryFiles,

@@ -1,7 +1,6 @@
 # Judging-changes report: whether a commit changed what judges it
 
-Status: **planned**, accepted 16 November 2026. Nothing in this spec is
-implemented. It is work-queue item 4 in the [roadmap](../../ROADMAP.md#work-queue):
+Status: **in development**, accepted 16 November 2026. It is work-queue item 4 in the [roadmap](../../ROADMAP.md#work-queue):
 it starts after [L1.4](0013-local-mvp.md#l14-setup-run-and-test-actions) shows
 its first passed, failed or stale result in the desktop app, and it comes before
 the draft pull request (L1.5). The detailed acceptance contract and a dedicated
@@ -157,6 +156,40 @@ implementation.
    displayed field.
 6. Native smoke covers the report in the candidate review and next to a
    result, with a local fixture and no model account.
+
+## Candidate test paths (in development)
+
+Acceptance for the first increment, based on `37f5dc8` (20 November 2026):
+
+- Inspect both already verified Git trees. Recognise JS/TS files with a
+  `.test` or `.spec` suffix before the extension, or under a directory named
+  `test`, `tests` or `__tests__`. Extensions are `js`, `jsx`, `ts`, `tsx`,
+  `mjs`, `cjs`, `mts` and `cts`. Match case exactly. This identifies paths,
+  including test helpers in these directories. It does not establish execution.
+- Report each matching change once, including exact renames into or out of a
+  recognised path. Use the existing change kind and both paths for a rename.
+  Identify symlinks by Git mode without following them. Distinguish unchanged
+  recognised paths from a repository with no recognised test paths in either
+  tree. Name the recogniser and state the limits of all three groups.
+- Before enabling consent, show the report followed by the full existing
+  review. Bind the report format and contents into the review identity. Old
+  receipts stay readable as history and cannot match a new review. Preserve
+  the separate check and run consents.
+- Use only bounded in-memory classification of pinned tree names and the
+  existing change list. The bridge checks the bounded report references
+  against the validated files. Use the same literal text and visible escapes
+  for filenames as the full review. The existing full-review size, timeout and
+  binary-content consent rules still apply.
+
+Pre-implementation security review against `37f5dc8`, 20 November 2026:
+the recogniser can reuse the verified trees with no additional object reads.
+Validate the ordered references against both rename paths at the bridge, bind
+the report version into the digest, and preserve historical receipt decoding.
+The full review already refuses submodules; retain that refusal before consent.
+
+Remaining acceptance includes skipped tests, command and dependency
+recognisers, partial file summaries, result counts, native smoke and the
+maintainer trial.
 
 ## Exit evidence
 
