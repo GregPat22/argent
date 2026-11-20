@@ -254,6 +254,7 @@ export function makeServer(
               },
               approvalId: approved.id,
               files: review.files,
+              judgingChanges: review.judgingChanges,
               summary: review.summary,
               consent: receipt
                 ? { id: receipt.id, createdAt: receipt.createdAt }

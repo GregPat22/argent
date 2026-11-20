@@ -227,12 +227,26 @@ export async function runDesktopSmoke(
     assert.equal(await js(`document.activeElement.id`), "workspace-commands");
     assert.deepEqual(await call("listRuns", [local.id]), beforeApproval);
     // Review a committed fixture through the real renderer and service.
-    writeFileSync(
-      join(local.local!.worktreePath, "review.txt"),
-      "<script>window.untrustedCandidate=true</script>\n\t\u202e\u200b\n",
-    );
+    const reviewFiles = {
+      "review.test.js":
+        '// <script>window.untrustedCandidate=true</script>\n//\t\u202e\u200b\ntest.skip("example", () => {});\n',
+      "package.json": JSON.stringify({ scripts: { check: "node --version" } }),
+      "package-lock.json": JSON.stringify({
+        lockfileVersion: 3,
+        packages: {
+          "": {},
+          "node_modules/sample": {
+            version: "1.0.0",
+            resolved: "file:sample.tgz",
+            hasInstallScript: true,
+          },
+        },
+      }),
+    };
+    for (const [path, content] of Object.entries(reviewFiles))
+      writeFileSync(join(local.local!.worktreePath, path), content);
     for (const args of [
-      ["add", "review.txt"],
+      ["add", "--", ...Object.keys(reviewFiles)],
       ["commit", "--quiet", "-m", "review fixture"],
     ])
       execFileSync(
@@ -259,7 +273,17 @@ export async function runDesktopSmoke(
         ),
       "complete committed review",
     );
-    assert.match(await text("#candidate-files"), /review\.txt/);
+    assert.match(await text("#candidate-files"), /review\.test\.js/);
+    const report = await text("#candidate-files section");
+    assert.match(report, /Judging changes/);
+    assert.match(report, /1 changed test path/);
+    assert.match(report, /test\.skip · line 3/);
+    assert.match(report, /added · "check"/);
+    assert.match(
+      report,
+      /added · "node_modules\/sample".*newly declares an install script.*local path/,
+    );
+
     assert.match(await text("#candidate-files"), /\\t\\u202e\\u200b/);
     assert.equal(
       await js(
@@ -307,6 +331,10 @@ export async function runDesktopSmoke(
     }, "setup and test passed");
     assert.match(await text("#checks-result"), /setup.*exit 0/s);
     assert.match(await text("#checks-result"), /test.*exit 0/s);
+    assert.equal(
+      await text("#checks-result > p:first-child"),
+      "4 reported judging changes",
+    );
     await capture("checks-passed");
     await js(`document.querySelector('#checks-close').click()`);
     await js(`document.querySelector('#workspace-commands').click()`);
@@ -372,9 +400,10 @@ export async function runDesktopSmoke(
     );
 
     // A later commit must not inherit the earlier consent. Remove only this fixture.
-    unlinkSync(join(local.local!.worktreePath, "review.txt"));
+    for (const path of Object.keys(reviewFiles))
+      unlinkSync(join(local.local!.worktreePath, path));
     for (const args of [
-      ["add", "review.txt"],
+      ["add", "--", ...Object.keys(reviewFiles)],
       ["commit", "--quiet", "-m", "restore review fixture"],
     ])
       execFileSync(
@@ -411,6 +440,10 @@ export async function runDesktopSmoke(
           `document.querySelector('#checks-status').textContent.includes('stale')`,
         ),
       "later commit makes check stale",
+    );
+    assert.equal(
+      await text("#checks-result > p:first-child"),
+      "4 reported judging changes",
     );
     await capture("checks-stale");
     await js(`document.querySelector('#checks-close').click()`);

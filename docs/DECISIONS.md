@@ -172,6 +172,31 @@ catch a dishonest agent. A group Argent cannot read is shown as not checkable,
 never as unchanged. Local execution is still not a sandbox, and the report
 sees only what was committed.
 
+The [candidate test-path contract](specs/0018-judging-changes-report.md#candidate-test-paths-in-development)
+records the first increment in development and its pre-implementation security
+review against `37f5dc8` on 20 November 2026. Test-path evidence at
+`00ef222` and the subsequent [command configuration and workflow path contract](specs/0018-judging-changes-report.md#command-configuration-and-workflow-paths-in-development)
+are recorded in spec 0018. The [result-count contract](specs/0018-judging-changes-report.md#result-count-in-development)
+ties the count to the same consent and freshness as the check. The experiment
+remains open. The [npm script contract](specs/0018-judging-changes-report.md#npm-script-definitions-in-development)
+records the parsing limits and the unsummarised-file fallback. The
+[skip-marker contract](specs/0018-judging-changes-report.md#newly-introduced-test-skip-markers-in-development)
+defines which textual declarations the report compares. The [npm lockfile
+contract](specs/0018-judging-changes-report.md#npm-lockfile-package-versions-in-development)
+compares installations by their location in each committed lockfile. Its
+[install-script contract](specs/0018-judging-changes-report.md#newly-declared-install-scripts-in-development)
+uses the declaration in npm's lock metadata. The [resolved-source contract](specs/0018-judging-changes-report.md#resolved-package-sources-in-development)
+shows category changes without copying the package address into the report.
+The [native report fixture](specs/0018-judging-changes-report.md#native-report-across-all-three-groups-in-development)
+ties entries in all three groups to the displayed result count. Cumulative
+review at `fe3acf2` identified the [exact-rename validation requirement](specs/0018-judging-changes-report.md#exact-rename-validation-at-the-desktop-bridge-in-development)
+for a moved finding. The [review deadline contract](specs/0018-judging-changes-report.md#deadline-during-report-construction-in-development)
+covers the final synchronous report computation before consent. The
+[local source path contract](specs/0018-judging-changes-report.md#windows-package-source-paths-in-development)
+also covers Windows path spellings in committed lockfiles. The [GitHub
+shorthand contract](specs/0018-judging-changes-report.md#github-package-source-shorthand-in-development)
+identifies bare owner and repository references.
+
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many
 tests ran on the base commit. No vulnerability scanner or integration with one

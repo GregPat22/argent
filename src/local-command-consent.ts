@@ -6,6 +6,10 @@ import {
   reviewLocalCommandCandidate,
   type LocalCommandCandidateReview,
 } from "./local-command-review.js";
+import {
+  judgingChangeCount,
+  validJudgingChangeCount,
+} from "./judging-changes.js";
 import type { Store } from "./store.js";
 
 export const CONSENT_POLICY = "argent-local-command-consent-full-display-v1";
@@ -35,6 +39,8 @@ export type LocalCommandConsentBinding = Readonly<{
   operatorId: string;
   reviewIdentity: string;
   reviewPolicyVersion: typeof REVIEW_POLICY;
+  /** Absent on historical receipts and separate run actions. */
+  judgingChangeCount?: number;
   observationIdentity: string;
   approvalId: string;
   configurationIdentity: string;
@@ -99,6 +105,9 @@ export function consentBinding(
     operatorId: observed.operatorId,
     reviewIdentity: review.identity,
     reviewPolicyVersion: review.policyVersion,
+    ...(action === "setup-test"
+      ? { judgingChangeCount: judgingChangeCount(review.judgingChanges) }
+      : {}),
     observationIdentity: observed.identity,
     approvalId: observed.approvalId,
     configurationIdentity: observed.configurationIdentity,
@@ -133,6 +142,9 @@ function readBinding(
       "baseSha",
       "headSha",
       "treeId",
+      ...(value && Object.hasOwn(value, "judgingChangeCount")
+        ? ["judgingChangeCount"]
+        : []),
     ];
     if (
       !value ||
@@ -141,6 +153,9 @@ function readBinding(
       Object.keys(value).length !== keys.length ||
       keys.some((key) => !Object.hasOwn(value, key)) ||
       value.policyVersion !== consentPolicy(commandPurpose(value.action)) ||
+      (Object.hasOwn(value, "judgingChangeCount") &&
+        (value.action !== "setup-test" ||
+          !validJudgingChangeCount(value.judgingChangeCount))) ||
       value.reviewPolicyVersion !== REVIEW_POLICY
     )
       throw invalid();

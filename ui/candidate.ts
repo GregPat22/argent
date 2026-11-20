@@ -63,6 +63,12 @@ function diffText(text: string): string {
     .map((line) => argumentText(line).slice(1, -1))
     .join("\n");
 }
+function changeName(file: CandidateReviewView["files"][number]): string {
+  return file.previousPath
+    ? `${argumentText(file.previousPath)} → ${argumentText(file.path)}`
+    : argumentText(file.path);
+}
+
 function display(shown: CandidateReviewView): void {
   const content = byId("candidate-files");
   content.append(
@@ -76,6 +82,125 @@ function display(shown: CandidateReviewView): void {
       text: `argent.json in this commit: ${shown.configurationState}. Commands below always come from the approved base. Argent cannot identify which changed files they execute, so review the complete change set.`,
     }),
   );
+  const tests = shown.judgingChanges.testPaths;
+  const report = h(
+    "section",
+    { class: "command-action" },
+    h("h3", { text: "Judging changes" }),
+    h("p", {
+      text:
+        tests === null
+          ? "Tests · Not checkable. Neither commit contains a recognised JavaScript or TypeScript test path."
+          : `Tests · ${plural(tests.length, "changed test path")} (JavaScript and TypeScript test paths).`,
+    }),
+  );
+  const appendPaths = (paths: readonly number[]) => {
+    for (const index of paths) {
+      const file = shown.files[index]!;
+      const link = file.oldMode === "120000" || file.newMode === "120000";
+      report.append(
+        h("p", {
+          class: "mono",
+          text: `${file.status} · ${changeName(file)}${link ? " · symbolic link" : ""}`,
+        }),
+      );
+    }
+  };
+  appendPaths(tests ?? []);
+  const skips = shown.judgingChanges.skips;
+  if (skips) {
+    report.append(
+      h("p", {
+        text: "Skip markers · Compared literal .skip calls and disabled-test aliases with quoted titles.",
+      }),
+    );
+    if (skips.every((file) => file.entries?.length === 0))
+      report.append(h("p", { text: "No new recognised skip markers." }));
+    for (const { file, entries } of skips) {
+      if (entries?.length === 0) continue;
+      report.append(
+        h("p", {
+          class: "mono",
+          text: `${changeName(shown.files[file]!)} · ${entries === null ? "skip markers not summarised" : "new skip markers"}`,
+        }),
+      );
+      for (const entry of entries ?? [])
+        report.append(
+          h("p", {
+            class: "mono",
+            text: `${entry.marker} · line ${entry.line}`,
+          }),
+        );
+    }
+  }
+  const commands = shown.judgingChanges.commandPaths;
+  report.append(
+    h("p", {
+      text: `What the approved commands run · ${plural(commands.length, "changed configuration or workflow file")}. Checked the command file, recognised check configurations and GitHub Actions workflows.`,
+    }),
+  );
+  appendPaths(commands);
+  const scripts = shown.judgingChanges.scripts;
+  report.append(
+    h("p", {
+      text:
+        scripts === null
+          ? "npm scripts · Not checkable. Neither commit contains a package.json."
+          : "npm scripts · Compared script definitions in changed package.json files.",
+    }),
+  );
+  if (scripts && scripts.every((summary) => summary.entries?.length === 0))
+    report.append(h("p", { text: "No npm script definitions changed." }));
+  for (const { file, entries } of scripts ?? []) {
+    if (entries?.length === 0) continue;
+    report.append(
+      h("p", {
+        class: "mono",
+        text: `${changeName(shown.files[file]!)} · ${entries === null ? "changed and not summarised" : "npm scripts"}`,
+      }),
+    );
+    for (const entry of entries ?? [])
+      report.append(
+        h("p", {
+          class: "mono",
+          text: `${entry.change} · ${argumentText(entry.name)}`,
+        }),
+      );
+  }
+  const packages = shown.judgingChanges.packages;
+  report.append(
+    h("p", {
+      text:
+        packages === null
+          ? "Dependencies · Not checkable. Neither commit contains an npm lockfile."
+          : "Dependencies · Compared installed packages in changed npm v2/v3 lockfiles.",
+    }),
+  );
+  if (packages && packages.every((file) => file.entries?.length === 0))
+    report.append(h("p", { text: "No recognised package changes." }));
+  for (const { file, entries } of packages ?? []) {
+    if (entries?.length === 0) continue;
+    report.append(
+      h("p", {
+        class: "mono",
+        text: `${changeName(shown.files[file]!)} · ${entries === null ? "changed and not summarised" : "packages"}`,
+      }),
+    );
+    for (const entry of entries ?? []) {
+      report.append(
+        h("p", {
+          class: "mono",
+          text: `${entry.change} · ${argumentText(entry.location)} · ${entry.before === null ? "absent" : argumentText(entry.before)} → ${entry.after === null ? "absent" : argumentText(entry.after)}${entry.newInstallScript ? " · newly declares an install script" : ""}${entry.resolution ? ` · source: ${entry.resolution.before ?? "absent"} → ${entry.resolution.after}` : ""}`,
+        }),
+      );
+    }
+  }
+  report.append(
+    h("p", {
+      text: "Committed npm source settings · Not checkable in this report.",
+    }),
+  );
+  content.append(report);
   for (const action of ["setup", command()] as const) {
     const command = shown.configuration.config.commands[action];
     if (!command) continue;
@@ -100,9 +225,7 @@ function display(shown: CandidateReviewView): void {
     }),
   );
   for (const file of shown.files) {
-    const name = file.previousPath
-      ? `${argumentText(file.previousPath)} → ${argumentText(file.path)}`
-      : argumentText(file.path);
+    const name = changeName(file);
     content.append(
       h(
         "section",

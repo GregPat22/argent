@@ -189,6 +189,13 @@ test("desktop reviews the complete pinned change set and records exact-commit co
   assert.equal(shown.files.length, 1);
   assert.match(shown.files[0]!.diff, /<script>untrusted/);
   assert.equal(shown.summary.textFiles, 1);
+  assert.deepEqual(shown.judgingChanges, {
+    testPaths: null,
+    commandPaths: [],
+    skips: null,
+    packages: null,
+    scripts: null,
+  });
   assert.deepEqual(shown.configuration.config.commands.test!.argv, [
     "node",
     "marker.js",
@@ -591,6 +598,12 @@ test("bridge validates exact inputs, bounded responses and the long review timeo
     (x) => (x.actor = "forged"),
     (x) => (x.configuration.config.commands.test.argv = "npm test"),
     (x) => (x.configuration.source.baseSha = "f".repeat(40)),
+    (x) => delete x.judgingChanges,
+    (x) => (x.judgingChanges.extra = true),
+    (x) => (x.judgingChanges.commandPaths = [0]),
+    (x) => (x.files[0].path = "checks/vitest.config.js"),
+    (x) => (x.judgingChanges.testPaths = [0]),
+    (x) => (x.files[0].path = "changed.test.js"),
     (x) => x.summary.files++,
     (x) => x.summary.binaryFiles++,
     (x) => (x.files[0].path = "../file"),
@@ -719,5 +732,174 @@ test("run-only desktop review records separate consent and rejects responses for
       ])
     ).ok,
     false,
+  );
+});
+
+test("bridge validates npm script references, kinds and ordered bounded names", async (t) => {
+  const f = await fixture(t);
+  writeFileSync(
+    join(f.cwd, "package.json"),
+    JSON.stringify({ scripts: { one: "true", two: "false" } }),
+  );
+  f.commit();
+  const shown = value<CandidateReviewView>(
+    await f.client.call("candidateReview", [f.workspace.id]),
+  );
+  assert.deepEqual(shown.judgingChanges.scripts, [
+    {
+      file: 1,
+      entries: [
+        { name: "one", change: "added" },
+        { name: "two", change: "added" },
+      ],
+    },
+  ]);
+  for (const corrupt of [
+    (x: any) => {
+      x.judgingChanges.scripts[0].entries = Array.from(
+        { length: 129 },
+        (_, i) => ({ name: String(i).padStart(3, "0"), change: "added" }),
+      );
+    },
+    (x: any) => {
+      const file = x.files[1];
+      Object.assign(file, {
+        previousPath: "old/package.json",
+        status: "renamed",
+        oldMode: file.newMode,
+        oldBytes: file.newBytes,
+        oldBlobId: file.newBlobId,
+      });
+    },
+    (x: any) => x.judgingChanges.scripts.pop(),
+    (x: any) => x.judgingChanges.scripts[0].file--,
+    (x: any) => x.judgingChanges.scripts[0].entries.reverse(),
+    (x: any) => (x.judgingChanges.scripts[0].entries[0].change = "modified"),
+    (x: any) => (x.judgingChanges.scripts[0].entries[0].name = "x".repeat(257)),
+    (x: any) => (x.judgingChanges.scripts[0].entries[0].command = "forged"),
+  ]) {
+    const bad = structuredClone(shown);
+    corrupt(bad);
+    assert.throws(
+      () => validateCandidateReview(bad, f.workspace.id),
+      /invalid/,
+    );
+  }
+});
+
+test("skip markers cross the bridge only for recognised test paths with valid line numbers", async (t) => {
+  const f = await fixture(t);
+  writeFileSync(join(f.cwd, "unit.test.js"), '\nxit("fixture", fn);\n');
+  f.commit();
+  const shown = value<CandidateReviewView>(
+    await f.client.call("candidateReview", [f.workspace.id]),
+  );
+  assert.deepEqual(shown.judgingChanges.skips, [
+    { file: 1, entries: [{ marker: "xit", line: 2 }] },
+  ]);
+  for (const corrupt of [
+    (x: any) => (x.judgingChanges.skips[0].entries[0].line = 0),
+    (x: any) => (x.judgingChanges.skips[0].entries[0].line = 1000),
+    (x: any) =>
+      (x.judgingChanges.skips[0].entries[0].marker = "caller-defined"),
+    (x: any) =>
+      x.judgingChanges.skips[0].entries.push({ marker: "xit", line: 2 }),
+    (x: any) => (x.judgingChanges.skips = null),
+  ]) {
+    const bad = structuredClone(shown);
+    corrupt(bad);
+    assert.throws(
+      () => validateCandidateReview(bad, f.workspace.id),
+      /invalid/,
+    );
+  }
+});
+
+test("bridge validates lockfile package locations, both versions and change kind", async (t) => {
+  const f = await fixture(t);
+  writeFileSync(
+    join(f.cwd, "package-lock.json"),
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: { "": {}, "node_modules/sample": { version: "1" } },
+    }),
+  );
+  f.commit();
+  const shown = value<CandidateReviewView>(
+    await f.client.call("candidateReview", [f.workspace.id]),
+  );
+  assert.deepEqual(shown.judgingChanges.packages, [
+    {
+      file: 1,
+      entries: [
+        {
+          location: "node_modules/sample",
+          newInstallScript: false,
+          resolution: null,
+          change: "added",
+          before: null,
+          after: "1",
+        },
+      ],
+    },
+  ]);
+  for (const extra of [
+    { location: "../node_modules/sample" },
+    { location: "node_modules/@scope" },
+    { newInstallScript: "true" },
+    { resolution: { before: "npm registry URL", after: "Git reference" } },
+    { resolution: { before: null, after: "caller-controlled" } },
+    { resolution: { before: null, after: "not recorded" } },
+    {
+      resolution: { before: null, after: "local path", address: "unexpected" },
+    },
+    { change: "moved" },
+    { before: "old" },
+    { after: null },
+    { after: "x".repeat(257) },
+    { resolved: "unexpected" },
+  ]) {
+    const bad = structuredClone(shown);
+    Object.assign(bad.judgingChanges.packages![0]!.entries![0]!, extra);
+    assert.throws(
+      () => validateCandidateReview(bad, f.workspace.id),
+      /invalid/,
+    );
+  }
+});
+
+test("candidate bridge accepts an exact rename into a recognised path and rejects inconsistent source metadata", async (t) => {
+  const f = await fixture(t);
+  renameSync(join(f.cwd, "marker.js"), join(f.cwd, "jest.config.js"));
+  f.commit();
+  const shown = value<CandidateReviewView>(
+    await f.client.call("candidateReview", [f.workspace.id]),
+  );
+  const index = shown.files.findIndex((file) => file.path === "jest.config.js");
+  const rename = shown.files[index]!;
+  assert.equal(rename.previousPath, "marker.js");
+  assert.deepEqual(shown.judgingChanges.commandPaths, [index]);
+  for (const patch of [
+    { previousPath: rename.path },
+    { previousPath: "notes.txt" },
+    { oldBlobId: "0".repeat(shown.headSha.length) },
+    { newMode: "100755" as const },
+    { oldBytes: rename.oldBytes! + 1 },
+  ]) {
+    const files = shown.files.map((file, i) =>
+      i === index ? { ...file, ...patch } : file,
+    );
+    assert.throws(
+      () => validateCandidateReview({ ...shown, files }, f.workspace.id),
+      /invalid/,
+    );
+  }
+  const duplicate = shown.files.map((file) =>
+    file.path === "notes.txt" ? { ...rename, path: file.path } : file,
+  );
+  assert.throws(
+    () =>
+      validateCandidateReview({ ...shown, files: duplicate }, f.workspace.id),
+    /invalid/,
   );
 });

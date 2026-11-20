@@ -1,3 +1,22 @@
+import {
+  judgingChangeCount,
+  validJudgingChangeCount,
+  isManifest,
+  isLockfile,
+  validInstallation,
+  type PackageChange,
+  PACKAGE_SOURCES,
+  validFindingText,
+  type FileFindings,
+  type ScriptChange,
+  DETAIL_LIMIT,
+  FILE_DETAIL_LIMIT,
+  changedPaths,
+  isTestPath,
+  SKIP_MARKERS,
+  type SkipMarker,
+  isCommandPath,
+} from "../judging-changes.js";
 import { DomainError } from "../domain.js";
 import { REVIEW_POLICY, REVIEW_LIMITS } from "../local-command-review.js";
 import type { LocalCommandReviewFile } from "../local-command-review.js";
@@ -45,6 +64,184 @@ function count(value: unknown, max = Number.MAX_SAFE_INTEGER): number {
   return value;
 }
 
+function validateFindings<T>(
+  input: unknown,
+  files: readonly LocalCommandReviewFile[],
+  matches: (path: string) => boolean,
+  readEntries: (
+    items: unknown[],
+    change: LocalCommandReviewFile,
+    oldSide: boolean,
+    newSide: boolean,
+  ) => T[],
+): FileFindings<T>[] | null {
+  const expected = changedPaths(files, matches);
+  if (input === null && !expected.length) return null;
+  if (!Array.isArray(input) || input.length !== expected.length)
+    throw invalid();
+  let remaining = DETAIL_LIMIT;
+  return expected.map((file, index) => {
+    const row = record(input[index], ["file", "entries"]);
+    if (row.file !== file) throw invalid();
+    if (row.entries === null) return { file, entries: null };
+    const change = files[file]!;
+    const oldSide =
+      change.oldMode !== null && matches(change.previousPath ?? change.path);
+    const newSide = change.newMode !== null && matches(change.path);
+    if (
+      !Array.isArray(row.entries) ||
+      row.entries.length > remaining ||
+      change.binary ||
+      (oldSide &&
+        (change.oldMode === "120000" || change.oldBytes! > 64 * 1024)) ||
+      (newSide && (change.newMode === "120000" || change.newBytes! > 64 * 1024))
+    )
+      throw invalid();
+    remaining -= row.entries.length;
+    return {
+      file,
+      entries: readEntries(row.entries, change, oldSide, newSide),
+    };
+  });
+}
+
+function scriptEntries(
+  items: unknown[],
+  change: LocalCommandReviewFile,
+  oldManifest: boolean,
+  newManifest: boolean,
+): ScriptChange[] {
+  const moved = !!change.previousPath && oldManifest && newManifest;
+  let oldCount = 0,
+    newCount = 0;
+  let previous = "";
+  return items.map((item): ScriptChange => {
+    const pair = record(item, ["name", "change"]);
+    if (!validFindingText(pair.name) || pair.name <= previous) throw invalid();
+    previous = pair.name;
+    const kind = pair.change;
+    if (
+      kind !== "added" &&
+      kind !== "removed" &&
+      kind !== "modified" &&
+      kind !== "moved"
+    )
+      throw invalid();
+    if ((kind === "moved") !== moved) throw invalid();
+    if (kind !== "added" && (!oldManifest || ++oldCount > FILE_DETAIL_LIMIT))
+      throw invalid();
+    if (kind !== "removed" && (!newManifest || ++newCount > FILE_DETAIL_LIMIT))
+      throw invalid();
+    if (
+      oldManifest &&
+      newManifest &&
+      !moved &&
+      change.oldBlobId === change.newBlobId
+    )
+      throw invalid();
+    return { name: pair.name, change: kind };
+  });
+}
+
+function skipEntries(
+  items: unknown[],
+  change: LocalCommandReviewFile,
+  oldSide: boolean,
+  newSide: boolean,
+): SkipMarker[] {
+  if (
+    items.length > FILE_DETAIL_LIMIT ||
+    (items.length &&
+      (!newSide || (oldSide && change.oldBlobId === change.newBlobId)))
+  )
+    throw invalid();
+  let previous = 0;
+  return items.map((item) => {
+    const row = record(item, ["marker", "line"]);
+    const marker = SKIP_MARKERS.find((value) => value === row.marker);
+    const line = count(row.line, change.newBytes ?? 0);
+    if (!marker || line <= previous) throw invalid();
+    previous = line;
+    return { marker, line };
+  });
+}
+
+function packageEntries(
+  items: unknown[],
+  change: LocalCommandReviewFile,
+  oldSide: boolean,
+  newSide: boolean,
+): PackageChange[] {
+  const moved = oldSide && newSide && !!change.previousPath;
+  let previous = "";
+  return items.map((item) => {
+    const row = record(item, [
+      "location",
+      "change",
+      "before",
+      "after",
+      "newInstallScript",
+      "resolution",
+    ]);
+    const { location, before, after, newInstallScript } = row;
+    if (
+      typeof newInstallScript !== "boolean" ||
+      (newInstallScript && (after === null || moved)) ||
+      !validInstallation(location) ||
+      location <= previous ||
+      !(before === null || (oldSide && validFindingText(before))) ||
+      !(after === null || (newSide && validFindingText(after))) ||
+      (before === null && after === null)
+    )
+      throw invalid();
+    let resolution: PackageChange["resolution"] = null;
+    if (row.resolution !== null) {
+      const source = record(row.resolution, ["before", "after"]);
+      const oldSource = PACKAGE_SOURCES.find((kind) => kind === source.before);
+      const newSource = PACKAGE_SOURCES.find((kind) => kind === source.after);
+      if (
+        !newSource ||
+        !newSide ||
+        after === null ||
+        moved ||
+        (before === null
+          ? source.before !== null || newSource === "not recorded"
+          : !oldSource ||
+            (oldSource === "not recorded" && newSource === "not recorded"))
+      )
+        throw invalid();
+      resolution = { before: oldSource ?? null, after: newSource };
+    }
+    previous = location;
+    const kind =
+      before === null
+        ? "added"
+        : after === null
+          ? "removed"
+          : moved
+            ? "moved"
+            : "modified";
+    if (
+      row.change !== kind ||
+      (moved && (kind !== "moved" || before !== after)) ||
+      (kind === "modified" &&
+        before === after &&
+        !newInstallScript &&
+        !resolution) ||
+      (oldSide && newSide && !moved && change.oldBlobId === change.newBlobId)
+    )
+      throw invalid();
+    return {
+      location,
+      change: kind,
+      before,
+      after,
+      newInstallScript,
+      resolution,
+    };
+  });
+}
+
 /** Rebuild every field. Neither repository text nor unknown service fields gain authority. */
 export function validateCandidateReview(
   value: unknown,
@@ -65,6 +262,7 @@ export function validateCandidateReview(
     "approvalId",
     "files",
     "summary",
+    "judgingChanges",
     "consent",
     "executionAllowed",
     "tested",
@@ -115,6 +313,8 @@ export function validateCandidateReview(
   } catch {
     throw invalid();
   }
+  const destinations = new Set(changes.files.map((file) => file.path));
+  const renameSources = new Set<string>();
   let blobBytes = 0;
   const files = changes.files.map((file): LocalCommandReviewFile => {
     const entry = record(file, [
@@ -143,6 +343,16 @@ export function validateCandidateReview(
     };
     const old = side(entry.oldMode, entry.oldBlobId, entry.oldBytes);
     const next = side(entry.newMode, entry.newBlobId, entry.newBytes);
+    if (file.previousPath !== null) {
+      if (
+        destinations.has(file.previousPath) ||
+        renameSources.has(file.previousPath) ||
+        old.blob !== next.blob ||
+        file.oldMode !== file.newMode
+      )
+        throw invalid();
+      renameSources.add(file.previousPath);
+    }
     // The service loads one blob for exact renames and mode-only changes.
     if (old.blob !== null && old.blob === next.blob && old.bytes !== next.bytes)
       throw invalid();
@@ -171,6 +381,47 @@ export function validateCandidateReview(
       configuration: entry.configuration as boolean,
     };
   });
+  const report = record(row.judgingChanges, [
+    "testPaths",
+    "commandPaths",
+    "scripts",
+    "skips",
+    "packages",
+  ]);
+  const validateIndices = (value: unknown, expected: number[]): number[] => {
+    if (
+      !Array.isArray(value) ||
+      value.length !== expected.length ||
+      expected.some((index, position) => value[position] !== index)
+    )
+      throw invalid();
+    return expected;
+  };
+  const commandPaths = validateIndices(
+    report.commandPaths,
+    changedPaths(files, isCommandPath),
+  );
+  const expected = changedPaths(files, isTestPath);
+  const paths = report.testPaths;
+  if (paths === null && expected.length) throw invalid();
+  const testPaths = paths === null ? null : validateIndices(paths, expected);
+  const scripts = validateFindings(
+    report.scripts,
+    files,
+    isManifest,
+    scriptEntries,
+  );
+  const skips = validateFindings(report.skips, files, isTestPath, skipEntries);
+  if ((testPaths === null) !== (skips === null)) throw invalid();
+  const packages = validateFindings(
+    report.packages,
+    files,
+    isLockfile,
+    packageEntries,
+  );
+  const judgingChanges = { testPaths, commandPaths, scripts, skips, packages };
+  if (!validJudgingChangeCount(judgingChangeCount(judgingChanges)))
+    throw invalid();
   const summary = record(row.summary, ["files", "textFiles", "binaryFiles"]);
   const binaryFiles = files.filter((file) => file.binary).length;
   if (
@@ -206,6 +457,7 @@ export function validateCandidateReview(
     configuration,
     approvalId: text(row.approvalId, WORKSPACE_ID),
     files,
+    judgingChanges,
     summary: {
       files: files.length,
       textFiles: files.length - binaryFiles,

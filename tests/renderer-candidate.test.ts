@@ -45,6 +45,13 @@ const review = (workspaceId = "one"): CandidateReviewView => ({
   configurationState: "changed",
   configuration: config,
   approvalId: "approval",
+  judgingChanges: {
+    testPaths: null,
+    commandPaths: [0],
+    skips: null,
+    packages: null,
+    scripts: null,
+  },
   summary: { files: 2, textFiles: 2, binaryFiles: 0 },
   files: [
     {
@@ -490,4 +497,121 @@ test("run review rejects a response containing setup-test consent", async () => 
   assert.equal(app.element("candidate-content").hidden, true);
   assert.equal(app.element("candidate-run").disabled, true);
   assert.match(app.status(), /different workspace or base/);
+});
+
+test("the report displays escaped renamed test paths and coverage limits before consent", async () => {
+  const app = await launch();
+  const shown = review();
+  shown.files = [
+    shown.files[0]!,
+    { ...shown.files[1]!, path: "new\nname.test.ts" },
+  ];
+  shown.judgingChanges = {
+    testPaths: [1],
+    commandPaths: [0],
+    skips: [{ file: 1, entries: null }],
+    packages: null,
+    scripts: null,
+  };
+  await app.show(shown);
+  const section = app
+    .element("candidate-files")
+    .children.find((e) => e.text.includes("Judging changes"));
+  assert.ok(section);
+  assert.ok(
+    section.text.includes(
+      'renamed · "old\\"name" → "new\\nname.test.ts" · symbolic link',
+    ),
+  );
+  assert.ok(section.text.includes("1 changed test path"));
+  assert.ok(section.text.includes('modified · "argent.json"'));
+  assert.ok(section.text.includes("1 changed configuration or workflow file"));
+  assert.ok(section.text.includes("Not checkable"));
+  assert.equal(app.element("candidate-consent").disabled, false);
+});
+
+test("npm script names stay literal and an unsummarised manifest stays visible", async () => {
+  const app = await launch(),
+    shown = review();
+  shown.files = [
+    { ...shown.files[0]!, path: "package.json" },
+    { ...shown.files[1]!, path: "other/package.json" },
+  ];
+  shown.judgingChanges = {
+    testPaths: null,
+    commandPaths: [],
+    skips: null,
+    packages: null,
+    scripts: [
+      { file: 0, entries: [{ name: "<b>\n\u202e", change: "added" }] },
+      { file: 1, entries: null },
+    ],
+  };
+  await app.show(shown);
+  const text = app.element("candidate-files").text;
+  assert.ok(text.includes('added · "<b>\\n\\u202e"'));
+  assert.match(text, /other\/package.json" · changed and not summarised/);
+  assert.doesNotMatch(text, /No npm script definitions changed/);
+});
+
+test("skip marker review identifies the changed file and candidate source line", async () => {
+  const app = await launch(),
+    shown = review();
+  shown.files = [{ ...shown.files[0]!, path: "<sample>.test.ts" }];
+  shown.judgingChanges = {
+    testPaths: [0],
+    commandPaths: [],
+    packages: null,
+    scripts: null,
+    skips: [{ file: 0, entries: [{ line: 12, marker: "test.skip" }] }],
+  };
+  await app.show(shown);
+  assert.match(
+    app.element("candidate-files").text,
+    /"<sample>\.test\.ts" · new skip markers.*test\.skip · line 12/s,
+  );
+});
+
+test("package locations and both lockfile versions use literal text and visible escapes", async () => {
+  const app = await launch(),
+    shown = review();
+  shown.files = [{ ...shown.files[0]!, path: "<p>/package-lock.json" }];
+  shown.judgingChanges = {
+    testPaths: null,
+    commandPaths: [],
+    scripts: null,
+    skips: null,
+    packages: [
+      {
+        file: 0,
+        entries: [
+          {
+            location: "node_modules/<b>\u202e",
+            change: "modified",
+            newInstallScript: true,
+            resolution: { before: "npm registry URL", after: "Git reference" },
+            before: 'one"',
+            after: "two\n",
+          },
+        ],
+      },
+    ],
+  };
+  await app.show(shown);
+  assert.ok(
+    app
+      .element("candidate-files")
+      .text.includes(
+        'modified · "node_modules/<b>\\u202e" · "one\\"" → "two\\n"',
+      ),
+  );
+  assert.match(
+    app.element("candidate-files").text,
+    /newly declares an install script/,
+  );
+  assert.match(
+    app.element("candidate-files").text,
+    /npm registry URL → Git reference/,
+  );
+  assert.doesNotMatch(app.element("candidate-files").text, /\u202e/);
 });

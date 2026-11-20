@@ -19,6 +19,7 @@ export interface CandidateReviewView {
   configuration: LocalCommandConfigDescriptor;
   approvalId: string;
   files: readonly LocalCommandReviewFile[];
+  judgingChanges: import("./judging-changes.js").JudgingChanges;
   summary: { files: number; textFiles: number; binaryFiles: number };
   consent: { id: string; createdAt: number } | null;
   executionAllowed: false;

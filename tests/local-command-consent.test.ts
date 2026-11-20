@@ -286,6 +286,35 @@ test("binary and invalid UTF-8 additions, deletions, renames and mode changes ar
   }
 });
 
+test("consent refuses a review that reaches its deadline during report construction", async (t) => {
+  const f = await fixture(t);
+  const manifest = JSON.stringify({ scripts: { check: "node marker.js" } });
+  writeFileSync(join(f.directory, "package.json"), manifest);
+  f.commit();
+
+  let now = 0;
+  let parseDuration = REVIEW_LIMITS.timeoutMs - 1;
+  t.mock.method(performance, "now", () => now);
+  const parse = JSON.parse;
+  t.mock.method(JSON, "parse", (...args: Parameters<typeof JSON.parse>) => {
+    if (args[0] === manifest) now += parseDuration;
+    return parse(...args);
+  });
+
+  const review = await f.review();
+  assert.equal(review.judgingChanges.scripts?.[0]?.entries?.[0]?.name, "check");
+  parseDuration = REVIEW_LIMITS.timeoutMs;
+  await assert.rejects(
+    f.consent(review.identity),
+    (error: unknown) =>
+      error instanceof DomainError &&
+      error.status === 408 &&
+      error.message === "Candidate review timed out",
+  );
+  assert.deepEqual(f.counts(), [0, 0]);
+  assert.equal(existsSync(join(f.directory, "executed")), false);
+});
+
 test("oversized changed blobs and diff overflow cannot produce consent", async (t) => {
   const f = await fixture(t);
   for (const size of [REVIEW_LIMITS.fileBytes + 1, REVIEW_LIMITS.diffBytes]) {
@@ -608,3 +637,39 @@ test(
     }
   },
 );
+
+test("a receipt from before judging changes stays historical for the same untouched commit", async (t) => {
+  const f = await fixture(t);
+  const review = await f.review();
+  assert.deepEqual(review.files, []);
+  const digest = (value: string) =>
+    createHash("sha256").update(value).digest("hex");
+  // Original review encoding for an empty change set.
+  const legacy = digest(
+    JSON.stringify([
+      review.policyVersion,
+      review.observation.identity,
+      review.configuration,
+      [],
+    ]),
+  );
+  assert.notEqual(legacy, review.identity);
+  const current = await f.consent(review.identity);
+  const legacyBinding = { ...current.binding, reviewIdentity: legacy };
+  delete legacyBinding.judgingChangeCount;
+  const payload = JSON.stringify(legacyBinding);
+  const fingerprint = digest(
+    JSON.stringify([CONSENT_POLICY, f.workspace.id, "operator", legacy]),
+  );
+  f.db
+    .prepare(
+      "UPDATE local_command_consents SET payload=?, payload_sha256=?, fingerprint=? WHERE id=?",
+    )
+    .run(payload, digest(payload), fingerprint, current.id);
+  assert.equal(
+    f.store.localCommandConsents.get(current.id).binding.reviewIdentity,
+    legacy,
+  );
+  assert.equal(await f.lookup(current.id), null);
+  await assert.rejects(f.consent(legacy, "new-request"), rejected(409));
+});

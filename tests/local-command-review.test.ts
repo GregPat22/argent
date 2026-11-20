@@ -677,3 +677,471 @@ test("a Git-directory redirect after observation cannot hide changed test code",
   calls = 0;
   await assert.rejects(f.review(), rejected(409));
 });
+
+test("judging changes distinguish recognised paths in both pinned trees from changed test paths", async (t) => {
+  const f = await fixture(t, {
+    "gone.test.ts": "removed\n",
+    "old.spec.mts": "rename\n",
+    "tests/unit/helper.cjs": "old\n",
+    "source.js": "now a test\n",
+  });
+  assert.deepEqual((await f.review()).judgingChanges.testPaths, []);
+  const at = (name: string) => join(f.directory, name);
+  unlinkSync(at("gone.test.ts"));
+  renameSync(at("old.spec.mts"), at("renamed.txt"));
+  renameSync(at("source.js"), at("new.spec.tsx"));
+  writeFileSync(at("tests/unit/helper.cjs"), "new\n");
+  writeFileSync(at("not.test.js.txt"), "unrelated\n");
+  symlinkSync("missing-target", at("link.test.jsx"));
+  f.commit();
+  const review = await f.review();
+  assert.deepEqual(
+    review.judgingChanges.testPaths?.map((i) => {
+      const { status, previousPath, path } = review.files[i]!;
+      return [status, previousPath, path];
+    }),
+    [
+      ["deleted", null, "gone.test.ts"],
+      ["added", null, "link.test.jsx"],
+      ["renamed", "source.js", "new.spec.tsx"],
+      ["renamed", "old.spec.mts", "renamed.txt"],
+      ["modified", null, "tests/unit/helper.cjs"],
+    ],
+  );
+  const withoutTests = await fixture(t);
+  assert.equal((await withoutTests.review()).judgingChanges.testPaths, null);
+});
+
+test("recognised command configuration and workflow changes retain both paths of a rename", async (t) => {
+  const f = await fixture(t, {
+    ".github/workflows/ci.yml": "old workflow",
+    "site/vitest.config.mts": "old config",
+    "tsconfig.json": "{}",
+  });
+  assert.deepEqual((await f.review()).judgingChanges.commandPaths, []);
+  const at = (name: string) => join(f.directory, name);
+  renameSync(at(".github/workflows/ci.yml"), at("disabled"));
+  renameSync(at("site/vitest.config.mts"), at("site/playwright.config.ts"));
+  unlinkSync(at("tsconfig.json"));
+  writeFileSync(at(".github/workflows/new.yaml"), "new workflow");
+  mkdirSync(at("site/.github/workflows"), { recursive: true });
+  writeFileSync(at("site/.github/workflows/other.yml"), "outside root");
+  writeFileSync(at("site/argent.json"), "outside root");
+  writeFileSync(at("argent.json"), CONFIG + "\n");
+  f.commit();
+  const review = await f.review();
+  assert.deepEqual(
+    review.judgingChanges.commandPaths.map((i) => {
+      const { path, previousPath, status } = review.files[i]!;
+      return [path, previousPath, status];
+    }),
+    [
+      [".github/workflows/new.yaml", null, "added"],
+      ["argent.json", null, "modified"],
+      ["disabled", ".github/workflows/ci.yml", "renamed"],
+      ["site/playwright.config.ts", "site/vitest.config.mts", "renamed"],
+      ["tsconfig.json", null, "deleted"],
+    ],
+  );
+});
+
+test("npm script changes distinguish edited definitions, malformed and oversized manifests, and symbolic links", async (t) => {
+  const f = await fixture(t, {
+    "package.json":
+      '{"scripts":{"edit":"old","gone":"remove","same":"keep","__proto__":"a"}}',
+    "nested/package.json": "{}",
+    "moved/package.json": '{"scripts":{"carried":"true"}}',
+    "obsolete/package.json": '{"scripts":{"removed":"true"}}',
+  });
+  const at = (name: string) => join(f.directory, name);
+  writeFileSync(
+    at("package.json"),
+    '{"scripts":{"new":"added","same":"keep","edit":"new","__proto__":"b"}}',
+  );
+  writeFileSync(at("nested/package.json"), '{"scripts":null}');
+  mkdirSync(at("dest"));
+  renameSync(at("moved/package.json"), at("dest/package.json"));
+  renameSync(at("obsolete/package.json"), at("old.txt"));
+  for (const dir of ["big", "link", "bad", "metadata"]) mkdirSync(at(dir));
+  writeFileSync(
+    at("big/package.json"),
+    JSON.stringify({ description: "a".repeat(65536) }),
+  );
+  symlinkSync("../package.json", at("link/package.json"));
+  writeFileSync(at("bad/package.json"), "{");
+  writeFileSync(at("metadata/package.json"), '{"name":"fixture"}');
+  f.commit();
+  const review = await f.review();
+  const result = review.judgingChanges.scripts?.map(({ file, entries }) => [
+    review.files[file]!.path,
+    entries?.map((e) => [e.name, e.change]) ?? null,
+  ]);
+  assert.deepEqual(result, [
+    ["bad/package.json", null],
+    ["big/package.json", null],
+    ["dest/package.json", [["carried", "moved"]]],
+    ["link/package.json", null],
+    ["metadata/package.json", []],
+    ["nested/package.json", null],
+    ["old.txt", [["removed", "removed"]]],
+    [
+      "package.json",
+      [
+        ["__proto__", "modified"],
+        ["edit", "modified"],
+        ["gone", "removed"],
+        ["new", "added"],
+      ],
+    ],
+  ]);
+});
+
+test("script definition and report limits preserve a changed-file entry", async (t) => {
+  const f = await fixture(t);
+  const manifest = (n: number) =>
+    JSON.stringify({
+      scripts: Object.fromEntries(
+        Array.from({ length: n }, (_, i) => [`script-${i}`, "true"]),
+      ),
+    });
+  for (const [dir, size] of [
+    ["a", 129],
+    ["b", 128],
+    ["c", 128],
+    ["d", 1],
+  ] as const) {
+    mkdirSync(join(f.directory, dir));
+    writeFileSync(join(f.directory, dir, "package.json"), manifest(size));
+  }
+  f.commit();
+  const review = await f.review();
+  assert.deepEqual(
+    review.judgingChanges.scripts?.map((row) => row.entries?.length ?? null),
+    [null, 128, 128, null],
+  );
+});
+
+test("new textual skip markers preserve duplicate counts and distinct titles across both committed sides", async (t) => {
+  const f = await fixture(t, {
+    "unit.test.ts": 'test.skip("previous", fn);\nit.skip("keep", fn);\n',
+    "old.spec.js": 'describe.skip("moved", fn);',
+  });
+  const at = (name: string) => join(f.directory, name);
+  writeFileSync(
+    at("unit.test.ts"),
+    [
+      'test("previous", fn);',
+      '  it.skip("keep", fn);',
+      'it.skip("keep", fn);',
+      'test.skip("different", fn);',
+      "  test.describe.skip('suite', fn);",
+      '// xit("comment", fn);',
+    ].join("\r\n"),
+  );
+  renameSync(at("old.spec.js"), at("new.spec.cjs"));
+  writeFileSync(at("dynamic.test.js"), "test.skip(title, fn);");
+  writeFileSync(at("binary.test.js"), Buffer.from([0, 1]));
+  f.commit();
+  const review = await f.review();
+  assert.deepEqual(
+    review.judgingChanges.skips?.map(({ file, entries }) => [
+      review.files[file]!.path,
+      entries,
+    ]),
+    [
+      ["binary.test.js", null],
+      ["dynamic.test.js", null],
+      ["new.spec.cjs", []],
+      [
+        "unit.test.ts",
+        [
+          { marker: "it.skip", line: 3 },
+          { marker: "test.skip", line: 4 },
+          { marker: "test.describe.skip", line: 5 },
+        ],
+      ],
+    ],
+  );
+});
+
+test("npm lockfile changes compare versions by complete installation location and preserve unreadable files", async (t) => {
+  const lock = (packages: Record<string, unknown>, lockfileVersion = 3) =>
+    JSON.stringify({ lockfileVersion, packages: { "": {}, ...packages } });
+  const f = await fixture(t, {
+    "package-lock.json": lock(
+      {
+        "node_modules/@scope/a": { version: "1" },
+        "node_modules/dep/node_modules/@scope/a": { version: "7" },
+        "node_modules/gone": { version: "old" },
+      },
+      2,
+    ),
+    "bad/package-lock.json": "{}",
+    "moved/package-lock.json": lock({
+      "node_modules/fixture": { version: "1" },
+    }),
+  });
+  const at = (name: string) => join(f.directory, name);
+  writeFileSync(
+    at("package-lock.json"),
+    lock({
+      "node_modules/@scope/a": { version: "2" },
+      "node_modules/dep/node_modules/@scope/a": { version: "7" },
+      "node_modules/added": { version: "3" },
+      "node_modules/workspace": { link: true, resolved: "modules/workspace" },
+      "modules/workspace": { version: "4" },
+    }),
+  );
+  mkdirSync(at("new"));
+  renameSync(at("moved/package-lock.json"), at("new/package-lock.json"));
+  writeFileSync(at("bad/package-lock.json"), "{");
+  for (const name of ["legacy", "oversize", "link", "malformed"])
+    mkdirSync(at(name));
+  writeFileSync(at("legacy/package-lock.json"), lock({}, 1));
+  writeFileSync(
+    at("oversize/package-lock.json"),
+    lock({ comment: { padding: "x".repeat(65536) } }),
+  );
+  symlinkSync("../package-lock.json", at("link/package-lock.json"));
+  writeFileSync(
+    at("malformed/package-lock.json"),
+    lock({ "node_modules/pkg": { version: 42 } }),
+  );
+  f.commit();
+  const review = await f.review();
+  assert.deepEqual(
+    review.judgingChanges.packages?.map(({ file, entries }) => [
+      review.files[file]!.path,
+      entries?.map((e) => [e.location, e.change, e.before, e.after]) ?? null,
+    ]),
+    [
+      ["bad/package-lock.json", null],
+      ["legacy/package-lock.json", null],
+      ["link/package-lock.json", null],
+      ["malformed/package-lock.json", null],
+      ["new/package-lock.json", [["node_modules/fixture", "moved", "1", "1"]]],
+      ["oversize/package-lock.json", null],
+      [
+        "package-lock.json",
+        [
+          ["node_modules/@scope/a", "modified", "1", "2"],
+          ["node_modules/added", "added", null, "3"],
+          ["node_modules/gone", "removed", "old", null],
+          ["node_modules/workspace", "added", null, "4"],
+        ],
+      ],
+    ],
+  );
+});
+
+test("a local link cannot mask changed or missing target version metadata", async (t) => {
+  const lock = (target: unknown, link: unknown = true) =>
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {},
+        "node_modules/local": {
+          link,
+          resolved: "packages/local",
+          version: "1",
+        },
+        ...(target ? { "packages/local": target } : {}),
+      },
+    });
+  const f = await fixture(t, { "package-lock.json": lock({ version: "1" }) });
+  for (const [target, link] of [
+    [{ version: "2" }, true],
+    [null, true],
+    [{ version: "1", link: "true" }, true],
+    [{ version: "1" }, "true"],
+  ] as const) {
+    writeFileSync(join(f.directory, "package-lock.json"), lock(target, link));
+    f.commit();
+    assert.deepEqual((await f.review()).judgingChanges.packages, [
+      { file: 0, entries: null },
+    ]);
+  }
+});
+
+test("new install scripts are visible at unchanged versions and validated on linked targets", async (t) => {
+  const lock = (packages: Record<string, unknown>) =>
+    JSON.stringify({ lockfileVersion: 3, packages: { "": {}, ...packages } });
+  const common = {
+    "node_modules/keep": { version: "1", hasInstallScript: true },
+    "node_modules/link": { link: true, resolved: "local" },
+  };
+  const f = await fixture(t, {
+    "package-lock.json": lock({
+      ...common,
+      local: { version: "1" },
+      "node_modules/edit": { version: "2", hasInstallScript: false },
+      "node_modules/remove": { version: "1", hasInstallScript: true },
+    }),
+  });
+  const after = {
+    ...common,
+    local: { version: "1", hasInstallScript: true },
+    "node_modules/add": { version: "0", hasInstallScript: true },
+    "node_modules/edit": { version: "2", hasInstallScript: true },
+    "node_modules/remove": { version: "1" },
+  };
+  const path = join(f.directory, "package-lock.json");
+  writeFileSync(path, lock(after));
+  f.commit();
+  assert.deepEqual(
+    (await f.review()).judgingChanges.packages?.[0]?.entries?.map((p) => [
+      p.location,
+      p.before,
+      p.after,
+      p.newInstallScript,
+    ]),
+    [
+      ["node_modules/add", null, "0", true],
+      ["node_modules/edit", "2", "2", true],
+      ["node_modules/link", "1", "1", true],
+    ],
+  );
+  for (const override of [
+    { local: { version: "1", hasInstallScript: "false" } },
+    {
+      "node_modules/link": {
+        ...common["node_modules/link"],
+        hasInstallScript: false,
+      },
+    },
+    { "node_modules/other": { version: "1", hasInstallScript: 1 } },
+  ]) {
+    writeFileSync(path, lock({ ...after, ...override }));
+    f.commit();
+    assert.equal(
+      (await f.review()).judgingChanges.packages?.[0]?.entries,
+      null,
+    );
+  }
+});
+
+test("npm source changes are reported independently of versions without returning raw references", async (t) => {
+  const lock = (sources: Record<string, unknown>) =>
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {},
+        ...Object.fromEntries(
+          Object.entries(sources).map(([name, resolved]) => [
+            "node_modules/" + name,
+            { version: "1", resolved },
+          ]),
+        ),
+      },
+    });
+  const registry = "https://registry.npmjs.org/sample/-/sample-1.tgz";
+  const windowsPaths = {
+    "win-current": ".\\private-source.tgz",
+    "win-drive": "C:\\private-source.tgz",
+    "win-parent": "..\\private-source.tgz",
+    "win-root": "\\private-source.tgz",
+    "win-unc": "\\\\example.invalid\\share\\private-source.tgz",
+  };
+  const f = await fixture(t, {
+    "package-lock.json": lock({
+      url: registry,
+      git: registry,
+      hosted: registry,
+      path: registry,
+      same: "https://example.invalid/old.tgz",
+      untouched: registry,
+    }),
+  });
+  const path = join(f.directory, "package-lock.json");
+  writeFileSync(
+    path,
+    lock({
+      url: "https://example.invalid/private-source.tgz",
+      git: "git+ssh://example.invalid/private-source.git#ref",
+      hosted: "fixture/private-source#feature/one",
+      plain: "fixture/private-source",
+      range: "fixture/private-source#semver:>=1 <2",
+      scoped: "@fixture/private-source",
+      nested: "fixture/nested/private-source",
+      path: "file:../private-source",
+      same: "https://example.invalid/new.tgz",
+      untouched: registry,
+      added: "./local.tgz",
+      ...windowsPaths,
+    }),
+  );
+  f.commit();
+  const report = (await f.review()).judgingChanges;
+  assert.deepEqual(
+    report.packages?.[0]?.entries?.map((e) => [
+      e.location,
+      e.change,
+      e.resolution,
+    ]),
+    [
+      ["node_modules/added", "added", { before: null, after: "local path" }],
+      [
+        "node_modules/git",
+        "modified",
+        { before: "npm registry URL", after: "Git reference" },
+      ],
+      [
+        "node_modules/hosted",
+        "modified",
+        { before: "npm registry URL", after: "Git reference" },
+      ],
+      [
+        "node_modules/nested",
+        "added",
+        { before: null, after: "other reference" },
+      ],
+      [
+        "node_modules/path",
+        "modified",
+        { before: "npm registry URL", after: "local path" },
+      ],
+      ["node_modules/plain", "added", { before: null, after: "Git reference" }],
+      ["node_modules/range", "added", { before: null, after: "Git reference" }],
+      [
+        "node_modules/same",
+        "modified",
+        { before: "HTTP(S) URL", after: "HTTP(S) URL" },
+      ],
+      [
+        "node_modules/scoped",
+        "added",
+        { before: null, after: "other reference" },
+      ],
+      [
+        "node_modules/url",
+        "modified",
+        { before: "npm registry URL", after: "HTTP(S) URL" },
+      ],
+      ...Object.keys(windowsPaths)
+        .sort()
+        .map((name) => [
+          "node_modules/" + name,
+          "added",
+          { before: null, after: "local path" },
+        ]),
+    ],
+  );
+  assert.doesNotMatch(
+    JSON.stringify(report),
+    /private-source|example\.invalid/,
+  );
+  for (const resolved of [
+    42,
+    "https://",
+    "x".repeat(4097),
+    "https://example.invalid/\nfixture",
+    "https://example.invalid/\u0085fixture",
+  ]) {
+    writeFileSync(path, lock({ url: resolved }));
+    f.commit();
+    assert.equal(
+      (await f.review()).judgingChanges.packages?.[0]?.entries,
+      null,
+    );
+  }
+});
