@@ -193,7 +193,9 @@ review at `fe3acf2` identified the [exact-rename validation requirement](specs/0
 for a moved finding. The [review deadline contract](specs/0018-judging-changes-report.md#deadline-during-report-construction-in-development)
 covers the final synchronous report computation before consent. The
 [local source path contract](specs/0018-judging-changes-report.md#windows-package-source-paths-in-development)
-also covers Windows path spellings in committed lockfiles.
+also covers Windows path spellings in committed lockfiles. The [GitHub
+shorthand contract](specs/0018-judging-changes-report.md#github-package-source-shorthand-in-development)
+identifies bare owner and repository references.
 
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many

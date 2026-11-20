@@ -1046,6 +1046,7 @@ test("npm source changes are reported independently of versions without returnin
     "package-lock.json": lock({
       url: registry,
       git: registry,
+      hosted: registry,
       path: registry,
       same: "https://example.invalid/old.tgz",
       untouched: registry,
@@ -1057,6 +1058,11 @@ test("npm source changes are reported independently of versions without returnin
     lock({
       url: "https://example.invalid/private-source.tgz",
       git: "git+ssh://example.invalid/private-source.git#ref",
+      hosted: "fixture/private-source#feature/one",
+      plain: "fixture/private-source",
+      range: "fixture/private-source#semver:>=1 <2",
+      scoped: "@fixture/private-source",
+      nested: "fixture/nested/private-source",
       path: "file:../private-source",
       same: "https://example.invalid/new.tgz",
       untouched: registry,
@@ -1080,14 +1086,31 @@ test("npm source changes are reported independently of versions without returnin
         { before: "npm registry URL", after: "Git reference" },
       ],
       [
+        "node_modules/hosted",
+        "modified",
+        { before: "npm registry URL", after: "Git reference" },
+      ],
+      [
+        "node_modules/nested",
+        "added",
+        { before: null, after: "other reference" },
+      ],
+      [
         "node_modules/path",
         "modified",
         { before: "npm registry URL", after: "local path" },
       ],
+      ["node_modules/plain", "added", { before: null, after: "Git reference" }],
+      ["node_modules/range", "added", { before: null, after: "Git reference" }],
       [
         "node_modules/same",
         "modified",
         { before: "HTTP(S) URL", after: "HTTP(S) URL" },
+      ],
+      [
+        "node_modules/scoped",
+        "added",
+        { before: null, after: "other reference" },
       ],
       [
         "node_modules/url",

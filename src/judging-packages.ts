@@ -28,7 +28,9 @@ function sourceKind(value: string | null, link: boolean): PackageSource | null {
   if (
     /^(?:git(?:\+[a-z0-9.-]+)?:|ssh:|git@|github:|gitlab:|bitbucket:|gist:)/i.test(
       value,
-    )
+    ) ||
+    // The optional fragment can name a branch or an npm semver range.
+    /^[a-z0-9][a-z0-9-]*\/[a-z0-9._-]+(?:#|$)/i.test(value)
   )
     return "Git reference";
   if (/^https?:/i.test(value)) {

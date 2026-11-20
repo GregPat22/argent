@@ -408,6 +408,21 @@ current-directory, parent-directory, rooted, drive and UNC paths in the
 committed lockfile on every host. Display the local path category. Classify
 only the recorded text, without resolving the path or opening a share.
 
+Development evidence at `0840c39`, 20 November 2026: the real-Git fixture
+covered all five Windows path forms and verified that reference text stayed
+out of the report. Dedicated review and the full repository check passed.
+
+## GitHub package-source shorthand (in development)
+
+Acceptance against `0840c39`, 20 November 2026: classify a committed npm
+`owner/repository` reference, with an optional `#ref`, as a Git reference.
+Recognise ASCII owners starting with a letter or digit and containing
+letters, digits or hyphens. Repository names may also contain dots and
+underscores. The fragment may include a branch path or an npm semver range.
+Scoped package names and longer unprefixed paths remain outside this
+recogniser. Show only the category and compare the literal reference without
+contacting a host.
+
 Remaining acceptance includes committed npm source settings and the
 maintainer trial. The complete review still refuses inputs beyond its own
 bounds and unsupported submodules before consent.
