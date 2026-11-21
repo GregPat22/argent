@@ -40,11 +40,11 @@ The [service build check](specs/0013-local-mvp.md#service-build-check) keeps
 the desktop from using a still-running service of a different Argent build and
 leaves stopping it to the developer.
 
-The [judging-changes report](specs/0018-judging-changes-report.md) is in development
-as work-queue item 4. The candidate review covers recognised test paths and
+The [judging-changes report](specs/0018-judging-changes-report.md) is implemented
+for local npm and JavaScript/TypeScript projects. The candidate review covers recognised test paths and
 skip markers, check configuration, npm scripts and lockfile changes. The check
-result carries the count for the reviewed commit. Spec 0018 records the
-remaining maintainer trial.
+result carries the count for the reviewed commit. The [real-task trial](specs/0018-judging-changes-report.md#real-task-trial)
+records the two candidate reviews and the decision to keep the report.
 
 A [human-triggered desktop merge flow](specs/0013-local-mvp.md#human-triggered-merge-design-todo)
 is in the design backlog. Its UX, workflow and delivery milestone remain open;
@@ -94,7 +94,7 @@ recorded revision.
 | [0013 Local MVP](specs/0013-local-mvp.md)                                                 | L1.1–L1.4 implemented, including exact-commit checks. Later slices are planned.     |
 | [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.      |
 | [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks. |
-| [0018 Judging-changes report](specs/0018-judging-changes-report.md)                       | In development. Candidate review and result counts are implemented. Trial pending.  |
+| [0018 Judging-changes report](specs/0018-judging-changes-report.md)                       | Implemented and retained after the real-task trial.                                 |
 | [0019 Suggested commands](specs/0019-suggested-commands.md)                               | Direct approval design accepted. Implementation planned.                            |
 
 [0017 Website SEO](specs/0017-website-seo.md) defines search metadata, crawl files,

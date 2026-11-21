@@ -359,11 +359,10 @@ produces its own outcome. See the [manual walkthrough](#l14-manual-walkthrough).
 
 Accepted on 16 November 2026: reading the commands at the base commit fixes
 which commands run, not what they do, because scripts, tests and dependencies
-come from the candidate commit. The planned
-[judging-changes report](0018-judging-changes-report.md) states, for the exact
-commit, whether it changed what judges it. It is work-queue item 4, starts
-after this slice shows its first result, and has its own spec and security
-review. It adds no requirement to this slice.
+come from the candidate commit. The
+[judging-changes report](0018-judging-changes-report.md) lists recognised
+changes to those inputs for the exact commit. Its [real-task trial](0018-judging-changes-report.md#real-task-trial)
+completed work-queue item 4. It adds no requirement to this slice.
 
 #### Desktop setup and test results (in development)
 
@@ -1851,9 +1850,8 @@ unsandboxed, and an escaped process is not fenced by a process group.
 Commit and push the workspace branch and open a draft pull request through `gh`,
 recording the pull request URL. The pull request description carries Argent's
 evidence record (commit, checks and their results, diff hash, agent, model and
-permission mode), so the proof travels with the code. Once the
-[judging-changes report](0018-judging-changes-report.md) exists, the record
-carries it for the same commit. Archive removes the worktree only when it has no
+permission mode), so the proof travels with the code. The planned record includes the
+[judging-changes report](0018-judging-changes-report.md) for the same commit. Archive removes the worktree only when it has no
 uncommitted changes, unless the developer explicitly discards them; the branch is
 kept.
 

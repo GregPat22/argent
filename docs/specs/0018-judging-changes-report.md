@@ -1,10 +1,9 @@
 # Judging-changes report: whether a commit changed what judges it
 
-Status: **in development**, accepted 16 November 2026. It is work-queue item 4 in the [roadmap](../../ROADMAP.md#work-queue):
-it starts after [L1.4](0013-local-mvp.md#l14-setup-run-and-test-actions) shows
-its first passed, failed or stale result in the desktop app, and it comes before
-the draft pull request (L1.5). The detailed acceptance contract and a dedicated
-security review are recorded here before any code.
+Status: **implemented and retained**. The [real-task trial](#real-task-trial)
+records the decision at `40bc375`. This completes item 4 in the
+[work queue](../../ROADMAP.md#work-queue). Carrying the report into a draft
+pull request is planned for L1.5.
 
 ## Product decision
 
@@ -21,8 +20,8 @@ does not point at the few changes that matter for the result, and a deleted
 test or a changed script is easy to miss in a long diff.
 
 The judging-changes report closes that gap. For one exact commit, Argent
-states whether the commit changed what judges it, in three groups, next to the
-check result and before the commands run. It is information for the person who
+lists recognised changes in three groups before consent. New check results
+include the number of entries in that report. It is information for the person who
 decides. It makes no accusation: adding a dependency or rewriting a test is
 often the task itself. The report says that it happened and where.
 
@@ -458,8 +457,8 @@ Electron smoke displayed the scoped registry setting before consent and the
 same count of five beside the passed and stale results. It used fixture
 commands and a local repository.
 
-The maintainer trial remains open. The complete review still refuses inputs beyond its own
-bounds and unsupported submodules before consent.
+The complete review still refuses inputs beyond its own bounds and unsupported
+submodules before consent.
 
 ## Exit evidence
 
@@ -468,6 +467,42 @@ maintainers' use on real tasks in this repository: for each task run through
 Argent, whether the report was empty and what it listed. The maintainers then
 record whether the report stays, changes or is removed, as for every
 experiment.
+
+### Real-task trial
+
+On 21 November 2026, the development desktop built from `40bc375` ran
+signed-in Claude Code in edits-only mode on two tasks in separate worktrees
+of a local clone of Argent. Both workspaces started at that commit. Desktop
+interactions were automated. After each edit was reviewed and committed
+locally, the following findings appeared before consent.
+
+| Task                                                                                            | Local candidate | Judging changes shown                                                            |
+| ----------------------------------------------------------------------------------------------- | --------------- | -------------------------------------------------------------------------------- |
+| Clarify where the quick start shows the report and result count                                 | `01c77b3`       | Zero entries. Only `README.md` changed.                                          |
+| Test how the renderer distinguishes an empty registry comparison from missing lockfile coverage | `2dd4592`       | One modified test path, `tests/renderer-candidate.test.ts`. No new skip markers. |
+
+Neither task changed a recognised command, configuration, workflow or package.
+Both reports labelled committed npm source settings **Not checkable** because
+neither Git tree contained a `.npmrc`. The registry data in the renderer test
+was fixture data inside the test file.
+
+After consent, both setup commands (`npm ci`) exited 0. The quick-start
+candidate passed `npm run check`, and its result showed **0 reported judging
+changes**. The renderer-test candidate exited 1, and its result showed **1
+reported judging change**. Both results matched the reviewed commit on open.
+Argent retained the exit codes and output digests. The cause of the exit is
+unknown. The renderer test file, including the new regression, passed in a
+separate checkout of the exact candidate. The full repository check had also
+passed on the unchanged base.
+
+The first attempt at the quick-start task stopped during CLI version checking,
+before an agent session started. The installed CLI reported `2.1.330`, above
+the minimum in the error message. A fresh submission completed with the same
+CLI. The cause of the first rejection is unknown.
+
+Decision on 21 November 2026: keep the report. It identified the changed test
+file before consent and produced zero findings on the documentation edit.
+These tasks exercised the local npm and JavaScript/TypeScript scope.
 
 ## Out of scope
 

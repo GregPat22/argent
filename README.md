@@ -37,7 +37,10 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   Argent records the commit and diff independently of the agent's transcript.
 - Open **Commands** to review the project's commands at the base commit.
   Setup and test run in a fresh checkout after you consent to the exact
-  candidate commit. The separate run action has its own consent and result.
+  candidate commit. Before consent, the judging-changes report lists recognised
+  changes to tests, check scripts, configuration and dependencies. Its count
+  appears beside the check result. The separate run action has its own consent
+  and result.
 - Close and reopen the desktop to reconnect to the local service and its
   recorded history. An uncertain run requires investigation before the
   workspace can continue.
@@ -61,7 +64,7 @@ npm run desktop
    workspace. Start with a clean commit.
 2. Open **Commands**. Review the base commit's `argent.json`, which specifies
    `npm ci` and `npm run check`, and choose **Approve these commands**.
-3. Select **Review commit for checks**, inspect the changes, choose
+3. Select **Review commit for checks**, inspect the judging-changes report and full diff, choose
    **Record consent for this commit**, then **Run checks**.
 4. Open **Checks** and choose **Refresh** to see the result. After a pass,
    edit a tracked file in that workspace and refresh again. The earlier
@@ -85,9 +88,8 @@ MIT-licensed core runs on the developer's computer. See the [vision](VISION.md).
 ## Where it is going
 
 The first public release is the local MVP with Claude Code. Draft pull
-requests carrying the check evidence are planned. The judging-changes report
-is in development. Its [acceptance contract](docs/specs/0018-judging-changes-report.md)
-covers changes to tests, what the approved commands run and dependencies.
+requests carrying the check evidence and [judging-changes report](docs/specs/0018-judging-changes-report.md)
+are the next planned step, alongside workspace archive.
 
 The planned first update experiments with checked links between workspaces.
 A link grants no access and carries no messages between agents. Codex and

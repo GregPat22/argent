@@ -72,8 +72,8 @@ address, never a personal one.
   a remote host the developer owns, then in an optional managed cloud; what sets
   Argent apart is evidence it collects itself (checks it runs itself, checked
   links between workspaces, one set of project rules for every agent), and
-  L1.4 checks run against the reviewed exact commit and report freshness on open or Refresh; a planned judging-changes
-  report (spec 0018) will say whether a commit changed what judges it (its
+  L1.4 checks run against the reviewed exact commit and report freshness on open or Refresh; the judging-changes
+  report (spec 0018) lists recognised changes to what judges a commit (its
   tests, what the approved commands run, or its dependencies), and it is a
   check and a consent gate, never a prevention control, a security scan or a
   claim that an agent cheated;
