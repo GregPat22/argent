@@ -1448,7 +1448,7 @@ test("hero states the promise once and today's facts under the actions", async (
     await expect(status).toContainText("Free and MIT");
     await expect(status).toContainText("built from source, no download yet");
     await expect(status).toContainText(
-      "Live changes panel · exact-commit checks",
+      "Review changed tests before exact-commit checks",
     );
     // The liquid keeps clear of it, and it fits the first screen.
     await expect(status).toHaveAttribute("data-liquid-avoid");

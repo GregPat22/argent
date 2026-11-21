@@ -103,10 +103,12 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         workspace its own branch and worktree, keeps a durable record of every
         run and records what changed itself instead of trusting the agent. The
         changes panel shows current files and a bounded diff; it is not test
-        evidence. After consent, Argent runs approved checks in a fresh checkout
-        of the exact commit. A draft pull request carrying that result is
-        planned. It is open source, built for more than one agent, and designed
-        to continue on a machine that stays on and on your phone.
+        evidence. Before consent, the report lists recognised changes to tests,
+        check scripts, configuration and dependencies. After consent, Argent
+        runs approved checks in a fresh checkout of the exact commit. A draft
+        pull request carrying that result is planned. It is open source, built
+        for more than one agent, and designed to continue on a machine that
+        stays on and on your phone.
       </>
     ),
   },
