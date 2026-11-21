@@ -140,6 +140,27 @@ function display(shown: CandidateReviewView): void {
     }),
   );
   appendPaths(commands);
+  function appendNamed(
+    findings: CandidateReviewView["judgingChanges"]["scripts"],
+    label: string,
+  ) {
+    for (const { file, entries } of findings ?? []) {
+      if (entries?.length === 0) continue;
+      report.append(
+        h("p", {
+          class: "mono",
+          text: `${changeName(shown.files[file]!)} · ${entries === null ? "changed and not summarised" : label}`,
+        }),
+      );
+      for (const entry of entries ?? [])
+        report.append(
+          h("p", {
+            class: "mono",
+            text: `${entry.change} · ${argumentText(entry.name)}`,
+          }),
+        );
+    }
+  }
   const scripts = shown.judgingChanges.scripts;
   report.append(
     h("p", {
@@ -151,29 +172,14 @@ function display(shown: CandidateReviewView): void {
   );
   if (scripts && scripts.every((summary) => summary.entries?.length === 0))
     report.append(h("p", { text: "No npm script definitions changed." }));
-  for (const { file, entries } of scripts ?? []) {
-    if (entries?.length === 0) continue;
-    report.append(
-      h("p", {
-        class: "mono",
-        text: `${changeName(shown.files[file]!)} · ${entries === null ? "changed and not summarised" : "npm scripts"}`,
-      }),
-    );
-    for (const entry of entries ?? [])
-      report.append(
-        h("p", {
-          class: "mono",
-          text: `${entry.change} · ${argumentText(entry.name)}`,
-        }),
-      );
-  }
+  appendNamed(scripts, "npm scripts");
   const packages = shown.judgingChanges.packages;
   report.append(
     h("p", {
       text:
         packages === null
-          ? "Dependencies · Not checkable. Neither commit contains an npm lockfile."
-          : "Dependencies · Compared installed packages in changed npm v2/v3 lockfiles.",
+          ? "Dependency lockfiles · Not checkable. Neither commit contains an npm lockfile."
+          : "Dependency lockfiles · Compared installed packages in changed npm v2/v3 lockfiles.",
     }),
   );
   if (packages && packages.every((file) => file.entries?.length === 0))
@@ -195,11 +201,18 @@ function display(shown: CandidateReviewView): void {
       );
     }
   }
+  const settings = shown.judgingChanges.registrySettings;
   report.append(
     h("p", {
-      text: "Committed npm source settings · Not checkable in this report.",
+      text:
+        settings === null
+          ? "Committed npm source settings · Not checkable. Neither commit contains a .npmrc file."
+          : "Committed npm source settings · Compared registry, scoped registry and replace-registry-host assignments in changed .npmrc files.",
     }),
   );
+  if (settings && settings.every((file) => file.entries?.length === 0))
+    report.append(h("p", { text: "No recognised registry settings changed." }));
+  appendNamed(settings, "registry settings");
   content.append(report);
   for (const action of ["setup", command()] as const) {
     const command = shown.configuration.config.commands[action];

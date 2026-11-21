@@ -25,7 +25,7 @@ JSON artifact in an ignored `.data/demo-<id>` directory and prints the location.
 It does not clone a target repository, invoke a coding agent or create a PR.
 
 For standalone API/worker configuration, use the
-[README setup instructions](README.md#configuration) and `.env.example`.
+[local development reference](docs/local-development.md#configuration) and `.env.example`.
 Create your own local operator token and keep `.env` out of Git. Do not use the
 known conformance-test token for an operator deployment.
 

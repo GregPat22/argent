@@ -3,10 +3,12 @@ import type { Entry } from "./workspace-changes.js";
 import {
   changedPaths,
   isManifest,
+  isNpmrc,
+  isRegistrySetting,
   isTestPath,
   type SkipMarker,
   type FileFindings,
-  type ScriptChange,
+  type NamedChange,
   DETAIL_LIMIT,
   FILE_DETAIL_LIMIT,
   validFindingText,
@@ -90,32 +92,70 @@ function scripts(bytes: Buffer | undefined): Map<string, string> | null {
   return result;
 }
 
+function registrySettings(
+  bytes: Buffer | undefined,
+): Map<string, string> | null {
+  const settings = new Map<string, string>();
+  if (!bytes) return settings;
+  // The complete review has already checked UTF-8. Only compare flat, literal
+  // assignments. Leave all other INI syntax to the complete text review.
+  for (const raw of bytes.toString("utf8").split(/\r?\n/)) {
+    if (/[\x00-\x08\x0a-\x1f\x7f-\x9f\u2028\u2029]/.test(raw)) return null;
+    const line = raw.trim();
+    if (!line || line.startsWith("#") || line.startsWith(";")) continue;
+    const delimiter = line.indexOf("=");
+    if (delimiter < 1) return null;
+    const key = line.slice(0, delimiter).trim();
+    const value = line.slice(delimiter + 1).trim();
+    if (/["'\\;#]/.test(value)) return null;
+    if (isRegistrySetting(key)) {
+      if (settings.has(key) || settings.size >= FILE_DETAIL_LIMIT) return null;
+      settings.set(key, value);
+    } else if (!/^[a-z][a-z0-9-]*$/.test(key)) return null;
+  }
+  return settings;
+}
+
+function compareNames(
+  before: Map<string, string> | null,
+  after: Map<string, string> | null,
+  moved: boolean,
+): NamedChange[] | null {
+  if (!before || !after) return null;
+  const changes: NamedChange[] = [];
+  for (const name of [...new Set([...before.keys(), ...after.keys()])].sort()) {
+    const change = !before.has(name)
+      ? "added"
+      : !after.has(name)
+        ? "removed"
+        : moved
+          ? "moved"
+          : before.get(name) !== after.get(name)
+            ? "modified"
+            : null;
+    if (change) changes.push(Object.freeze({ name, change }));
+  }
+  return changes;
+}
+
 export function scriptFindings(
   files: readonly WorkspaceChange[],
   base: ReadonlyMap<string, Entry>,
   head: ReadonlyMap<string, Entry>,
 ) {
-  return contentFindings(files, base, head, isManifest, (old, next, moved) => {
-    const before = scripts(old),
-      after = scripts(next);
-    if (!before || !after) return null;
-    const changes: ScriptChange[] = [];
-    for (const name of [
-      ...new Set([...before.keys(), ...after.keys()]),
-    ].sort()) {
-      const change = !before.has(name)
-        ? "added"
-        : !after.has(name)
-          ? "removed"
-          : moved
-            ? "moved"
-            : before.get(name) !== after.get(name)
-              ? "modified"
-              : null;
-      if (change) changes.push(Object.freeze({ name, change }));
-    }
-    return changes;
-  });
+  return contentFindings(files, base, head, isManifest, (old, next, moved) =>
+    compareNames(scripts(old), scripts(next), moved),
+  );
+}
+
+export function registryFindings(
+  files: readonly WorkspaceChange[],
+  base: ReadonlyMap<string, Entry>,
+  head: ReadonlyMap<string, Entry>,
+) {
+  return contentFindings(files, base, head, isNpmrc, (old, next, moved) =>
+    compareNames(registrySettings(old), registrySettings(next), moved),
+  );
 }
 
 // Match the documented declaration spellings, without evaluating repository code.

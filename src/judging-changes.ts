@@ -19,7 +19,7 @@ export interface SkipMarker {
   readonly marker: (typeof SKIP_MARKERS)[number];
   readonly line: number;
 }
-export interface ScriptChange {
+export interface NamedChange {
   readonly name: string;
   readonly change: "added" | "removed" | "modified" | "moved";
 }
@@ -58,6 +58,18 @@ export function validInstallation(value: unknown): value is string {
     (name.length === 2 && name[0]!.startsWith("@") && name[0]!.length > 1)
   );
 }
+export const isNpmrc = (path: string) =>
+  path === ".npmrc" || path.endsWith("/.npmrc");
+
+export function isRegistrySetting(value: unknown): value is string {
+  return (
+    validFindingText(value) &&
+    (value === "registry" ||
+      value === "replace-registry-host" ||
+      /^@[a-z0-9][a-z0-9._-]*:registry$/.test(value))
+  );
+}
+
 export const isManifest = (path: string) =>
   path === "package.json" || path.endsWith("/package.json");
 export function validFindingText(value: unknown): value is string {
@@ -73,7 +85,8 @@ export interface JudgingChanges {
   readonly testPaths: readonly number[] | null;
   readonly skips: readonly FileFindings<SkipMarker>[] | null;
   readonly packages: readonly FileFindings<PackageChange>[] | null;
-  readonly scripts: readonly FileFindings<ScriptChange>[] | null;
+  readonly registrySettings: readonly FileFindings<NamedChange>[] | null;
+  readonly scripts: readonly FileFindings<NamedChange>[] | null;
   readonly commandPaths: readonly number[];
 }
 
@@ -86,6 +99,7 @@ export function judgingChangeCount(report: JudgingChanges): number {
     (report.testPaths?.length ?? 0) +
     report.commandPaths.length +
     countFindings(report.packages) +
+    countFindings(report.registrySettings) +
     countFindings(report.scripts) +
     countFindings(report.skips)
   );

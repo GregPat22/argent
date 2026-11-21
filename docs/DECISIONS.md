@@ -195,7 +195,10 @@ covers the final synchronous report computation before consent. The
 [local source path contract](specs/0018-judging-changes-report.md#windows-package-source-paths-in-development)
 also covers Windows path spellings in committed lockfiles. The [GitHub
 shorthand contract](specs/0018-judging-changes-report.md#github-package-source-shorthand-in-development)
-identifies bare owner and repository references.
+identifies bare owner and repository references. The
+[committed npm settings contract](specs/0018-judging-changes-report.md#committed-npm-registry-settings-in-development)
+covers registry assignments in pinned project configuration. The report
+compares values privately and displays setting names and change kinds.
 
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many
@@ -259,14 +262,22 @@ first. The security model is unchanged.
 - This repository carries its own `argent.json` (`npm ci`, then
   `npm run check`), so the rule that every change passes the repository check
   becomes a check Argent can run on Argent, not only guidance in AGENTS.md.
-- For a repository without `argent.json`, Argent will propose the usual
-  commands for the project type, for the developer to approve. Planned, with
-  its own spec and security review; nothing runs unapproved.
+- For a repository without `argent.json`, Argent will propose commands the
+  developer can approve directly. Accepted 20 November 2026: record the
+  exact suggestion with its own versioned identity and keep candidate consent
+  and execution separate. This avoids requiring a setup commit to try checks.
+  The [suggested commands contract](specs/0019-suggested-commands.md) defines
+  source precedence, approval reuse and verification. Implementation is planned.
 - The simulated cloud lifecycle, custody and GitHub pilot code will be set
   aside from the local service's startup path and the default check until M1
   resumes. Planned as its own change; how, and whether offline history export
   moves with it, is open. No milestone is removed.
-- The README becomes shorter once item 3 produces a real result to show.
+- The [shorter README](../README.md#reproduce-an-exact-commit-check) gives the
+  desktop steps for reproducing item 3's passing-to-stale result. The
+  [development reference](local-development.md) holds the standalone setup and
+  API, CLI tools and packaging instructions. The documentation review at
+  `0ab21ac` on 20 November 2026 checked the control labels, commands and
+  previous README anchors against the implementation and recorded walkthrough.
 
 ### Complete text review before candidate consent — 14 November 2026
 

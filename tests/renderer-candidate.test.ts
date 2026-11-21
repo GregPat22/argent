@@ -47,6 +47,7 @@ const review = (workspaceId = "one"): CandidateReviewView => ({
   approvalId: "approval",
   judgingChanges: {
     testPaths: null,
+    registrySettings: null,
     commandPaths: [0],
     skips: null,
     packages: null,
@@ -508,6 +509,7 @@ test("the report displays escaped renamed test paths and coverage limits before 
   ];
   shown.judgingChanges = {
     testPaths: [1],
+    registrySettings: null,
     commandPaths: [0],
     skips: [{ file: 1, entries: null }],
     packages: null,
@@ -539,6 +541,7 @@ test("npm script names stay literal and an unsummarised manifest stays visible",
   ];
   shown.judgingChanges = {
     testPaths: null,
+    registrySettings: null,
     commandPaths: [],
     skips: null,
     packages: null,
@@ -560,6 +563,7 @@ test("skip marker review identifies the changed file and candidate source line",
   shown.files = [{ ...shown.files[0]!, path: "<sample>.test.ts" }];
   shown.judgingChanges = {
     testPaths: [0],
+    registrySettings: null,
     commandPaths: [],
     packages: null,
     scripts: null,
@@ -578,6 +582,7 @@ test("package locations and both lockfile versions use literal text and visible 
   shown.files = [{ ...shown.files[0]!, path: "<p>/package-lock.json" }];
   shown.judgingChanges = {
     testPaths: null,
+    registrySettings: null,
     commandPaths: [],
     scripts: null,
     skips: null,
@@ -614,4 +619,35 @@ test("package locations and both lockfile versions use literal text and visible 
     /npm registry URL → Git reference/,
   );
   assert.doesNotMatch(app.element("candidate-files").text, /\u202e/);
+});
+
+test("registry settings have their own coverage when neither commit contains a lockfile", async () => {
+  const app = await launch(),
+    shown = review();
+  shown.files = [
+    { ...shown.files[0]!, path: "scope\n/.npmrc" },
+    { ...shown.files[0]!, path: "other/.npmrc" },
+  ];
+  shown.judgingChanges = {
+    testPaths: null,
+    commandPaths: [],
+    scripts: null,
+    skips: null,
+    packages: null,
+    registrySettings: [
+      { file: 0, entries: [{ name: "@sample:registry", change: "modified" }] },
+      { file: 1, entries: null },
+    ],
+  };
+  await app.show(shown);
+  const report = app
+    .element("candidate-files")
+    .children.find((e) => e.text.includes("Judging changes"))!;
+  assert.match(report.text, /Dependency lockfiles · Not checkable/);
+  assert.ok(report.text.includes('"scope\\n/.npmrc" · registry settings'));
+  assert.ok(report.text.includes('modified · "@sample:registry"'));
+  assert.ok(
+    report.text.includes('"other/.npmrc" · changed and not summarised'),
+  );
+  assert.doesNotMatch(report.text, /No recognised registry settings changed/);
 });

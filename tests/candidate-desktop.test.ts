@@ -191,6 +191,7 @@ test("desktop reviews the complete pinned change set and records exact-commit co
   assert.equal(shown.summary.textFiles, 1);
   assert.deepEqual(shown.judgingChanges, {
     testPaths: null,
+    registrySettings: null,
     commandPaths: [],
     skips: null,
     packages: null,
@@ -900,6 +901,45 @@ test("candidate bridge accepts an exact rename into a recognised path and reject
   assert.throws(
     () =>
       validateCandidateReview({ ...shown, files: duplicate }, f.workspace.id),
+    /invalid/,
+  );
+});
+
+test("registry findings cross the bridge with only recognised setting names and change kinds", async (t) => {
+  const f = await fixture(t);
+  writeFileSync(join(f.cwd, ".npmrc"), "registry=https://fixture.invalid/\n");
+  f.commit();
+  const shown = value<CandidateReviewView>(
+    await f.client.call("candidateReview", [f.workspace.id]),
+  );
+  const file = shown.files.findIndex((entry) => entry.path === ".npmrc");
+  assert.deepEqual(shown.judgingChanges.registrySettings, [
+    { file, entries: [{ name: "registry", change: "added" }] },
+  ]);
+  for (const entry of [
+    { name: "registry", change: "added", value: "private" },
+    { name: "//host/:_authToken", change: "added" },
+    { name: "@scope:registry\n", change: "added" },
+    { name: "registry", change: "modified" },
+  ]) {
+    const bad = {
+      ...shown,
+      judgingChanges: {
+        ...shown.judgingChanges,
+        registrySettings: [{ file, entries: [entry] }],
+      },
+    };
+    assert.throws(
+      () => validateCandidateReview(bad, f.workspace.id),
+      /invalid/,
+    );
+  }
+  const omitted = {
+    ...shown,
+    judgingChanges: { ...shown.judgingChanges, registrySettings: null },
+  };
+  assert.throws(
+    () => validateCandidateReview(omitted, f.workspace.id),
     /invalid/,
   );
 });

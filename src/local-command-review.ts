@@ -13,7 +13,11 @@ import {
   isCommandPath,
   type JudgingChanges,
 } from "./judging-changes.js";
-import { scriptFindings, skipFindings } from "./judging-content.js";
+import {
+  registryFindings,
+  scriptFindings,
+  skipFindings,
+} from "./judging-content.js";
 import { packageFindings } from "./judging-packages.js";
 import { git } from "./git.js";
 import { COMMAND_CONFIG_PATH } from "./local-command-config.js";
@@ -303,6 +307,7 @@ export async function reviewLocalCommandCandidate(
     const skips = skipFindings(files, base, head);
     const judgingChanges = Object.freeze({
       skips,
+      registrySettings: registryFindings(files, base, head),
       packages: packageFindings(files, base, head),
       scripts: scriptFindings(files, base, head),
       commandPaths: Object.freeze(changedPaths(files, isCommandPath)),
@@ -316,7 +321,7 @@ export async function reviewLocalCommandCandidate(
           REVIEW_POLICY,
           observation.identity,
           configuration,
-          "judging-changes-v2",
+          "judging-changes-v3",
           judgingChanges,
           files.map((file) => [
             file.path,
