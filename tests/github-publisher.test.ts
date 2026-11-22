@@ -141,6 +141,7 @@ test("real receive-pack gets only the reviewed branch from an isolated verified 
         assert.equal(env[key], undefined);
       }
       if (command === "fixture-gh") {
+        assert.equal(env.GH_TELEMETRY, "false");
         if (args[0] === "auth") {
           assert.equal(options.cwd, "/");
           assert.equal(env.HOME, userInfo().homedir);

@@ -1961,7 +1961,8 @@ Argent's control.
   these limits. A known local preparation failure leaves the workspace usable.
   The system Git runs the create-only HTTPS push. The publisher reads the
   developer's default github.com sign-in through a standard installation of
-  the GitHub CLI. The CLI sends its GraphQL command through a private Unix
+  the GitHub CLI. The publisher disables CLI telemetry for sign-in lookup
+  and GraphQL commands. The CLI sends its GraphQL command through a private Unix
   socket. Only the approved request reaches the fixed GitHub API endpoint,
   with redirects refused.
 - Before the push and again before draft creation, the service records a durable

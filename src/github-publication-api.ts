@@ -201,6 +201,7 @@ export async function publicationGraphQL(options: {
       GH_CONFIG_DIR: options.directory,
       GH_HOST: "github.com",
       GH_TOKEN: nonce,
+      GH_TELEMETRY: "false",
       GH_PROMPT_DISABLED: "1",
       GH_NO_UPDATE_NOTIFIER: "1",
       GH_NO_EXTENSION_UPDATE_NOTIFIER: "1",
