@@ -215,6 +215,7 @@ export class LocalCheckStore {
   }
   /** Any active or uncertain writer of either kind in this workspace. */
   private busy(workspaceId: string): boolean {
+    if (this.store.getWorkspace(workspaceId).commitNeedsAttention) return true;
     return !!this.db
       .prepare(
         "SELECT id FROM runs WHERE workspace_id = ? AND status IN ('queued','running','cancelling','needs_attention')",
@@ -602,13 +603,12 @@ export class LocalCheckStore {
       freshness: "unknown",
     };
   }
-  async latest(
-    root: string,
+  /** Latest durable record, without making a filesystem freshness claim. */
+  latestRecorded(
     workspaceId: string,
     operatorId: string,
-    signal?: AbortSignal,
     action: CommandPurpose = "setup-test",
-  ): Promise<LocalCheckView | null> {
+  ): LocalCheckView | null {
     commandPurpose(action);
     checkId(workspaceId);
     const row = this.db
@@ -621,9 +621,21 @@ export class LocalCheckStore {
           ? "Approved setup and run"
           : "Approved setup and test",
       );
-    if (!row) return null;
-    const view = this.view(row.id as string, workspaceId, operatorId, action);
-    if (!view.result) return view;
+    return row
+      ? this.view(row.id as string, workspaceId, operatorId, action)
+      : null;
+  }
+  async latest(
+    root: string,
+    workspaceId: string,
+    operatorId: string,
+    signal?: AbortSignal,
+    action: CommandPurpose = "setup-test",
+  ): Promise<LocalCheckView | null> {
+    const view = this.latestRecorded(workspaceId, operatorId, action);
+    if (!view) return null;
+    if (!view.result || this.store.getWorkspace(workspaceId).archiveStatus)
+      return view;
     // An active/uncertain writer cannot leave a currently reusable result.
     if (this.busy(workspaceId)) return { ...view, freshness: "stale" };
     try {
@@ -638,6 +650,7 @@ export class LocalCheckStore {
       return {
         ...view,
         freshness:
+          !this.store.getWorkspace(workspaceId).archiveStatus &&
           !this.busy(workspaceId) &&
           review.identity === view.result.reviewIdentity &&
           observation.headSha === view.result.headSha &&

@@ -6,6 +6,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  renameSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -21,6 +22,7 @@ import { test, type TestContext } from "node:test";
 import { LocalWorkspace, ScriptedAgent } from "../src/adapters.js";
 import { agentEnvironment, ClaudeCodeAgent } from "../src/claude-code.js";
 import { DomainError, type WorktreeEvidence } from "../src/domain.js";
+import { archiveLocalWorkspace } from "../src/local-archive.js";
 import { makeServer } from "../src/http.js";
 import {
   createLocalWorkspace,
@@ -227,6 +229,174 @@ test("a local workspace is a new branch in a private worktree at HEAD", async (t
   assert.equal(f.store.listWorkspaces().items[0]!.id, workspace.id);
 });
 
+test("archive removes the registered worktree and retains its branch, history and receipt after restart", async (t) => {
+  const f = fixture(t);
+  const w = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const sibling = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const { worktreePath, branch } = w.local!;
+  writeFileSync(join(worktreePath, "README.md"), "retained in branch\n");
+  sh(worktreePath, "commit", "-qam", "workspace change");
+  const head = sh(worktreePath, "rev-parse", "HEAD");
+  const run = f.store.createRun(w.id, "A local task", "archive-history");
+  f.store.cancel(run.id);
+  const result = await archiveLocalWorkspace(f.store, f.worktrees, w.id, false);
+  assert.equal(result.archiveStatus, "archived");
+  assert.equal(result.state, "stopped");
+  assert.equal(existsSync(worktreePath), false);
+  assert.equal(existsSync(sibling.local!.worktreePath), true);
+  assert.equal(sh(f.repo, "rev-parse", branch), head);
+  assert.equal(sh(f.repo, "show", branch + ":README.md"), "retained in branch");
+  const reopened = new Store(join(f.root, "db.sqlite"));
+  try {
+    assert.equal(reopened.listRuns(w.id).items[0]?.id, run.id);
+    assert.deepEqual(reopened.getWorkspace(w.id), result);
+    assert.throws(() => reopened.setWorkspaceState(w.id, "running"), /Archive/);
+    assert.throws(
+      () => reopened.createRun(w.id, "A new task", "after-archive"),
+      /stopped/,
+    );
+    assert.throws(
+      () => reopened.lifecycle.request(w.id, "create", "after-archive"),
+      /archive/,
+    );
+    // A retry can return history even if the old location is occupied again.
+    mkdirSync(worktreePath);
+    assert.deepEqual(
+      await archiveLocalWorkspace(reopened, f.worktrees, w.id, true),
+      result,
+    );
+    assert.equal(existsSync(worktreePath), true);
+  } finally {
+    reopened.close();
+  }
+});
+
+test("archive preserves staged, unstaged, untracked and ignored files by default; explicit discard retains the commit", async (t) => {
+  const f = fixture(t);
+  const w = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const { worktreePath: dir, branch } = w.local!;
+  const file = join(dir, "README.md");
+  const check = async () => {
+    await assert.rejects(
+      archiveLocalWorkspace(f.store, f.worktrees, w.id, false),
+      /uncommitted|ignored/,
+    );
+    assert.equal(f.store.getWorkspace(w.id).archiveStatus, undefined);
+    assert.equal(existsSync(dir), true);
+  };
+  writeFileSync(file, "staged\n");
+  sh(dir, "add", "README.md");
+  await check();
+  sh(dir, "reset", "-q", "HEAD", "--", "README.md");
+  await check();
+  sh(dir, "restore", "README.md");
+  writeFileSync(join(dir, "local.txt"), "untracked");
+  await check();
+  unlinkSync(join(dir, "local.txt"));
+  writeFileSync(join(dir, ".gitignore"), "scratch\n");
+  sh(dir, "add", ".gitignore");
+  sh(dir, "commit", "-qm", "ignore scratch file");
+  writeFileSync(join(dir, "scratch"), "ignored");
+  await check();
+  const head = sh(dir, "rev-parse", "HEAD");
+  await archiveLocalWorkspace(f.store, f.worktrees, w.id, true);
+  assert.equal(sh(f.repo, "rev-parse", branch), head);
+  assert.equal(existsSync(dir), false);
+});
+
+test("archive refuses a locked, replaced, nested or historically unrecorded worktree even with discard", async (t) => {
+  const f = fixture(t);
+  const w = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const dir = w.local!.worktreePath;
+  const refuse = async () => {
+    await assert.rejects(
+      archiveLocalWorkspace(f.store, f.worktrees, w.id, true),
+      DomainError,
+    );
+    assert.equal(existsSync(dir), true);
+    assert.equal(f.store.getWorkspace(w.id).archiveStatus, undefined);
+  };
+  sh(f.repo, "worktree", "lock", dir);
+  await refuse();
+  sh(f.repo, "worktree", "unlock", dir);
+  const other = dir + "-original";
+  renameSync(dir, other);
+  mkdirSync(dir);
+  renameSync(join(other, ".git"), join(dir, ".git"));
+  await refuse();
+  renameSync(join(dir, ".git"), join(other, ".git"));
+  rmSync(dir, { recursive: true });
+  renameSync(other, dir);
+  const nested = join(dir, "nested");
+  mkdirSync(nested);
+  sh(nested, "init", "-q");
+  await refuse();
+  rmSync(nested, { recursive: true });
+  mkdirSync(nested);
+  sh(nested, "init", "-q", "--bare");
+  await refuse();
+  rmSync(nested, { recursive: true });
+  const db = new DatabaseSync(join(f.root, "db.sqlite"));
+  try {
+    db.prepare(
+      "UPDATE local_worktrees SET creation_identity = NULL WHERE workspace_id = ?",
+    ).run(w.id);
+  } finally {
+    db.close();
+  }
+  await assert.rejects(
+    archiveLocalWorkspace(f.store, f.worktrees, w.id, true),
+    /No creation identity/,
+  );
+  assert.equal(existsSync(dir), true);
+});
+
+test("archive fences active work and a writer which finishes during inspection, and never repeats an uncertain removal", async (t) => {
+  const f = fixture(t);
+  const w = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const { worktreePath } = w.local!;
+  const active = f.store.createRun(w.id, "First task", "before-inspection");
+  await assert.rejects(
+    archiveLocalWorkspace(f.store, f.worktrees, w.id, true),
+    /active or uncertain/,
+  );
+  f.store.cancel(active.id);
+  const original = f.store.beginArchive.bind(f.store);
+  f.store.beginArchive = (...args) => {
+    const newRun = f.store.createRun(
+      w.id,
+      "Overlapping task",
+      "during-inspection",
+    );
+    f.store.cancel(newRun.id);
+    original(...args);
+  };
+  await assert.rejects(
+    archiveLocalWorkspace(f.store, f.worktrees, w.id, false),
+    /changed/,
+  );
+  assert.equal(f.store.getWorkspace(w.id).archiveStatus, undefined);
+  // Simulate losing the service after it committed intent, before Git answered.
+  original(
+    w.id,
+    f.store.archiveIdentity(w.id),
+    f.store.archiveWriterGeneration(w.id),
+    false,
+  );
+  const reopened = new Store(join(f.root, "db.sqlite"));
+  try {
+    assert.equal(reopened.getWorkspace(w.id).archiveStatus, "needs_attention");
+    assert.throws(() => reopened.setWorkspaceState(w.id, "running"), /Archive/);
+    await assert.rejects(
+      archiveLocalWorkspace(reopened, f.worktrees, w.id, true),
+      /Archive already requested/,
+    );
+    assert.equal(existsSync(worktreePath), true);
+  } finally {
+    reopened.close();
+  }
+});
+
 test("repository paths are validated before any Git change", async (t) => {
   const f = fixture(t);
   const rejects = (path: unknown, message: RegExp) =>
@@ -372,6 +542,24 @@ test("Claude Code runs in the worktree and completion is Argent's own record", a
   assert.match(evidence.diffSha256, /^[a-f0-9]{64}$/);
   assert.equal(events.at(-1)!.data.outcome, "worktree_recorded");
   assert.equal(events.at(-1)!.data.simulation, false);
+  assert.deepEqual(
+    f.store.latestAgentContext(
+      workspace.id,
+      evidence.branch,
+      evidence.baseSha,
+      evidence.headSha,
+    ),
+    { permissionMode: "edits", reportedModel: "fake-model" },
+  );
+  assert.equal(
+    f.store.latestAgentContext(
+      workspace.id,
+      evidence.branch,
+      evidence.baseSha,
+      "a".repeat(40),
+    ),
+    null,
+  );
   // The developer's checkout never sees the agent's file.
   assert.equal(existsSync(join(f.repo, "hello.txt")), false);
 });

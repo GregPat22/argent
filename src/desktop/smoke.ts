@@ -1,7 +1,13 @@
 import { app, BrowserWindow } from "electron";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync, renameSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+  renameSync,
+  unlinkSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { RunView, Workspace, Page } from "../domain.js";
@@ -246,21 +252,41 @@ export async function runDesktopSmoke(
     };
     for (const [path, content] of Object.entries(reviewFiles))
       writeFileSync(join(local.local!.worktreePath, path), content);
-    for (const args of [
-      ["add", "--", ...Object.keys(reviewFiles)],
-      ["commit", "--quiet", "-m", "review fixture"],
-    ])
-      execFileSync(
-        "git",
-        [
-          "-c",
-          "user.name=Argent Smoke",
-          "-c",
-          "user.email=smoke@example.invalid",
-          ...args,
-        ],
-        { cwd: local.local!.worktreePath, stdio: "ignore" },
-      );
+    execFileSync("git", ["add", "--", ...Object.keys(reviewFiles)], {
+      cwd: local.local!.worktreePath,
+      stdio: "ignore",
+    });
+    await js(
+      `document.querySelector('#workspace-menu-button').click(); document.querySelector('#workspace-commit').click()`,
+    );
+    await js(`{
+      for (const [id, value] of [["commit-author","Argent Smoke"],["commit-email","smoke@example.invalid"],["commit-message","Review fixture"]]) {
+        const field = document.getElementById(id);
+        field.value = value;
+        field.dispatchEvent(new Event('input'));
+      }
+      document.querySelector('#commit-review').click();
+    }`);
+    await until(
+      () => js(`!document.querySelector('#commit-confirm').disabled`),
+      "staged fixture reviewed",
+    );
+    assert.match(await text("#commit-files"), /review\.test\.js/);
+    await capture("staged-commit");
+    await js(`document.querySelector('#commit-confirm').click()`);
+    await until(
+      () =>
+        js(
+          `document.querySelector('#commit-status').textContent.startsWith('Created commit ')`,
+        ),
+      "fixture committed in the desktop",
+    );
+    const checkedHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: local.local!.worktreePath,
+      encoding: "utf8",
+    }).trim();
+    assert.ok((await text("#commit-status")).includes(checkedHead));
+    await js(`document.querySelector('#commit-close').click()`);
     await js(`document.querySelector('#workspace-commands').click()`);
     await until(
       () => js(`!document.querySelector('#commands-review').disabled`),
@@ -350,6 +376,74 @@ export async function runDesktopSmoke(
       () => js(`!document.querySelector('#candidate-run').disabled`),
       "consent after check",
     );
+
+    await js(`document.querySelector('#candidate-evidence').click()`);
+    await until(
+      () => js(`!document.querySelector('#draft-evidence-body').hidden`),
+      "draft evidence for checked commit",
+    );
+    const markdown = await text("#draft-evidence-body");
+    for (const pattern of [
+      /Checks passed for the reviewed commit/,
+      /test: exit 0/,
+      /review\.test\.js/,
+      /test\.skip, line 3/,
+      /added "check"/,
+      /node_modules\/sample/,
+      /newly declares an install script/,
+      /@sample:registry/,
+    ])
+      assert.match(markdown, pattern);
+    assert.doesNotMatch(
+      markdown,
+      /registry\.invalid|untrustedCommand|untrustedCandidate/,
+    );
+    assert.ok(
+      (await text("#draft-evidence-body")).includes(checkedHead),
+      "the preview carries the commit created in the desktop",
+    );
+    await capture("draft-evidence");
+    await until(
+      () => js(`!document.querySelector('#publication-form').hidden`),
+      "empty publication status read",
+    );
+    await js(`{
+      for (const [id, value] of [["publication-repository","example/project"],["publication-base","main"],["publication-title","Review fixture"]]) {
+        const field = document.getElementById(id);
+        field.value = value;
+        field.dispatchEvent(new Event('input'));
+      }
+      document.querySelector('#publication-review').click();
+    }`);
+    await until(
+      () => js(`!document.querySelector('#publication-confirm').disabled`),
+      "local publication plan for checked commit",
+    );
+    const target = await text("#publication-target");
+    for (const expected of [
+      "example/project",
+      "main",
+      "Review fixture",
+      local.local!.branch,
+      local.local!.baseSha,
+      checkedHead,
+    ])
+      assert.ok(target.includes(expected));
+    assert.equal(await text("#draft-evidence-body"), markdown);
+    assert.match(
+      await text("#publication-history"),
+      /1 commit since the displayed base/,
+    );
+    await capture("publication-review");
+    await js(
+      `{ const field = document.querySelector('#publication-title'); field.value = 'Changed'; field.dispatchEvent(new Event('input')); }`,
+    );
+    assert.equal(
+      await js(`document.querySelector('#publication-confirm').disabled`),
+      true,
+    );
+    assert.equal(await call("publicationStatus", [local.id]), null);
+    await js(`document.querySelector('#draft-evidence-close').click()`);
 
     // Run uses a separate review acknowledgement, checkout and result namespace.
     await js(`document.querySelector('#candidate-close').click()`);
@@ -1028,12 +1122,90 @@ export async function runDesktopSmoke(
     await delay(200);
     writeFileSync(shots, (await window.webContents.capturePage()).toPNG());
   }
+  const parallelPath = parallel.local!.worktreePath;
+  writeFileSync(
+    join(parallelPath, "staged.txt"),
+    "Reviewed from the desktop.\n",
+  );
+  execFileSync("git", ["add", "--", "staged.txt"], { cwd: parallelPath });
+  await js(`document.querySelector('#workspace-menu-button').click(); document.querySelector('#workspace-commit').click();
+    document.querySelector('#commit-author').value='Fixture';
+    document.querySelector('#commit-email').value='fixture@example.invalid';
+    document.querySelector('#commit-message').value='Record staged fixture';
+    document.querySelector('#commit-review').click()`);
+  await until(
+    () => js(`!document.querySelector('#commit-confirm').disabled`),
+    "staged commit reviewed",
+  );
+  assert.match(await text("#commit-files"), /staged.txt/);
+  assert.match(
+    await text("#commit-status"),
+    /Fixture <fixture@example.invalid>/,
+  );
+  await capture("staged-commit");
+  await js(`document.querySelector('#commit-confirm').click()`);
+  await until(
+    () =>
+      js(
+        `document.querySelector('#commit-status').textContent.startsWith('Created commit ')`,
+      ),
+    "staged commit recorded",
+  );
+  const committedTip = execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: parallelPath,
+    encoding: "utf8",
+  }).trim();
+  assert.match(await text("#commit-status"), new RegExp(committedTip));
+  assert.notEqual(committedTip, parallel.local!.baseSha);
+  await js(`document.querySelector('#commit-close').click()`);
+  await js(
+    `document.querySelector('#workspace-menu-button').click(); document.querySelector('#workspace-archive').click()`,
+  );
+  assert.equal(
+    await js(`document.querySelector('#archive-dialog').open`),
+    true,
+  );
+  assert.equal(
+    await js(`document.querySelector('#archive-discard').checked`),
+    false,
+  );
+  assert.equal(
+    await text("#archive-target"),
+    `repository / ${parallel.local!.branch}`,
+  );
+  await capture("archive-confirmation");
+  await js(`document.querySelector('#archive-confirm').click()`);
+  await until(
+    () =>
+      js(
+        `document.querySelector('#workspace-state').textContent === 'Archived'`,
+      ),
+    "clean worktree archived",
+  );
+  assert.equal(existsSync(parallel.local!.worktreePath), false);
+  assert.equal(
+    execFileSync(
+      "git",
+      ["rev-parse", "--verify", `refs/heads/${parallel.local!.branch}`],
+      { cwd: parallel.local!.repositoryPath },
+    )
+      .toString()
+      .trim(),
+    committedTip,
+  );
+  assert.equal(
+    await js(
+      `document.querySelector('#composer-input').disabled && !document.querySelector('#workspace-checks').disabled`,
+    ),
+    true,
+  );
   console.log(
     `[ARGENT_SMOKE]${JSON.stringify({
       passed: true,
       suite,
       elapsedMs: Date.now() - started,
       simulation: true,
+      workspaceArchived: true,
       welcome: true,
       composerSendsDirectly: true,
       fullAccessConfirmedAndReset: true,

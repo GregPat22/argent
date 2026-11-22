@@ -1,3 +1,4 @@
+import { clearPublication, preparePublication } from "./publication.js";
 import { openChecks } from "./checks.js";
 import type { CandidateReviewView } from "../src/desktop/contracts.js";
 import { api } from "./actions.js";
@@ -16,7 +17,17 @@ let view: CandidateReviewView | null = null;
 const keys = new Map<string, string>();
 const checkKeys = new Map<string, string>();
 const dialog = () => byId<HTMLDialogElement>("candidate-dialog");
+const evidenceDialog = () => byId<HTMLDialogElement>("draft-evidence-dialog");
+let previewRequest = 0;
+function closeEvidence(): void {
+  previewRequest++;
+  clearPublication();
+  if (evidenceDialog().open) evidenceDialog().close();
+  setText("draft-evidence-body", "");
+  show("draft-evidence-body", false);
+}
 function clear(): void {
+  closeEvidence();
   generation++;
   pending = false;
   view = null;
@@ -40,6 +51,11 @@ function status(message: string): void {
   enable(
     "candidate-consent",
     state.connected && !pending && !!view && eligible(view) && !view.consent,
+  );
+  show("candidate-evidence", !runAction && !!view);
+  enable(
+    "candidate-evidence",
+    state.connected && !runAction && !pending && !!view,
   );
   enable("candidate-run", state.connected && !pending && !!view?.consent);
   setText("candidate-run", runAction ? "Start run command" : "Run checks");
@@ -362,7 +378,10 @@ function close(): void {
 }
 export function renderCandidate(): void {
   if (!dialog().open) return;
-  if (workspaceId !== state.selectedWorkspace) {
+  if (
+    workspaceId !== state.selectedWorkspace ||
+    currentWorkspace()?.archiveStatus
+  ) {
     close();
     return;
   }
@@ -377,6 +396,65 @@ export function renderCandidate(): void {
   }
 }
 export function wireCandidate(): void {
+  byId("candidate-evidence").addEventListener("click", async () => {
+    const shown = view;
+    if (
+      runAction ||
+      !shown ||
+      !dialog().open ||
+      !state.connected ||
+      pending ||
+      evidenceDialog().open ||
+      shown.workspaceId !== state.selectedWorkspace
+    )
+      return;
+    const request = ++previewRequest;
+    const version = generation;
+    setText(
+      "draft-evidence-status",
+      "Reading evidence for the reviewed commit…",
+    );
+    evidenceDialog().showModal();
+    byId("draft-evidence-close").focus();
+    const obsolete = () =>
+      request !== previewRequest ||
+      stale(version, shown.workspaceId) ||
+      !evidenceDialog().open;
+    try {
+      const preview = await api().draftEvidence(
+        shown.workspaceId,
+        shown.identity,
+      );
+      if (obsolete()) return;
+      if (
+        preview.workspaceId !== shown.workspaceId ||
+        preview.reviewIdentity !== shown.identity ||
+        preview.headSha !== shown.headSha
+      )
+        throw new Error(
+          "The preview does not match this review. Refresh the candidate.",
+        );
+      setText(
+        "draft-evidence-status",
+        "Markdown preview for this reading. Review the paths and finding names before sharing.",
+      );
+      setText("draft-evidence-body", preview.body);
+      show("draft-evidence-body", true);
+      void preparePublication(shown, preview.body);
+    } catch (error) {
+      if (!obsolete()) setText("draft-evidence-status", readableError(error));
+    }
+  });
+  const back = () => {
+    closeEvidence();
+    byId("candidate-evidence").focus();
+  };
+  byId("draft-evidence-close").addEventListener("click", back);
+  evidenceDialog().addEventListener("cancel", (event) => {
+    event.preventDefault();
+    back();
+  });
+
   byId("candidate-run").addEventListener("click", () => {
     if (
       !dialog().open ||
@@ -422,6 +500,7 @@ export function wireCandidate(): void {
     if (
       !state.connected ||
       !isLocal(currentWorkspace()) ||
+      currentWorkspace()?.archiveStatus ||
       dialog().open ||
       byId<HTMLButtonElement>(run ? "commands-review-run" : "commands-review")
         .disabled

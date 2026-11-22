@@ -1,3 +1,20 @@
+import type {
+  PublicationStatus,
+  PublicationReview,
+  PublicationInput,
+} from "../publication-record.js";
+export type {
+  PublicationStatus,
+  PublicationReview,
+  PublicationInput,
+} from "../publication-record.js";
+import type { DraftEvidencePreview } from "../draft-evidence.js";
+
+import type {
+  CommitDetails,
+  StagedReview,
+  CommitReceipt,
+} from "../local-commit.js";
 import type { LocalCheckView } from "../local-checks.js";
 export type { LocalCheckView } from "../local-checks.js";
 import type {
@@ -91,6 +108,20 @@ export interface DesktopBridge {
     key: string,
   ): Promise<LocalCheckView>;
   cancelCheck(id: string, checkId: string): Promise<LocalCheckView>;
+  publicationStatus(id: string): Promise<PublicationStatus | null>;
+  reviewPublication(
+    id: string,
+    input: PublicationInput,
+  ): Promise<PublicationReview>;
+  publishDraft(
+    id: string,
+    input: PublicationInput,
+    identity: string,
+  ): Promise<PublicationStatus>;
+  draftEvidence(
+    id: string,
+    expectedReviewIdentity: string,
+  ): Promise<DraftEvidencePreview>;
   candidateReview(id: string): Promise<CandidateReviewView>;
   consentCandidate(
     id: string,
@@ -114,6 +145,13 @@ export interface DesktopBridge {
    * supplies a path. Resolves to null when the dialog is cancelled.
    */
   createLocalWorkspace(fromWorkspaceId?: string): Promise<Workspace | null>;
+  reviewStagedCommit(id: string, details: CommitDetails): Promise<StagedReview>;
+  commitStagedChanges(
+    id: string,
+    details: CommitDetails,
+    expectedIdentity: string,
+  ): Promise<CommitReceipt>;
+  archiveWorkspace(id: string, discardChanges: boolean): Promise<Workspace>;
   listRuns(workspaceId: string, before?: string): Promise<Page<RunView>>;
   createRun(
     workspaceId: string,

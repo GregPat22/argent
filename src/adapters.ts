@@ -20,7 +20,12 @@ export interface WorkspaceAdapter {
 
 /** One line of agent output. Plain strings are agent text. */
 export type AgentMessage =
-  string | { kind: "text" | "tool" | "tool_error" | "status"; text: string };
+  | string
+  | {
+      kind: "text" | "tool" | "tool_error" | "status";
+      text: string;
+      cliModel?: string;
+    };
 
 export interface AgentAdapter {
   execute(

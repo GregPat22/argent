@@ -143,9 +143,9 @@ async function readChanges(): Promise<void> {
 export function renderChanges(): void {
   const workspace = currentWorkspace();
   show("workspace-changes", !!workspace);
-  enable("workspace-changes", !!workspace);
+  enable("workspace-changes", !!workspace && !workspace.archiveStatus);
   if (!dialog().open) return;
-  if (workspaceId !== state.selectedWorkspace) {
+  if (workspaceId !== state.selectedWorkspace || workspace?.archiveStatus) {
     closeChanges();
     return;
   }
@@ -166,7 +166,12 @@ function closeChanges(): void {
 }
 export function wireChanges(): void {
   byId("workspace-changes").addEventListener("click", () => {
-    if (!currentWorkspace() || dialog().open) return;
+    if (
+      !currentWorkspace() ||
+      currentWorkspace()?.archiveStatus ||
+      dialog().open
+    )
+      return;
     clear();
     workspaceId = state.selectedWorkspace;
     connected = state.connected;

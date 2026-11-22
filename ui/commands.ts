@@ -223,9 +223,9 @@ async function approve(): Promise<void> {
 export function renderCommands(): void {
   const workspace = currentWorkspace();
   show("workspace-commands", !!workspace);
-  enable("workspace-commands", !!workspace);
+  enable("workspace-commands", !!workspace && !workspace.archiveStatus);
   if (!dialog().open) return;
-  if (workspaceId !== state.selectedWorkspace) {
+  if (workspaceId !== state.selectedWorkspace || workspace?.archiveStatus) {
     closeCommands();
     return;
   }
@@ -246,7 +246,12 @@ function closeCommands(): void {
 }
 export function wireCommands(): void {
   byId("workspace-commands").addEventListener("click", () => {
-    if (!currentWorkspace() || dialog().open) return;
+    if (
+      !currentWorkspace() ||
+      currentWorkspace()?.archiveStatus ||
+      dialog().open
+    )
+      return;
     clear();
     workspaceId = state.selectedWorkspace;
     connected = state.connected;

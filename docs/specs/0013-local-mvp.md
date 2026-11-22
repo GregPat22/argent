@@ -1855,6 +1855,164 @@ permission mode), so the proof travels with the code. The planned record include
 uncommitted changes, unless the developer explicitly discards them; the branch is
 kept.
 
+#### Commit staged changes (in development)
+
+- From a local workspace the developer enters a commit message, author name and
+  email. Review shows the same identity for author and committer, the branch,
+  parent commit, staged tree and its changes. Binary changes show their blob
+  identities and sizes. Only the Git index supplies the new tree.
+- The service compares the reviewed parent and staged content again before
+  recording intent. A single-parent commit moves the recorded workspace branch
+  only if it still has that parent. The original index, unstaged files and
+  untracked files stay in place. An empty staging area, conflicts, special
+  index entries and an in-progress Git operation prevent committing.
+- The intent and workspace exclusion commit together before branch mutation.
+  A confirmed tip yields a durable receipt. An unknown outcome leaves the
+  workspace stopped for inspection across restarts. A repeated confirmation
+  reads its receipt, including when overlapping inspections finish out of order.
+  Checks and publication remain separate actions.
+
+Review uses a temporary, private copy of the index. It can write immutable tree
+objects in the repository. A crash can leave the temporary index and unreachable
+Git objects on disk. A commit interruption before the ref update can also leave
+an unreachable commit. A pending intent alone never proves that the branch
+moved. Other processes running as the developer can still change files outside
+Argent. The ref update compares the live branch with the reviewed parent.
+
+#### Local archive acceptance (in development)
+
+- The desktop names the workspace branch before requesting removal. The default
+  requires the index and tracked files to match HEAD and preserves untracked
+  and ignored files by refusing removal. Discarding those files requires an
+  explicit choice for that workspace.
+- The local service accepts a workspace identifier and the discard choice.
+  It checks the original directory and linked Git registration recorded during
+  creation. A missing creation record, changed registration, detached or different
+  branch, locked worktree or nested repository prevents removal. Older workspaces
+  without a creation identity remain usable and require manual cleanup.
+- Active or uncertain work and lifecycle ownership block archive. The service
+  records its intent and stops the workspace in one transaction before asking
+  Git to remove it. An interrupted or unconfirmed removal stays blocked across
+  restarts. Opening a workspace, refreshing and repeating a request never replay
+  that removal.
+- After confirmed removal the branch, commits and stored history remain
+  available. The archived workspace cannot start again. This slice can be
+  verified against temporary local repositories without publishing a pull request.
+
+The security review against `f4b0b3a` on 22 November 2026 identified two
+separate checks. The creation record must still identify the directory and its
+Git registration, and no agent or command may start and finish during the
+filesystem inspection. Archive compares the workspace's retained run generation
+again inside the intent transaction. Its file checks are point-in-time. Another
+process running as the developer can still change the filesystem outside
+Argent's control.
+
+#### Draft evidence preview (in development)
+
+- From a local workspace's setup/test candidate review, the developer can
+  preview the Markdown evidence for that exact base, commit and tree before
+  publication. The service rechecks the displayed review identity. Opening
+  the preview reads state and Git objects without starting jobs.
+- The body identifies the committed diff by SHA-256 over a versioned manifest
+  of changed paths, modes and Git blob IDs. It labels the workspace agent,
+  requested default model and limits of run attribution. If the latest completed
+  agent run observed the same branch, base and HEAD at exit, the body gives its
+  recorded permission mode and, when available, the model identifier the CLI
+  reported for that session. An observed HEAD does not establish authorship. The latest setup/test
+  outcome and individual phases appear only when the stored consent, review,
+  configuration, tree and commits match. A missing or older result is explicit.
+- The full judging-changes report names each finding and marks unsupported
+  inputs and unsummarised files. The body contains only selected evidence
+  fields, with finding names displayed as literal data. A lockfile version
+  that is an address or another non-version string is marked unshareable.
+  The preview excludes
+  command arguments, file contents, logs, local configuration and package
+  addresses. If a complete description exceeds the size bound or a finding
+  cannot safely be represented, the service refuses to produce a partial body.
+  Paths and labels come from the repository and require review before sharing.
+  Filtering recognised private references cannot establish that a name is public.
+- Refresh, disconnect and workspace changes invalidate the displayed preview.
+  Committing staged files and publishing a draft each require separate confirmation.
+
+#### GitHub publication boundary (in development)
+
+- The desktop shows the canonical GitHub repository, base and workspace refs,
+  exact commit IDs, the number of commits to publish, title and complete
+  Markdown evidence. Editing any field requires another review. Confirmation
+  explicitly authorizes sending the branch history, including intermediate
+  file versions and commit metadata, to the displayed destination. The local
+  review supports a linear series of 1–64 SHA-1 commits ending at the workspace
+  base. The evidence body summarizes the base-to-head diff.
+- Review is local. On confirmation, the service verifies the same review and
+  checks the repository and refs on GitHub. The destination must be a non-fork
+  on github.com with the exact workspace base at the chosen base ref and an
+  available workspace ref. Confirmation binds the repository name. GitHub's
+  repository ID is first read at preflight and checked on subsequent reads.
+  The push requires the source ref to be absent at creation. The base and
+  repository identity are point-in-time observations across separate GitHub
+  operations. A later change can leave a remote branch or draft requiring
+  manual inspection.
+- Only the desktop's separate publisher uses the developer's GitHub CLI sign-in.
+  The local Git helper continues to deny network transports and credential
+  helpers. Agents, the renderer and durable events receive no GitHub credentials.
+  Git prepares and validates a private bare repository before claiming the
+  workspace. The pack is limited to 64 MiB, 100,000 objects, 256 MiB of
+  expanded object data and 16 MiB per blob. The base snapshot counts toward
+  these limits. A known local preparation failure leaves the workspace usable.
+  The system Git runs the create-only HTTPS push. The publisher reads the
+  developer's default github.com sign-in through a standard installation of
+  the GitHub CLI. The publisher disables CLI telemetry for sign-in lookup
+  and GraphQL commands. The CLI sends its GraphQL command through a private Unix
+  socket. Only the approved request reaches the fixed GitHub API endpoint,
+  with redirects refused.
+- Before the push and again before draft creation, the service records a durable
+  intent. Once the remote head and base are confirmed, the publisher uses the
+  GitHub CLI to create a draft with the reviewed title and evidence. Success
+  requires independently reading the matching draft and recording its canonical
+  URL. One workspace records one publication. An uncertain step stays blocked
+  for inspection across a restart. The status names the repository, refs,
+  commits and last attempted phase even when no URL could be verified.
+  Reopening, refreshing and repeating confirmation cannot replay either effect.
+- Offline fixtures must cover the production command construction, exact remote
+  ref, review and receipt checks, mismatches, overlapping requests and restart
+  after each intent. A live walkthrough requires separate authorization.
+
+#### Local L1.5 verification
+
+On 22 November 2026 the Electron walkthrough at `d79b2fc` used a temporary
+Git repository and a fixture Claude CLI. In the desktop it reviewed staged
+changes, confirmed the commit, ran the approved checks, and opened the draft
+evidence preview for that same commit. A second scenario archived a workspace
+and verified that its branch retained the committed tip.
+
+At `4b6f0b1` the staged-index cleanup also checks ownership of the file it
+removes. Git can replace the temporary index when caching a tree. Argent
+retains a handle to the original file and verifies the replacement's staged
+entries before allowing cleanup. The regression covers both an occupied path
+and replacement of a held file. An interruption can leave the temporary index on disk. The remaining L1.5 exit evidence requires an authenticated push, a
+draft pull request whose description contains the reviewed evidence and a
+recorded URL.
+
+#### Offline GitHub publication evidence
+
+On 22 November 2026 the native Electron walkthrough at `fa8a426` reviewed a
+staged commit, ran its checks, prepared a publication and changed the draft
+title. The edit invalidated confirmation. Closing the dialog left the saved
+publication status empty.
+
+A separate offline test used the desktop client, the loopback service, SQLite,
+the publisher and a disposable Git receive-pack. Two workspace commits reached
+the fixture at the exact reviewed tip. The fixture draft contained the reviewed
+title and Markdown, including the judging-changes report. A restarted service
+returned the same verified URL without another upstream request. A separate
+service test repeated confirmation and observed one push and one draft.
+
+The transport tests at `9ffa8ea` exercised the installed GitHub CLI over a
+private Unix socket, redirected responses, competing ref creation, mismatched
+draft receipts and preservation of replaced scratch files. Verification used a
+fixture upstream and disposable credentials. Live GitHub sign-in, repository
+permissions and provider responses remain part of the authenticated walkthrough.
+
 #### Human-triggered merge design todo
 
 Accepted design requirement, 15 November 2026: provide a way for a person to

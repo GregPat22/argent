@@ -159,6 +159,30 @@
               workspace from this repository <kbd>⌘N</kbd>
             </button>
             <hr />
+            <button
+              id="workspace-commit"
+              class="menu-item"
+              aria-haspopup="dialog"
+              hidden
+            >
+              Commit staged changes…
+            </button>
+            <button
+              id="workspace-publication"
+              class="menu-item"
+              aria-haspopup="dialog"
+              hidden
+            >
+              Draft publication status…
+            </button>
+            <button
+              id="workspace-archive"
+              class="menu-item"
+              aria-haspopup="dialog"
+              hidden
+            >
+              Archive workspace…
+            </button>
             <button id="workspace-lifecycle" class="menu-item">
               Stop workspace
             </button>
@@ -274,11 +298,14 @@
                 hidden
               >
                 <span class="icon icon-clock-3" aria-hidden="true"></span>
-                <span
+                <span id="pending-description"
                   >Argent could not confirm this message reached the service.
                   Retrying checks the same message, so it never runs
                   twice.</span
                 >
+                <button id="pending-dismiss" class="button small" hidden>
+                  Dismiss
+                </button>
                 <button id="pending-retry" class="button small">Retry</button>
               </div>
 
@@ -536,6 +563,14 @@
     >
       <header class="sheet-head">
         <h2 id="candidate-title">Review this commit</h2>
+        <button
+          id="candidate-evidence"
+          class="button small"
+          aria-haspopup="dialog"
+          hidden
+        >
+          Preview PR evidence
+        </button>
         <button id="candidate-refresh" class="button small">Refresh</button>
         <button
           id="candidate-close"
@@ -576,6 +611,79 @@
           </button>
           <button id="candidate-run" class="button" disabled>Run checks</button>
         </div>
+      </div>
+    </dialog>
+
+    <dialog
+      id="draft-evidence-dialog"
+      class="changes-panel candidate-panel"
+      aria-labelledby="draft-evidence-title"
+    >
+      <header class="sheet-head">
+        <h2 id="draft-evidence-title">Draft pull request evidence</h2>
+        <button id="draft-evidence-close" class="button small">
+          Back to review
+        </button>
+      </header>
+      <p id="draft-evidence-status" class="changes-notice" role="status"></p>
+      <div class="dialog-form publication-form" id="publication-form" hidden>
+        <label
+          >GitHub repository
+          <input
+            id="publication-repository"
+            placeholder="owner/repository"
+            maxlength="140"
+            spellcheck="false"
+            autocomplete="off"
+          />
+        </label>
+        <label
+          >Base branch
+          <input
+            id="publication-base"
+            placeholder="Branch name"
+            maxlength="255"
+            spellcheck="false"
+            autocomplete="off"
+          />
+        </label>
+        <label
+          >Draft title
+          <input id="publication-title" maxlength="256" autocomplete="off" />
+        </label>
+        <button id="publication-review" class="button" disabled>
+          Review publication
+        </button>
+      </div>
+      <p class="changes-notice" id="publication-message" role="status"></p>
+      <pre id="publication-target" class="mono publication-text" hidden></pre>
+      <pre
+        id="draft-evidence-body"
+        class="candidate-files mono"
+        aria-label="Draft description in Markdown"
+        tabindex="0"
+        hidden
+      ></pre>
+      <div id="publication-approval" hidden>
+        <p id="publication-history" class="changes-notice"></p>
+        <button
+          id="publication-confirm"
+          type="button"
+          class="button primary"
+          disabled
+        >
+          Push branch and create draft pull request
+        </button>
+      </div>
+    </dialog>
+    <dialog
+      id="publication-status-dialog"
+      aria-labelledby="publication-status-title"
+    >
+      <div class="dialog-form">
+        <h2 id="publication-status-title">Draft publication status</h2>
+        <p id="publication-receipt" role="status" class="publication-text"></p>
+        <button class="button" id="publication-status-close">Close</button>
       </div>
     </dialog>
 
@@ -735,6 +843,70 @@
       </form>
     </dialog>
 
+    <dialog
+      id="commit-dialog"
+      class="changes-panel commands-panel"
+      aria-labelledby="commit-title"
+    >
+      <header class="sheet-head">
+        <h2 id="commit-title">Commit staged changes</h2>
+        <button id="commit-close" class="button small">Close</button>
+      </header>
+      <p class="changes-notice">
+        Only staged changes enter the commit. To stage a file, run
+        <code>git add -- &lt;file&gt;</code> in this workspace. Unstaged edits
+        and untracked files stay in the worktree.
+      </p>
+      <div class="dialog-form">
+        <label
+          >Author and committer name
+          <input id="commit-author" maxlength="150" required
+        /></label>
+        <label
+          >Author and committer email
+          <input id="commit-email" type="email" maxlength="254" required
+        /></label>
+        <label
+          >Commit message
+          <textarea
+            id="commit-message"
+            maxlength="2000"
+            rows="3"
+            required
+          ></textarea>
+        </label>
+        <p id="commit-status" role="status" aria-live="polite"></p>
+        <button id="commit-review" class="button">Review staged changes</button>
+        <div id="commit-files"></div>
+        <button id="commit-confirm" class="button primary" disabled>
+          Create local commit
+        </button>
+      </div>
+    </dialog>
+    <dialog id="archive-dialog" aria-labelledby="archive-title">
+      <div class="dialog-form">
+        <h2 id="archive-title">Archive workspace?</h2>
+        <strong class="mono" id="archive-target"></strong>
+        <p>
+          Archiving removes this worktree and keeps its branch and session
+          history. Uncommitted changes and ignored files block removal by
+          default.
+        </p>
+        <label class="discard-option"
+          ><input type="checkbox" id="archive-discard" />
+          Permanently discard all uncommitted changes, including untracked and
+          ignored files.
+        </label>
+        <div class="dialog-actions">
+          <button id="archive-cancel" type="button" class="button">
+            Keep workspace
+          </button>
+          <button id="archive-confirm" type="button" class="button danger">
+            Archive workspace
+          </button>
+        </div>
+      </div>
+    </dialog>
     <dialog id="stop-dialog" aria-labelledby="stop-dialog-title">
       <div class="dialog-form">
         <span class="dialog-icon"

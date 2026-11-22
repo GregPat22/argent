@@ -76,6 +76,52 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### A separate GitHub-only publisher — 22 November 2026
+
+Accepted for L1.5. Local inspection and checks keep their transport-denied Git
+helper. Only the local desktop service can enable the publisher. Its review
+binds the destination name, both refs and commit IDs, the title and the
+complete evidence body. Remote access begins with explicit confirmation.
+GitHub's repository ID is first observed at that point and checked throughout
+the operation. Create-only ref publication prevents replacing an existing
+remote branch. GitHub can independently move the base or rename a repository
+between calls. The service checks both refs and the draft before recording a URL.
+See the [publication contract](specs/0013-local-mvp.md#github-publication-boundary-in-development).
+
+### Draft pull request evidence preview (in development) — 22 November 2026
+
+The [preview contract](specs/0013-local-mvp.md#draft-evidence-preview-in-development)
+binds the Markdown body to the reviewed base, commit and tree. Its digest
+identifies the committed change manifest. An end-of-run worktree digest can
+also cover uncommitted files. A matching check identifies the consent and review
+that produced it. Model information, where available, comes from the CLI's
+initialization event for that session. These fields describe the run whose
+completion Argent observed. Commit authorship remains a separate fact.
+Opening the preview requires no GitHub access.
+
+### Commit the reviewed Git index (in development) — 22 November 2026
+
+Within L1.5 the [staged-commit flow](specs/0013-local-mvp.md#commit-staged-changes-in-development)
+uses the exact staged tree and a user-entered identity and message. The
+workspace changes panel compares working files to the workspace base and
+cannot identify the staged tree. The staged review instead uses hash-verified
+objects and compares with the current parent. A separate ref update requires
+that parent and preserves its last known outcome across a restart.
+
+### Local archive ownership (in development) — 22 November 2026
+
+The [archive contract](specs/0013-local-mvp.md#local-archive-acceptance-in-development)
+requires the branch to survive removal. The local service reserves a directory
+when creating a workspace and binds its filesystem identity to the repository
+and linked Git registration. Older rows lack this evidence. Learning an
+identity at deletion time would allow a replacement directory to qualify.
+
+The archive intent is a durable event. It and the stopped workspace state
+commit together before removal. A later event records confirmation after Git
+removes the registration and the branch still points to the observed commit.
+A missing confirmation leaves the workspace blocked for inspection. Real
+publication and a human-merged pull request have separate exit criteria.
+
 ### Local check exit evidence — 20 November 2026
 
 The [manual desktop walkthrough](specs/0013-local-mvp.md#l14-manual-walkthrough)

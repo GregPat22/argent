@@ -108,7 +108,11 @@ async function fixture(t: TestContext, testCommand = true, enabled = true) {
     store,
     token,
     enabled
-      ? { worktreeRoot: worktrees, localCommandOperatorId: "local-desktop" }
+      ? {
+          worktreeRoot: worktrees,
+          localCommandOperatorId: "local-desktop",
+          localChecks: true,
+        }
       : {},
   );
   server.listen(0, "127.0.0.1");
@@ -183,6 +187,25 @@ test("desktop reviews the complete pinned change set and records exact-commit co
       await f.client.call("candidateReview", [f.workspace.id]),
     );
   const shown = await read();
+  const preview = value<{ body: string }>(
+    await f.client.call("draftEvidence", [f.workspace.id, shown.identity]),
+  );
+  assert.match(preview.body, /No setup\/test check has been recorded/);
+  assert.doesNotMatch(preview.body, /marker\.js|<script>/);
+  for (const args of [
+    [f.workspace.id],
+    [f.workspace.id, "HEAD"],
+    [f.workspace.id, shown.identity, "publish"],
+  ]) {
+    const response = await f.client.call("draftEvidence", args);
+    assert.ok(
+      !response.ok &&
+        response.error.includes(
+          "Expected a workspace and the displayed review identity",
+        ),
+    );
+  }
+  assert.deepEqual(f.counts(), [0, 0, 0, 0]);
   assert.equal(shown.headSha, git(f.cwd, "rev-parse", "HEAD"));
   assert.equal(shown.baseSha, f.workspace.local!.baseSha);
   assert.equal(shown.consent, null);
@@ -942,4 +965,134 @@ test("registry findings cross the bridge with only recognised setting names and 
     () => validateCandidateReview(omitted, f.workspace.id),
     /invalid/,
   );
+});
+
+test("desktop publication routes bind the displayed target, project only validated fields and read saved status without a write", async (t) => {
+  const f = await fixture(t),
+    id = f.workspace.id;
+  const input = {
+    repository: "example/project",
+    baseBranch: "_release/version",
+    reviewIdentity: "a".repeat(64),
+    title: "Draft review",
+  };
+  const target = {
+    workspaceId: id,
+    identity: "b".repeat(64),
+    repository: input.repository,
+    baseBranch: input.baseBranch,
+    baseSha: "1".repeat(40),
+    headSha: "2".repeat(40),
+    branch: "argent/" + id.slice(0, 8),
+  };
+  const review = {
+    ...input,
+    ...target,
+    commitCount: 2,
+    body: "## Complete evidence\nFinal finding",
+  };
+  const saved = {
+    ...target,
+    status: "published",
+    phase: "complete",
+    url: "https://github.com/example/project/pull/3",
+  };
+  const args = [id, input],
+    confirm = [...args, review.identity];
+  const requests: {
+    path: string;
+    method: string | undefined;
+    body: unknown;
+  }[] = [];
+  let payload: unknown = null;
+  t.mock.method(
+    globalThis,
+    "fetch",
+    async (url: unknown, init: RequestInit) => {
+      const health = sameBuildHealth(url, f.instanceId);
+      if (health) return health;
+      requests.push({
+        path: new URL(String(url)).pathname,
+        method: init.method,
+        body: init.body && JSON.parse(init.body.toString()),
+      });
+      return Response.json(payload);
+    },
+  );
+  assert.equal(value(await f.client.call("publicationStatus", [id])), null);
+  for (const bad of [
+    [id, { ...input, argv: ["git"] }],
+    [id, { ...input, body: "override" }],
+    [id, { ...input, repository: "https://example.invalid/private" }],
+    [id, { ...input, title: "multi\nline" }],
+    [id, { ...input, baseBranch: "refs/heads/main" }],
+    [id, { ...input, baseBranch: "--branch" }],
+    [id, { ...input, reviewIdentity: target.headSha }],
+    [id + "\n", input],
+  ])
+    assert.equal((await f.client.call("reviewPublication", bad)).ok, false);
+  assert.equal(
+    (await f.client.call("publishDraft", [...args, "HEAD"])).ok,
+    false,
+  );
+  payload = { ...review, internalData: "omitted" };
+  assert.deepEqual(
+    value(await f.client.call("reviewPublication", args)),
+    review,
+  );
+  payload = { ...saved, internalData: "omitted" };
+  assert.deepEqual(value(await f.client.call("publishDraft", confirm)), saved);
+  assert.deepEqual(
+    value(await f.client.call("publicationStatus", [id])),
+    saved,
+  );
+  const route = "/workspaces/" + id + "/publication";
+  assert.deepEqual(requests, [
+    { path: route, method: "GET", body: undefined },
+    { path: route + "/review", method: "POST", body: input },
+    {
+      path: route,
+      method: "POST",
+      body: { ...input, identity: target.identity },
+    },
+    { path: route, method: "GET", body: undefined },
+  ]);
+  for (const bad of [
+    { workspaceId: randomUUID() },
+    { identity: "wrong" },
+    { branch: "main" },
+    { commitCount: 0 },
+    { commitCount: 65 },
+    { title: "different" },
+    { reviewIdentity: target.identity },
+    { body: "body\0" },
+    { body: "x".repeat(60_001) },
+  ]) {
+    payload = { ...review, ...bad };
+    assert.equal((await f.client.call("reviewPublication", args)).ok, false);
+  }
+  for (const bad of [
+    { url: saved.url + "\n" },
+    { url: saved.url + "?fragment=1" },
+    { url: "https://example.invalid/example/project/pull/3" },
+    { url: "https://github.com/example/other/pull/3" },
+    { phase: "push" },
+    { status: "needs_attention" },
+  ]) {
+    payload = { ...saved, ...bad };
+    assert.equal((await f.client.call("publicationStatus", [id])).ok, false);
+  }
+  for (const phase of ["push", "draft"]) {
+    const uncertain = {
+      ...target,
+      phase,
+      status: "needs_attention",
+      url: null,
+    };
+    payload = uncertain;
+    assert.deepEqual(
+      value(await f.client.call("publicationStatus", [id])),
+      uncertain,
+    );
+  }
 });

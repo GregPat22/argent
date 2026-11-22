@@ -200,6 +200,26 @@ export class LifecycleStore {
       if (
         this.db
           .prepare(
+            "SELECT 1 FROM pending_local_publications WHERE workspace_id=?",
+          )
+          .get(workspaceId)
+      )
+        throw new DomainError(409, "Publication outcome needs attention");
+      if (
+        this.db
+          .prepare("SELECT 1 FROM pending_local_commits WHERE workspace_id=?")
+          .get(workspaceId)
+      )
+        throw new DomainError(409, "Local commit outcome needs attention");
+      if (
+        this.db
+          .prepare("SELECT 1 FROM local_archive_events WHERE workspace_id = ?")
+          .get(workspaceId)
+      )
+        throw new DomainError(409, "Workspace has an archive record");
+      if (
+        this.db
+          .prepare(
             `SELECT id FROM runs WHERE workspace_id = ?
         AND status IN ('queued','running','cancelling','needs_attention')`,
           )

@@ -7,8 +7,15 @@ import {
 } from "node:http";
 import { DomainError, requireString, type Run } from "./domain.js";
 import { Store } from "./store.js";
+import {
+  type LocalPublications,
+  reviewPublication,
+} from "./local-publication.js";
+import { readDraftEvidence } from "./draft-evidence.js";
 import { inspectArtifact } from "./artifacts.js";
 import { createLocalWorkspace } from "./local-worktree.js";
+import { commitStagedChanges, reviewStagedCommit } from "./local-commit.js";
+import { archiveLocalWorkspace } from "./local-archive.js";
 import { checkId } from "./local-checks.js";
 import { inspectWorkspaceChanges } from "./workspace-changes.js";
 import type {
@@ -60,6 +67,8 @@ export interface ServerOptions {
   /** Stable single-host operator supplied by the service, never by a request. */
   localCommandOperatorId?: string;
   localChecks?: boolean;
+  /** Only the local desktop explicitly enables GitHub publication. */
+  publisher?: LocalPublications;
   instanceId?: string;
   /** Identity of the code this service runs; the desktop refuses another build. */
   build?: string;
@@ -112,6 +121,60 @@ export function makeServer(
           instanceId: options.instanceId ?? null,
           build: options.build ?? null,
         });
+      } else if (
+        parts[0] === "workspaces" &&
+        parts[2] === "publication" &&
+        ((parts.length === 3 && (method === "GET" || method === "POST")) ||
+          (parts.length === 4 && parts[3] === "review" && method === "POST"))
+      ) {
+        const { publisher, worktreeRoot, localCommandOperatorId } = options;
+        if (
+          !publisher ||
+          !worktreeRoot ||
+          !localCommandOperatorId ||
+          !options.localChecks
+        )
+          throw new DomainError(
+            409,
+            "GitHub publication is unavailable in this service",
+          );
+        if (url.searchParams.size)
+          throw new DomainError(400, "Publication accepts no query parameters");
+        const id = checkId(parts[1]);
+        if (!store.getWorkspace(id).local)
+          throw new DomainError(409, "Publication requires a local workspace");
+        if (method === "GET") {
+          send(response, 200, store.publicationStatus(id));
+        } else {
+          const input = await readBody(request);
+          const controller = new AbortController();
+          const abort = () => controller.abort();
+          response.once("close", abort);
+          try {
+            if (response.destroyed) abort();
+            const result =
+              parts[3] === "review"
+                ? await reviewPublication(
+                    store,
+                    worktreeRoot,
+                    id,
+                    localCommandOperatorId,
+                    input,
+                    controller.signal,
+                  )
+                : await publisher.publish(
+                    store,
+                    worktreeRoot,
+                    id,
+                    localCommandOperatorId,
+                    input,
+                    controller.signal,
+                  );
+            send(response, 200, result);
+          } finally {
+            response.off("close", abort);
+          }
+        }
       } else if (
         parts[0] === "workspaces" &&
         ((parts.length === 3 &&
@@ -199,13 +262,16 @@ export function makeServer(
         }
       } else if (
         parts[0] === "workspaces" &&
-        parts.length === 3 &&
-        (((parts[2] === "candidate-review" ||
-          parts[2] === "run-candidate-review") &&
+        ((parts.length === 4 &&
+          parts[2] === "draft-evidence" &&
           method === "GET") ||
-          ((parts[2] === "candidate-consents" ||
-            parts[2] === "run-candidate-consents") &&
-            method === "POST"))
+          (parts.length === 3 &&
+            (((parts[2] === "candidate-review" ||
+              parts[2] === "run-candidate-review") &&
+              method === "GET") ||
+              ((parts[2] === "candidate-consents" ||
+                parts[2] === "run-candidate-consents") &&
+                method === "POST"))))
       ) {
         const action = parts[2]!.startsWith("run-")
           ? "setup-run"
@@ -224,7 +290,22 @@ export function makeServer(
           );
         response.once("close", abort);
         try {
-          if (method === "GET") {
+          if (parts[2] === "draft-evidence") {
+            if (!options.localChecks)
+              throw new DomainError(409, "Local checks are not enabled");
+            send(
+              response,
+              200,
+              await readDraftEvidence(
+                store,
+                options.worktreeRoot,
+                parts[1]!,
+                options.localCommandOperatorId,
+                parts[3]!,
+                controller.signal,
+              ),
+            );
+          } else if (method === "GET") {
             const { review, approved, receipt } =
               await store.localCommandConsents.inspect(
                 options.worktreeRoot,
@@ -413,6 +494,91 @@ export function makeServer(
               executionAllowed: false,
             });
           }
+        } finally {
+          response.off("close", abort);
+        }
+      } else if (
+        parts[0] === "workspaces" &&
+        parts.length === 3 &&
+        (parts[2] === "commit-review" || parts[2] === "commits") &&
+        method === "POST"
+      ) {
+        if (!options.worktreeRoot)
+          throw new DomainError(
+            409,
+            "Local execution is not enabled in this service",
+          );
+        const reading = parts[2] === "commit-review";
+        const body = await readBody(request);
+        if (
+          url.searchParams.size ||
+          !Object.hasOwn(body, "details") ||
+          Object.keys(body).length !== (reading ? 1 : 2) ||
+          (!reading && !Object.hasOwn(body, "expectedIdentity"))
+        )
+          throw new DomainError(
+            400,
+            "Expected commit details and, for confirmation, the reviewed identity",
+          );
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        response.once("close", abort);
+        try {
+          if (response.destroyed) controller.abort();
+          const result = reading
+            ? await reviewStagedCommit(
+                store,
+                options.worktreeRoot,
+                parts[1]!,
+                body.details,
+                controller.signal,
+              )
+            : await commitStagedChanges(
+                store,
+                options.worktreeRoot,
+                parts[1]!,
+                body.details,
+                body.expectedIdentity,
+                controller.signal,
+              );
+          send(response, 200, result);
+        } finally {
+          response.off("close", abort);
+        }
+      } else if (
+        parts[0] === "workspaces" &&
+        parts.length === 3 &&
+        parts[2] === "archive" &&
+        method === "POST"
+      ) {
+        if (!options.worktreeRoot)
+          throw new DomainError(
+            409,
+            "Local execution is not enabled in this service",
+          );
+        const body = await readBody(request);
+        if (
+          url.searchParams.size ||
+          Object.keys(body).length !== 1 ||
+          typeof body.discardChanges !== "boolean"
+        )
+          throw new DomainError(400, "Expected only a discardChanges boolean");
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        response.once("close", abort);
+        try {
+          if (response.destroyed) controller.abort();
+          send(
+            response,
+            200,
+            await archiveLocalWorkspace(
+              store,
+              options.worktreeRoot,
+              parts[1]!,
+              body.discardChanges,
+              controller.signal,
+            ),
+          );
         } finally {
           response.off("close", abort);
         }

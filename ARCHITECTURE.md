@@ -738,3 +738,36 @@ not test evidence, and latest checks and run-command records are read separately
 Workspace exclusion, pre-dispatch revalidation, immutable manifest checks,
 process supervision and conservative cleanup remain shared. The fixed bounded
 lifetime adds no interactive terminal, port discovery or persistent server.
+
+## Local workspace archive (in development)
+
+The [L1.5 archive contract](docs/specs/0013-local-mvp.md#local-archive-acceptance-in-development)
+uses the local service and the existing store. A creation identity binds the
+worktree directory to its original Git registration. The archive intent records
+the developer's discard choice and stops new work before Git removes the
+directory. The final event confirms that the directory and registration are gone
+and the branch still points to the observed commit. History reads need no
+worktree. An interrupted removal has no replay path.
+
+## Local staged commits (in development)
+
+The [staged commit contract](docs/specs/0013-local-mvp.md#commit-staged-changes-in-development)
+uses a private index copy to materialize a staged tree. The service reads its
+objects through the same bounded, hash-verified comparison as candidate reviews.
+An intent event fences the workspace before a compare-and-swap advances its
+branch. The success receipt and restored running state commit together.
+
+## Local GitHub publication (in development)
+
+The [L1.5 publisher](docs/specs/0013-local-mvp.md#github-publication-boundary-in-development)
+belongs to the local desktop service. The renderer receives a bounded review and a
+status record. The generic API server enables no publisher by default. The
+authenticated Git process uses a private bare repository prepared from the
+reviewed history. Its environment, configuration and transport are separate
+from worktree Git and agent execution.
+
+The store stops competing workspace writers in the transaction that records
+the push intent. After verifying the remote refs, the publisher records a
+second intent for draft creation. Only a verified draft URL completes the
+operation and restores the workspace. Reading its status requires neither the
+worktree nor GitHub access.

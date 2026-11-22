@@ -47,8 +47,10 @@ export async function git(
   maxBuffer = 1 << 20,
   signal?: AbortSignal,
   timeoutMs?: number,
+  privateIndex?: string,
 ): Promise<Buffer> {
   const options = { cwd, env: environment() };
+  if (privateIndex !== undefined) options.env.GIT_INDEX_FILE = privateIndex;
   // Read names, never command values (which can contain private configuration).
   // Per-command overrides also cover included/worktree config. Do not cache:
   // the developer or agent can change configuration between inspections.

@@ -1,7 +1,9 @@
 import { renderChecks, wireChecks } from "./checks.js";
 // Orchestrates refresh and rendering. Execution stays with the local service;
 // this window only reads state and sends explicit, idempotent requests.
+import { renderCommit, wireCommit } from "./commit.js";
 import { renderChanges, wireChanges } from "./changes.js";
+import { renderPublication, wirePublication } from "./publication.js";
 import { renderCandidate, wireCandidate } from "./candidate.js";
 import { renderCommands, wireCommands } from "./commands.js";
 import { actions, api, hasBridge } from "./actions.js";
@@ -10,6 +12,7 @@ import { renderComposer, sendMessage, wireComposer } from "./composer.js";
 import { byId, enable, setClass, setText, show } from "./dom.js";
 import { mergeHistory as merge } from "./history.js";
 import {
+  archiveLabel,
   isActive,
   isLocal,
   isWorking,
@@ -41,6 +44,7 @@ let stopped = false;
 let epoch = 0;
 let timer: ReturnType<typeof setTimeout> | undefined;
 let resolving = "";
+let archiving = "";
 
 restore();
 
@@ -68,10 +72,11 @@ function renderHeader(): void {
   setText("workspace-title", workspace ? workspaceTitle(workspace) : "");
   const branch = byId<HTMLButtonElement>("workspace-repository");
   setText("workspace-branch", workspace ? workspaceDetail(workspace) : "");
-  branch.title = local
-    ? `${local.worktreePath} · click to copy`
-    : (workspace?.repository ?? "");
-  branch.disabled = !local;
+  branch.title =
+    local && !workspace?.archiveStatus
+      ? `${local.worktreePath} · click to copy`
+      : (workspace?.repository ?? "");
+  branch.disabled = !local || !!workspace?.archiveStatus;
   setClass(branch, "is-demo", !local);
   const review = state.runs.some((run) => run.status === "needs_attention");
   const working = state.runs.some((run) => isWorking(run.status));
@@ -80,7 +85,7 @@ function renderHeader(): void {
     : !state.connected
       ? "Offline"
       : workspace.state === "stopped"
-        ? "Stopped"
+        ? archiveLabel(workspace) || "Stopped"
         : review
           ? "Needs review"
           : working
@@ -89,15 +94,27 @@ function renderHeader(): void {
   const pill = byId("workspace-state");
   pill.textContent = label;
   pill.hidden = !workspace || label === "Ready";
-  pill.className = `pill pill-${label.toLowerCase().replace(" ", "-")}`;
+  pill.className = `pill pill-${label.toLowerCase().replaceAll(" ", "-")}`;
   show("workspace-demo-tag", !!workspace && !local);
   show("workspace-parallel", !!local);
   enable("workspace-parallel", state.connected && !state.mutationBusy);
-  show("copy-path", !!local);
+  show("copy-path", !!local && !workspace?.archiveStatus);
+  show("workspace-archive", !!local && !workspace?.archiveStatus);
+  enable("workspace-archive", canArchive(workspace));
+  if (
+    dialog("archive-dialog").open &&
+    (archiving !== workspace?.id || !canArchive(workspace))
+  )
+    dialog("archive-dialog").close();
+  show(
+    "workspace-lifecycle",
+    !workspace?.archiveStatus && !workspace?.commitNeedsAttention,
+  );
   const lifecycle = byId<HTMLButtonElement>("workspace-lifecycle");
   lifecycle.textContent =
     workspace?.state === "stopped" ? "Start workspace" : "Stop workspace";
   lifecycle.disabled =
+    !!workspace?.archiveStatus ||
     !state.connected ||
     state.mutationBusy ||
     state.runs.some((run) => isActive(run.status));
@@ -141,22 +158,30 @@ function render(): void {
   renderWelcomeActions();
   renderSidebar();
   renderHeader();
+  renderCommit();
   renderChanges();
   renderChecks();
   renderCommands();
   renderCandidate();
+  renderPublication();
   show("detail-empty", !!workspace && state.runs.length === 0);
   if (workspace) {
     const local = isLocal(workspace);
     setText(
       "empty-title",
-      local ? `A fresh branch, ready.` : "A scripted demo, ready.",
+      workspace.archiveStatus
+        ? "No messages in this workspace"
+        : local
+          ? `A fresh branch, ready.`
+          : "A scripted demo, ready.",
     );
     setText(
       "empty-text",
-      local
-        ? `Claude Code works on ${workspace.local!.branch} in its own worktree. Your checkout is not changed. Describe a task below to start.`
-        : "Scripted steps and a checked artifact. No model, no cloud, no repository access. Describe a task below to start.",
+      workspace.archiveStatus
+        ? `Branch ${workspace.local!.branch}`
+        : local
+          ? `Claude Code works on ${workspace.local!.branch} in its own worktree. Your checkout is not changed. Describe a task below to start.`
+          : "Scripted steps and a checked artifact. No model, no cloud, no repository access. Describe a task below to start.",
     );
     renderTranscript();
   }
@@ -395,10 +420,12 @@ Object.assign(actions, {
   focusComposer,
 });
 
+wireCommit();
 wireChanges();
 wireChecks();
 wireCommands();
 wireCandidate();
+wirePublication();
 wireComposer();
 wirePalette();
 
@@ -430,7 +457,9 @@ byId("copy-path").addEventListener("click", () => {
 });
 byId("workspace-repository").addEventListener("click", copyPath);
 function copyPath(): void {
-  const path = currentWorkspace()?.local?.worktreePath;
+  const workspace = currentWorkspace();
+  if (workspace?.archiveStatus) return;
+  const path = workspace?.local?.worktreePath;
   if (!path) return;
   void navigator.clipboard.writeText(path).then(
     () => {
@@ -471,10 +500,68 @@ byId<HTMLFormElement>("workspace-form").addEventListener("submit", (event) => {
   })();
 });
 
+function canArchive(workspace: Workspace | undefined): boolean {
+  return (
+    !!workspace?.local &&
+    !workspace.archiveStatus &&
+    !workspace.commitNeedsAttention &&
+    state.connected &&
+    !state.mutationBusy &&
+    state.pending?.workspaceId !== workspace.id &&
+    !state.runs.some((run) => isActive(run.status))
+  );
+}
+byId("workspace-archive").addEventListener("click", () => {
+  const workspace = currentWorkspace();
+  if (!workspace || !canArchive(workspace)) return;
+  byId("workspace-menu").hidePopover?.();
+  archiving = workspace.id;
+  setText(
+    "archive-target",
+    `${workspaceTitle(workspace)} / ${workspace.local!.branch}`,
+  );
+  byId<HTMLInputElement>("archive-discard").checked = false;
+  setText("archive-confirm", "Archive workspace");
+  openDialog("archive-dialog", "archive-cancel");
+});
+function closeArchive(): void {
+  dialog("archive-dialog").close();
+  byId("workspace-menu-button").focus();
+}
+byId("archive-cancel").addEventListener("click", closeArchive);
+dialog("archive-dialog").addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeArchive();
+});
+byId("archive-discard").addEventListener("change", () =>
+  setText(
+    "archive-confirm",
+    byId<HTMLInputElement>("archive-discard").checked
+      ? "Discard and archive"
+      : "Archive workspace",
+  ),
+);
+byId("archive-confirm").addEventListener("click", () => {
+  const workspace = currentWorkspace();
+  if (
+    !dialog("archive-dialog").open ||
+    !workspace ||
+    workspace.id !== archiving ||
+    !canArchive(workspace)
+  )
+    return;
+  const discard = byId<HTMLInputElement>("archive-discard").checked;
+  closeArchive();
+  void mutate(async () => {
+    const updated = await api().archiveWorkspace(workspace.id, discard);
+    epoch++; // An older in-flight poll may still hold the pre-archive state.
+    state.workspaces = merge(state.workspaces, [updated]);
+  });
+});
 function toggleLifecycle(): void {
   byId("workspace-menu").hidePopover?.();
   const workspace = currentWorkspace();
-  if (!workspace) return;
+  if (!workspace || workspace.archiveStatus) return;
   void mutate(async () => {
     const updated = await api().setWorkspaceState(
       workspace.id,

@@ -1,5 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import {
+  isPublicationUrl,
+  type PublicationStatus,
+  type PublicationReview,
+} from "./publication-record.js";
 import { LifecycleStore } from "./lifecycle-store.js";
 import { RepositoryStore } from "./repository-store.js";
 import { LocalCheckStore } from "./local-checks.js";
@@ -18,6 +23,8 @@ import {
   requireString,
   type Evidence,
   type LocalWorktree,
+  type ObservedAgentContext,
+  isReportedModel,
   type PermissionMode,
   type Run,
   type RunEvent,
@@ -85,6 +92,14 @@ function readWorkspace(row: Row): Workspace {
     repository: row.repository as string,
     provider: row.provider as Workspace["provider"],
     state: row.state as Workspace["state"],
+    ...(row.commit_pending ? { commitNeedsAttention: true as const } : {}),
+    ...(row.archive_status
+      ? {
+          archiveStatus: row.archive_status as NonNullable<
+            Workspace["archiveStatus"]
+          >,
+        }
+      : {}),
     createdAt: row.created_at as number,
   };
   if (workspace.provider === "local-worktree") {
@@ -98,7 +113,9 @@ function readWorkspace(row: Row): Workspace {
   return workspace;
 }
 
-const WORKSPACE_SELECT = `SELECT w.*, l.repository_path, l.branch, l.base_sha, l.worktree_path
+const WORKSPACE_SELECT = `SELECT w.*, l.repository_path, l.branch, l.base_sha, l.worktree_path,
+  (SELECT status FROM local_archive_events WHERE workspace_id = w.id ORDER BY sequence DESC LIMIT 1) AS archive_status,
+  EXISTS(SELECT 1 FROM pending_local_commits WHERE workspace_id = w.id) AS commit_pending
   FROM workspaces w LEFT JOIN local_worktrees l ON l.workspace_id = w.id`;
 
 // Additive migrations for databases created before local execution existed.
@@ -171,6 +188,46 @@ export class Store {
         agent_session_started INTEGER NOT NULL DEFAULT 0 CHECK(agent_session_started IN (0, 1))
       ) STRICT;
     `);
+      addColumn(this.db, "local_worktrees", "creation_identity TEXT");
+      this.db.exec(`CREATE TABLE IF NOT EXISTS local_archive_events (
+        sequence INTEGER PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES local_worktrees(workspace_id),
+        status TEXT NOT NULL CHECK(status IN ('needs_attention','archived')),
+        discard_changes INTEGER NOT NULL CHECK(discard_changes IN (0,1)),
+        created_at INTEGER NOT NULL, UNIQUE(workspace_id,status)
+      ) STRICT;
+      CREATE TRIGGER IF NOT EXISTS local_archive_stays_stopped BEFORE UPDATE OF state ON workspaces
+        WHEN NEW.state = 'running' AND EXISTS (SELECT 1 FROM local_archive_events WHERE workspace_id = NEW.id)
+        BEGIN SELECT RAISE(ABORT,'Workspace is archived or awaiting archive inspection'); END;
+      `);
+      this.db.exec(`CREATE TABLE IF NOT EXISTS local_commit_events (
+        sequence INTEGER PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES local_worktrees(workspace_id),
+        review_id TEXT NOT NULL, commit_sha TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('needs_attention','committed')),
+        created_at INTEGER NOT NULL, UNIQUE(workspace_id,review_id,status)
+      ) STRICT;
+      CREATE VIEW IF NOT EXISTS pending_local_commits AS
+        SELECT i.workspace_id,i.review_id FROM local_commit_events i WHERE i.status='needs_attention'
+        AND NOT EXISTS (SELECT 1 FROM local_commit_events c WHERE c.workspace_id=i.workspace_id AND c.review_id=i.review_id AND c.status='committed');
+      CREATE TRIGGER IF NOT EXISTS local_commit_stays_stopped BEFORE UPDATE OF state ON workspaces
+        WHEN NEW.state='running' AND EXISTS(SELECT 1 FROM pending_local_commits WHERE workspace_id=NEW.id)
+        BEGIN SELECT RAISE(ABORT,'Local commit still needs attention'); END;
+      `);
+      this.db.exec(`CREATE TABLE IF NOT EXISTS local_publications (
+        workspace_id TEXT PRIMARY KEY REFERENCES local_worktrees(workspace_id),
+        identity TEXT NOT NULL, request_hash TEXT NOT NULL, repository TEXT NOT NULL,
+        base_branch TEXT NOT NULL, base_sha TEXT NOT NULL, branch TEXT NOT NULL, head_sha TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS local_publication_events (
+        sequence INTEGER PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES local_publications(workspace_id),
+        phase TEXT NOT NULL CHECK(phase IN ('push','draft','complete')), url TEXT,
+        created_at INTEGER NOT NULL, UNIQUE(workspace_id,phase),
+        CHECK ((phase='complete') = (url IS NOT NULL))
+      ) STRICT;
+      CREATE VIEW IF NOT EXISTS pending_local_publications AS
+        SELECT p.workspace_id FROM local_publications p WHERE NOT EXISTS
+        (SELECT 1 FROM local_publication_events e WHERE e.workspace_id=p.workspace_id AND e.phase='complete');
+      CREATE TRIGGER IF NOT EXISTS local_publication_stays_stopped BEFORE UPDATE OF state ON workspaces
+        WHEN NEW.state='running' AND EXISTS(SELECT 1 FROM pending_local_publications WHERE workspace_id=NEW.id)
+        BEGIN SELECT RAISE(ABORT,'Publication needs inspection'); END;`);
       this.lifecycle = new LifecycleStore(this.db);
       this.repositories = new RepositoryStore(this.db);
       this.localCommandApprovals = new LocalCommandApprovalStore(this.db, this);
@@ -278,6 +335,7 @@ export class Store {
     local: LocalWorktree,
     agentSessionId: string,
     now = Date.now(),
+    creationIdentity: string | null = null,
   ): Workspace {
     return this.transaction(() => {
       this.db
@@ -289,7 +347,7 @@ export class Store {
       this.db
         .prepare(
           `INSERT INTO local_worktrees (workspace_id, repository_path, branch,
-          base_sha, worktree_path, agent_session_id) VALUES (?, ?, ?, ?, ?, ?)`,
+          base_sha, worktree_path, agent_session_id, creation_identity) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -298,7 +356,250 @@ export class Store {
           local.baseSha,
           local.worktreePath,
           agentSessionId,
+          creationIdentity,
         );
+      return this.getWorkspace(id);
+    });
+  }
+
+  creationIdentity(id: string): string | null {
+    const identity = this.db
+      .prepare(
+        "SELECT creation_identity FROM local_worktrees WHERE workspace_id = ?",
+      )
+      .get(id)?.creation_identity;
+    if (identity === null) return null;
+    if (typeof identity !== "string" || !/^[0-9a-f]{64}$/.test(identity))
+      throw new DomainError(409, "Invalid worktree creation record");
+    return identity;
+  }
+
+  archiveIdentity(id: string): string {
+    const identity = this.creationIdentity(id);
+    if (identity === null)
+      throw new DomainError(
+        409,
+        "No creation identity is recorded for this worktree. Manual cleanup is required.",
+      );
+    return identity;
+  }
+
+  // A job can both start and finish during a filesystem read. Runs are retained.
+  archiveWriterGeneration(id: string): number {
+    return this.db
+      .prepare(
+        `SELECT COALESCE(MAX(rowid),0) + (SELECT COUNT(*) FROM local_commit_events WHERE workspace_id = ?) + (SELECT COUNT(*) FROM local_publication_events WHERE workspace_id=?) AS generation FROM runs WHERE workspace_id = ?`,
+      )
+      .get(id, id, id)!.generation as number;
+  }
+
+  publicationStatus(
+    id: string,
+    requestHash?: string,
+  ): PublicationStatus | null {
+    const row = this.db
+      .prepare(
+        `SELECT p.*, e.phase,e.url FROM local_publications p
+      JOIN local_publication_events e USING(workspace_id) WHERE p.workspace_id=?
+      ORDER BY e.sequence DESC LIMIT 1`,
+      )
+      .get(id);
+    if (!row) return null;
+    if (requestHash !== undefined && row.request_hash !== requestHash)
+      throw new DomainError(
+        409,
+        "A different publication was already requested. Open publication status.",
+      );
+    const phase = row.phase as PublicationStatus["phase"];
+    const repository = row.repository as string;
+    if (phase === "complete" && !isPublicationUrl(row.url, repository))
+      throw new DomainError(
+        409,
+        "Invalid stored draft URL. Inspect the publication.",
+      );
+    return {
+      workspaceId: id,
+      identity: row.identity as string,
+      repository,
+      baseBranch: row.base_branch as string,
+      baseSha: row.base_sha as string,
+      branch: row.branch as string,
+      headSha: row.head_sha as string,
+      status: phase === "complete" ? "published" : "needs_attention",
+      phase,
+      url: row.url as string | null,
+    };
+  }
+
+  beginPublication(
+    review: PublicationReview,
+    requestHash: string,
+    generation: number,
+  ): PublicationStatus | null {
+    const id = review.workspaceId;
+    return this.transaction(() => {
+      const previous = this.publicationStatus(id, requestHash);
+      if (previous) return previous;
+      this.requireIdleWorkspace(id);
+      if (
+        this.getWorkspace(id).state !== "running" ||
+        this.archiveWriterGeneration(id) !== generation
+      )
+        throw new DomainError(
+          409,
+          "Workspace changed. Review the publication again.",
+        );
+      this.db
+        .prepare("UPDATE workspaces SET state='stopped' WHERE id=?")
+        .run(id);
+      this.db
+        .prepare(
+          `INSERT INTO local_publications
+        (workspace_id,identity,request_hash,repository,base_branch,base_sha,branch,head_sha) VALUES (?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          id,
+          review.identity,
+          requestHash,
+          review.repository,
+          review.baseBranch,
+          review.baseSha,
+          review.branch,
+          review.headSha,
+        );
+      this.db
+        .prepare(
+          "INSERT INTO local_publication_events(workspace_id,phase,created_at) VALUES (?,'push',?)",
+        )
+        .run(id, Date.now());
+      return null;
+    });
+  }
+
+  advancePublication(
+    id: string,
+    identity: string,
+    phase: "draft" | "complete",
+    url: string | null = null,
+  ): PublicationStatus {
+    return this.transaction(() => {
+      const prior = this.publicationStatus(id);
+      if (
+        !prior ||
+        prior.identity !== identity ||
+        prior.phase !== (phase === "draft" ? "push" : "draft") ||
+        (phase === "complete" && !isPublicationUrl(url, prior.repository))
+      )
+        throw new DomainError(409, "Unexpected publication transition");
+      this.db
+        .prepare(
+          "INSERT INTO local_publication_events(workspace_id,phase,url,created_at) VALUES (?,?,?,?)",
+        )
+        .run(id, phase, url, Date.now());
+      if (phase === "complete")
+        this.db
+          .prepare("UPDATE workspaces SET state='running' WHERE id=?")
+          .run(id);
+      return this.publicationStatus(id)!;
+    });
+  }
+
+  localCommitReceipt(id: string, reviewId: string): string | null {
+    const row = this.db
+      .prepare(
+        "SELECT status, commit_sha FROM local_commit_events WHERE workspace_id=? AND review_id=? ORDER BY sequence DESC LIMIT 1",
+      )
+      .get(id, reviewId);
+    if (!row) return null;
+    if (row.status !== "committed")
+      throw new DomainError(
+        409,
+        "Local commit outcome needs attention. Inspect the branch before continuing.",
+      );
+    return row.commit_sha as string;
+  }
+
+  /** Return a previous receipt, or reserve this worktree before moving the ref. */
+  beginLocalCommit(
+    id: string,
+    reviewId: string,
+    commitSha: string,
+    generation: number,
+  ): string | null {
+    return this.transaction(() => {
+      const previous = this.localCommitReceipt(id, reviewId);
+      if (previous) return previous;
+      this.requireIdleWorkspace(id);
+      const workspace = this.getWorkspace(id);
+      if (
+        workspace.provider !== "local-worktree" ||
+        workspace.state !== "running" ||
+        this.archiveWriterGeneration(id) !== generation
+      )
+        throw new DomainError(409, "Workspace changed during commit review");
+      this.db
+        .prepare("UPDATE workspaces SET state='stopped' WHERE id=?")
+        .run(id);
+      this.db
+        .prepare(
+          "INSERT INTO local_commit_events(workspace_id,review_id,commit_sha,status,created_at) VALUES (?,?,?,'needs_attention',?)",
+        )
+        .run(id, reviewId, commitSha, Date.now());
+      return null;
+    });
+  }
+
+  finishLocalCommit(id: string, reviewId: string): void {
+    this.transaction(() => {
+      const inserted = this.db
+        .prepare(
+          `INSERT INTO local_commit_events(workspace_id,review_id,commit_sha,status,created_at)
+        SELECT workspace_id,review_id,commit_sha,'committed',? FROM local_commit_events WHERE workspace_id=? AND review_id=? AND status='needs_attention'`,
+        )
+        .run(Date.now(), id, reviewId);
+      if (!inserted.changes)
+        throw new DomainError(409, "Missing local commit intent");
+      this.db
+        .prepare("UPDATE workspaces SET state='running' WHERE id=?")
+        .run(id);
+    });
+  }
+
+  /** Fence all writers before Git removal. A restart sees the outstanding intent. */
+  beginArchive(
+    id: string,
+    identity: string,
+    generation: number,
+    discardChanges: boolean,
+  ): void {
+    this.transaction(() => {
+      if (
+        this.archiveIdentity(id) !== identity ||
+        this.archiveWriterGeneration(id) !== generation
+      )
+        throw new DomainError(409, "Worktree identity changed");
+      this.requireIdleWorkspace(id);
+      this.db
+        .prepare("UPDATE workspaces SET state = 'stopped' WHERE id = ?")
+        .run(id);
+      this.db
+        .prepare(
+          "INSERT INTO local_archive_events(workspace_id,status,discard_changes,created_at) VALUES (?,'needs_attention',?,?)",
+        )
+        .run(id, Number(discardChanges), Date.now());
+    });
+  }
+
+  finishArchive(id: string): Workspace {
+    return this.transaction(() => {
+      const inserted = this.db
+        .prepare(
+          `INSERT INTO local_archive_events(workspace_id,status,discard_changes,created_at)
+        SELECT workspace_id,'archived',discard_changes,? FROM local_archive_events WHERE workspace_id = ? AND status = 'needs_attention'`,
+        )
+        .run(Date.now(), id);
+      if (!inserted.changes)
+        throw new DomainError(409, "Missing archive intent");
       return this.getWorkspace(id);
     });
   }
@@ -354,21 +655,40 @@ export class Store {
     if (state !== "running" && state !== "stopped")
       throw new DomainError(400, "Invalid workspace state");
     return this.transaction(() => {
-      this.getWorkspace(id);
-      this.requireLocalWorkspace(id);
-      const busy = this.db
-        .prepare(
-          `SELECT id FROM runs WHERE workspace_id = ? AND
-        (status IN ${ACTIVE} OR status = 'needs_attention')`,
-        )
-        .get(id);
-      if (busy)
-        throw new DomainError(409, "Workspace has active or uncertain work");
+      this.requireIdleWorkspace(id);
       this.db
         .prepare("UPDATE workspaces SET state = ? WHERE id = ?")
         .run(state, id);
       return this.getWorkspace(id);
     });
+  }
+
+  requireIdleWorkspace(id: string): void {
+    const workspace = this.getWorkspace(id);
+    if (this.publicationStatus(id)?.status === "needs_attention")
+      throw new DomainError(
+        409,
+        "Publication outcome needs attention. Open publication status.",
+      );
+    if (workspace.commitNeedsAttention)
+      throw new DomainError(
+        409,
+        "Local commit outcome needs attention. Inspect the branch before continuing.",
+      );
+    if (workspace.archiveStatus)
+      throw new DomainError(
+        409,
+        "Archive already requested. Refresh to see the recorded outcome.",
+      );
+    this.requireLocalWorkspace(id);
+    if (
+      this.db
+        .prepare(
+          `SELECT id FROM runs WHERE workspace_id = ? AND (status IN ${ACTIVE} OR status = 'needs_attention')`,
+        )
+        .get(id)
+    )
+      throw new DomainError(409, "Workspace has active or uncertain work");
   }
 
   createRun(
@@ -712,6 +1032,46 @@ export class Store {
       .get(id);
     if (!row) throw new DomainError(409, "Verification evidence is missing");
     return JSON.parse(row.data as string) as Evidence;
+  }
+
+  latestAgentContext(
+    workspaceId: string,
+    branch: string,
+    baseSha: string,
+    headSha: string,
+  ): ObservedAgentContext | null {
+    // Read only completion metadata. Transcript text never establishes a model.
+    const row = this.db
+      .prepare(
+        `SELECT id,permission_mode FROM runs WHERE workspace_id = ? AND kind = 'agent' AND simulation = 0 AND status = 'completed' ORDER BY created_at DESC,id DESC LIMIT 1`,
+      )
+      .get(workspaceId);
+    if (!row) return null;
+    const id = row.id as string;
+    const evidence = this.evidence(id);
+    if (
+      evidence.kind !== "worktree-record" ||
+      evidence.simulation !== false ||
+      evidence.branch !== branch ||
+      evidence.baseSha !== baseSha ||
+      evidence.headSha !== headSha
+    )
+      return null;
+    const completed = this.db
+      .prepare(
+        "SELECT data FROM events WHERE run_id = ? AND type = 'run.completed' ORDER BY cursor DESC LIMIT 1",
+      )
+      .get(id);
+    const metadata =
+      completed &&
+      (JSON.parse(completed.data as string) as
+        { reportedModel?: unknown } | undefined);
+    return {
+      permissionMode: permissionMode(row.permission_mode),
+      reportedModel: isReportedModel(metadata?.reportedModel)
+        ? metadata.reportedModel
+        : null,
+    };
   }
 
   resolveSimulation(id: string, note: unknown): Run {

@@ -4,7 +4,12 @@ import { delimiter, isAbsolute, join, relative } from "node:path";
 import { readAgentEvents, type StreamEvent } from "./agent-stream.js";
 import { captureProcess, launchProcess } from "./process-group.js";
 import type { AgentAdapter, AgentMessage } from "./adapters.js";
-import { DomainError, UncertainExecutionError, type Run } from "./domain.js";
+import {
+  DomainError,
+  UncertainExecutionError,
+  isReportedModel,
+  type Run,
+} from "./domain.js";
 import type { Store } from "./store.js";
 
 // Spec 0013: the agent gets only these variables. Provider API keys and host
@@ -165,6 +170,9 @@ export class ClaudeCodeAgent implements AgentAdapter {
             this.store.markAgentSessionStarted(run.workspaceId);
           yield {
             kind: "status",
+            ...(event.session_id === session.id && isReportedModel(event.model)
+              ? { cliModel: event.model }
+              : {}),
             text: `Session ${session.started ? "resumed" : "started"}${event.model ? ` (${event.model})` : ""}.`,
           };
         } else if (event.type === "result") {

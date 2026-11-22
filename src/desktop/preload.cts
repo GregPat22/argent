@@ -31,11 +31,22 @@ const bridge: DesktopBridge = {
   latestCheck: (id) => invoke("latestCheck", [id]),
   runChecks: (id, consent, key) => invoke("runChecks", [id, consent, key]),
   cancelCheck: (id, check) => invoke("cancelCheck", [id, check]),
+  publicationStatus: (id) => invoke("publicationStatus", [id]),
+  reviewPublication: (id, input) => invoke("reviewPublication", [id, input]),
+  publishDraft: (id, input, identity) =>
+    invoke("publishDraft", [id, input, identity]),
+  draftEvidence: (id, expected) => invoke("draftEvidence", [id, expected]),
   candidateReview: (id) => invoke("candidateReview", [id]),
   consentCandidate: (id, expected, key) =>
     invoke("consentCandidate", [id, expected, key]),
   createWorkspace: (repository) => invoke("createWorkspace", [repository]),
   createLocalWorkspace: (from) => invoke("createLocalWorkspace", [from]),
+  reviewStagedCommit: (id, details) =>
+    invoke("reviewStagedCommit", [id, details]),
+  commitStagedChanges: (id, details, expected) =>
+    invoke("commitStagedChanges", [id, details, expected]),
+  archiveWorkspace: (id, discardChanges) =>
+    invoke("archiveWorkspace", [id, discardChanges]),
   listRuns: (workspace, before) => invoke("listRuns", [workspace, before]),
   createRun: (workspace, task, maxRuntimeMs, key, permissionMode) =>
     invoke("createRun", [workspace, task, maxRuntimeMs, key, permissionMode]),

@@ -3,162 +3,26 @@ import { execFileSync } from "node:child_process";
 import { randomUUID, createHash } from "node:crypto";
 import {
   mkdirSync,
-  mkdtempSync,
-  realpathSync,
-  rmSync,
   writeFileSync,
   chmodSync,
   existsSync,
   readFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import { deflateSync } from "node:zlib";
-import { test, type TestContext } from "node:test";
+import { test } from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { Store } from "../src/store.js";
 import { createLocalWorkspace } from "../src/local-worktree.js";
 import { readLocalCommandConfig } from "../src/local-command-config.js";
 import { reviewLocalCommandCandidate } from "../src/local-command-review.js";
-import { LocalCheckWorker } from "../src/local-check-worker.js";
+import { localCheckFixture as fixture, git } from "./local-check-fixture.js";
 import { makeServer } from "../src/http.js";
+import { draftEvidenceBody, readDraftEvidence } from "../src/draft-evidence.js";
 import { inspectLocalCommandCandidate } from "../src/workspace-changes.js";
 import { validateCheckResult } from "../src/local-checks.js";
 import { validateCheckView } from "../src/desktop/checks.js";
 import { runWorkers } from "../src/worker-pool.js";
-
-function git(cwd: string, ...args: string[]) {
-  return execFileSync(
-    "git",
-    [
-      "-c",
-      "user.name=Argent Test",
-      "-c",
-      "user.email=test@example.invalid",
-      ...args,
-    ],
-    { cwd, stdio: ["ignore", "pipe", "pipe"] },
-  )
-    .toString()
-    .trim();
-}
-async function fixture(
-  t: TestContext,
-  setup = 'require("node:fs").writeFileSync("deps", "ready")',
-  testCode = 'if(require("node:fs").readFileSync("deps", "utf8") !== "ready") process.exit(9); console.log("tested");',
-  purpose: "setup-test" | "setup-run" = "setup-test",
-  runOnly = false,
-) {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), "argent-check-"))),
-    repo = join(root, "repo"),
-    database = join(root, "store.sqlite"),
-    worktrees = join(root, "worktrees"),
-    verification = join(root, "verification");
-  mkdirSync(repo);
-  git(repo, "init", "--quiet", "--initial-branch=main");
-  writeFileSync(
-    join(repo, "argent.json"),
-    JSON.stringify({
-      version: 1,
-      commands: {
-        ...(runOnly
-          ? {}
-          : {
-              setup: { argv: [process.execPath, "setup.cjs"] },
-              test: { argv: [process.execPath, "test.cjs"] },
-            }),
-        run: { argv: [process.execPath, "run.cjs"] },
-      },
-    }),
-  );
-  writeFileSync(join(repo, "setup.cjs"), setup);
-  writeFileSync(
-    join(repo, "test.cjs"),
-    purpose === "setup-run" ? "throw new Error('test must not run')" : testCode,
-  );
-  writeFileSync(
-    join(repo, "run.cjs"),
-    purpose === "setup-run"
-      ? testCode
-      : "throw new Error('run must not execute')",
-  );
-  writeFileSync(join(repo, ".gitignore"), "deps\n");
-  writeFileSync(join(repo, "file.txt"), "original\n");
-  mkdirSync(join(repo, "nested"));
-  writeFileSync(join(repo, "nested", "value.txt"), "original\n");
-  git(repo, "add", ".");
-  git(repo, "commit", "--quiet", "-m", "initial");
-  const store = new Store(database),
-    db = new DatabaseSync(database);
-  const connections = [store];
-  t.after(() => {
-    db.close();
-    for (const c of connections) c.close();
-    rmSync(root, { recursive: true, force: true });
-  });
-  const workspace = await createLocalWorkspace(store, worktrees, repo),
-    id = workspace.id,
-    directory = workspace.local!.worktreePath;
-  const descriptor = (await readLocalCommandConfig(store, worktrees, id))!;
-  await store.localCommandApprovals.approve(
-    worktrees,
-    id,
-    "operator",
-    descriptor.approvalCandidate.identity,
-    "approve",
-  );
-  const review = await reviewLocalCommandCandidate(
-    store,
-    worktrees,
-    id,
-    "operator",
-  );
-  const consent = await store.localCommandConsents.consent(
-    worktrees,
-    id,
-    "operator",
-    review.identity,
-    "consent",
-    undefined,
-    purpose,
-  );
-  const worker = new LocalCheckWorker(
-    store,
-    { worktreeRoot: worktrees, verificationRoot: verification },
-    10000,
-  );
-  const enqueue = (key = "check") =>
-    store.localChecks.enqueue(
-      worktrees,
-      id,
-      "operator",
-      consent.id,
-      key,
-      undefined,
-      purpose,
-    );
-  const latest = () =>
-    store.localChecks.latest(worktrees, id, "operator", undefined, purpose);
-  return {
-    root,
-    repo,
-    directory,
-    database,
-    db,
-    store,
-    connections,
-    worktrees,
-    verification,
-    workspace,
-    id,
-    consent,
-    review,
-    enqueue,
-    latest,
-    worker,
-  };
-}
 
 test("desktop/service check runs approved setup then test in a fresh checkout, persists exact evidence and detects later changes", async (t) => {
   const f = await fixture(t);
@@ -1138,5 +1002,156 @@ test("a result keeps its consented judging count after the base changes; mismatc
   assert.throws(
     () => f.store.localChecks.view(job.run.id, f.id, "operator"),
     /Invalid check record/,
+  );
+});
+
+test("draft preview revalidates the displayed review and binds failed phases to the exact checked commit", async (t) => {
+  const f = await fixture(t, "process.exit(7)");
+  const preview = (id: string) =>
+    readDraftEvidence(
+      f.store,
+      f.worktrees,
+      f.id,
+      "operator",
+      id,
+      new AbortController().signal,
+    );
+  assert.match(
+    (await preview(f.review.identity)).body,
+    /No setup\/test check has been recorded/,
+  );
+  await f.enqueue();
+  await f.worker.tick();
+  const later = await f.store.localCommandConsents.consent(
+    f.worktrees,
+    f.id,
+    "operator",
+    f.review.identity,
+    "another-consent",
+  );
+  assert.notEqual(later.id, f.consent.id);
+  assert.deepEqual(later.binding, f.consent.binding);
+  const old = await preview(f.review.identity);
+  const recorded = f.store.localChecks.latestRecorded(f.id, "operator")!;
+  const historical = { ...recorded.result! };
+  delete historical.judgingChangeCount;
+  assert.match(
+    draftEvidenceBody(
+      f.review,
+      { ...recorded, result: historical },
+      f.consent.id,
+    ),
+    /No matching result/,
+  );
+  assert.match(
+    draftEvidenceBody(f.review, recorded, randomUUID()),
+    /No matching result/,
+  );
+  assert.match(
+    draftEvidenceBody(f.review, recorded, f.consent.id, {
+      permissionMode: "full",
+      reportedModel: null,
+    }),
+    /Permission mode: full access. Model reported by the CLI: unavailable/,
+  );
+  assert.match(old.body, /Checks failed for the reviewed commit/);
+  assert.match(old.body, /setup: exit 7/);
+  assert.match(old.body, /test: did not run/);
+  assert.doesNotMatch(old.body, /process\.exit|setup\.cjs|stdout|stderr/);
+  writeFileSync(
+    join(f.directory, "new.test.ts"),
+    "test.skip('an omitted title',()=>{});\n",
+  );
+  git(f.directory, "add", ".");
+  git(f.directory, "commit", "-qm", "new candidate");
+  await assert.rejects(preview(f.review.identity), /candidate changed/);
+  const fresh = await reviewLocalCommandCandidate(
+    f.store,
+    f.worktrees,
+    f.id,
+    "operator",
+  );
+  const newer = await preview(fresh.identity);
+  assert.match(newer.body, /latest result does not match/);
+  assert.match(newer.body, /added "new.test.ts"/);
+  assert.match(newer.body, /test.skip, line 1/);
+  assert.match(newer.body, /npm lockfile packages\n\nNot checkable/);
+  assert.doesNotMatch(newer.body, /Checks failed|omitted title/);
+  assert.notEqual(
+    old.body.match(/manifest \(SHA-256\): `(.+?)`/)?.[1],
+    newer.body.match(/manifest \(SHA-256\): `(.+?)`/)?.[1],
+  );
+});
+
+test("draft Markdown quotes fields, withholds address-valued versions and refuses oversized or private reports", async (t) => {
+  const f = await fixture(t);
+  const version = "file:/private/config/path";
+  const name = "one\u202etwo\n```# Just a name";
+  writeFileSync(
+    join(f.directory, "package.json"),
+    JSON.stringify({ scripts: { [name]: "a private command" } }),
+  );
+  writeFileSync(
+    join(f.directory, "package-lock.json"),
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {},
+        "node_modules/dep": {
+          version,
+          resolved: "https://registry.invalid/private/path",
+        },
+      },
+    }),
+  );
+  writeFileSync(
+    join(f.directory, ".npmrc"),
+    "registry=https://registry.invalid/private/path\n",
+  );
+  git(f.directory, "add", ".");
+  git(f.directory, "commit", "-qm", "changed manifests");
+  const review = await reviewLocalCommandCandidate(
+    f.store,
+    f.worktrees,
+    f.id,
+    "operator",
+  );
+  const body = draftEvidenceBody(review, null, null);
+  assert.match(body, /one\\u202etwo\\n```# Just a name/);
+  assert.match(body, /version not shareable/);
+  assert.match(body, /registry settings[\s\S]*added "registry"/);
+  assert.doesNotMatch(
+    body,
+    /registry\.invalid|private command|private\/config|^\s*\u202e/m,
+  );
+  const changed = review.files.findIndex(
+    (file) => file.path === "package.json",
+  );
+  const scripts = (names: string[]) => ({
+    ...review,
+    judgingChanges: {
+      ...review.judgingChanges,
+      scripts: [
+        {
+          file: changed,
+          entries: names.map((name) => ({ name, change: "added" as const })),
+        },
+      ],
+    },
+  });
+  assert.throws(
+    () => draftEvidenceBody(scripts(["/private/config"]), null, null),
+    /private reference/,
+  );
+  assert.throws(
+    () =>
+      draftEvidenceBody(
+        scripts(
+          Array.from({ length: 256 }, (_, i) => `${i}${"z".repeat(251)}`),
+        ),
+        null,
+        null,
+      ),
+    /exceeds the preview limit/,
   );
 });
