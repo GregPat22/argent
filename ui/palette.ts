@@ -1,7 +1,7 @@
 // Cmd+K: jump to a loaded workspace or run one of the few app actions.
 import { actions } from "./actions.js";
 import { byId, h, icon } from "./dom.js";
-import { groupWorkspaces, isLocal, rowLabel } from "./model.js";
+import { archiveLabel, groupWorkspaces, isLocal, rowLabel } from "./model.js";
 import { currentWorkspace, state } from "./state.js";
 
 interface Entry {
@@ -17,7 +17,9 @@ function entries(): Entry[] {
     for (const workspace of group.items)
       list.push({
         label: `${group.label} / ${rowLabel(workspace)}`,
-        detail: workspace.local?.worktreePath ?? workspace.repository,
+        detail:
+          archiveLabel(workspace) ||
+          (workspace.local?.worktreePath ?? workspace.repository),
         symbol: group.demo ? "flask-conical" : "git-branch",
         run: () => actions.selectWorkspace(workspace.id),
       });

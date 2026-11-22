@@ -738,3 +738,13 @@ not test evidence, and latest checks and run-command records are read separately
 Workspace exclusion, pre-dispatch revalidation, immutable manifest checks,
 process supervision and conservative cleanup remain shared. The fixed bounded
 lifetime adds no interactive terminal, port discovery or persistent server.
+
+## Local workspace archive (in development)
+
+The [L1.5 archive contract](docs/specs/0013-local-mvp.md#local-archive-acceptance-in-development)
+uses the local service and the existing store. A creation identity binds the
+worktree directory to its original Git registration. The archive intent records
+the developer's discard choice and stops new work before Git removes the
+directory. The final event confirms that the directory and registration are gone
+and the branch still points to the observed commit. History reads need no
+worktree. An interrupted removal has no replay path.

@@ -11,6 +11,7 @@ export class FakeElement {
   hidden = false;
   disabled = false;
   readOnly = false;
+  checked = false;
   className = "";
   title = "";
   placeholder = "";

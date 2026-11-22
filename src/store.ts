@@ -85,6 +85,13 @@ function readWorkspace(row: Row): Workspace {
     repository: row.repository as string,
     provider: row.provider as Workspace["provider"],
     state: row.state as Workspace["state"],
+    ...(row.archive_status
+      ? {
+          archiveStatus: row.archive_status as NonNullable<
+            Workspace["archiveStatus"]
+          >,
+        }
+      : {}),
     createdAt: row.created_at as number,
   };
   if (workspace.provider === "local-worktree") {
@@ -98,7 +105,8 @@ function readWorkspace(row: Row): Workspace {
   return workspace;
 }
 
-const WORKSPACE_SELECT = `SELECT w.*, l.repository_path, l.branch, l.base_sha, l.worktree_path
+const WORKSPACE_SELECT = `SELECT w.*, l.repository_path, l.branch, l.base_sha, l.worktree_path,
+  (SELECT status FROM local_archive_events WHERE workspace_id = w.id ORDER BY sequence DESC LIMIT 1) AS archive_status
   FROM workspaces w LEFT JOIN local_worktrees l ON l.workspace_id = w.id`;
 
 // Additive migrations for databases created before local execution existed.
@@ -171,6 +179,17 @@ export class Store {
         agent_session_started INTEGER NOT NULL DEFAULT 0 CHECK(agent_session_started IN (0, 1))
       ) STRICT;
     `);
+      addColumn(this.db, "local_worktrees", "creation_identity TEXT");
+      this.db.exec(`CREATE TABLE IF NOT EXISTS local_archive_events (
+        sequence INTEGER PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES local_worktrees(workspace_id),
+        status TEXT NOT NULL CHECK(status IN ('needs_attention','archived')),
+        discard_changes INTEGER NOT NULL CHECK(discard_changes IN (0,1)),
+        created_at INTEGER NOT NULL, UNIQUE(workspace_id,status)
+      ) STRICT;
+      CREATE TRIGGER IF NOT EXISTS local_archive_stays_stopped BEFORE UPDATE OF state ON workspaces
+        WHEN NEW.state = 'running' AND EXISTS (SELECT 1 FROM local_archive_events WHERE workspace_id = NEW.id)
+        BEGIN SELECT RAISE(ABORT,'Workspace is archived or awaiting archive inspection'); END;
+      `);
       this.lifecycle = new LifecycleStore(this.db);
       this.repositories = new RepositoryStore(this.db);
       this.localCommandApprovals = new LocalCommandApprovalStore(this.db, this);
@@ -278,6 +297,7 @@ export class Store {
     local: LocalWorktree,
     agentSessionId: string,
     now = Date.now(),
+    creationIdentity: string | null = null,
   ): Workspace {
     return this.transaction(() => {
       this.db
@@ -289,7 +309,7 @@ export class Store {
       this.db
         .prepare(
           `INSERT INTO local_worktrees (workspace_id, repository_path, branch,
-          base_sha, worktree_path, agent_session_id) VALUES (?, ?, ?, ?, ?, ?)`,
+          base_sha, worktree_path, agent_session_id, creation_identity) VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           id,
@@ -298,7 +318,70 @@ export class Store {
           local.baseSha,
           local.worktreePath,
           agentSessionId,
+          creationIdentity,
         );
+      return this.getWorkspace(id);
+    });
+  }
+
+  archiveIdentity(id: string): string {
+    const identity = this.db
+      .prepare(
+        "SELECT creation_identity FROM local_worktrees WHERE workspace_id = ?",
+      )
+      .get(id)?.creation_identity;
+    if (typeof identity !== "string" || !/^[0-9a-f]{64}$/.test(identity))
+      throw new DomainError(
+        409,
+        "No creation identity is recorded for this worktree. Manual cleanup is required.",
+      );
+    return identity;
+  }
+
+  // A job can both start and finish during a filesystem read. Runs are retained.
+  archiveWriterGeneration(id: string): number {
+    return this.db
+      .prepare(
+        "SELECT COALESCE(MAX(rowid),0) AS generation FROM runs WHERE workspace_id = ?",
+      )
+      .get(id)!.generation as number;
+  }
+
+  /** Fence all writers before Git removal. A restart sees the outstanding intent. */
+  beginArchive(
+    id: string,
+    identity: string,
+    generation: number,
+    discardChanges: boolean,
+  ): void {
+    this.transaction(() => {
+      if (
+        this.archiveIdentity(id) !== identity ||
+        this.archiveWriterGeneration(id) !== generation
+      )
+        throw new DomainError(409, "Worktree identity changed");
+      this.requireIdleWorkspace(id);
+      this.db
+        .prepare("UPDATE workspaces SET state = 'stopped' WHERE id = ?")
+        .run(id);
+      this.db
+        .prepare(
+          "INSERT INTO local_archive_events(workspace_id,status,discard_changes,created_at) VALUES (?,'needs_attention',?,?)",
+        )
+        .run(id, Number(discardChanges), Date.now());
+    });
+  }
+
+  finishArchive(id: string): Workspace {
+    return this.transaction(() => {
+      const inserted = this.db
+        .prepare(
+          `INSERT INTO local_archive_events(workspace_id,status,discard_changes,created_at)
+        SELECT workspace_id,'archived',discard_changes,? FROM local_archive_events WHERE workspace_id = ? AND status = 'needs_attention'`,
+        )
+        .run(Date.now(), id);
+      if (!inserted.changes)
+        throw new DomainError(409, "Missing archive intent");
       return this.getWorkspace(id);
     });
   }
@@ -354,21 +437,30 @@ export class Store {
     if (state !== "running" && state !== "stopped")
       throw new DomainError(400, "Invalid workspace state");
     return this.transaction(() => {
-      this.getWorkspace(id);
-      this.requireLocalWorkspace(id);
-      const busy = this.db
-        .prepare(
-          `SELECT id FROM runs WHERE workspace_id = ? AND
-        (status IN ${ACTIVE} OR status = 'needs_attention')`,
-        )
-        .get(id);
-      if (busy)
-        throw new DomainError(409, "Workspace has active or uncertain work");
+      this.requireIdleWorkspace(id);
       this.db
         .prepare("UPDATE workspaces SET state = ? WHERE id = ?")
         .run(state, id);
       return this.getWorkspace(id);
     });
+  }
+
+  requireIdleWorkspace(id: string): void {
+    const workspace = this.getWorkspace(id);
+    if (workspace.archiveStatus)
+      throw new DomainError(
+        409,
+        "Archive already requested. Refresh to see the recorded outcome.",
+      );
+    this.requireLocalWorkspace(id);
+    if (
+      this.db
+        .prepare(
+          `SELECT id FROM runs WHERE workspace_id = ? AND (status IN ${ACTIVE} OR status = 'needs_attention')`,
+        )
+        .get(id)
+    )
+      throw new DomainError(409, "Workspace has active or uncertain work");
   }
 
   createRun(

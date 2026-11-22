@@ -61,9 +61,13 @@ async function read() {
     view = result;
     if (!result) {
       status(
-        runAction
-          ? "No run command has started. Open Commands, review the commit for run, record separate consent, then choose Start run command."
-          : "No checks have run. Open Commands, review the commit and record consent, then choose Run checks.",
+        currentWorkspace()?.archiveStatus
+          ? runAction
+            ? "No run command was recorded."
+            : "No checks were recorded."
+          : runAction
+            ? "No run command has started. Open Commands, review the commit for run, record separate consent, then choose Start run command."
+            : "No checks have run. Open Commands, review the commit and record consent, then choose Run checks.",
       );
       return;
     }

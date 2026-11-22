@@ -22,6 +22,7 @@ export interface Workspace {
   repository: string;
   provider: WorkspaceProvider;
   state: "running" | "stopped";
+  archiveStatus?: "archived" | "needs_attention";
   createdAt: number;
   local?: LocalWorktree;
 }

@@ -167,6 +167,7 @@ export async function readLocalCommandConfig(
     const workspace = store.getWorkspace(workspaceId);
     const local = workspace.local;
     if (
+      workspace.archiveStatus ||
       workspace.provider !== "local-worktree" ||
       !local ||
       workspace.id !== workspaceId ||

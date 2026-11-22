@@ -893,12 +893,14 @@ kbd {
 .pill-working::before {
   animation: pulse 1.6s var(--ease) infinite;
 }
-.pill-needs-review {
+.pill-needs-review,
+.pill-archive-needs-attention {
   color: var(--attention);
   border-color: rgb(245 194 107 / 0.35);
   background: rgb(245 194 107 / 0.07);
 }
-.pill-stopped {
+.pill-stopped,
+.pill-archived {
   color: var(--faint);
 }
 .pill-offline {
@@ -1826,7 +1828,15 @@ dialog::backdrop {
   color: var(--attention);
   border-color: rgb(245 194 107 / 0.35);
 }
-.dialog-form input,
+.discard-option {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+#archive-target {
+  overflow-wrap: anywhere;
+}
+.dialog-form input:not([type="checkbox"]),
 .dialog-form textarea {
   width: 100%;
   padding: 9px 11px;

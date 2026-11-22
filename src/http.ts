@@ -9,6 +9,7 @@ import { DomainError, requireString, type Run } from "./domain.js";
 import { Store } from "./store.js";
 import { inspectArtifact } from "./artifacts.js";
 import { createLocalWorkspace } from "./local-worktree.js";
+import { archiveLocalWorkspace } from "./local-archive.js";
 import { checkId } from "./local-checks.js";
 import { inspectWorkspaceChanges } from "./workspace-changes.js";
 import type {
@@ -413,6 +414,43 @@ export function makeServer(
               executionAllowed: false,
             });
           }
+        } finally {
+          response.off("close", abort);
+        }
+      } else if (
+        parts[0] === "workspaces" &&
+        parts.length === 3 &&
+        parts[2] === "archive" &&
+        method === "POST"
+      ) {
+        if (!options.worktreeRoot)
+          throw new DomainError(
+            409,
+            "Local execution is not enabled in this service",
+          );
+        const body = await readBody(request);
+        if (
+          url.searchParams.size ||
+          Object.keys(body).length !== 1 ||
+          typeof body.discardChanges !== "boolean"
+        )
+          throw new DomainError(400, "Expected only a discardChanges boolean");
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        response.once("close", abort);
+        try {
+          if (response.destroyed) controller.abort();
+          send(
+            response,
+            200,
+            await archiveLocalWorkspace(
+              store,
+              options.worktreeRoot,
+              parts[1]!,
+              body.discardChanges,
+              controller.signal,
+            ),
+          );
         } finally {
           response.off("close", abort);
         }

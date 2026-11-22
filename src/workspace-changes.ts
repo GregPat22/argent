@@ -418,7 +418,12 @@ export async function inspectLocalCommandCandidate(
     requireString(operatorId, "operatorId", 128);
     const workspace = store.getWorkspace(workspaceId);
     const local = workspace.local;
-    if (workspace.provider !== "local-worktree" || !local) throw changed();
+    if (
+      workspace.archiveStatus ||
+      workspace.provider !== "local-worktree" ||
+      !local
+    )
+      throw changed();
     const root = await realpath(worktreeRoot);
     const directory = join(root, workspaceId);
     if (local.worktreePath !== directory) throw changed();
@@ -695,6 +700,7 @@ export async function inspectWorkspaceChanges(
     const workspace = store.getWorkspace(workspaceId);
     const local = workspace.local;
     if (
+      workspace.archiveStatus ||
       workspace.provider !== "local-worktree" ||
       !local ||
       !ID.test(workspace.id) ||

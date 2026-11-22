@@ -1855,6 +1855,34 @@ permission mode), so the proof travels with the code. The planned record include
 uncommitted changes, unless the developer explicitly discards them; the branch is
 kept.
 
+#### Local archive acceptance (in development)
+
+- The desktop names the workspace branch before requesting removal. The default
+  requires the index and tracked files to match HEAD and preserves untracked
+  and ignored files by refusing removal. Discarding those files requires an
+  explicit choice for that workspace.
+- The local service accepts a workspace identifier and the discard choice.
+  It checks the original directory and linked Git registration recorded during
+  creation. A missing creation record, changed registration, detached or different
+  branch, locked worktree or nested repository prevents removal. Older workspaces
+  without a creation identity remain usable and require manual cleanup.
+- Active or uncertain work and lifecycle ownership block archive. The service
+  records its intent and stops the workspace in one transaction before asking
+  Git to remove it. An interrupted or unconfirmed removal stays blocked across
+  restarts. Opening a workspace, refreshing and repeating a request never replay
+  that removal.
+- After confirmed removal the branch, commits and stored history remain
+  available. The archived workspace cannot start again. This slice can be
+  verified against temporary local repositories without publishing a pull request.
+
+The security review against `f4b0b3a` on 22 November 2026 identified two
+separate checks. The creation record must still identify the directory and its
+Git registration, and no agent or command may start and finish during the
+filesystem inspection. Archive compares the workspace's retained run generation
+again inside the intent transaction. Its file checks are point-in-time. Another
+process running as the developer can still change the filesystem outside
+Argent's control.
+
 #### Human-triggered merge design todo
 
 Accepted design requirement, 15 November 2026: provide a way for a person to

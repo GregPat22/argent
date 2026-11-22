@@ -1,5 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, realpathSync, statSync } from "node:fs";
+import { mkdir, rmdir } from "node:fs/promises";
+import {
+  directoryIdentity,
+  worktreeIdentity,
+} from "./local-worktree-identity.js";
 import { isAbsolute, join, relative } from "node:path";
 import { git } from "./git.js";
 import { untrackedManifest } from "./worktree-evidence.js";
@@ -112,7 +117,11 @@ export async function createLocalWorkspace(
   const repository = await inspectRepository(path);
   mkdirSync(worktreeRoot, { recursive: true, mode: 0o700 });
   const root = realpathSync(worktreeRoot);
-  if (inside(repository.path, root) || inside(root, repository.path))
+  if (
+    root === repository.path ||
+    inside(repository.path, root) ||
+    inside(root, repository.path)
+  )
     throw new DomainError(
       400,
       "Repository and Argent's data directory must not contain each other",
@@ -120,10 +129,20 @@ export async function createLocalWorkspace(
   const id = randomUUID();
   const branch = `argent/${id.slice(0, 8)}`;
   const worktreePath = join(root, id);
-  // Establish ownership separately: a name collision must never cause cleanup
-  // to delete a branch that already existed before this request.
-  await git(repository.path, ["branch", branch, repository.head]);
+  const local = {
+    repositoryPath: repository.path,
+    branch,
+    baseSha: repository.head,
+    worktreePath,
+  };
+  // Git also accepts an existing empty directory. Reserve it ourselves first.
+  await mkdir(worktreePath, { mode: 0o700 });
+  const created = await directoryIdentity(worktreePath);
+  let branchCreated = false;
+  let registration: string | undefined;
   try {
+    await git(repository.path, ["branch", branch, repository.head]);
+    branchCreated = true;
     await git(repository.path, [
       "worktree",
       "add",
@@ -132,38 +151,61 @@ export async function createLocalWorkspace(
       worktreePath,
       branch,
     ]);
-    // Re-read filters in the linked worktree's includeIf/config context.
+    registration = await worktreeIdentity(root, id, local);
+    if ((await directoryIdentity(worktreePath)) !== created)
+      throw new DomainError(409, "Worktree directory changed during creation");
     await git(worktreePath, ["reset", "--hard", repository.head]);
+    if ((await worktreeIdentity(root, id, local)) !== registration)
+      throw new DomainError(
+        409,
+        "Worktree registration changed during creation",
+      );
     return store.createLocalWorkspace(
       id,
-      {
-        repositoryPath: repository.path,
-        branch,
-        baseSha: repository.head,
-        worktreePath,
-      },
+      local,
       randomUUID(),
+      Date.now(),
+      registration,
     );
   } catch (error) {
-    // Never race an external operation whose termination is unconfirmed.
     if (error instanceof UncertainExecutionError) throw error;
-    // Only remove what this call created: the new worktree and its new branch.
+    // On failed registration remove at most the empty directory we reserved.
+    // A replaced or unconfirmed registration is left for manual inspection.
     try {
-      await git(repository.path, [
-        "worktree",
-        "remove",
-        "--force",
-        worktreePath,
-      ]);
+      const remaining = await directoryIdentity(worktreePath).catch(
+        (inspectionError: unknown) => {
+          if ((inspectionError as NodeJS.ErrnoException).code === "ENOENT")
+            return null;
+          throw inspectionError;
+        },
+      );
+      if (remaining !== null && remaining !== created) throw error;
+      if (remaining !== null && registration) {
+        if ((await worktreeIdentity(root, id, local)) !== registration)
+          throw error;
+        await git(worktreePath, [
+          "worktree",
+          "remove",
+          "--force",
+          "--",
+          worktreePath,
+        ]);
+      } else if (remaining !== null) {
+        await rmdir(worktreePath);
+      }
+      if (branchCreated) {
+        // Compare and delete only the original tip, after its worktree is gone.
+        if (
+          (await text(repository.path, [
+            "rev-parse",
+            "--verify",
+            `refs/heads/${branch}`,
+          ])) === repository.head
+        )
+          await git(repository.path, ["branch", "-d", "--", branch]);
+      }
     } catch (cleanupError) {
       if (cleanupError instanceof UncertainExecutionError) throw cleanupError;
-      // Leave any remainder for the developer; never widen the deletion.
-    }
-    try {
-      await git(repository.path, ["branch", "-D", branch]);
-    } catch (cleanupError) {
-      if (cleanupError instanceof UncertainExecutionError) throw cleanupError;
-      // Git refuses to remove a branch still checked out in a leftover worktree.
     }
     throw error;
   }
@@ -179,6 +221,7 @@ export class LocalWorktreeWorkspace implements WorkspaceAdapter {
   async prepare(workspace: Workspace, signal?: AbortSignal): Promise<string> {
     const local = workspace.local;
     if (
+      workspace.archiveStatus ||
       workspace.provider !== "local-worktree" ||
       !local ||
       !ID.test(workspace.id)

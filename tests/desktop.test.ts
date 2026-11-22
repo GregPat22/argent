@@ -394,6 +394,17 @@ process.stdin.on("end", () => {
     );
     assert.equal(asked, 1);
     assert.equal(first.provider, "local-worktree");
+    for (const args of [
+      [first.id],
+      [first.id, "false"],
+      [first.id, false, "/path"],
+      ["../workspace", true],
+    ]) {
+      const reply = await client.call("archiveWorkspace", args);
+      assert.equal(reply.ok, false);
+      if (!reply.ok)
+        assert.match(reply.error, /Expected a workspace and a discard choice/);
+    }
     assert.match(first.local!.branch, /^argent\/[0-9a-f]{8}$/);
     assert.equal(first.local!.repositoryPath, repository);
     const parallel = value<Workspace>(

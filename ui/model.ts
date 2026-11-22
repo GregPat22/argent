@@ -93,6 +93,12 @@ export function rejected(error: unknown): boolean {
 export function isLocal(workspace: Workspace | undefined): boolean {
   return workspace?.provider === "local-worktree" && !!workspace.local;
 }
+export function archiveLabel(workspace: Workspace | undefined): string {
+  if (workspace?.archiveStatus === "archived") return "Archived";
+  if (workspace?.archiveStatus === "needs_attention")
+    return "Archive needs attention";
+  return "";
+}
 export function workspaceTitle(workspace: Workspace): string {
   return workspace.local
     ? baseName(workspace.local.repositoryPath)
@@ -222,7 +228,8 @@ export interface ComposerGate {
 export function composerGate(input: ComposerInput): ComposerGate {
   const working = input.runs.some((run) => isWorking(run.status));
   const review = input.runs.some((run) => run.status === "needs_attention");
-  const stopped = input.workspace?.state !== "running";
+  const stopped =
+    input.workspace?.state !== "running" || !!input.workspace?.archiveStatus;
   const canType =
     input.connected && !!input.workspace && !stopped && !input.pendingHere;
   const hint = !input.connected
@@ -230,7 +237,11 @@ export function composerGate(input: ComposerInput): ComposerGate {
     : !input.workspace
       ? ""
       : stopped
-        ? "This workspace is stopped"
+        ? input.workspace.archiveStatus === "needs_attention"
+          ? "Argent could not confirm worktree removal. This workspace is locked."
+          : input.workspace.archiveStatus === "archived"
+            ? "Workspace archived. Its branch and history are saved."
+            : "This workspace is stopped"
         : input.pendingHere
           ? "Waiting for confirmation"
           : review

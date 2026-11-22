@@ -199,6 +199,12 @@ export class LifecycleStore {
         throw new DomainError(404, "Workspace not found");
       if (
         this.db
+          .prepare("SELECT 1 FROM local_archive_events WHERE workspace_id = ?")
+          .get(workspaceId)
+      )
+        throw new DomainError(409, "Workspace has an archive record");
+      if (
+        this.db
           .prepare(
             `SELECT id FROM runs WHERE workspace_id = ?
         AND status IN ('queued','running','cancelling','needs_attention')`,

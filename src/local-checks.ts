@@ -623,7 +623,8 @@ export class LocalCheckStore {
       );
     if (!row) return null;
     const view = this.view(row.id as string, workspaceId, operatorId, action);
-    if (!view.result) return view;
+    if (!view.result || this.store.getWorkspace(workspaceId).archiveStatus)
+      return view;
     // An active/uncertain writer cannot leave a currently reusable result.
     if (this.busy(workspaceId)) return { ...view, freshness: "stale" };
     try {
@@ -638,6 +639,7 @@ export class LocalCheckStore {
       return {
         ...view,
         freshness:
+          !this.store.getWorkspace(workspaceId).archiveStatus &&
           !this.busy(workspaceId) &&
           review.identity === view.result.reviewIdentity &&
           observation.headSha === view.result.headSha &&

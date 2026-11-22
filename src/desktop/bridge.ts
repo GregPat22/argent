@@ -290,6 +290,31 @@ export class DesktopClient {
           runAction,
         );
       }
+      case "archiveWorkspace": {
+        if (args.length !== 2 || !uuid(args[0]) || typeof args[1] !== "boolean")
+          throw new DomainError(
+            400,
+            "Expected a workspace and a discard choice",
+          );
+        const workspace = (await send(
+          connection,
+          `/workspaces/${id()}/archive`,
+          "POST",
+          { discardChanges: args[1] },
+          undefined,
+          REVIEW_LIMITS.timeoutMs + 10000,
+        )) as Workspace | null;
+        if (
+          !workspace ||
+          workspace.id !== args[0] ||
+          workspace.provider !== "local-worktree" ||
+          workspace.state !== "stopped" ||
+          !workspace.local ||
+          workspace.archiveStatus !== "archived"
+        )
+          throw new DomainError(502, "Archive outcome could not be confirmed");
+        return workspace;
+      }
       case "getWorkspace":
         return send(connection, `/workspaces/${id()}`);
       case "listRuns":

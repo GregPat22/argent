@@ -114,6 +114,7 @@ export interface DesktopBridge {
    * supplies a path. Resolves to null when the dialog is cancelled.
    */
   createLocalWorkspace(fromWorkspaceId?: string): Promise<Workspace | null>;
+  archiveWorkspace(id: string, discardChanges: boolean): Promise<Workspace>;
   listRuns(workspaceId: string, before?: string): Promise<Page<RunView>>;
   createRun(
     workspaceId: string,

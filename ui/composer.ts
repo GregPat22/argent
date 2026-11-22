@@ -107,10 +107,14 @@ export function renderComposer(): void {
       : "Scripted demo. No model, cloud resource or pull request.",
   );
   setText("composer-status", status.hint);
-  show("composer-start", !!workspace && workspace.state === "stopped");
+  show(
+    "composer-start",
+    !!workspace && workspace.state === "stopped" && !workspace.archiveStatus,
+  );
   enable(
     "composer-start",
-    state.connected &&
+    !workspace?.archiveStatus &&
+      state.connected &&
       !state.mutationBusy &&
       !state.runs.some((run) => isWorking(run.status)),
   );
@@ -124,13 +128,26 @@ export function renderComposer(): void {
   cancel.title =
     active?.status === "cancelling" ? "Stopping…" : "Stop this run";
   show("pending-bar", !!pendingHere);
-  enable("pending-retry", !!pendingHere && state.connected && !state.sending);
+  const closed = !!workspace?.archiveStatus;
+  setText(
+    "pending-description",
+    closed
+      ? "Argent could not confirm delivery before archiving. Check the session history, then dismiss this pending message."
+      : "Argent could not confirm this message reached the service. Retrying checks the same message, so it never runs twice.",
+  );
+  show("pending-retry", !closed);
+  enable(
+    "pending-retry",
+    !!pendingHere && !closed && state.connected && !state.sending,
+  );
+  show("pending-dismiss", closed);
+  enable("pending-dismiss", !!pendingHere && closed && !state.sending);
   setClass(byId("composer-form"), "is-full", local && mode === "full");
 }
 
 export async function sendMessage(): Promise<void> {
   const workspace = currentWorkspace();
-  if (!workspace || state.sending) return;
+  if (!workspace || workspace.archiveStatus || state.sending) return;
   const retrying = state.pending?.workspaceId === workspace.id;
   if (state.pending && !retrying) {
     actions.showError(
@@ -212,6 +229,18 @@ export function wireComposer(): void {
       return;
     key.preventDefault();
     void sendMessage();
+  });
+  byId("pending-dismiss").addEventListener("click", () => {
+    const workspace = currentWorkspace();
+    if (
+      !workspace?.archiveStatus ||
+      state.pending?.workspaceId !== workspace.id ||
+      state.sending
+    )
+      return;
+    state.pending = null;
+    persist();
+    actions.render();
   });
   byId("pending-retry").addEventListener("click", () => void sendMessage());
   byId("limit-select").addEventListener("change", () => {

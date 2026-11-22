@@ -1,7 +1,13 @@
 import { app, BrowserWindow } from "electron";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync, renameSync, unlinkSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  writeFileSync,
+  renameSync,
+  unlinkSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { RunView, Workspace, Page } from "../domain.js";
@@ -1028,12 +1034,54 @@ export async function runDesktopSmoke(
     await delay(200);
     writeFileSync(shots, (await window.webContents.capturePage()).toPNG());
   }
+  await js(
+    `document.querySelector('#workspace-menu-button').click(); document.querySelector('#workspace-archive').click()`,
+  );
+  assert.equal(
+    await js(`document.querySelector('#archive-dialog').open`),
+    true,
+  );
+  assert.equal(
+    await js(`document.querySelector('#archive-discard').checked`),
+    false,
+  );
+  assert.equal(
+    await text("#archive-target"),
+    `repository / ${parallel.local!.branch}`,
+  );
+  await capture("archive-confirmation");
+  await js(`document.querySelector('#archive-confirm').click()`);
+  await until(
+    () =>
+      js(
+        `document.querySelector('#workspace-state').textContent === 'Archived'`,
+      ),
+    "clean worktree archived",
+  );
+  assert.equal(existsSync(parallel.local!.worktreePath), false);
+  assert.equal(
+    execFileSync(
+      "git",
+      ["rev-parse", "--verify", `refs/heads/${parallel.local!.branch}`],
+      { cwd: parallel.local!.repositoryPath },
+    )
+      .toString()
+      .trim(),
+    parallel.local!.baseSha,
+  );
+  assert.equal(
+    await js(
+      `document.querySelector('#composer-input').disabled && !document.querySelector('#workspace-checks').disabled`,
+    ),
+    true,
+  );
   console.log(
     `[ARGENT_SMOKE]${JSON.stringify({
       passed: true,
       suite,
       elapsedMs: Date.now() - started,
       simulation: true,
+      workspaceArchived: true,
       welcome: true,
       composerSendsDirectly: true,
       fullAccessConfirmedAndReset: true,

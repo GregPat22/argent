@@ -159,6 +159,14 @@
               workspace from this repository <kbd>⌘N</kbd>
             </button>
             <hr />
+            <button
+              id="workspace-archive"
+              class="menu-item"
+              aria-haspopup="dialog"
+              hidden
+            >
+              Archive workspace…
+            </button>
             <button id="workspace-lifecycle" class="menu-item">
               Stop workspace
             </button>
@@ -274,11 +282,14 @@
                 hidden
               >
                 <span class="icon icon-clock-3" aria-hidden="true"></span>
-                <span
+                <span id="pending-description"
                   >Argent could not confirm this message reached the service.
                   Retrying checks the same message, so it never runs
                   twice.</span
                 >
+                <button id="pending-dismiss" class="button small" hidden>
+                  Dismiss
+                </button>
                 <button id="pending-retry" class="button small">Retry</button>
               </div>
 
@@ -735,6 +746,30 @@
       </form>
     </dialog>
 
+    <dialog id="archive-dialog" aria-labelledby="archive-title">
+      <div class="dialog-form">
+        <h2 id="archive-title">Archive workspace?</h2>
+        <strong class="mono" id="archive-target"></strong>
+        <p>
+          Archiving removes this worktree and keeps its branch and session
+          history. Uncommitted changes and ignored files block removal by
+          default.
+        </p>
+        <label class="discard-option"
+          ><input type="checkbox" id="archive-discard" />
+          Permanently discard all uncommitted changes, including untracked and
+          ignored files.
+        </label>
+        <div class="dialog-actions">
+          <button id="archive-cancel" type="button" class="button">
+            Keep workspace
+          </button>
+          <button id="archive-confirm" type="button" class="button danger">
+            Archive workspace
+          </button>
+        </div>
+      </div>
+    </dialog>
     <dialog id="stop-dialog" aria-labelledby="stop-dialog-title">
       <div class="dialog-form">
         <span class="dialog-icon"

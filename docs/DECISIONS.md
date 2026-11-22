@@ -76,6 +76,20 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Local archive ownership (in development) — 22 November 2026
+
+The [archive contract](specs/0013-local-mvp.md#local-archive-acceptance-in-development)
+requires the branch to survive removal. The local service reserves a directory
+when creating a workspace and binds its filesystem identity to the repository
+and linked Git registration. Older rows lack this evidence. Learning an
+identity at deletion time would allow a replacement directory to qualify.
+
+The archive intent is a durable event. It and the stopped workspace state
+commit together before removal. A later event records confirmation after Git
+removes the registration and the branch still points to the observed commit.
+A missing confirmation leaves the workspace blocked for inspection. Real
+publication and a human-merged pull request have separate exit criteria.
+
 ### Local check exit evidence — 20 November 2026
 
 The [manual desktop walkthrough](specs/0013-local-mvp.md#l14-manual-walkthrough)

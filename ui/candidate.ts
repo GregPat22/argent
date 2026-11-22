@@ -362,7 +362,10 @@ function close(): void {
 }
 export function renderCandidate(): void {
   if (!dialog().open) return;
-  if (workspaceId !== state.selectedWorkspace) {
+  if (
+    workspaceId !== state.selectedWorkspace ||
+    currentWorkspace()?.archiveStatus
+  ) {
     close();
     return;
   }
@@ -422,6 +425,7 @@ export function wireCandidate(): void {
     if (
       !state.connected ||
       !isLocal(currentWorkspace()) ||
+      currentWorkspace()?.archiveStatus ||
       dialog().open ||
       byId<HTMLButtonElement>(run ? "commands-review-run" : "commands-review")
         .disabled

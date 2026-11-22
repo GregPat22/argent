@@ -2,6 +2,7 @@
 import { actions } from "./actions.js";
 import { byId, enable, h, icon, setClass, setText, show } from "./dom.js";
 import {
+  archiveLabel,
   groupWorkspaces,
   isWorking,
   rowLabel,
@@ -63,7 +64,9 @@ export function renderSidebar(): void {
           "button",
           {
             class: `workspace-row${selected ? " selected" : ""}${workspace.state === "stopped" ? " is-stopped" : ""}`,
-            title: workspace.local?.worktreePath ?? workspace.repository,
+            title: workspace.archiveStatus
+              ? workspace.repository
+              : (workspace.local?.worktreePath ?? workspace.repository),
             data: { workspaceId: workspace.id },
             attrs: {
               type: "button",
@@ -75,7 +78,12 @@ export function renderSidebar(): void {
           h("span", { class: "row-label", text: rowLabel(workspace) }),
         );
         if (workspace.state === "stopped")
-          row.append(h("span", { class: "row-meta", text: "Stopped" }));
+          row.append(
+            h("span", {
+              class: "row-meta",
+              text: archiveLabel(workspace) || "Stopped",
+            }),
+          );
         rows.append(h("li", {}, row));
       }
       const first = group.items[0]!;

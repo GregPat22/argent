@@ -329,9 +329,10 @@ export class LocalCommandApprovalStore {
       const duplicate = this.receipt(requestKey, fingerprint);
       if (duplicate) return duplicate;
       signal?.throwIfAborted();
+      const current = this.store.getWorkspace(workspaceId);
       if (
-        JSON.stringify(this.store.getWorkspace(workspaceId).local) !==
-        JSON.stringify(workspace.local)
+        current.archiveStatus ||
+        JSON.stringify(current.local) !== JSON.stringify(workspace.local)
       )
         throw changed();
       let approved = this.find(operatorId, candidate);
@@ -426,9 +427,10 @@ export class LocalCommandApprovalStore {
       workspaceId,
       signal,
     );
+    const current = this.store.getWorkspace(workspaceId);
     if (
-      JSON.stringify(this.store.getWorkspace(workspaceId).local) !==
-      JSON.stringify(workspace.local)
+      current.archiveStatus ||
+      JSON.stringify(current.local) !== JSON.stringify(workspace.local)
     )
       throw changed();
     return Object.freeze({
