@@ -748,3 +748,11 @@ the developer's discard choice and stops new work before Git removes the
 directory. The final event confirms that the directory and registration are gone
 and the branch still points to the observed commit. History reads need no
 worktree. An interrupted removal has no replay path.
+
+## Local staged commits (in development)
+
+The [staged commit contract](docs/specs/0013-local-mvp.md#commit-staged-changes-in-development)
+uses a private index copy to materialize a staged tree. The service reads its
+objects through the same bounded, hash-verified comparison as candidate reviews.
+An intent event fences the workspace before a compare-and-swap advances its
+branch. The success receipt and restored running state commit together.

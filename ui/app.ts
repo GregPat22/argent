@@ -1,6 +1,7 @@
 import { renderChecks, wireChecks } from "./checks.js";
 // Orchestrates refresh and rendering. Execution stays with the local service;
 // this window only reads state and sends explicit, idempotent requests.
+import { renderCommit, wireCommit } from "./commit.js";
 import { renderChanges, wireChanges } from "./changes.js";
 import { renderCandidate, wireCandidate } from "./candidate.js";
 import { renderCommands, wireCommands } from "./commands.js";
@@ -104,7 +105,10 @@ function renderHeader(): void {
     (archiving !== workspace?.id || !canArchive(workspace))
   )
     dialog("archive-dialog").close();
-  show("workspace-lifecycle", !workspace?.archiveStatus);
+  show(
+    "workspace-lifecycle",
+    !workspace?.archiveStatus && !workspace?.commitNeedsAttention,
+  );
   const lifecycle = byId<HTMLButtonElement>("workspace-lifecycle");
   lifecycle.textContent =
     workspace?.state === "stopped" ? "Start workspace" : "Stop workspace";
@@ -153,6 +157,7 @@ function render(): void {
   renderWelcomeActions();
   renderSidebar();
   renderHeader();
+  renderCommit();
   renderChanges();
   renderChecks();
   renderCommands();
@@ -413,6 +418,7 @@ Object.assign(actions, {
   focusComposer,
 });
 
+wireCommit();
 wireChanges();
 wireChecks();
 wireCommands();
@@ -495,6 +501,7 @@ function canArchive(workspace: Workspace | undefined): boolean {
   return (
     !!workspace?.local &&
     !workspace.archiveStatus &&
+    !workspace.commitNeedsAttention &&
     state.connected &&
     !state.mutationBusy &&
     state.pending?.workspaceId !== workspace.id &&

@@ -2,6 +2,11 @@ import {
   DRAFT_EVIDENCE_BYTES,
   type DraftEvidencePreview,
 } from "../draft-evidence.js";
+import {
+  commitDetails,
+  type CommitReceipt,
+  type StagedReview,
+} from "../local-commit.js";
 import { validateCheckView } from "./checks.js";
 import {
   DomainError,
@@ -334,6 +339,90 @@ export class DesktopClient {
           expected,
           runAction,
         );
+      }
+      case "reviewStagedCommit":
+      case "commitStagedChanges": {
+        const reading = method === "reviewStagedCommit";
+        const expected = args[2];
+        if (
+          !uuid(args[0]) ||
+          args.length !== (reading ? 2 : 3) ||
+          (!reading &&
+            (typeof expected !== "string" ||
+              CANDIDATE_IDENTITY.exec(expected)?.[0] !== expected))
+        )
+          throw new DomainError(
+            400,
+            "Expected a workspace, commit details and reviewed identity",
+          );
+        const details = commitDetails(args[1]);
+        const value = await send(
+          connection,
+          `/workspaces/${id()}/${reading ? "commit-review" : "commits"}`,
+          "POST",
+          reading ? { details } : { details, expectedIdentity: expected },
+          undefined,
+          REVIEW_LIMITS.timeoutMs + 10000,
+        );
+        const invalid = () =>
+          new DomainError(502, "Invalid local commit response");
+        if (
+          !value ||
+          typeof value !== "object" ||
+          (value as CommitReceipt).workspaceId !== args[0]
+        )
+          throw invalid();
+        const sha = (x: unknown) =>
+          typeof x === "string" &&
+          /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.exec(x)?.[0] === x;
+        if (!reading) {
+          const receipt = value as CommitReceipt;
+          if (receipt.reviewIdentity !== expected || !sha(receipt.commitSha))
+            throw invalid();
+          return receipt;
+        }
+        const review = value as StagedReview;
+        if (
+          typeof review.identity !== "string" ||
+          CANDIDATE_IDENTITY.exec(review.identity)?.[0] !== review.identity ||
+          review.branch !== `argent/${args[0].slice(0, 8)}` ||
+          review.author !== details.author ||
+          review.email !== details.email ||
+          review.message !== details.message
+        )
+          throw invalid();
+        validateWorkspaceChanges(
+          {
+            kind: "workspace-changes",
+            workspaceId: args[0],
+            baseSha: review.parentSha,
+            headSha: review.treeId,
+            files: review.files,
+            consistency: "live",
+            tested: false,
+            simulation: false,
+          },
+          args[0],
+        );
+        for (const file of review.files) {
+          for (const [mode, blob, size] of [
+            [file.oldMode, file.oldBlobId, file.oldBytes],
+            [file.newMode, file.newBlobId, file.newBytes],
+          ] as const) {
+            if (
+              mode === null
+                ? blob !== null || size !== null
+                : !sha(blob) ||
+                  blob?.length !== review.treeId.length ||
+                  typeof size !== "number" ||
+                  !Number.isSafeInteger(size) ||
+                  size < 0 ||
+                  size > REVIEW_LIMITS.fileBytes
+            )
+              throw invalid();
+          }
+        }
+        return review;
       }
       case "archiveWorkspace": {
         if (args.length !== 2 || !uuid(args[0]) || typeof args[1] !== "boolean")

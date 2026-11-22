@@ -87,6 +87,15 @@ initialization event for that session. These fields describe the run whose
 completion Argent observed. Commit authorship remains a separate fact.
 Opening the preview requires no GitHub access.
 
+### Commit the reviewed Git index (in development) — 22 November 2026
+
+Within L1.5 the [staged-commit flow](specs/0013-local-mvp.md#commit-staged-changes-in-development)
+uses the exact staged tree and a user-entered identity and message. The
+workspace changes panel compares working files to the workspace base and
+cannot identify the staged tree. The staged review instead uses hash-verified
+objects and compares with the current parent. A separate ref update requires
+that parent and preserves its last known outcome across a restart.
+
 ### Local archive ownership (in development) — 22 November 2026
 
 The [archive contract](specs/0013-local-mvp.md#local-archive-acceptance-in-development)

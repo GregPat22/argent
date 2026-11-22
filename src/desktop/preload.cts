@@ -37,6 +37,10 @@ const bridge: DesktopBridge = {
     invoke("consentCandidate", [id, expected, key]),
   createWorkspace: (repository) => invoke("createWorkspace", [repository]),
   createLocalWorkspace: (from) => invoke("createLocalWorkspace", [from]),
+  reviewStagedCommit: (id, details) =>
+    invoke("reviewStagedCommit", [id, details]),
+  commitStagedChanges: (id, details, expected) =>
+    invoke("commitStagedChanges", [id, details, expected]),
   archiveWorkspace: (id, discardChanges) =>
     invoke("archiveWorkspace", [id, discardChanges]),
   listRuns: (workspace, before) => invoke("listRuns", [workspace, before]),

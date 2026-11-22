@@ -252,21 +252,41 @@ export async function runDesktopSmoke(
     };
     for (const [path, content] of Object.entries(reviewFiles))
       writeFileSync(join(local.local!.worktreePath, path), content);
-    for (const args of [
-      ["add", "--", ...Object.keys(reviewFiles)],
-      ["commit", "--quiet", "-m", "review fixture"],
-    ])
-      execFileSync(
-        "git",
-        [
-          "-c",
-          "user.name=Argent Smoke",
-          "-c",
-          "user.email=smoke@example.invalid",
-          ...args,
-        ],
-        { cwd: local.local!.worktreePath, stdio: "ignore" },
-      );
+    execFileSync("git", ["add", "--", ...Object.keys(reviewFiles)], {
+      cwd: local.local!.worktreePath,
+      stdio: "ignore",
+    });
+    await js(
+      `document.querySelector('#workspace-menu-button').click(); document.querySelector('#workspace-commit').click()`,
+    );
+    await js(`{
+      for (const [id, value] of [["commit-author","Argent Smoke"],["commit-email","smoke@example.invalid"],["commit-message","Review fixture"]]) {
+        const field = document.getElementById(id);
+        field.value = value;
+        field.dispatchEvent(new Event('input'));
+      }
+      document.querySelector('#commit-review').click();
+    }`);
+    await until(
+      () => js(`!document.querySelector('#commit-confirm').disabled`),
+      "staged fixture reviewed",
+    );
+    assert.match(await text("#commit-files"), /review\.test\.js/);
+    await capture("staged-commit");
+    await js(`document.querySelector('#commit-confirm').click()`);
+    await until(
+      () =>
+        js(
+          `document.querySelector('#commit-status').textContent.startsWith('Created commit ')`,
+        ),
+      "fixture committed in the desktop",
+    );
+    const checkedHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: local.local!.worktreePath,
+      encoding: "utf8",
+    }).trim();
+    assert.ok((await text("#commit-status")).includes(checkedHead));
+    await js(`document.querySelector('#commit-close').click()`);
     await js(`document.querySelector('#workspace-commands').click()`);
     await until(
       () => js(`!document.querySelector('#commands-review').disabled`),
@@ -377,6 +397,10 @@ export async function runDesktopSmoke(
     assert.doesNotMatch(
       markdown,
       /registry\.invalid|untrustedCommand|untrustedCandidate/,
+    );
+    assert.ok(
+      (await text("#draft-evidence-body")).includes(checkedHead),
+      "the preview carries the commit created in the desktop",
     );
     await capture("draft-evidence");
     await js(`document.querySelector('#draft-evidence-close').click()`);
@@ -1058,6 +1082,42 @@ export async function runDesktopSmoke(
     await delay(200);
     writeFileSync(shots, (await window.webContents.capturePage()).toPNG());
   }
+  const parallelPath = parallel.local!.worktreePath;
+  writeFileSync(
+    join(parallelPath, "staged.txt"),
+    "Reviewed from the desktop.\n",
+  );
+  execFileSync("git", ["add", "--", "staged.txt"], { cwd: parallelPath });
+  await js(`document.querySelector('#workspace-menu-button').click(); document.querySelector('#workspace-commit').click();
+    document.querySelector('#commit-author').value='Fixture';
+    document.querySelector('#commit-email').value='fixture@example.invalid';
+    document.querySelector('#commit-message').value='Record staged fixture';
+    document.querySelector('#commit-review').click()`);
+  await until(
+    () => js(`!document.querySelector('#commit-confirm').disabled`),
+    "staged commit reviewed",
+  );
+  assert.match(await text("#commit-files"), /staged.txt/);
+  assert.match(
+    await text("#commit-status"),
+    /Fixture <fixture@example.invalid>/,
+  );
+  await capture("staged-commit");
+  await js(`document.querySelector('#commit-confirm').click()`);
+  await until(
+    () =>
+      js(
+        `document.querySelector('#commit-status').textContent.startsWith('Created commit ')`,
+      ),
+    "staged commit recorded",
+  );
+  const committedTip = execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: parallelPath,
+    encoding: "utf8",
+  }).trim();
+  assert.match(await text("#commit-status"), new RegExp(committedTip));
+  assert.notEqual(committedTip, parallel.local!.baseSha);
+  await js(`document.querySelector('#commit-close').click()`);
   await js(
     `document.querySelector('#workspace-menu-button').click(); document.querySelector('#workspace-archive').click()`,
   );
@@ -1091,7 +1151,7 @@ export async function runDesktopSmoke(
     )
       .toString()
       .trim(),
-    parallel.local!.baseSha,
+    committedTip,
   );
   assert.equal(
     await js(

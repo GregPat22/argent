@@ -1855,6 +1855,30 @@ permission mode), so the proof travels with the code. The planned record include
 uncommitted changes, unless the developer explicitly discards them; the branch is
 kept.
 
+#### Commit staged changes (in development)
+
+- From a local workspace the developer enters a commit message, author name and
+  email. Review shows the same identity for author and committer, the branch,
+  parent commit, staged tree and its changes. Binary changes show their blob
+  identities and sizes. Only the Git index supplies the new tree.
+- The service compares the reviewed parent and staged content again before
+  recording intent. A single-parent commit moves the recorded workspace branch
+  only if it still has that parent. The original index, unstaged files and
+  untracked files stay in place. An empty staging area, conflicts, special
+  index entries and an in-progress Git operation prevent committing.
+- The intent and workspace exclusion commit together before branch mutation.
+  A confirmed tip yields a durable receipt. An unknown outcome leaves the
+  workspace stopped for inspection across restarts. A repeated confirmation
+  reads its receipt, including when overlapping inspections finish out of order.
+  Checks and publication remain separate actions.
+
+Review uses a temporary, private copy of the index. It can write immutable tree
+objects in the repository. A crash can leave the temporary index and unreachable
+Git objects on disk. A commit interruption before the ref update can also leave
+an unreachable commit. A pending intent alone never proves that the branch
+moved. Other processes running as the developer can still change files outside
+Argent. The ref update compares the live branch with the reviewed parent.
+
 #### Local archive acceptance (in development)
 
 - The desktop names the workspace branch before requesting removal. The default

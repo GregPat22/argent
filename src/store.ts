@@ -87,6 +87,7 @@ function readWorkspace(row: Row): Workspace {
     repository: row.repository as string,
     provider: row.provider as Workspace["provider"],
     state: row.state as Workspace["state"],
+    ...(row.commit_pending ? { commitNeedsAttention: true as const } : {}),
     ...(row.archive_status
       ? {
           archiveStatus: row.archive_status as NonNullable<
@@ -108,7 +109,8 @@ function readWorkspace(row: Row): Workspace {
 }
 
 const WORKSPACE_SELECT = `SELECT w.*, l.repository_path, l.branch, l.base_sha, l.worktree_path,
-  (SELECT status FROM local_archive_events WHERE workspace_id = w.id ORDER BY sequence DESC LIMIT 1) AS archive_status
+  (SELECT status FROM local_archive_events WHERE workspace_id = w.id ORDER BY sequence DESC LIMIT 1) AS archive_status,
+  EXISTS(SELECT 1 FROM pending_local_commits WHERE workspace_id = w.id) AS commit_pending
   FROM workspaces w LEFT JOIN local_worktrees l ON l.workspace_id = w.id`;
 
 // Additive migrations for databases created before local execution existed.
@@ -191,6 +193,18 @@ export class Store {
       CREATE TRIGGER IF NOT EXISTS local_archive_stays_stopped BEFORE UPDATE OF state ON workspaces
         WHEN NEW.state = 'running' AND EXISTS (SELECT 1 FROM local_archive_events WHERE workspace_id = NEW.id)
         BEGIN SELECT RAISE(ABORT,'Workspace is archived or awaiting archive inspection'); END;
+      `);
+      this.db.exec(`CREATE TABLE IF NOT EXISTS local_commit_events (
+        sequence INTEGER PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES local_worktrees(workspace_id),
+        review_id TEXT NOT NULL, commit_sha TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('needs_attention','committed')),
+        created_at INTEGER NOT NULL, UNIQUE(workspace_id,review_id,status)
+      ) STRICT;
+      CREATE VIEW IF NOT EXISTS pending_local_commits AS
+        SELECT i.workspace_id,i.review_id FROM local_commit_events i WHERE i.status='needs_attention'
+        AND NOT EXISTS (SELECT 1 FROM local_commit_events c WHERE c.workspace_id=i.workspace_id AND c.review_id=i.review_id AND c.status='committed');
+      CREATE TRIGGER IF NOT EXISTS local_commit_stays_stopped BEFORE UPDATE OF state ON workspaces
+        WHEN NEW.state='running' AND EXISTS(SELECT 1 FROM pending_local_commits WHERE workspace_id=NEW.id)
+        BEGIN SELECT RAISE(ABORT,'Local commit still needs attention'); END;
       `);
       this.lifecycle = new LifecycleStore(this.db);
       this.repositories = new RepositoryStore(this.db);
@@ -326,13 +340,21 @@ export class Store {
     });
   }
 
-  archiveIdentity(id: string): string {
+  creationIdentity(id: string): string | null {
     const identity = this.db
       .prepare(
         "SELECT creation_identity FROM local_worktrees WHERE workspace_id = ?",
       )
       .get(id)?.creation_identity;
+    if (identity === null) return null;
     if (typeof identity !== "string" || !/^[0-9a-f]{64}$/.test(identity))
+      throw new DomainError(409, "Invalid worktree creation record");
+    return identity;
+  }
+
+  archiveIdentity(id: string): string {
+    const identity = this.creationIdentity(id);
+    if (identity === null)
       throw new DomainError(
         409,
         "No creation identity is recorded for this worktree. Manual cleanup is required.",
@@ -344,9 +366,70 @@ export class Store {
   archiveWriterGeneration(id: string): number {
     return this.db
       .prepare(
-        "SELECT COALESCE(MAX(rowid),0) AS generation FROM runs WHERE workspace_id = ?",
+        `SELECT COALESCE(MAX(rowid),0) + (SELECT COUNT(*) FROM local_commit_events WHERE workspace_id = ?) AS generation FROM runs WHERE workspace_id = ?`,
       )
-      .get(id)!.generation as number;
+      .get(id, id)!.generation as number;
+  }
+
+  localCommitReceipt(id: string, reviewId: string): string | null {
+    const row = this.db
+      .prepare(
+        "SELECT status, commit_sha FROM local_commit_events WHERE workspace_id=? AND review_id=? ORDER BY sequence DESC LIMIT 1",
+      )
+      .get(id, reviewId);
+    if (!row) return null;
+    if (row.status !== "committed")
+      throw new DomainError(
+        409,
+        "Local commit outcome needs attention. Inspect the branch before continuing.",
+      );
+    return row.commit_sha as string;
+  }
+
+  /** Return a previous receipt, or reserve this worktree before moving the ref. */
+  beginLocalCommit(
+    id: string,
+    reviewId: string,
+    commitSha: string,
+    generation: number,
+  ): string | null {
+    return this.transaction(() => {
+      const previous = this.localCommitReceipt(id, reviewId);
+      if (previous) return previous;
+      this.requireIdleWorkspace(id);
+      const workspace = this.getWorkspace(id);
+      if (
+        workspace.provider !== "local-worktree" ||
+        workspace.state !== "running" ||
+        this.archiveWriterGeneration(id) !== generation
+      )
+        throw new DomainError(409, "Workspace changed during commit review");
+      this.db
+        .prepare("UPDATE workspaces SET state='stopped' WHERE id=?")
+        .run(id);
+      this.db
+        .prepare(
+          "INSERT INTO local_commit_events(workspace_id,review_id,commit_sha,status,created_at) VALUES (?,?,?,'needs_attention',?)",
+        )
+        .run(id, reviewId, commitSha, Date.now());
+      return null;
+    });
+  }
+
+  finishLocalCommit(id: string, reviewId: string): void {
+    this.transaction(() => {
+      const inserted = this.db
+        .prepare(
+          `INSERT INTO local_commit_events(workspace_id,review_id,commit_sha,status,created_at)
+        SELECT workspace_id,review_id,commit_sha,'committed',? FROM local_commit_events WHERE workspace_id=? AND review_id=? AND status='needs_attention'`,
+        )
+        .run(Date.now(), id, reviewId);
+      if (!inserted.changes)
+        throw new DomainError(409, "Missing local commit intent");
+      this.db
+        .prepare("UPDATE workspaces SET state='running' WHERE id=?")
+        .run(id);
+    });
   }
 
   /** Fence all writers before Git removal. A restart sees the outstanding intent. */
@@ -449,6 +532,11 @@ export class Store {
 
   requireIdleWorkspace(id: string): void {
     const workspace = this.getWorkspace(id);
+    if (workspace.commitNeedsAttention)
+      throw new DomainError(
+        409,
+        "Local commit outcome needs attention. Inspect the branch before continuing.",
+      );
     if (workspace.archiveStatus)
       throw new DomainError(
         409,

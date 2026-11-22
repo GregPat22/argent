@@ -94,6 +94,7 @@ export function isLocal(workspace: Workspace | undefined): boolean {
   return workspace?.provider === "local-worktree" && !!workspace.local;
 }
 export function archiveLabel(workspace: Workspace | undefined): string {
+  if (workspace?.commitNeedsAttention) return "Commit needs attention";
   if (workspace?.archiveStatus === "archived") return "Archived";
   if (workspace?.archiveStatus === "needs_attention")
     return "Archive needs attention";
@@ -237,11 +238,13 @@ export function composerGate(input: ComposerInput): ComposerGate {
     : !input.workspace
       ? ""
       : stopped
-        ? input.workspace.archiveStatus === "needs_attention"
-          ? "Argent could not confirm worktree removal. This workspace is locked."
-          : input.workspace.archiveStatus === "archived"
-            ? "Workspace archived. Its branch and history are saved."
-            : "This workspace is stopped"
+        ? input.workspace.commitNeedsAttention
+          ? "Check the local branch. The commit outcome needs attention."
+          : input.workspace.archiveStatus === "needs_attention"
+            ? "Argent could not confirm worktree removal. This workspace is locked."
+            : input.workspace.archiveStatus === "archived"
+              ? "Workspace archived. Its branch and history are saved."
+              : "This workspace is stopped"
         : input.pendingHere
           ? "Waiting for confirmation"
           : review

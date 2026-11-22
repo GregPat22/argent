@@ -2366,3 +2366,14 @@ dialog::backdrop {
   margin-top: 12px;
   flex-shrink: 0;
 }
+
+#commit-dialog .dialog-form {
+  overflow: auto;
+  min-height: 0;
+  padding: 0 4px 4px 0;
+}
+#commit-status,
+#commit-files pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

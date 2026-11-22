@@ -109,7 +109,10 @@ export function renderComposer(): void {
   setText("composer-status", status.hint);
   show(
     "composer-start",
-    !!workspace && workspace.state === "stopped" && !workspace.archiveStatus,
+    !!workspace &&
+      workspace.state === "stopped" &&
+      !workspace.archiveStatus &&
+      !workspace.commitNeedsAttention,
   );
   enable(
     "composer-start",

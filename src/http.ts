@@ -10,6 +10,7 @@ import { Store } from "./store.js";
 import { readDraftEvidence } from "./draft-evidence.js";
 import { inspectArtifact } from "./artifacts.js";
 import { createLocalWorkspace } from "./local-worktree.js";
+import { commitStagedChanges, reviewStagedCommit } from "./local-commit.js";
 import { archiveLocalWorkspace } from "./local-archive.js";
 import { checkId } from "./local-checks.js";
 import { inspectWorkspaceChanges } from "./workspace-changes.js";
@@ -433,6 +434,54 @@ export function makeServer(
               executionAllowed: false,
             });
           }
+        } finally {
+          response.off("close", abort);
+        }
+      } else if (
+        parts[0] === "workspaces" &&
+        parts.length === 3 &&
+        (parts[2] === "commit-review" || parts[2] === "commits") &&
+        method === "POST"
+      ) {
+        if (!options.worktreeRoot)
+          throw new DomainError(
+            409,
+            "Local execution is not enabled in this service",
+          );
+        const reading = parts[2] === "commit-review";
+        const body = await readBody(request);
+        if (
+          url.searchParams.size ||
+          !Object.hasOwn(body, "details") ||
+          Object.keys(body).length !== (reading ? 1 : 2) ||
+          (!reading && !Object.hasOwn(body, "expectedIdentity"))
+        )
+          throw new DomainError(
+            400,
+            "Expected commit details and, for confirmation, the reviewed identity",
+          );
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        response.once("close", abort);
+        try {
+          if (response.destroyed) controller.abort();
+          const result = reading
+            ? await reviewStagedCommit(
+                store,
+                options.worktreeRoot,
+                parts[1]!,
+                body.details,
+                controller.signal,
+              )
+            : await commitStagedChanges(
+                store,
+                options.worktreeRoot,
+                parts[1]!,
+                body.details,
+                body.expectedIdentity,
+                controller.signal,
+              );
+          send(response, 200, result);
         } finally {
           response.off("close", abort);
         }

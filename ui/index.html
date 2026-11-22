@@ -160,6 +160,14 @@
             </button>
             <hr />
             <button
+              id="workspace-commit"
+              class="menu-item"
+              aria-haspopup="dialog"
+              hidden
+            >
+              Commit staged changes…
+            </button>
+            <button
               id="workspace-archive"
               class="menu-item"
               aria-haspopup="dialog"
@@ -775,6 +783,46 @@
       </form>
     </dialog>
 
+    <dialog
+      id="commit-dialog"
+      class="changes-panel commands-panel"
+      aria-labelledby="commit-title"
+    >
+      <header class="sheet-head">
+        <h2 id="commit-title">Commit staged changes</h2>
+        <button id="commit-close" class="button small">Close</button>
+      </header>
+      <p class="changes-notice">
+        Only staged changes enter the commit. To stage a file, run
+        <code>git add -- &lt;file&gt;</code> in this workspace. Unstaged edits
+        and untracked files stay in the worktree.
+      </p>
+      <div class="dialog-form">
+        <label
+          >Author and committer name
+          <input id="commit-author" maxlength="150" required
+        /></label>
+        <label
+          >Author and committer email
+          <input id="commit-email" type="email" maxlength="254" required
+        /></label>
+        <label
+          >Commit message
+          <textarea
+            id="commit-message"
+            maxlength="2000"
+            rows="3"
+            required
+          ></textarea>
+        </label>
+        <p id="commit-status" role="status" aria-live="polite"></p>
+        <button id="commit-review" class="button">Review staged changes</button>
+        <div id="commit-files"></div>
+        <button id="commit-confirm" class="button primary" disabled>
+          Create local commit
+        </button>
+      </div>
+    </dialog>
     <dialog id="archive-dialog" aria-labelledby="archive-title">
       <div class="dialog-form">
         <h2 id="archive-title">Archive workspace?</h2>

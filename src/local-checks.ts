@@ -215,6 +215,7 @@ export class LocalCheckStore {
   }
   /** Any active or uncertain writer of either kind in this workspace. */
   private busy(workspaceId: string): boolean {
+    if (this.store.getWorkspace(workspaceId).commitNeedsAttention) return true;
     return !!this.db
       .prepare(
         "SELECT id FROM runs WHERE workspace_id = ? AND status IN ('queued','running','cancelling','needs_attention')",

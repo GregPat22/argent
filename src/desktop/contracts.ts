@@ -1,4 +1,10 @@
 import type { DraftEvidencePreview } from "../draft-evidence.js";
+
+import type {
+  CommitDetails,
+  StagedReview,
+  CommitReceipt,
+} from "../local-commit.js";
 import type { LocalCheckView } from "../local-checks.js";
 export type { LocalCheckView } from "../local-checks.js";
 import type {
@@ -119,6 +125,12 @@ export interface DesktopBridge {
    * supplies a path. Resolves to null when the dialog is cancelled.
    */
   createLocalWorkspace(fromWorkspaceId?: string): Promise<Workspace | null>;
+  reviewStagedCommit(id: string, details: CommitDetails): Promise<StagedReview>;
+  commitStagedChanges(
+    id: string,
+    details: CommitDetails,
+    expectedIdentity: string,
+  ): Promise<CommitReceipt>;
   archiveWorkspace(id: string, discardChanges: boolean): Promise<Workspace>;
   listRuns(workspaceId: string, before?: string): Promise<Page<RunView>>;
   createRun(
