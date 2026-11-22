@@ -1159,6 +1159,15 @@ test("draft preview revalidates the displayed review and binds failed phases to 
   );
   await f.enqueue();
   await f.worker.tick();
+  const later = await f.store.localCommandConsents.consent(
+    f.worktrees,
+    f.id,
+    "operator",
+    f.review.identity,
+    "another-consent",
+  );
+  assert.notEqual(later.id, f.consent.id);
+  assert.deepEqual(later.binding, f.consent.binding);
   const old = await preview(f.review.identity);
   const recorded = f.store.localChecks.latestRecorded(f.id, "operator")!;
   const historical = { ...recorded.result! };

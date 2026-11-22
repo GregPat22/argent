@@ -434,7 +434,7 @@ export function wireCandidate(): void {
         );
       setText(
         "draft-evidence-status",
-        "Markdown preview for this reading. Nothing has been published.",
+        "Markdown preview for this reading. Review the paths and finding names before sharing. Nothing has been published.",
       );
       setText("draft-evidence-body", preview.body);
       show("draft-evidence-body", true);

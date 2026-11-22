@@ -30,6 +30,7 @@ function publicName(name: string): string {
   // Refuse embedded locations and known credential forms even in labels.
   // Only repository-relative names are needed in this record.
   if (
+    /[a-z0-9._%+-]+@[a-z0-9.-]+(?:\.[a-z]{2,}|:[^\s]+)/i.test(name) ||
     /(?:^|[\s=:(])(?:[/~\\]|[a-z]:[\\/])|:\/\/|(?:github_pat_|gh[pousr]_|sk-(?:proj-|ant-|[A-Za-z0-9]{12})|-----BEGIN [A-Z ]*PRIVATE KEY)/i.test(
       name,
     )
@@ -85,7 +86,7 @@ export function draftEvidenceBody(
     "",
     agent
       ? `The latest completed Claude Code run observed this branch and commit at exit. Permission mode: ${agent.permissionMode === "full" ? "full access" : "edits only"}. Model reported by the CLI: ${agent.reportedModel ? publicName(agent.reportedModel) : "unavailable"}.`
-      : "Workspace agent: Claude Code, using its CLI default model. No matching agent run is recorded. The actual model and permission mode are unavailable.",
+      : "Workspace agent: Claude Code, using its CLI default model. The latest completed agent run supplies no matching context for this commit. Its model and permission mode are unavailable.",
     "",
     "### Latest setup/test check",
     "",
@@ -238,6 +239,15 @@ export async function readDraftEvidence(
       "The reviewed candidate changed. Refresh the candidate review.",
     );
   const check = store.localChecks.latestRecorded(workspaceId, operator);
+  // Several acknowledgements can bind the same review. Use the one the
+  // worker executed and compare its binding with the freshly matched consent.
+  const executed =
+    check?.result && store.localCommandConsents.get(check.result.consentId);
+  const matched =
+    executed &&
+    receipt &&
+    JSON.stringify(executed.binding) === JSON.stringify(receipt.binding);
+
   return {
     kind: "draft-evidence-preview",
     workspaceId,
@@ -246,7 +256,7 @@ export async function readDraftEvidence(
     body: draftEvidenceBody(
       review,
       check,
-      receipt?.id ?? null,
+      matched ? executed.id : null,
       store.latestAgentContext(
         workspaceId,
         store.getWorkspace(workspaceId).local!.branch,

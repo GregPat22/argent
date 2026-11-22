@@ -1905,6 +1905,8 @@ Argent's control.
   command arguments, file contents, logs, local configuration and package
   addresses. If a complete description exceeds the size bound or a finding
   cannot safely be represented, the service refuses to produce a partial body.
+  Paths and labels come from the repository and require review before sharing.
+  Filtering recognised private references cannot establish that a name is public.
 - Refresh, disconnect and workspace changes invalidate the displayed preview.
   Local commit, push, draft creation and URL recording remain separate work.
 
