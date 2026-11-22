@@ -7,7 +7,7 @@ import {
   realpath,
   rmdir,
   unlink,
-  writeFile,
+  type FileHandle,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -144,6 +144,36 @@ async function refuseOperation(admin: string) {
   }
 }
 
+const lostIndex = () =>
+  new DomainError(409, "Temporary index ownership changed");
+
+async function sameIndex(path: string, handle: FileHandle) {
+  const current = await lstat(path, { bigint: true });
+  const held = await handle.stat({ bigint: true });
+  return (
+    current.isFile() &&
+    current.nlink === 1n &&
+    held.dev === current.dev &&
+    held.ino === current.ino
+  );
+}
+
+/** Remove only the index held by this inspection. Preserve unexpected entries. */
+export async function removeOwnedIndex(
+  temp: string,
+  directory: string,
+  handle?: FileHandle,
+) {
+  if ((await directoryIdentity(temp)) !== directory) throw lostIndex();
+  const path = join(temp, "index");
+  if (handle) {
+    if (!(await sameIndex(path, handle))) throw lostIndex();
+    await unlink(path);
+  }
+  // An unsuccessful exclusive open grants no right to the occupied file.
+  await rmdir(temp);
+}
+
 // Copy the bounded index before write-tree: Git may cache a tree in its index.
 // A review may materialize immutable tree objects but never stages files or moves a ref.
 async function inspect(
@@ -232,8 +262,13 @@ async function inspect(
   const owned = await directoryIdentity(temp);
   const copy = join(temp, "index");
   let uncertain = false;
+  let initial: FileHandle | undefined;
+  let written: FileHandle | undefined;
+  let cleanupHandle: FileHandle | undefined;
   try {
-    await writeFile(copy, index, { flag: "wx", mode: 0o600 });
+    initial = await open(copy, "wx", 0o600);
+    cleanupHandle = initial;
+    await initial.writeFile(index);
     const readIndex = (args: string[], limit: number) =>
       git(
         cwd,
@@ -245,17 +280,37 @@ async function inspect(
       );
     if ((await readIndex(["rev-parse", "--shared-index-path"], 16384)).length)
       throw special();
-    const listed = decode(
-      await readIndex(
+    const listIndex = () =>
+      readIndex(
         ["ls-files", "--stage", "-v", "--sparse", "-z"],
         REVIEW_LIMITS.treeBytes,
-      ),
-    );
+      );
+    const beforeWrite = await listIndex();
+    const listed = decode(beforeWrite);
     const entries = listed.split("\0");
     if (entries.pop() !== "") throw special();
     if (entries.length > REVIEW_LIMITS.treeFiles)
       throw new DomainError(413, "Staged tree exceeds review limits");
+    if (
+      (await directoryIdentity(temp)) !== owned ||
+      !(await sameIndex(copy, initial))
+    )
+      throw lostIndex();
     const treeId = oid(await readIndex(["write-tree"], 128));
+    // Git can atomically replace its index to cache the tree it just wrote.
+    // Adopt that file only after a successful write and an unchanged staged listing.
+    if ((await directoryIdentity(temp)) !== owned) throw lostIndex();
+    written = await open(
+      copy,
+      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+    );
+    if (
+      !(await sameIndex(copy, written)) ||
+      !(await listIndex()).equals(beforeWrite) ||
+      !(await sameIndex(copy, written))
+    )
+      throw lostIndex();
+    cleanupHandle = written;
     const { head, files } = await reviewPinnedChanges(
       local.repositoryPath,
       common,
@@ -331,17 +386,10 @@ async function inspect(
     uncertain = error instanceof UncertainExecutionError;
     throw error;
   } finally {
-    if (!uncertain) {
-      if ((await directoryIdentity(temp)) !== owned)
-        throw new DomainError(409, "Temporary index ownership changed");
-      const file = await lstat(copy).catch((error: unknown) => {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-        throw error;
-      });
-      if (file && (!file.isFile() || file.nlink !== 1))
-        throw new DomainError(409, "Unexpected temporary index");
-      if (file) await unlink(copy);
-      await rmdir(temp);
+    try {
+      if (!uncertain) await removeOwnedIndex(temp, owned, cleanupHandle);
+    } finally {
+      await Promise.all([written?.close(), initial?.close()]);
     }
   }
 }

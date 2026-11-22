@@ -7,9 +7,11 @@ import {
   mkdtempSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { open } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, type TestContext } from "node:test";
@@ -18,9 +20,11 @@ import { makeServer } from "../src/http.js";
 import {
   commitStagedChanges,
   reviewStagedCommit,
+  removeOwnedIndex,
   type StagedReview,
   type CommitReceipt,
 } from "../src/local-commit.js";
+import { directoryIdentity } from "../src/local-worktree-identity.js";
 import { createLocalWorkspace } from "../src/local-worktree.js";
 import { Store } from "../src/store.js";
 import { archiveLocalWorkspace } from "../src/local-archive.js";
@@ -303,4 +307,29 @@ test("overlapping confirmations of one staged review record a single branch adva
     else assert.match(String(result.reason), /needs attention/);
   }
   assert.equal((await confirm()).commitSha, tip);
+});
+
+test("temporary index cleanup preserves occupied and replaced files", async (t) => {
+  const scratch = realpathSync(
+    mkdtempSync(join(tmpdir(), "argent-index-owner-")),
+  );
+  t.after(() => rmSync(scratch, { recursive: true, force: true }));
+  const id = await directoryIdentity(scratch);
+  const index = join(scratch, "index");
+  writeFileSync(index, "occupied");
+  await assert.rejects(removeOwnedIndex(scratch, id));
+  assert.equal(readFileSync(index, "utf8"), "occupied");
+
+  const held = await open(index, "r");
+  try {
+    renameSync(index, join(scratch, "previous"));
+    writeFileSync(index, "replacement");
+    await assert.rejects(
+      removeOwnedIndex(scratch, id, held),
+      /ownership changed/,
+    );
+    assert.equal(readFileSync(index, "utf8"), "replacement");
+  } finally {
+    await held.close();
+  }
 });
