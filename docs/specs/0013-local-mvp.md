@@ -1932,8 +1932,50 @@ Argent's control.
   Paths and labels come from the repository and require review before sharing.
   Filtering recognised private references cannot establish that a name is public.
 - Refresh, disconnect and workspace changes invalidate the displayed preview.
-  Committing staged files requires its own confirmation. Push, draft creation
-  and URL recording remain planned.
+  Committing staged files and publishing a draft each require separate confirmation.
+
+#### GitHub publication boundary (in development)
+
+- The desktop shows the canonical GitHub repository, base and workspace refs,
+  exact commit IDs, the number of commits to publish, title and complete
+  Markdown evidence. Editing any field requires another review. Confirmation
+  explicitly authorizes sending the branch history, including intermediate
+  file versions and commit metadata, to the displayed destination. The local
+  review supports a linear series of 1–64 SHA-1 commits ending at the workspace
+  base. The evidence body describes the base-to-head diff. It does not inspect
+  the contents of every intermediate version.
+- Review is local. On confirmation, the service verifies the same review and
+  checks the repository and refs on GitHub. The destination must be a non-fork
+  on github.com with the exact workspace base at the chosen base ref and an
+  available workspace ref. Confirmation binds the repository name. GitHub's
+  repository ID is first read at preflight and checked on subsequent reads.
+  The push requires the source ref to be absent at creation. The base and
+  repository identity are point-in-time observations across separate GitHub
+  operations. A later change can leave a remote branch or draft requiring
+  manual inspection.
+- Only the desktop's separate publisher uses the developer's GitHub CLI sign-in.
+  The local Git helper continues to deny network transports and credential
+  helpers. Agents, the renderer and durable events receive no GitHub credentials.
+  Git prepares and validates a private bare repository before claiming the
+  workspace. The pack is limited to 64 MiB, 100,000 objects, 256 MiB of
+  expanded object data and 16 MiB per blob. The base snapshot counts toward
+  these limits. A known local preparation failure leaves the workspace usable.
+  The system Git runs the create-only HTTPS push. The publisher reads the
+  developer's default github.com sign-in through a standard installation of
+  the GitHub CLI. The CLI sends its GraphQL command through a private Unix
+  socket. Only the approved request reaches the fixed GitHub API endpoint,
+  with redirects refused.
+- Before the push and again before draft creation, the service records a durable
+  intent. Once the remote head and base are confirmed, the publisher uses the
+  GitHub CLI to create a draft with the reviewed title and evidence. Success
+  requires independently reading the matching draft and recording its canonical
+  URL. One workspace records one publication. An uncertain step stays blocked
+  for inspection across a restart. The status names the repository, refs,
+  commits and last attempted phase even when no URL could be verified.
+  Reopening, refreshing and repeating confirmation cannot replay either effect.
+- Offline fixtures must cover the production command construction, exact remote
+  ref, review and receipt checks, mismatches, overlapping requests and restart
+  after each intent. A live walkthrough requires separate authorization.
 
 #### Local L1.5 verification
 

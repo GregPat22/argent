@@ -76,6 +76,18 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### A separate GitHub-only publisher — 22 November 2026
+
+Accepted for L1.5. Local inspection and checks keep their transport-denied Git
+helper. Only the local desktop service can enable the publisher. Its review
+binds the destination name, both refs and commit IDs, the title and the
+complete evidence body. Remote access begins with explicit confirmation.
+GitHub's repository ID is first observed at that point and checked throughout
+the operation. Create-only ref publication prevents replacing an existing
+remote branch. GitHub can independently move the base or rename a repository
+between calls. The service checks both refs and the draft before recording a URL.
+See the [publication contract](specs/0013-local-mvp.md#github-publication-boundary-in-development).
+
 ### Draft pull request evidence preview (in development) — 22 November 2026
 
 The [preview contract](specs/0013-local-mvp.md#draft-evidence-preview-in-development)
