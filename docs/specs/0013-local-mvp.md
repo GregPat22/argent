@@ -1932,7 +1932,24 @@ Argent's control.
   Paths and labels come from the repository and require review before sharing.
   Filtering recognised private references cannot establish that a name is public.
 - Refresh, disconnect and workspace changes invalidate the displayed preview.
-  Local commit, push, draft creation and URL recording remain separate work.
+  Committing staged files requires its own confirmation. Push, draft creation
+  and URL recording remain planned.
+
+#### Local L1.5 verification
+
+On 22 November 2026 the Electron walkthrough at `d79b2fc` used a temporary
+Git repository and a fixture Claude CLI. In the desktop it reviewed staged
+changes, confirmed the commit, ran the approved checks, and opened the draft
+evidence preview for that same commit. A second scenario archived a workspace
+and verified that its branch retained the committed tip.
+
+At `4b6f0b1` the staged-index cleanup also checks ownership of the file it
+removes. Git can replace the temporary index when caching a tree. Argent
+retains a handle to the original file and verifies the replacement's staged
+entries before allowing cleanup. The regression covers both an occupied path
+and replacement of a held file. An interruption can leave the temporary index on disk. The remaining L1.5 exit evidence requires an authenticated push, a
+draft pull request whose description contains the reviewed evidence and a
+recorded URL.
 
 #### Human-triggered merge design todo
 

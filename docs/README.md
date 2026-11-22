@@ -46,6 +46,10 @@ skip markers, check configuration, npm scripts and lockfile changes. The check
 result carries the count for the reviewed commit. The [real-task trial](specs/0018-judging-changes-report.md#real-task-trial)
 records the two candidate reviews and the decision to keep the report.
 
+The [local L1.5 walkthrough](specs/0013-local-mvp.md#local-l15-verification)
+records development evidence for staged commits, the draft evidence preview
+and archive. Authenticated publication and URL recording remain planned.
+
 A [human-triggered desktop merge flow](specs/0013-local-mvp.md#human-triggered-merge-design-todo)
 is in the design backlog. Its UX, workflow and delivery milestone remain open;
 it does not change the current work queue or L1.5 exit criteria.
