@@ -1942,8 +1942,7 @@ Argent's control.
   explicitly authorizes sending the branch history, including intermediate
   file versions and commit metadata, to the displayed destination. The local
   review supports a linear series of 1–64 SHA-1 commits ending at the workspace
-  base. The evidence body describes the base-to-head diff. It does not inspect
-  the contents of every intermediate version.
+  base. The evidence body summarizes the base-to-head diff.
 - Review is local. On confirmation, the service verifies the same review and
   checks the repository and refs on GitHub. The destination must be a non-fork
   on github.com with the exact workspace base at the chosen base ref and an
@@ -1992,6 +1991,26 @@ entries before allowing cleanup. The regression covers both an occupied path
 and replacement of a held file. An interruption can leave the temporary index on disk. The remaining L1.5 exit evidence requires an authenticated push, a
 draft pull request whose description contains the reviewed evidence and a
 recorded URL.
+
+#### Offline GitHub publication evidence
+
+On 22 November 2026 the native Electron walkthrough at `fa8a426` reviewed a
+staged commit, ran its checks, prepared a publication and changed the draft
+title. The edit invalidated confirmation. Closing the dialog left the saved
+publication status empty.
+
+A separate offline test used the desktop client, the loopback service, SQLite,
+the publisher and a disposable Git receive-pack. Two workspace commits reached
+the fixture at the exact reviewed tip. The fixture draft contained the reviewed
+title and Markdown, including the judging-changes report. A restarted service
+returned the same verified URL without another upstream request. A separate
+service test repeated confirmation and observed one push and one draft.
+
+The transport tests at `9ffa8ea` exercised the installed GitHub CLI over a
+private Unix socket, redirected responses, competing ref creation, mismatched
+draft receipts and preservation of replaced scratch files. Verification used a
+fixture upstream and disposable credentials. Live GitHub sign-in, repository
+permissions and provider responses remain part of the authenticated walkthrough.
 
 #### Human-triggered merge design todo
 
