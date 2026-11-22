@@ -3,6 +3,7 @@ import { renderChecks, wireChecks } from "./checks.js";
 // this window only reads state and sends explicit, idempotent requests.
 import { renderCommit, wireCommit } from "./commit.js";
 import { renderChanges, wireChanges } from "./changes.js";
+import { renderPublication, wirePublication } from "./publication.js";
 import { renderCandidate, wireCandidate } from "./candidate.js";
 import { renderCommands, wireCommands } from "./commands.js";
 import { actions, api, hasBridge } from "./actions.js";
@@ -162,6 +163,7 @@ function render(): void {
   renderChecks();
   renderCommands();
   renderCandidate();
+  renderPublication();
   show("detail-empty", !!workspace && state.runs.length === 0);
   if (workspace) {
     const local = isLocal(workspace);
@@ -423,6 +425,7 @@ wireChanges();
 wireChecks();
 wireCommands();
 wireCandidate();
+wirePublication();
 wireComposer();
 wirePalette();
 

@@ -403,6 +403,46 @@ export async function runDesktopSmoke(
       "the preview carries the commit created in the desktop",
     );
     await capture("draft-evidence");
+    await until(
+      () => js(`!document.querySelector('#publication-form').hidden`),
+      "empty publication status read",
+    );
+    await js(`{
+      for (const [id, value] of [["publication-repository","example/project"],["publication-base","main"],["publication-title","Review fixture"]]) {
+        const field = document.getElementById(id);
+        field.value = value;
+        field.dispatchEvent(new Event('input'));
+      }
+      document.querySelector('#publication-review').click();
+    }`);
+    await until(
+      () => js(`!document.querySelector('#publication-confirm').disabled`),
+      "local publication plan for checked commit",
+    );
+    const target = await text("#publication-target");
+    for (const expected of [
+      "example/project",
+      "main",
+      "Review fixture",
+      local.local!.branch,
+      local.local!.baseSha,
+      checkedHead,
+    ])
+      assert.ok(target.includes(expected));
+    assert.equal(await text("#draft-evidence-body"), markdown);
+    assert.match(
+      await text("#publication-history"),
+      /1 commit since the displayed base/,
+    );
+    await capture("publication-review");
+    await js(
+      `{ const field = document.querySelector('#publication-title'); field.value = 'Changed'; field.dispatchEvent(new Event('input')); }`,
+    );
+    assert.equal(
+      await js(`document.querySelector('#publication-confirm').disabled`),
+      true,
+    );
+    assert.equal(await call("publicationStatus", [local.id]), null);
     await js(`document.querySelector('#draft-evidence-close').click()`);
 
     // Run uses a separate review acknowledgement, checkout and result namespace.

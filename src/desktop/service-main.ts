@@ -6,6 +6,8 @@ import { LocalWorkspace, ScriptedAgent } from "../adapters.js";
 import { ClaudeCodeAgent } from "../claude-code.js";
 import { LocalWorktreeWorkspace } from "../local-worktree.js";
 import { dataPaths } from "../config.js";
+import { LocalPublications } from "../local-publication.js";
+import { GitHubPublisher } from "../github-publisher.js";
 import { makeServer } from "../http.js";
 import { Store } from "../store.js";
 import { Worker } from "../worker.js";
@@ -45,12 +47,17 @@ try {
   const shutdown = new AbortController();
   const token = randomBytes(32).toString("hex");
   const worktreeRoot = join(directory, "worktrees");
+  const publisher = new LocalPublications(
+    new GitHubPublisher(),
+    shutdown.signal,
+  );
   const server = makeServer(store, token, {
     artifactRoot: paths.workspaces,
     worktreeRoot,
     // This private single-user store retains the same actor across token rotation.
     localCommandOperatorId: "local-desktop",
     localChecks: true,
+    publisher,
     instanceId,
     build: buildIdentity(),
     onStop: () => shutdown.abort(),
@@ -98,6 +105,7 @@ try {
     );
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
+    await publisher.drain();
     store.close();
   }
 } finally {

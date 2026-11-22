@@ -2299,7 +2299,19 @@ dialog::backdrop {
   border-radius: 8px;
   padding: 16px;
 }
+.publication-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.publication-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: end;
+  padding: 0 0 12px;
+}
 #draft-evidence-body {
+  min-height: 110px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   user-select: text;

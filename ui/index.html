@@ -168,6 +168,14 @@
               Commit staged changes…
             </button>
             <button
+              id="workspace-publication"
+              class="menu-item"
+              aria-haspopup="dialog"
+              hidden
+            >
+              Draft publication status…
+            </button>
+            <button
               id="workspace-archive"
               class="menu-item"
               aria-haspopup="dialog"
@@ -618,6 +626,37 @@
         </button>
       </header>
       <p id="draft-evidence-status" class="changes-notice" role="status"></p>
+      <div class="dialog-form publication-form" id="publication-form" hidden>
+        <label
+          >GitHub repository
+          <input
+            id="publication-repository"
+            placeholder="owner/repository"
+            maxlength="140"
+            spellcheck="false"
+            autocomplete="off"
+          />
+        </label>
+        <label
+          >Base branch
+          <input
+            id="publication-base"
+            placeholder="Branch name"
+            maxlength="255"
+            spellcheck="false"
+            autocomplete="off"
+          />
+        </label>
+        <label
+          >Draft title
+          <input id="publication-title" maxlength="256" autocomplete="off" />
+        </label>
+        <button id="publication-review" class="button" disabled>
+          Review publication
+        </button>
+      </div>
+      <p class="changes-notice" id="publication-message" role="status"></p>
+      <pre id="publication-target" class="mono publication-text" hidden></pre>
       <pre
         id="draft-evidence-body"
         class="candidate-files mono"
@@ -625,6 +664,27 @@
         tabindex="0"
         hidden
       ></pre>
+      <div id="publication-approval" hidden>
+        <p id="publication-history" class="changes-notice"></p>
+        <button
+          id="publication-confirm"
+          type="button"
+          class="button primary"
+          disabled
+        >
+          Push branch and create draft pull request
+        </button>
+      </div>
+    </dialog>
+    <dialog
+      id="publication-status-dialog"
+      aria-labelledby="publication-status-title"
+    >
+      <div class="dialog-form">
+        <h2 id="publication-status-title">Draft publication status</h2>
+        <p id="publication-receipt" role="status" class="publication-text"></p>
+        <button class="button" id="publication-status-close">Close</button>
+      </div>
     </dialog>
 
     <dialog

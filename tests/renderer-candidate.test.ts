@@ -112,6 +112,10 @@ async function launch() {
   const reads: Deferred<CandidateReviewView>[] = [],
     writes: Deferred<CandidateConsentReceiptView>[] = [];
   const previews: Deferred<unknown>[] = [];
+  const publications: Deferred<unknown>[] = [],
+    publicationReviews: Deferred<unknown>[] = [];
+  const statusReads: string[] = [];
+  let savedPublication: unknown = null;
   const checkRequests: Deferred<unknown>[] = [];
   const runReads: Deferred<CandidateReviewView>[] = [],
     runWrites: Deferred<CandidateConsentReceiptView>[] = [],
@@ -163,6 +167,18 @@ async function launch() {
           new Promise((resolve, reject) =>
             previews.push({ args, resolve, reject }),
           ),
+        publicationStatus: async (id: string) => {
+          statusReads.push(id);
+          return savedPublication;
+        },
+        reviewPublication: (...args: unknown[]) =>
+          new Promise((resolve, reject) =>
+            publicationReviews.push({ resolve, reject, args }),
+          ),
+        publishDraft: (...args: unknown[]) =>
+          new Promise((resolve, reject) =>
+            publications.push({ resolve, reject, args }),
+          ),
         latestCheck: async () => null,
         runChecks: (...args: unknown[]) =>
           new Promise((resolve, reject) =>
@@ -196,9 +212,18 @@ async function launch() {
   await openWorkspace(element, "one");
   const app = {
     element,
+    stopWorkspace: () => {
+      workspaces[0]!.state = "stopped";
+    },
     reads,
     writes,
     checkRequests,
+    publicationReviews,
+    publications,
+    statusReads,
+    savePublication: (saved: unknown) => {
+      savedPublication = saved;
+    },
     previews,
     runReads,
     runWrites,
@@ -702,4 +727,244 @@ test("draft evidence preview reads only its displayed test candidate and discard
   assert.equal(app.element("draft-evidence-body").textContent, "");
   assert.equal(app.writes.length, 0);
   assert.equal(app.checkRequests.length, 0);
+});
+
+const draftFields = {
+  repository: "example/project",
+  baseBranch: "main",
+  title: "Review the <example> change",
+  reviewIdentity: identity,
+};
+const draftPlan = {
+  ...draftFields,
+  workspaceId: "one",
+  branch: "argent/one",
+  headSha: review().headSha,
+  baseSha: base,
+  commitCount: 2,
+  identity: "d".repeat(64),
+  body: "## Complete description\n<script>literal</script>\nFinal finding.",
+};
+const published = {
+  ...draftPlan,
+  status: "published",
+  phase: "complete",
+  url: "https://github.com/example/project/pull/17",
+};
+async function openPublication(app: Awaited<ReturnType<typeof launch>>) {
+  app.element("candidate-evidence").click();
+  app.previews.at(-1)!.resolve({
+    workspaceId: "one",
+    reviewIdentity: identity,
+    headSha: review().headSha,
+    body: "Earlier evidence reading",
+  });
+  await settle();
+}
+function setDraftField(
+  app: Awaited<ReturnType<typeof launch>>,
+  id: string,
+  value: string,
+) {
+  app.element("publication-" + id).value = value;
+  app.element("publication-" + id).fire("input");
+}
+async function prepareDraft() {
+  const app = await launch();
+  await app.show();
+  await openPublication(app);
+  assert.deepEqual(app.statusReads, ["one"]);
+  assert.equal(app.element("publication-form").hidden, false);
+  assert.equal(app.element("publication-review").disabled, true);
+  for (const [id, value] of [
+    ["repository", draftFields.repository],
+    ["base", draftFields.baseBranch],
+    ["title", draftFields.title],
+  ] as const)
+    setDraftField(app, id, value);
+  assert.equal(app.publications.length, 0);
+  app.element("publication-review").click();
+  return app;
+}
+
+test("publication requires separate confirmation of the exact destination, commit history, title and full description; reopening only reads the receipt", async () => {
+  const app = await prepareDraft();
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(app.publicationReviews[0]!.args)),
+    ["one", draftFields],
+  );
+  app.element("publication-confirm").fire("click");
+  assert.equal(app.publications.length, 0);
+  app.publicationReviews[0]!.resolve(draftPlan);
+  await settle();
+  for (const expected of [
+    draftFields.repository,
+    draftFields.baseBranch,
+    draftFields.title,
+    draftPlan.branch,
+    draftPlan.headSha,
+    draftPlan.baseSha,
+  ])
+    assert.ok(app.element("publication-target").textContent.includes(expected));
+  assert.match(
+    app.element("publication-history").textContent,
+    /2 commits.+commit messages, authors and intermediate file contents/,
+  );
+  assert.equal(app.element("draft-evidence-body").textContent, draftPlan.body);
+  assert.equal(app.element("publication-confirm").disabled, false);
+  app.element("publication-confirm").click();
+  app.element("publication-confirm").fire("click");
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(app.publications.map((p) => p.args))),
+    [["one", draftFields, draftPlan.identity]],
+  );
+  app.savePublication(published);
+  app.publications[0]!.resolve(published);
+  await settle();
+  assert.ok(
+    app.element("publication-message").textContent.includes(published.url),
+  );
+  app.element("draft-evidence-close").click();
+  await openPublication(app);
+  assert.equal(app.element("publication-form").hidden, true);
+  assert.ok(
+    app.element("publication-message").textContent.includes(published.url),
+  );
+  app.element("draft-evidence-close").click();
+  app.element("candidate-close").click();
+  app.element("workspace-publication").click();
+  await settle();
+  assert.ok(
+    app.element("publication-receipt").textContent.includes(published.url),
+  );
+  assert.deepEqual(app.statusReads, ["one", "one", "one"]);
+  assert.equal(app.publications.length, 1);
+});
+
+test("workspace polling during publication preserves the resulting status in the open dialog", async () => {
+  const app = await prepareDraft();
+  app.publicationReviews[0]!.resolve(draftPlan);
+  await settle();
+  app.element("publication-confirm").click();
+  app.stopWorkspace();
+  await app.poll();
+  assert.match(app.element("publication-message").textContent, /Publishing/);
+  app.publications[0]!.resolve({
+    ...published,
+    status: "needs_attention",
+    phase: "draft",
+    url: null,
+  });
+  await settle();
+  await app.poll();
+  assert.match(
+    app.element("publication-message").textContent,
+    /Draft creation needs attention/,
+  );
+  assert.equal(app.publications.length, 1);
+});
+
+test("publication edits and candidate refresh invalidate confirmation and discard late reviews", async () => {
+  const app = await prepareDraft();
+  setDraftField(app, "title", "Different");
+  app.publicationReviews[0]!.resolve(draftPlan);
+  await settle();
+  assert.equal(app.element("publication-confirm").disabled, true);
+  setDraftField(app, "title", draftFields.title);
+  app.element("publication-review").click();
+  app.publicationReviews[1]!.resolve(draftPlan);
+  await settle();
+  setDraftField(app, "base", "different");
+  assert.equal(app.element("publication-target").hidden, true);
+  assert.equal(
+    app.element("draft-evidence-body").textContent,
+    "Earlier evidence reading",
+  );
+  app.element("publication-confirm").fire("click");
+  setDraftField(app, "base", "main");
+  app.element("publication-review").click();
+  app.element("candidate-refresh").fire("click");
+  app.publicationReviews[2]!.resolve(draftPlan);
+  await settle();
+  assert.equal(app.element("draft-evidence-dialog").open, false);
+  assert.equal(app.element("publication-confirm").disabled, true);
+  assert.equal(app.publications.length, 0);
+});
+
+test("lost publication reply, workspace change and disconnect do not replay an uncertain push or draft", async () => {
+  const app = await prepareDraft();
+  app.publicationReviews[0]!.resolve(draftPlan);
+  await settle();
+  app.element("publication-confirm").click();
+  await app.poll(false);
+  app.publications[0]!.reject(new Error("Service disconnected"));
+  await settle();
+  await app.poll(true);
+  app.element("candidate-close").click();
+  app.stopWorkspace();
+  await app.poll();
+  app.element("workspace-publication").click();
+  await settle();
+  assert.match(
+    app.element("publication-receipt").textContent,
+    /window blocks another request.+reopening the desktop/,
+  );
+  app.element("publication-status-close").click();
+  for (const phase of ["push", "draft"]) {
+    app.savePublication({
+      ...published,
+      status: "needs_attention",
+      phase,
+      url: null,
+    });
+    app.element("workspace-publication").click();
+    await settle();
+    assert.match(
+      app.element("publication-receipt").textContent,
+      /needs attention/,
+    );
+    assert.ok(
+      app
+        .element("publication-receipt")
+        .textContent.includes(draftPlan.headSha),
+    );
+    assert.equal(
+      app.element("publication-receipt").textContent.includes(published.url),
+      false,
+    );
+    app.element("publication-status-close").click();
+  }
+  app.element("workspace-publication").click();
+  await app.select("two");
+  assert.equal(app.element("publication-status-dialog").open, false);
+  assert.equal(app.element("publication-receipt").textContent, "");
+  assert.equal(app.publications.length, 1);
+});
+
+test("a definite preflight rejection allows fresh manual publication review; a delayed review for a different workspace is discarded", async () => {
+  const app = await prepareDraft();
+  app.publicationReviews[0]!.resolve(draftPlan);
+  await settle();
+  app.element("publication-confirm").click();
+  app.publications[0]!.reject(
+    new Error("Request rejected (422): Destination not available"),
+  );
+  await settle();
+  assert.match(
+    app.element("publication-message").textContent,
+    /Destination not available/,
+  );
+  app.element("draft-evidence-close").click();
+  await openPublication(app);
+  assert.equal(app.element("publication-form").hidden, false);
+  setDraftField(app, "repository", draftFields.repository);
+  setDraftField(app, "base", draftFields.baseBranch);
+  setDraftField(app, "title", draftFields.title);
+  app.element("publication-review").click();
+  await app.select("two");
+  app.publicationReviews[1]!.resolve(draftPlan);
+  await settle();
+  assert.equal(app.element("draft-evidence-dialog").open, false);
+  app.element("publication-confirm").fire("click");
+  assert.equal(app.publications.length, 1);
 });

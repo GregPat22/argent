@@ -1,3 +1,13 @@
+import type {
+  PublicationStatus,
+  PublicationReview,
+  PublicationInput,
+} from "../publication-record.js";
+export type {
+  PublicationStatus,
+  PublicationReview,
+  PublicationInput,
+} from "../publication-record.js";
 import type { DraftEvidencePreview } from "../draft-evidence.js";
 
 import type {
@@ -98,6 +108,16 @@ export interface DesktopBridge {
     key: string,
   ): Promise<LocalCheckView>;
   cancelCheck(id: string, checkId: string): Promise<LocalCheckView>;
+  publicationStatus(id: string): Promise<PublicationStatus | null>;
+  reviewPublication(
+    id: string,
+    input: PublicationInput,
+  ): Promise<PublicationReview>;
+  publishDraft(
+    id: string,
+    input: PublicationInput,
+    identity: string,
+  ): Promise<PublicationStatus>;
   draftEvidence(
     id: string,
     expectedReviewIdentity: string,

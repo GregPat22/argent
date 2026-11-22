@@ -145,8 +145,9 @@ at `37ea780`: see the
 [changes-panel evidence](docs/specs/0013-local-mvp.md#l13-implementation-evidence).
 
 Item 5 remains next. The [local L1.5 walkthrough](docs/specs/0013-local-mvp.md#local-l15-verification)
-covers staged commit, evidence preview and archive in development. Authenticated
-push, draft creation through `gh` and URL recording remain open.
+covers staged commit, evidence preview and archive in development. The
+[GitHub publisher](docs/specs/0013-local-mvp.md#github-publication-boundary-in-development)
+is in development. The authenticated walkthrough remains open.
 
 ## L1.4 progress
 

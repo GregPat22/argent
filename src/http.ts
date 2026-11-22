@@ -7,6 +7,10 @@ import {
 } from "node:http";
 import { DomainError, requireString, type Run } from "./domain.js";
 import { Store } from "./store.js";
+import {
+  type LocalPublications,
+  reviewPublication,
+} from "./local-publication.js";
 import { readDraftEvidence } from "./draft-evidence.js";
 import { inspectArtifact } from "./artifacts.js";
 import { createLocalWorkspace } from "./local-worktree.js";
@@ -63,6 +67,8 @@ export interface ServerOptions {
   /** Stable single-host operator supplied by the service, never by a request. */
   localCommandOperatorId?: string;
   localChecks?: boolean;
+  /** Only the local desktop explicitly enables GitHub publication. */
+  publisher?: LocalPublications;
   instanceId?: string;
   /** Identity of the code this service runs; the desktop refuses another build. */
   build?: string;
@@ -115,6 +121,60 @@ export function makeServer(
           instanceId: options.instanceId ?? null,
           build: options.build ?? null,
         });
+      } else if (
+        parts[0] === "workspaces" &&
+        parts[2] === "publication" &&
+        ((parts.length === 3 && (method === "GET" || method === "POST")) ||
+          (parts.length === 4 && parts[3] === "review" && method === "POST"))
+      ) {
+        const { publisher, worktreeRoot, localCommandOperatorId } = options;
+        if (
+          !publisher ||
+          !worktreeRoot ||
+          !localCommandOperatorId ||
+          !options.localChecks
+        )
+          throw new DomainError(
+            409,
+            "GitHub publication is unavailable in this service",
+          );
+        if (url.searchParams.size)
+          throw new DomainError(400, "Publication accepts no query parameters");
+        const id = checkId(parts[1]);
+        if (!store.getWorkspace(id).local)
+          throw new DomainError(409, "Publication requires a local workspace");
+        if (method === "GET") {
+          send(response, 200, store.publicationStatus(id));
+        } else {
+          const input = await readBody(request);
+          const controller = new AbortController();
+          const abort = () => controller.abort();
+          response.once("close", abort);
+          try {
+            if (response.destroyed) abort();
+            const result =
+              parts[3] === "review"
+                ? await reviewPublication(
+                    store,
+                    worktreeRoot,
+                    id,
+                    localCommandOperatorId,
+                    input,
+                    controller.signal,
+                  )
+                : await publisher.publish(
+                    store,
+                    worktreeRoot,
+                    id,
+                    localCommandOperatorId,
+                    input,
+                    controller.signal,
+                  );
+            send(response, 200, result);
+          } finally {
+            response.off("close", abort);
+          }
+        }
       } else if (
         parts[0] === "workspaces" &&
         ((parts.length === 3 &&

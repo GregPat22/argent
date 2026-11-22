@@ -1,3 +1,4 @@
+import { clearPublication, preparePublication } from "./publication.js";
 import { openChecks } from "./checks.js";
 import type { CandidateReviewView } from "../src/desktop/contracts.js";
 import { api } from "./actions.js";
@@ -20,6 +21,7 @@ const evidenceDialog = () => byId<HTMLDialogElement>("draft-evidence-dialog");
 let previewRequest = 0;
 function closeEvidence(): void {
   previewRequest++;
+  clearPublication();
   if (evidenceDialog().open) evidenceDialog().close();
   setText("draft-evidence-body", "");
   show("draft-evidence-body", false);
@@ -434,10 +436,11 @@ export function wireCandidate(): void {
         );
       setText(
         "draft-evidence-status",
-        "Markdown preview for this reading. Review the paths and finding names before sharing. Nothing has been published.",
+        "Markdown preview for this reading. Review the paths and finding names before sharing.",
       );
       setText("draft-evidence-body", preview.body);
       show("draft-evidence-body", true);
+      void preparePublication(shown, preview.body);
     } catch (error) {
       if (!obsolete()) setText("draft-evidence-status", readableError(error));
     }

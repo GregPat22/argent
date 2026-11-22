@@ -1,5 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import {
+  isPublicationUrl,
+  type PublicationStatus,
+  type PublicationReview,
+} from "./publication-record.js";
 import { LifecycleStore } from "./lifecycle-store.js";
 import { RepositoryStore } from "./repository-store.js";
 import { LocalCheckStore } from "./local-checks.js";
@@ -206,6 +211,23 @@ export class Store {
         WHEN NEW.state='running' AND EXISTS(SELECT 1 FROM pending_local_commits WHERE workspace_id=NEW.id)
         BEGIN SELECT RAISE(ABORT,'Local commit still needs attention'); END;
       `);
+      this.db.exec(`CREATE TABLE IF NOT EXISTS local_publications (
+        workspace_id TEXT PRIMARY KEY REFERENCES local_worktrees(workspace_id),
+        identity TEXT NOT NULL, request_hash TEXT NOT NULL, repository TEXT NOT NULL,
+        base_branch TEXT NOT NULL, base_sha TEXT NOT NULL, branch TEXT NOT NULL, head_sha TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS local_publication_events (
+        sequence INTEGER PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES local_publications(workspace_id),
+        phase TEXT NOT NULL CHECK(phase IN ('push','draft','complete')), url TEXT,
+        created_at INTEGER NOT NULL, UNIQUE(workspace_id,phase),
+        CHECK ((phase='complete') = (url IS NOT NULL))
+      ) STRICT;
+      CREATE VIEW IF NOT EXISTS pending_local_publications AS
+        SELECT p.workspace_id FROM local_publications p WHERE NOT EXISTS
+        (SELECT 1 FROM local_publication_events e WHERE e.workspace_id=p.workspace_id AND e.phase='complete');
+      CREATE TRIGGER IF NOT EXISTS local_publication_stays_stopped BEFORE UPDATE OF state ON workspaces
+        WHEN NEW.state='running' AND EXISTS(SELECT 1 FROM pending_local_publications WHERE workspace_id=NEW.id)
+        BEGIN SELECT RAISE(ABORT,'Publication needs inspection'); END;`);
       this.lifecycle = new LifecycleStore(this.db);
       this.repositories = new RepositoryStore(this.db);
       this.localCommandApprovals = new LocalCommandApprovalStore(this.db, this);
@@ -366,9 +388,120 @@ export class Store {
   archiveWriterGeneration(id: string): number {
     return this.db
       .prepare(
-        `SELECT COALESCE(MAX(rowid),0) + (SELECT COUNT(*) FROM local_commit_events WHERE workspace_id = ?) AS generation FROM runs WHERE workspace_id = ?`,
+        `SELECT COALESCE(MAX(rowid),0) + (SELECT COUNT(*) FROM local_commit_events WHERE workspace_id = ?) + (SELECT COUNT(*) FROM local_publication_events WHERE workspace_id=?) AS generation FROM runs WHERE workspace_id = ?`,
       )
-      .get(id, id)!.generation as number;
+      .get(id, id, id)!.generation as number;
+  }
+
+  publicationStatus(
+    id: string,
+    requestHash?: string,
+  ): PublicationStatus | null {
+    const row = this.db
+      .prepare(
+        `SELECT p.*, e.phase,e.url FROM local_publications p
+      JOIN local_publication_events e USING(workspace_id) WHERE p.workspace_id=?
+      ORDER BY e.sequence DESC LIMIT 1`,
+      )
+      .get(id);
+    if (!row) return null;
+    if (requestHash !== undefined && row.request_hash !== requestHash)
+      throw new DomainError(
+        409,
+        "A different publication was already requested. Open publication status.",
+      );
+    const phase = row.phase as PublicationStatus["phase"];
+    const repository = row.repository as string;
+    if (phase === "complete" && !isPublicationUrl(row.url, repository))
+      throw new DomainError(
+        409,
+        "Invalid stored draft URL. Inspect the publication.",
+      );
+    return {
+      workspaceId: id,
+      identity: row.identity as string,
+      repository,
+      baseBranch: row.base_branch as string,
+      baseSha: row.base_sha as string,
+      branch: row.branch as string,
+      headSha: row.head_sha as string,
+      status: phase === "complete" ? "published" : "needs_attention",
+      phase,
+      url: row.url as string | null,
+    };
+  }
+
+  beginPublication(
+    review: PublicationReview,
+    requestHash: string,
+    generation: number,
+  ): PublicationStatus | null {
+    const id = review.workspaceId;
+    return this.transaction(() => {
+      const previous = this.publicationStatus(id, requestHash);
+      if (previous) return previous;
+      this.requireIdleWorkspace(id);
+      if (
+        this.getWorkspace(id).state !== "running" ||
+        this.archiveWriterGeneration(id) !== generation
+      )
+        throw new DomainError(
+          409,
+          "Workspace changed. Review the publication again.",
+        );
+      this.db
+        .prepare("UPDATE workspaces SET state='stopped' WHERE id=?")
+        .run(id);
+      this.db
+        .prepare(
+          `INSERT INTO local_publications
+        (workspace_id,identity,request_hash,repository,base_branch,base_sha,branch,head_sha) VALUES (?,?,?,?,?,?,?,?)`,
+        )
+        .run(
+          id,
+          review.identity,
+          requestHash,
+          review.repository,
+          review.baseBranch,
+          review.baseSha,
+          review.branch,
+          review.headSha,
+        );
+      this.db
+        .prepare(
+          "INSERT INTO local_publication_events(workspace_id,phase,created_at) VALUES (?,'push',?)",
+        )
+        .run(id, Date.now());
+      return null;
+    });
+  }
+
+  advancePublication(
+    id: string,
+    identity: string,
+    phase: "draft" | "complete",
+    url: string | null = null,
+  ): PublicationStatus {
+    return this.transaction(() => {
+      const prior = this.publicationStatus(id);
+      if (
+        !prior ||
+        prior.identity !== identity ||
+        prior.phase !== (phase === "draft" ? "push" : "draft") ||
+        (phase === "complete" && !isPublicationUrl(url, prior.repository))
+      )
+        throw new DomainError(409, "Unexpected publication transition");
+      this.db
+        .prepare(
+          "INSERT INTO local_publication_events(workspace_id,phase,url,created_at) VALUES (?,?,?,?)",
+        )
+        .run(id, phase, url, Date.now());
+      if (phase === "complete")
+        this.db
+          .prepare("UPDATE workspaces SET state='running' WHERE id=?")
+          .run(id);
+      return this.publicationStatus(id)!;
+    });
   }
 
   localCommitReceipt(id: string, reviewId: string): string | null {
@@ -532,6 +665,11 @@ export class Store {
 
   requireIdleWorkspace(id: string): void {
     const workspace = this.getWorkspace(id);
+    if (this.publicationStatus(id)?.status === "needs_attention")
+      throw new DomainError(
+        409,
+        "Publication outcome needs attention. Open publication status.",
+      );
     if (workspace.commitNeedsAttention)
       throw new DomainError(
         409,
