@@ -76,6 +76,17 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Draft pull request evidence preview (in development) — 22 November 2026
+
+The [preview contract](specs/0013-local-mvp.md#draft-evidence-preview-in-development)
+binds the Markdown body to the reviewed base, commit and tree. Its digest
+identifies the committed change manifest. An end-of-run worktree digest can
+also cover uncommitted files. A matching check identifies the consent and review
+that produced it. Model information, where available, comes from the CLI's
+initialization event for that session. These fields describe the run whose
+completion Argent observed. Commit authorship remains a separate fact.
+Opening the preview requires no GitHub access.
+
 ### Local archive ownership (in development) — 22 November 2026
 
 The [archive contract](specs/0013-local-mvp.md#local-archive-acceptance-in-development)

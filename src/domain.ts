@@ -30,6 +30,20 @@ export interface Workspace {
 /** `edits`: file edits only, prompts denied. `full`: commands without approval. */
 export type PermissionMode = "edits" | "full";
 
+/** Only plain model identifiers from the matching CLI initialization event. */
+export function isReportedModel(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length <= 128 &&
+    /^[A-Za-z0-9][A-Za-z0-9._-]*$/.exec(value)?.[0] === value
+  );
+}
+
+export interface ObservedAgentContext {
+  permissionMode: PermissionMode;
+  reportedModel: string | null;
+}
+
 export interface Run {
   id: string;
   workspaceId: string;

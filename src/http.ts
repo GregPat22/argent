@@ -7,6 +7,7 @@ import {
 } from "node:http";
 import { DomainError, requireString, type Run } from "./domain.js";
 import { Store } from "./store.js";
+import { readDraftEvidence } from "./draft-evidence.js";
 import { inspectArtifact } from "./artifacts.js";
 import { createLocalWorkspace } from "./local-worktree.js";
 import { archiveLocalWorkspace } from "./local-archive.js";
@@ -200,13 +201,16 @@ export function makeServer(
         }
       } else if (
         parts[0] === "workspaces" &&
-        parts.length === 3 &&
-        (((parts[2] === "candidate-review" ||
-          parts[2] === "run-candidate-review") &&
+        ((parts.length === 4 &&
+          parts[2] === "draft-evidence" &&
           method === "GET") ||
-          ((parts[2] === "candidate-consents" ||
-            parts[2] === "run-candidate-consents") &&
-            method === "POST"))
+          (parts.length === 3 &&
+            (((parts[2] === "candidate-review" ||
+              parts[2] === "run-candidate-review") &&
+              method === "GET") ||
+              ((parts[2] === "candidate-consents" ||
+                parts[2] === "run-candidate-consents") &&
+                method === "POST"))))
       ) {
         const action = parts[2]!.startsWith("run-")
           ? "setup-run"
@@ -225,7 +229,22 @@ export function makeServer(
           );
         response.once("close", abort);
         try {
-          if (method === "GET") {
+          if (parts[2] === "draft-evidence") {
+            if (!options.localChecks)
+              throw new DomainError(409, "Local checks are not enabled");
+            send(
+              response,
+              200,
+              await readDraftEvidence(
+                store,
+                options.worktreeRoot,
+                parts[1]!,
+                options.localCommandOperatorId,
+                parts[3]!,
+                controller.signal,
+              ),
+            );
+          } else if (method === "GET") {
             const { review, approved, receipt } =
               await store.localCommandConsents.inspect(
                 options.worktreeRoot,

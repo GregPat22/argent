@@ -547,6 +547,14 @@
     >
       <header class="sheet-head">
         <h2 id="candidate-title">Review this commit</h2>
+        <button
+          id="candidate-evidence"
+          class="button small"
+          aria-haspopup="dialog"
+          hidden
+        >
+          Preview PR evidence
+        </button>
         <button id="candidate-refresh" class="button small">Refresh</button>
         <button
           id="candidate-close"
@@ -588,6 +596,27 @@
           <button id="candidate-run" class="button" disabled>Run checks</button>
         </div>
       </div>
+    </dialog>
+
+    <dialog
+      id="draft-evidence-dialog"
+      class="changes-panel candidate-panel"
+      aria-labelledby="draft-evidence-title"
+    >
+      <header class="sheet-head">
+        <h2 id="draft-evidence-title">Draft pull request evidence</h2>
+        <button id="draft-evidence-close" class="button small">
+          Back to review
+        </button>
+      </header>
+      <p id="draft-evidence-status" class="changes-notice" role="status"></p>
+      <pre
+        id="draft-evidence-body"
+        class="candidate-files mono"
+        aria-label="Draft description in Markdown"
+        tabindex="0"
+        hidden
+      ></pre>
     </dialog>
 
     <dialog

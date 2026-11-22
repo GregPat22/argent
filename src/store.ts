@@ -18,6 +18,8 @@ import {
   requireString,
   type Evidence,
   type LocalWorktree,
+  type ObservedAgentContext,
+  isReportedModel,
   type PermissionMode,
   type Run,
   type RunEvent,
@@ -804,6 +806,46 @@ export class Store {
       .get(id);
     if (!row) throw new DomainError(409, "Verification evidence is missing");
     return JSON.parse(row.data as string) as Evidence;
+  }
+
+  latestAgentContext(
+    workspaceId: string,
+    branch: string,
+    baseSha: string,
+    headSha: string,
+  ): ObservedAgentContext | null {
+    // Read only completion metadata. Transcript text never establishes a model.
+    const row = this.db
+      .prepare(
+        `SELECT id,permission_mode FROM runs WHERE workspace_id = ? AND kind = 'agent' AND simulation = 0 AND status = 'completed' ORDER BY created_at DESC,id DESC LIMIT 1`,
+      )
+      .get(workspaceId);
+    if (!row) return null;
+    const id = row.id as string;
+    const evidence = this.evidence(id);
+    if (
+      evidence.kind !== "worktree-record" ||
+      evidence.simulation !== false ||
+      evidence.branch !== branch ||
+      evidence.baseSha !== baseSha ||
+      evidence.headSha !== headSha
+    )
+      return null;
+    const completed = this.db
+      .prepare(
+        "SELECT data FROM events WHERE run_id = ? AND type = 'run.completed' ORDER BY cursor DESC LIMIT 1",
+      )
+      .get(id);
+    const metadata =
+      completed &&
+      (JSON.parse(completed.data as string) as
+        { reportedModel?: unknown } | undefined);
+    return {
+      permissionMode: permissionMode(row.permission_mode),
+      reportedModel: isReportedModel(metadata?.reportedModel)
+        ? metadata.reportedModel
+        : null,
+    };
   }
 
   resolveSimulation(id: string, note: unknown): Run {

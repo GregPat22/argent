@@ -2299,6 +2299,12 @@ dialog::backdrop {
   border-radius: 8px;
   padding: 16px;
 }
+#draft-evidence-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+  font-variant-ligatures: none;
+}
 .candidate-files p,
 .candidate-files h3 {
   white-space: pre-wrap;

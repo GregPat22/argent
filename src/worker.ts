@@ -60,11 +60,19 @@ export class Worker {
       const iterator = adapters.agent
         .execute(run, directory, controller.signal)
         [Symbol.asyncIterator]();
+      let reportedModel: string | undefined;
       try {
         for (;;) {
           const next = await iterator.next();
           if (next.done) break;
           controller.signal.throwIfAborted();
+          if (
+            real &&
+            typeof next.value !== "string" &&
+            next.value.kind === "status" &&
+            next.value.cliModel
+          )
+            reportedModel = next.value.cliModel;
           const line = normalize(next.value);
           this.store.appendLog(run.id, token, line.text, undefined, line.kind);
         }
@@ -90,7 +98,10 @@ export class Worker {
           run.id,
           token,
           "completed",
-          { outcome: real ? "worktree_recorded" : "simulation_passed" },
+          {
+            outcome: real ? "worktree_recorded" : "simulation_passed",
+            ...(reportedModel ? { reportedModel } : {}),
+          },
           evidence,
         );
       }

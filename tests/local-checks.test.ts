@@ -23,6 +23,7 @@ import { readLocalCommandConfig } from "../src/local-command-config.js";
 import { reviewLocalCommandCandidate } from "../src/local-command-review.js";
 import { LocalCheckWorker } from "../src/local-check-worker.js";
 import { makeServer } from "../src/http.js";
+import { draftEvidenceBody, readDraftEvidence } from "../src/draft-evidence.js";
 import { inspectLocalCommandCandidate } from "../src/workspace-changes.js";
 import { validateCheckResult } from "../src/local-checks.js";
 import { validateCheckView } from "../src/desktop/checks.js";
@@ -1138,5 +1139,147 @@ test("a result keeps its consented judging count after the base changes; mismatc
   assert.throws(
     () => f.store.localChecks.view(job.run.id, f.id, "operator"),
     /Invalid check record/,
+  );
+});
+
+test("draft preview revalidates the displayed review and binds failed phases to the exact checked commit", async (t) => {
+  const f = await fixture(t, "process.exit(7)");
+  const preview = (id: string) =>
+    readDraftEvidence(
+      f.store,
+      f.worktrees,
+      f.id,
+      "operator",
+      id,
+      new AbortController().signal,
+    );
+  assert.match(
+    (await preview(f.review.identity)).body,
+    /No setup\/test check has been recorded/,
+  );
+  await f.enqueue();
+  await f.worker.tick();
+  const old = await preview(f.review.identity);
+  const recorded = f.store.localChecks.latestRecorded(f.id, "operator")!;
+  const historical = { ...recorded.result! };
+  delete historical.judgingChangeCount;
+  assert.match(
+    draftEvidenceBody(
+      f.review,
+      { ...recorded, result: historical },
+      f.consent.id,
+    ),
+    /No matching result/,
+  );
+  assert.match(
+    draftEvidenceBody(f.review, recorded, randomUUID()),
+    /No matching result/,
+  );
+  assert.match(
+    draftEvidenceBody(f.review, recorded, f.consent.id, {
+      permissionMode: "full",
+      reportedModel: null,
+    }),
+    /Permission mode: full access. Model reported by the CLI: unavailable/,
+  );
+  assert.match(old.body, /Checks failed for the reviewed commit/);
+  assert.match(old.body, /setup: exit 7/);
+  assert.match(old.body, /test: did not run/);
+  assert.doesNotMatch(old.body, /process\.exit|setup\.cjs|stdout|stderr/);
+  writeFileSync(
+    join(f.directory, "new.test.ts"),
+    "test.skip('an omitted title',()=>{});\n",
+  );
+  git(f.directory, "add", ".");
+  git(f.directory, "commit", "-qm", "new candidate");
+  await assert.rejects(preview(f.review.identity), /candidate changed/);
+  const fresh = await reviewLocalCommandCandidate(
+    f.store,
+    f.worktrees,
+    f.id,
+    "operator",
+  );
+  const newer = await preview(fresh.identity);
+  assert.match(newer.body, /latest result does not match/);
+  assert.match(newer.body, /added "new.test.ts"/);
+  assert.match(newer.body, /test.skip, line 1/);
+  assert.match(newer.body, /npm lockfile packages\n\nNot checkable/);
+  assert.doesNotMatch(newer.body, /Checks failed|omitted title/);
+  assert.notEqual(
+    old.body.match(/manifest \(SHA-256\): `(.+?)`/)?.[1],
+    newer.body.match(/manifest \(SHA-256\): `(.+?)`/)?.[1],
+  );
+});
+
+test("draft Markdown quotes fields, withholds address-valued versions and refuses oversized or private reports", async (t) => {
+  const f = await fixture(t);
+  const version = "file:/private/config/path";
+  const name = "one\u202etwo\n```# Just a name";
+  writeFileSync(
+    join(f.directory, "package.json"),
+    JSON.stringify({ scripts: { [name]: "a private command" } }),
+  );
+  writeFileSync(
+    join(f.directory, "package-lock.json"),
+    JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        "": {},
+        "node_modules/dep": {
+          version,
+          resolved: "https://registry.invalid/private/path",
+        },
+      },
+    }),
+  );
+  writeFileSync(
+    join(f.directory, ".npmrc"),
+    "registry=https://registry.invalid/private/path\n",
+  );
+  git(f.directory, "add", ".");
+  git(f.directory, "commit", "-qm", "changed manifests");
+  const review = await reviewLocalCommandCandidate(
+    f.store,
+    f.worktrees,
+    f.id,
+    "operator",
+  );
+  const body = draftEvidenceBody(review, null, null);
+  assert.match(body, /one\\u202etwo\\n```# Just a name/);
+  assert.match(body, /version not shareable/);
+  assert.match(body, /registry settings[\s\S]*added "registry"/);
+  assert.doesNotMatch(
+    body,
+    /registry\.invalid|private command|private\/config|^\s*\u202e/m,
+  );
+  const changed = review.files.findIndex(
+    (file) => file.path === "package.json",
+  );
+  const scripts = (names: string[]) => ({
+    ...review,
+    judgingChanges: {
+      ...review.judgingChanges,
+      scripts: [
+        {
+          file: changed,
+          entries: names.map((name) => ({ name, change: "added" as const })),
+        },
+      ],
+    },
+  });
+  assert.throws(
+    () => draftEvidenceBody(scripts(["/private/config"]), null, null),
+    /private reference/,
+  );
+  assert.throws(
+    () =>
+      draftEvidenceBody(
+        scripts(
+          Array.from({ length: 256 }, (_, i) => `${i}${"z".repeat(251)}`),
+        ),
+        null,
+        null,
+      ),
+    /exceeds the preview limit/,
   );
 });

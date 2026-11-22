@@ -1,3 +1,4 @@
+import type { DraftEvidencePreview } from "../draft-evidence.js";
 import type { LocalCheckView } from "../local-checks.js";
 export type { LocalCheckView } from "../local-checks.js";
 import type {
@@ -91,6 +92,10 @@ export interface DesktopBridge {
     key: string,
   ): Promise<LocalCheckView>;
   cancelCheck(id: string, checkId: string): Promise<LocalCheckView>;
+  draftEvidence(
+    id: string,
+    expectedReviewIdentity: string,
+  ): Promise<DraftEvidencePreview>;
   candidateReview(id: string): Promise<CandidateReviewView>;
   consentCandidate(
     id: string,

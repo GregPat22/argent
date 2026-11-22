@@ -357,6 +357,30 @@ export async function runDesktopSmoke(
       "consent after check",
     );
 
+    await js(`document.querySelector('#candidate-evidence').click()`);
+    await until(
+      () => js(`!document.querySelector('#draft-evidence-body').hidden`),
+      "draft evidence for checked commit",
+    );
+    const markdown = await text("#draft-evidence-body");
+    for (const pattern of [
+      /Checks passed for the reviewed commit/,
+      /test: exit 0/,
+      /review\.test\.js/,
+      /test\.skip, line 3/,
+      /added "check"/,
+      /node_modules\/sample/,
+      /newly declares an install script/,
+      /@sample:registry/,
+    ])
+      assert.match(markdown, pattern);
+    assert.doesNotMatch(
+      markdown,
+      /registry\.invalid|untrustedCommand|untrustedCandidate/,
+    );
+    await capture("draft-evidence");
+    await js(`document.querySelector('#draft-evidence-close').click()`);
+
     // Run uses a separate review acknowledgement, checkout and result namespace.
     await js(`document.querySelector('#candidate-close').click()`);
     await js(`document.querySelector('#workspace-commands').click()`);

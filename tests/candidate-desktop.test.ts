@@ -108,7 +108,11 @@ async function fixture(t: TestContext, testCommand = true, enabled = true) {
     store,
     token,
     enabled
-      ? { worktreeRoot: worktrees, localCommandOperatorId: "local-desktop" }
+      ? {
+          worktreeRoot: worktrees,
+          localCommandOperatorId: "local-desktop",
+          localChecks: true,
+        }
       : {},
   );
   server.listen(0, "127.0.0.1");
@@ -183,6 +187,25 @@ test("desktop reviews the complete pinned change set and records exact-commit co
       await f.client.call("candidateReview", [f.workspace.id]),
     );
   const shown = await read();
+  const preview = value<{ body: string }>(
+    await f.client.call("draftEvidence", [f.workspace.id, shown.identity]),
+  );
+  assert.match(preview.body, /No setup\/test check has been recorded/);
+  assert.doesNotMatch(preview.body, /marker\.js|<script>/);
+  for (const args of [
+    [f.workspace.id],
+    [f.workspace.id, "HEAD"],
+    [f.workspace.id, shown.identity, "publish"],
+  ]) {
+    const response = await f.client.call("draftEvidence", args);
+    assert.ok(
+      !response.ok &&
+        response.error.includes(
+          "Expected a workspace and the displayed review identity",
+        ),
+    );
+  }
+  assert.deepEqual(f.counts(), [0, 0, 0, 0]);
   assert.equal(shown.headSha, git(f.cwd, "rev-parse", "HEAD"));
   assert.equal(shown.baseSha, f.workspace.local!.baseSha);
   assert.equal(shown.consent, null);

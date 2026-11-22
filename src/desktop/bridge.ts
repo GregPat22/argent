@@ -1,3 +1,7 @@
+import {
+  DRAFT_EVIDENCE_BYTES,
+  type DraftEvidencePreview,
+} from "../draft-evidence.js";
 import { validateCheckView } from "./checks.js";
 import {
   DomainError,
@@ -244,6 +248,47 @@ export class DesktopClient {
         if (!reading && (!view || (!starting && view.id !== args[1])))
           throw new DomainError(502, "Invalid command receipt");
         return view;
+      }
+      case "draftEvidence": {
+        const expected = args[1];
+        if (
+          args.length !== 2 ||
+          !uuid(args[0]) ||
+          typeof expected !== "string" ||
+          CANDIDATE_IDENTITY.exec(expected)?.[0] !== expected
+        )
+          throw new DomainError(
+            400,
+            "Expected a workspace and the displayed review identity",
+          );
+        const value = (await send(
+          connection,
+          `/workspaces/${id()}/draft-evidence/${expected}`,
+          "GET",
+          undefined,
+          undefined,
+          REVIEW_LIMITS.timeoutMs + 10000,
+        )) as Partial<DraftEvidencePreview> | null;
+        if (
+          !value ||
+          value.kind !== "draft-evidence-preview" ||
+          value.workspaceId !== args[0] ||
+          value.reviewIdentity !== expected ||
+          typeof value.headSha !== "string" ||
+          /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.exec(value.headSha)?.[0] !==
+            value.headSha ||
+          typeof value.body !== "string" ||
+          !value.body ||
+          Buffer.byteLength(value.body) > DRAFT_EVIDENCE_BYTES
+        )
+          throw new DomainError(502, "Invalid draft evidence preview");
+        return {
+          kind: value.kind,
+          workspaceId: args[0],
+          reviewIdentity: expected,
+          headSha: value.headSha,
+          body: value.body,
+        } satisfies DraftEvidencePreview;
       }
       case "runCandidateReview":
       case "candidateReview": {

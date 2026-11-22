@@ -111,6 +111,7 @@ async function launch() {
     keys = 0;
   const reads: Deferred<CandidateReviewView>[] = [],
     writes: Deferred<CandidateConsentReceiptView>[] = [];
+  const previews: Deferred<unknown>[] = [];
   const checkRequests: Deferred<unknown>[] = [];
   const runReads: Deferred<CandidateReviewView>[] = [],
     runWrites: Deferred<CandidateConsentReceiptView>[] = [],
@@ -158,6 +159,10 @@ async function launch() {
           new Promise((resolve, reject) =>
             runRequests.push({ resolve, reject, args }),
           ),
+        draftEvidence: (...args: unknown[]) =>
+          new Promise((resolve, reject) =>
+            previews.push({ args, resolve, reject }),
+          ),
         latestCheck: async () => null,
         runChecks: (...args: unknown[]) =>
           new Promise((resolve, reject) =>
@@ -194,6 +199,7 @@ async function launch() {
     reads,
     writes,
     checkRequests,
+    previews,
     runReads,
     runWrites,
     runRequests,
@@ -650,4 +656,50 @@ test("registry settings have their own coverage when neither commit contains a l
     report.text.includes('"other/.npmrc" · changed and not summarised'),
   );
   assert.doesNotMatch(report.text, /No recognised registry settings changed/);
+});
+
+test("draft evidence preview reads only its displayed test candidate and discards late or mismatched replies", async () => {
+  const app = await launch();
+  await app.show();
+  app.element("candidate-evidence").click();
+  assert.deepEqual(app.previews[0]!.args, ["one", identity]);
+  app.element("draft-evidence-close").click();
+  app.element("candidate-evidence").click();
+  app.previews[0]!.resolve({
+    workspaceId: "one",
+    reviewIdentity: identity,
+    headSha: review().headSha,
+    body: "obsolete",
+  });
+  await settle();
+  assert.equal(app.element("draft-evidence-body").hidden, true);
+  app.previews[1]!.resolve({
+    workspaceId: "one",
+    reviewIdentity: identity,
+    headSha: base,
+    body: "wrong commit",
+  });
+  await settle();
+  assert.match(
+    app.element("draft-evidence-status").textContent,
+    /does not match/,
+  );
+  app.element("draft-evidence-close").click();
+  app.element("candidate-evidence").click();
+  app.previews[2]!.resolve({
+    workspaceId: "one",
+    reviewIdentity: identity,
+    headSha: review().headSha,
+    body: "## Preview\n<html>literal</html>",
+  });
+  await settle();
+  assert.equal(
+    app.element("draft-evidence-body").textContent,
+    "## Preview\n<html>literal</html>",
+  );
+  await app.poll(false);
+  assert.equal(app.element("draft-evidence-dialog").open, false);
+  assert.equal(app.element("draft-evidence-body").textContent, "");
+  assert.equal(app.writes.length, 0);
+  assert.equal(app.checkRequests.length, 0);
 });

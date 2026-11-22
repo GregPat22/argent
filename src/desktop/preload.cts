@@ -31,6 +31,7 @@ const bridge: DesktopBridge = {
   latestCheck: (id) => invoke("latestCheck", [id]),
   runChecks: (id, consent, key) => invoke("runChecks", [id, consent, key]),
   cancelCheck: (id, check) => invoke("cancelCheck", [id, check]),
+  draftEvidence: (id, expected) => invoke("draftEvidence", [id, expected]),
   candidateReview: (id) => invoke("candidateReview", [id]),
   consentCandidate: (id, expected, key) =>
     invoke("consentCandidate", [id, expected, key]),

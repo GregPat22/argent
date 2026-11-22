@@ -542,6 +542,24 @@ test("Claude Code runs in the worktree and completion is Argent's own record", a
   assert.match(evidence.diffSha256, /^[a-f0-9]{64}$/);
   assert.equal(events.at(-1)!.data.outcome, "worktree_recorded");
   assert.equal(events.at(-1)!.data.simulation, false);
+  assert.deepEqual(
+    f.store.latestAgentContext(
+      workspace.id,
+      evidence.branch,
+      evidence.baseSha,
+      evidence.headSha,
+    ),
+    { permissionMode: "edits", reportedModel: "fake-model" },
+  );
+  assert.equal(
+    f.store.latestAgentContext(
+      workspace.id,
+      evidence.branch,
+      evidence.baseSha,
+      "a".repeat(40),
+    ),
+    null,
+  );
   // The developer's checkout never sees the agent's file.
   assert.equal(existsSync(join(f.repo, "hello.txt")), false);
 });

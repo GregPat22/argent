@@ -1883,6 +1883,31 @@ again inside the intent transaction. Its file checks are point-in-time. Another
 process running as the developer can still change the filesystem outside
 Argent's control.
 
+#### Draft evidence preview (in development)
+
+- From a local workspace's setup/test candidate review, the developer can
+  preview the Markdown evidence for that exact base, commit and tree before
+  publication. The service rechecks the displayed review identity. Opening
+  the preview reads state and Git objects without starting jobs.
+- The body identifies the committed diff by SHA-256 over a versioned manifest
+  of changed paths, modes and Git blob IDs. It labels the workspace agent,
+  requested default model and limits of run attribution. If the latest completed
+  agent run observed the same branch, base and HEAD at exit, the body gives its
+  recorded permission mode and, when available, the model identifier the CLI
+  reported for that session. An observed HEAD does not establish authorship. The latest setup/test
+  outcome and individual phases appear only when the stored consent, review,
+  configuration, tree and commits match. A missing or older result is explicit.
+- The full judging-changes report names each finding and marks unsupported
+  inputs and unsummarised files. The body contains only selected evidence
+  fields, with finding names displayed as literal data. A lockfile version
+  that is an address or another non-version string is marked unshareable.
+  The preview excludes
+  command arguments, file contents, logs, local configuration and package
+  addresses. If a complete description exceeds the size bound or a finding
+  cannot safely be represented, the service refuses to produce a partial body.
+- Refresh, disconnect and workspace changes invalidate the displayed preview.
+  Local commit, push, draft creation and URL recording remain separate work.
+
 #### Human-triggered merge design todo
 
 Accepted design requirement, 15 November 2026: provide a way for a person to
