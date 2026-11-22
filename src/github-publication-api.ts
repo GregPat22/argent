@@ -1,4 +1,7 @@
 import { randomBytes } from "node:crypto";
+import { link, lstat, mkdtemp, rmdir, unlink } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { directoryIdentity } from "./local-worktree-identity.js";
 import {
   createServer,
   type ClientRequest,
@@ -132,6 +135,30 @@ export async function publicationGraphQL(options: {
     },
   );
   server.on("clientError", (_error, socket) => socket.destroy());
+  if (dirname(options.socket) !== options.directory) throw refused();
+  const directory = await directoryIdentity(options.directory);
+  // libuv unlinks the path it originally bound when the server closes.
+  // Bind under a private, short-lived directory and expose only a hard link.
+  // A replacement at the gh-visible pathname must survive server teardown.
+  const bindDirectory = await mkdtemp(join(options.directory, "bind-"));
+  const bindIdentity = await directoryIdentity(bindDirectory);
+  const bound = join(bindDirectory, "s");
+  let removed = false;
+  let exposed: string | undefined;
+  const socketIdentity = async (path: string) => {
+    const stat = await lstat(path, { bigint: true });
+    if (!stat.isSocket()) throw refused();
+    return [stat.dev, stat.ino, stat.birthtimeNs].join("/");
+  };
+  const removeBindDirectory = async () => {
+    if (
+      (await directoryIdentity(options.directory)) !== directory ||
+      (await directoryIdentity(bindDirectory)) !== bindIdentity
+    )
+      throw refused();
+    await rmdir(bindDirectory);
+    removed = true;
+  };
   const timer = setTimeout(() => {
     controller.abort();
     server.closeAllConnections();
@@ -139,8 +166,20 @@ export async function publicationGraphQL(options: {
   try {
     await new Promise<void>((resolve, reject) => {
       server.once("error", reject);
-      server.listen(options.socket, resolve);
+      server.listen(bound, resolve);
     });
+    const original = await socketIdentity(bound);
+    // link fails if gh's pathname is occupied; it cannot overwrite a file.
+    await link(bound, options.socket);
+    exposed = original;
+    if (
+      (await directoryIdentity(bindDirectory)) !== bindIdentity ||
+      (await socketIdentity(bound)) !== original ||
+      (await socketIdentity(options.socket)) !== original
+    )
+      throw refused();
+    await unlink(bound);
+    await removeBindDirectory();
     const args = [
       "api",
       "--hostname",
@@ -176,5 +215,14 @@ export async function publicationGraphQL(options: {
     server.closeAllConnections();
     if (server.listening)
       await new Promise<void>((resolve) => server.close(() => resolve()));
+    if (exposed) {
+      if (
+        (await directoryIdentity(options.directory)) !== directory ||
+        (await socketIdentity(options.socket)) !== exposed
+      )
+        throw refused();
+      await unlink(options.socket);
+    }
+    if (!removed) await removeBindDirectory();
   }
 }

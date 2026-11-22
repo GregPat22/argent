@@ -1,5 +1,14 @@
 import assert from "node:assert/strict";
-import { access, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdtemp,
+  realpath,
+  readdir,
+  readFile,
+  unlink,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import http from "node:http";
 import { join } from "node:path";
 import test, { type TestContext } from "node:test";
@@ -225,4 +234,31 @@ test("installed gh issues its GraphQL command over the private Unix socket", asy
   });
   assert.equal(f.requests(), 1);
   assert.equal(JSON.parse(result.toString()).data.repository.id, "fixture");
+  assert.deepEqual((await readdir(f.directory)).sort(), [
+    "config.yml",
+    "upstream.sock",
+  ]);
+});
+
+test("Unix socket cleanup retains a replacement file in the private directory", async (t) => {
+  const f = await setup(t);
+  await assert.rejects(
+    publicationGraphQL({
+      ...f,
+      invoke: async (_args, env) => {
+        const body = JSON.stringify({ query, variables: fields });
+        assert.equal(await f.callLocal("token " + env.GH_TOKEN, body), 200);
+        await unlink(f.socket);
+        await writeFile(f.socket, "fixture replacement", { flag: "wx" });
+        return Buffer.alloc(0);
+      },
+    }),
+    /GitHub publication request failed/,
+  );
+  assert.equal(await readFile(f.socket, "utf8"), "fixture replacement");
+  assert.deepEqual((await readdir(f.directory)).sort(), [
+    "config.yml",
+    "gh.sock",
+    "upstream.sock",
+  ]);
 });
