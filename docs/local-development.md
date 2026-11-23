@@ -22,6 +22,14 @@ checksum. The app bundles its own runtime. It is **unsigned and not notarized**:
 a local preview, not a public release. Windows, Linux and Intel Mac builds have
 not been built or tested.
 
+## Inspect a draft publication
+
+Open the workspace menu and choose **Draft publication status** to read the
+saved outcome. A verified draft lists its GitHub URL, source and base branches,
+and the exact commits reviewed for publication. If a push or draft creation
+needs attention, inspect those refs and the pull requests on GitHub before
+taking further action. Opening the status does not repeat publication.
+
 ## How it works
 
 ```mermaid
