@@ -88,7 +88,9 @@ function showConfiguration(shown: CommandConfigurationView): void {
   const configuration = shown.configuration!;
   setText(
     "commands-source",
-    `argent.json · base ${configuration.source.baseSha.slice(0, 12)} · content SHA-256 ${configuration.source.sha256.slice(0, 12)}`,
+    configuration.kind === "local-command-suggestion"
+      ? `Suggested by Argent, npm · base ${configuration.source.baseSha} · recognised from ${configuration.source.inputs.join(" and ")}`
+      : `argent.json · base ${configuration.source.baseSha.slice(0, 12)} · content SHA-256 ${configuration.source.sha256.slice(0, 12)}`,
   );
   for (const [action, purpose] of ACTIONS) {
     const command = configuration.config.commands[action];
@@ -111,10 +113,14 @@ function showConfiguration(shown: CommandConfigurationView): void {
       ),
     );
   }
+  const scope =
+    configuration.kind === "local-command-suggestion"
+      ? "this npm suggestion and its exact commands"
+      : "these exact bytes";
   setText(
     "commands-approval",
     shown.approval
-      ? `Approved ${day(shown.approval.approvedAt)} for this repository and these exact bytes. A changed configuration needs a fresh approval.`
+      ? `Approved ${day(shown.approval.approvedAt)} for this repository and ${scope}. A changed configuration needs a fresh approval.`
       : "Not approved. Approving records that you reviewed these commands for this repository. It does not run them.",
   );
   show("commands-content", true);
@@ -148,15 +154,15 @@ async function readConfiguration(): Promise<void> {
     if (!shown.configuration) {
       show("commands-example", true);
       status(
-        "No argent.json at this workspace's base commit, so there is nothing to approve. Commit one like the example below, then create a workspace from that commit.",
+        "No argent.json at this workspace's base commit and no recognised npm suggestion. To configure commands, commit an argent.json like the example below and create a workspace from that commit.",
       );
       return;
     }
     showConfiguration(shown);
     status(
       shown.approval
-        ? "Read from the base commit. This configuration is approved. Review the commit before running checks."
-        : "Read from the base commit. Review every argument before approving.",
+        ? "This configuration is approved. Review the commit before running checks."
+        : "Review every argument before approving.",
     );
   } catch (error) {
     if (

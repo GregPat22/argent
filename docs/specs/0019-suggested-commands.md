@@ -1,13 +1,12 @@
 # Direct approval of suggested commands
 
-Status: design accepted 20 November 2026. Implementation is planned alongside
-the [work queue](../../ROADMAP.md#alongside-the-queue). The current desktop
-requires a committed root `argent.json` to approve commands.
+Status: in development alongside the [work queue](../../ROADMAP.md#alongside-the-queue).
+The design was accepted on 20 November 2026.
 
 ## Desktop flow
 
 When the workspace base has no `argent.json`, a developer can open **Commands**
-and review a suggestion. For a recognised npm project the dialog would show:
+and review a suggestion. For a recognised npm project the proposed commands are listed below.
 
 | Source                   | Setup    | Test       |
 | ------------------------ | -------- | ---------- |
@@ -75,3 +74,23 @@ that the scripts and dependencies used by these commands can change.
   Recognition must use trusted Git and bounded data parsing. It must never
   invoke npm, evaluate scripts, follow links or access the network. The
   configured commands can execute project code only after consent.
+
+## Development verification
+
+The local implementation at `4983b95` on 23 November 2026 covers the npm rule.
+The Git reader checks the root configuration entry before looking for the two
+npm inputs. A regular lockfile serves as a marker. The reader verifies the
+manifest blob identity and enforces the configuration byte limit before
+parsing JSON. The manifest reader accepts a UTF-8 byte order mark.
+
+The desktop walkthrough uses a dependency-free offline npm project.
+Approval and reopening leave the project without an `argent.json` and create
+no check job. After separate consent, **Run checks** records the reviewed
+commit and a successful exit for each of the two displayed commands. Editing
+a tracked file and refreshing marks the same result stale.
+
+Git and store fixtures cover adding a configuration in the candidate, using
+it as the next workspace's base and retaining the earlier suggestion receipt.
+Approval reuse requires the same operator, repository, rule and commands.
+Recognition neither evaluates script text nor determines whether npm's
+scripts or dependencies are safe. Those inputs remain part of the candidate review.

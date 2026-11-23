@@ -271,9 +271,7 @@ export function validateCandidateReview(
     (runAction && row.action !== "setup-run") ||
     row.policyVersion !== REVIEW_POLICY ||
     row.executionAllowed !== false ||
-    row.tested !== false ||
-    typeof row.configurationState !== "string" ||
-    !["unchanged", "changed", "removed"].includes(row.configurationState)
+    row.tested !== false
   )
     throw invalid();
   const baseSha = text(row.baseSha, SHA),
@@ -379,6 +377,25 @@ export function validateCandidateReview(
       configuration: entry.configuration as boolean,
     };
   });
+  if (configuration.kind === "local-command-suggestion") {
+    // The base used for a suggestion has no root configuration file.
+    const addedConfig = files.find((file) => file.path === "argent.json");
+    if (
+      files.some((file) => file.previousPath === "argent.json") ||
+      (addedConfig &&
+        (addedConfig.newMode === null ||
+          (addedConfig.oldMode !== null &&
+            addedConfig.previousPath === null))) ||
+      row.configurationState !== (addedConfig ? "added" : "unchanged")
+    )
+      throw invalid();
+  } else if (
+    row.configurationState !== "unchanged" &&
+    row.configurationState !== "changed" &&
+    row.configurationState !== "removed"
+  ) {
+    throw invalid();
+  }
   const report = record(row.judgingChanges, [
     "testPaths",
     "commandPaths",

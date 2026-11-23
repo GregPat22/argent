@@ -20,7 +20,10 @@ import {
 } from "./judging-content.js";
 import { packageFindings } from "./judging-packages.js";
 import { git } from "./git.js";
-import { COMMAND_CONFIG_PATH } from "./local-command-config.js";
+import {
+  COMMAND_CONFIG_PATH,
+  COMMAND_SUGGESTION_POLICY,
+} from "./local-command-config.js";
 import type { Store } from "./store.js";
 import {
   CHANGES_LIMITS,
@@ -69,7 +72,7 @@ export type LocalCommandCandidateReview = Readonly<{
   /** Commands always come from the approved base, never from the candidate. */
   commandSource: "approved-base-configuration";
   /** The candidate's own copy of the configuration file, compared to the base. */
-  configuration: "unchanged" | "changed" | "removed";
+  configuration: "unchanged" | "changed" | "removed" | "added";
   files: readonly LocalCommandReviewFile[];
   judgingChanges: JudgingChanges;
   summary: Readonly<{ files: number; textFiles: number; binaryFiles: number }>;
@@ -310,15 +313,22 @@ export async function reviewLocalCommandCandidate(
       observation.files,
     );
 
-    // The approval was read from this blob, so the base must still name it.
     const approved = base.get(COMMAND_CONFIG_PATH);
-    if (!approved || approved.mode === "120000") throw unreviewable();
+    const suggested =
+      observation.configurationPolicyVersion === COMMAND_SUGGESTION_POLICY;
+    if (suggested ? approved : !approved || approved.mode === "120000")
+      throw unreviewable();
     const candidate = head.get(COMMAND_CONFIG_PATH);
-    const configuration = !candidate
-      ? "removed"
-      : candidate.oid === approved.oid && candidate.mode === approved.mode
-        ? "unchanged"
-        : "changed";
+    let configuration: LocalCommandCandidateReview["configuration"] =
+      "unchanged";
+    if (!approved && candidate) configuration = "added";
+    if (approved && !candidate) configuration = "removed";
+    if (
+      approved &&
+      candidate &&
+      (candidate.oid !== approved.oid || candidate.mode !== approved.mode)
+    )
+      configuration = "changed";
 
     if (
       (await realpath(worktreeRoot)) !== root ||

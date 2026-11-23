@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { suggestion } from "./desktop-suggestion-fixture.js";
 import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { once } from "node:events";
@@ -267,11 +268,49 @@ test("configuration responses are rebuilt from validated fields and never grant 
   const sha256 = configuration();
   sha256.configuration.source.baseSha = "a".repeat(64);
   sha256.configuration.source.blobId = "b".repeat(64);
-  assert.equal(
-    validateCommandConfiguration(sha256, id).configuration!.source.blobId
-      .length,
-    64,
+  const sha256Descriptor = validateCommandConfiguration(
+    sha256,
+    id,
+  ).configuration;
+  assert.ok(sha256Descriptor?.kind === "local-command-config");
+  assert.equal(sha256Descriptor.source.blobId.length, 64);
+});
+
+test("the bridge validates an npm suggestion and its receipt against the same rule", () => {
+  const expected = suggestion(descriptor().source.baseSha);
+  const view = { ...configuration(), configuration: expected };
+  assert.deepEqual(
+    validateCommandConfiguration(view, id).configuration,
+    expected,
   );
+  const saved = receipt();
+  assert.deepEqual(
+    validateCommandApprovalReceipt(
+      {
+        ...saved,
+        approval: { ...saved.approval, descriptor: expected },
+      },
+      id,
+      expected.approvalCandidate.identity,
+    ).approval.descriptor,
+    expected,
+  );
+  for (const invalid of [
+    {
+      ...expected,
+      config: { version: 1, commands: { test: { argv: ["npm", "start"] } } },
+    },
+    { ...expected, source: { ...expected.source, version: 2 } },
+    { ...expected, source: { ...expected.source, inputs: ["package.json"] } },
+    { ...expected, source: { ...expected.source, path: "argent.json" } },
+    { ...expected, approvalCandidate: descriptor().approvalCandidate },
+  ]) {
+    assert.throws(
+      () =>
+        validateCommandConfiguration({ ...view, configuration: invalid }, id),
+      /invalid command configuration/,
+    );
+  }
 });
 
 test("approval receipts must be historical, for the requested workspace and reviewed identity", () => {

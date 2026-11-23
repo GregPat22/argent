@@ -40,12 +40,15 @@ if (process.env.ARGENT_PACKAGED_EXECUTABLE) {
 }
 
 // Keep independent walkthroughs within the same per-process deadline.
-for (const suite of ["welcome", "workspace", "commands"] as const)
-  await runSuite(suite);
+const suites = ["welcome", "workspace", "commands", "suggestions"] as const;
+const selected = process.argv[2];
+if (selected && !suites.some((suite) => suite === selected))
+  throw new Error("Unknown desktop smoke suite");
+for (const suite of suites) {
+  if (!selected || suite === selected) await runSuite(suite);
+}
 
-async function runSuite(
-  suite: "welcome" | "workspace" | "commands",
-): Promise<void> {
+async function runSuite(suite: (typeof suites)[number]): Promise<void> {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), "argent-native-")));
   // A throwaway repository and a fake Claude Code CLI for the local-workspace flow.
   const repository = join(directory, "repository");
@@ -65,26 +68,63 @@ async function runSuite(
   git("init", "--quiet", "--initial-branch=main");
   writeFileSync(join(repository, "README.md"), "# smoke\n");
   writeFileSync(join(repository, "delete-me.txt"), "to delete\n");
-  // Harmless commands reviewed and executed through the desktop in fresh checkouts.
-  writeFileSync(
-    join(repository, "argent.json"),
-    JSON.stringify({
-      version: 1,
-      commands: {
-        setup: { argv: ["node", "-e", "process.exit(0)"] },
-        run: { argv: ["node", "-e", "console.log('run fixture')"] },
-        test: {
-          argv: [
-            "node",
-            "-e",
-            "process.exit(0)",
-            "<img src=x onerror=window.untrustedCommand=true>",
-          ],
+  if (suite === "suggestions") {
+    // A dependency-free project keeps real npm checks offline in their checkout.
+    const metadata = { name: "argent-smoke", version: "1.0.0" };
+    writeFileSync(
+      join(repository, ".gitignore"),
+      ".npm-cache/\nnode_modules/\n",
+    );
+    writeFileSync(
+      join(repository, "package.json"),
+      JSON.stringify({
+        ...metadata,
+        private: true,
+        scripts: { test: "node --test smoke.test.cjs" },
+      }),
+    );
+    writeFileSync(
+      join(repository, "package-lock.json"),
+      JSON.stringify({
+        ...metadata,
+        lockfileVersion: 3,
+        packages: { "": metadata },
+      }),
+    );
+    writeFileSync(
+      join(repository, ".npmrc"),
+      "offline=true\naudit=false\nfund=false\nupdate-notifier=false\ncache=.npm-cache\n",
+    );
+    writeFileSync(
+      join(repository, "smoke.test.cjs"),
+      `const assert = require("node:assert/strict");
+const { readFileSync } = require("node:fs");
+require("node:test")("reads the checked README", () => {
+  assert.equal(readFileSync("README.md", "utf8"), "# smoke\\n");
+});\n`,
+    );
+  } else {
+    // Harmless commands reviewed and executed through the desktop in fresh checkouts.
+    writeFileSync(
+      join(repository, "argent.json"),
+      JSON.stringify({
+        version: 1,
+        commands: {
+          setup: { argv: ["node", "-e", "process.exit(0)"] },
+          run: { argv: ["node", "-e", "console.log('run fixture')"] },
+          test: {
+            argv: [
+              "node",
+              "-e",
+              "process.exit(0)",
+              "<img src=x onerror=window.untrustedCommand=true>",
+            ],
+          },
         },
-      },
-    }),
-  );
-  git("add", "README.md", "delete-me.txt", "argent.json");
+      }),
+    );
+  }
+  git("add", "--", ".");
   git("commit", "--quiet", "-m", "initial");
   const claude = join(directory, "claude");
   writeFileSync(

@@ -21,6 +21,8 @@ import { decodeHistory } from "../src/continuity.js";
 import { DomainError } from "../src/domain.js";
 import { readLocalCommandConfig } from "../src/local-command-config.js";
 import type { LocalCommandApprovalReceipt } from "../src/local-command-approvals.js";
+import { LocalCheckWorker } from "../src/local-check-worker.js";
+import { reviewLocalCommandCandidate } from "../src/local-command-review.js";
 import { createLocalWorkspace } from "../src/local-worktree.js";
 import { Store } from "../src/store.js";
 
@@ -51,7 +53,11 @@ function git(cwd: string, ...args: string[]) {
 const rejected = (status: number) => (error: unknown) =>
   error instanceof DomainError && error.status === status;
 
-async function fixture(t: TestContext, bytes: string | null = CONFIG) {
+async function fixture(
+  t: TestContext,
+  bytes: string | null = CONFIG,
+  files: Record<string, string> = {},
+) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "argent-approvals-")));
   const repo = join(root, "repo");
   mkdirSync(repo);
@@ -61,6 +67,8 @@ async function fixture(t: TestContext, bytes: string | null = CONFIG) {
     'require("node:fs").writeFileSync("executed", "bad");\n',
   );
   if (bytes !== null) writeFileSync(join(repo, "argent.json"), bytes);
+  for (const [name, contents] of Object.entries(files))
+    writeFileSync(join(repo, name), contents);
   git(repo, "add", ".");
   git(repo, "commit", "--quiet", "-m", "initial");
   const database = join(root, "store.sqlite");
@@ -268,6 +276,149 @@ test("same configuration in another repository does not reuse an approval", asyn
     rejected(409),
   );
   assert.deepEqual(f.counts(), [1, 1, 1]);
+});
+
+const npmFiles = {
+  "package.json": JSON.stringify({
+    name: "fixture",
+    version: "1.0.0",
+    scripts: { test: "node --version" },
+  }),
+  "package-lock.json": JSON.stringify({
+    name: "fixture",
+    version: "1.0.0",
+    lockfileVersion: 3,
+    packages: { "": { name: "fixture", version: "1.0.0" } },
+  }),
+  ".npmrc":
+    "offline=true\naudit=false\nfund=false\nupdate-notifier=false\ncache=.npm-cache\n",
+  ".gitignore": ".npm-cache/\nnode_modules/\n",
+};
+
+test("suggestion approval follows the repository, operator and suggested argv across manifest edits", async (t) => {
+  const f = await fixture(t, null, npmFiles);
+  const first = await f.approve();
+  assert.equal(first.approval.descriptor.kind, "local-command-suggestion");
+  assert.equal(
+    first.approval.descriptor.source.baseSha,
+    f.workspace.local!.baseSha,
+  );
+  writeFileSync(
+    join(f.repo, "package.json"),
+    JSON.stringify({ scripts: { test: "node marker.js" } }),
+  );
+  git(f.repo, "add", "package.json");
+  git(f.repo, "commit", "--quiet", "-m", "edit test script");
+  const newer = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const match = await f.lookup(newer.id);
+  assert.ok(match);
+  assert.equal(match.approval.id, first.approval.id);
+  assert.equal(match.candidate.source.baseSha, newer.local!.baseSha);
+  assert.deepEqual(match.candidate.config.commands.test?.argv, ["npm", "test"]);
+  assert.equal(await f.lookup(newer.id, "another-operator"), null);
+  const reused = await f.approve("new-base", f.candidate, "operator", newer.id);
+  assert.equal(reused.event.type, "configuration.reused");
+  assert.equal(reused.approval.id, first.approval.id);
+  const restarted = f.reopen();
+  assert.deepEqual(
+    await restarted.localCommandApprovals.approve(
+      f.worktrees,
+      newer.id,
+      "operator",
+      f.candidate,
+      "new-base",
+    ),
+    reused,
+  );
+
+  const other = join(f.root, "cloned-repo");
+  git(f.root, "clone", "--quiet", "--no-local", f.repo, other);
+  const clone = await createLocalWorkspace(f.store, f.worktrees, other);
+  assert.equal(await f.lookup(clone.id), null);
+  await assert.rejects(
+    f.approve("copied", f.candidate, "operator", clone.id),
+    rejected(409),
+  );
+  await assert.rejects(
+    f.approve("forged", "0".repeat(64), "operator", newer.id),
+    rejected(409),
+  );
+  assert.deepEqual(f.counts(), [1, 2, 2]);
+  assert.equal(
+    f.db.prepare("SELECT COUNT(*) AS n FROM command_jobs").get()!.n,
+    0,
+  );
+});
+
+test("a candidate adding argent.json runs the approved suggestion until the file becomes the base source", async (t) => {
+  const f = await fixture(t, null, npmFiles);
+  const suggestion = await f.approve();
+  const id = f.workspace.id;
+  const directory = f.workspace.local!.worktreePath;
+  // Identical commands still need a distinct approval when the source changes.
+  writeFileSync(
+    join(directory, "argent.json"),
+    JSON.stringify(suggestion.approval.descriptor.config),
+  );
+  git(directory, "add", "argent.json");
+  git(directory, "commit", "--quiet", "-m", "record project commands");
+  const review = await reviewLocalCommandCandidate(
+    f.store,
+    f.worktrees,
+    id,
+    "operator",
+  );
+  assert.equal(review.configuration, "added");
+  assert.deepEqual(
+    review.files.map((file) => [file.path, file.status, file.configuration]),
+    [["argent.json", "added", true]],
+  );
+  assert.equal(review.observation.configurationIdentity, f.candidate);
+  const consent = await f.store.localCommandConsents.consent(
+    f.worktrees,
+    id,
+    "operator",
+    review.identity,
+    "consent",
+  );
+  await f.store.localChecks.enqueue(
+    f.worktrees,
+    id,
+    "operator",
+    consent.id,
+    "check",
+  );
+  const worker = new LocalCheckWorker(f.store, {
+    worktreeRoot: f.worktrees,
+    verificationRoot: join(f.root, "verification"),
+  });
+  assert.equal(await worker.tick(), true);
+  const checked = await f.store.localChecks.latest(f.worktrees, id, "operator");
+  assert.equal(checked?.result?.outcome, "passed");
+  assert.equal(checked.result.configurationIdentity, f.candidate);
+  assert.equal(checked.result.headSha, git(directory, "rev-parse", "HEAD"));
+
+  git(f.repo, "merge", "--ff-only", f.workspace.local!.branch);
+  const next = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const file = await f.read(next.id);
+  assert.ok(file);
+  assert.equal(file.kind, "local-command-config");
+  assert.deepEqual(file.config, suggestion.approval.descriptor.config);
+  assert.notEqual(file.approvalCandidate.identity, f.candidate);
+  assert.equal(await f.lookup(next.id), null);
+  await assert.rejects(
+    f.approve("stale", f.candidate, "operator", next.id),
+    rejected(409),
+  );
+  assert.deepEqual(f.counts(), [1, 1, 1]);
+  const approved = await f.approve(
+    "file",
+    file.approvalCandidate.identity,
+    "operator",
+    next.id,
+  );
+  assert.notEqual(approved.approval.id, suggestion.approval.id);
+  assert.deepEqual(await f.approve(), suggestion);
 });
 
 test("missing configuration, invalid inputs, wrong digest and abort create no authority", async (t) => {

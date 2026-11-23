@@ -316,7 +316,9 @@ first. The security model is unchanged.
   exact suggestion with its own versioned identity and keep candidate consent
   and execution separate. This avoids requiring a setup commit to try checks.
   The [suggested commands contract](specs/0019-suggested-commands.md) defines
-  source precedence, approval reuse and verification. Implementation is planned.
+  source precedence, approval reuse and verification. The development implementation
+  at `4983b95` uses a distinct npm rule identity while preserving the stored
+  file-backed receipt format.
 - The simulated cloud lifecycle, custody and GitHub pilot code will be set
   aside from the local service's startup path and the default check until M1
   resumes. Planned as its own change; how, and whether offline history export

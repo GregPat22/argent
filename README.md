@@ -70,6 +70,8 @@ npm run desktop
    edit a tracked file in that workspace and refresh again. The earlier
    result is now **stale**.
 
+For npm projects without a committed `argent.json`, [direct approval of suggested commands](docs/specs/0019-suggested-commands.md) is in development.
+
 The [desktop walkthrough](docs/specs/0013-local-mvp.md#l14-manual-walkthrough)
 records this passing-to-stale transition, a failing check and cancellation.
 For standalone API setup, the headless demo, simulation-history export, the
