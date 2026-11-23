@@ -606,7 +606,7 @@ test("npm recognition uses only regular root entries at the pinned base and trea
   const f = await fixture(t, null, (repo) => {
     writeFileSync(
       join(repo, "package.json"),
-      JSON.stringify({ scripts: { test: "node custom.js" } }),
+      "\uFEFF" + JSON.stringify({ scripts: { test: "node custom.js" } }),
     );
     writeFileSync(
       join(repo, "package-lock.json"),

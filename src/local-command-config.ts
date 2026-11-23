@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { lstat, realpath } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { DomainError, UncertainExecutionError } from "./domain.js";
+import { jsonObject, object as isJsonObject } from "./judging-content.js";
 import { git } from "./git.js";
 import type { Store } from "./store.js";
 
@@ -143,20 +144,20 @@ const NPM_CONFIG = parseLocalCommandConfig(
 );
 
 function hasNpmTestScript(bytes: Buffer): boolean {
-  let manifest: Record<string, unknown>;
-  try {
-    manifest = object(JSON.parse(decode(bytes)));
-  } catch {
+  const manifest = jsonObject(bytes);
+  if (!manifest)
     throw new DomainError(
       409,
       "Cannot read package.json for suggested commands",
     );
-  }
   const scripts = manifest.scripts;
-  if (!scripts || typeof scripts !== "object" || Array.isArray(scripts))
+  if (
+    !Object.hasOwn(manifest, "scripts") ||
+    !isJsonObject(scripts) ||
+    !Object.hasOwn(scripts, "test")
+  )
     return false;
-  const test = Object.getOwnPropertyDescriptor(scripts, "test")?.value;
-  return typeof test === "string" && test.trim().length > 0;
+  return typeof scripts.test === "string" && scripts.test.trim().length > 0;
 }
 
 /** Versioned identity for review, not an approval or permission to execute. */
