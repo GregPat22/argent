@@ -347,6 +347,24 @@ motion. The final diff preserves production code, existing assertions, timeouts
 and worker count. Hosted checks remain required before integration; local passes
 do not reproduce or explain the original Chromium context-startup failure.
 
+### Reveal geometry at three viewport widths
+
+On 23 November 2026 at `31a2e8a`, the hosted pull-request run timed out
+creating the browser context for the 1440 px reveal case after the 390 px
+and 768 px cases passed. The push run passed on the same commit. The failed
+case never reached navigation or a geometry assertion.
+
+Each viewport case must launch and close its own Chromium process using the
+existing browser fixture. All three must still compare the text and geometry
+across reveal cleanup with the same half-pixel threshold, timeouts and zero
+retries.
+
+The three cases passed locally on unchanged main `f748957` with one observed
+Chromium launch. With the fixture, the full browser suite passed and the
+launch trace showed a distinct process for each width. The original hosted
+job also passed on rerun at `31a2e8a`; the exact cause of the Chromium stall
+remains unconfirmed.
+
 ## Native desktop smoke suite lifetimes (in development)
 
 Investigation recorded 17 November 2026 at `806d8b1`, against main `df7eb14`.
