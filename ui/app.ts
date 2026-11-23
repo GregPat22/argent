@@ -475,6 +475,39 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
 ))
   button.addEventListener("click", () => button.closest("dialog")?.close());
 
+/*
+ * A click on the backdrop closes a dialog exactly as Escape does: through its
+ * cancel handler, which returns focus and drops pending reads. Press and
+ * release must both land outside the panel, so a text selection that ends
+ * outside never closes it. Dialogs holding typed work are marked
+ * data-keep-open and close only from their own controls or Escape.
+ */
+for (const element of document.querySelectorAll<HTMLDialogElement>(
+  "dialog:not([data-keep-open])",
+)) {
+  let pressedOutside = false;
+  const outside = (event: Event) => {
+    const { clientX: x, clientY: y } = event as MouseEvent;
+    const box = element.getBoundingClientRect();
+    return (
+      event.target === element &&
+      (x < box.left || x > box.right || y < box.top || y > box.bottom)
+    );
+  };
+  element.addEventListener("pointerdown", (event) => {
+    pressedOutside = outside(event);
+  });
+  element.addEventListener("click", (event) => {
+    const dismiss = pressedOutside && element.open && outside(event);
+    pressedOutside = false;
+    if (
+      dismiss &&
+      element.dispatchEvent(new Event("cancel", { cancelable: true }))
+    )
+      element.close();
+  });
+}
+
 byId<HTMLFormElement>("workspace-form").addEventListener("submit", (event) => {
   event.preventDefault();
   const button = byId<HTMLButtonElement>("workspace-submit");

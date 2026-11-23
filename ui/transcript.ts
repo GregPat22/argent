@@ -37,14 +37,21 @@ export function visibleRuns(): RunView[] {
 }
 
 function stepRow(step: Step): HTMLElement {
-  const symbol =
-    step.kind === "tool"
-      ? step.error
-        ? "triangle-alert"
-        : "terminal"
-      : step.kind === "say"
-        ? "message-square"
-        : "chevron-right";
+  // A note cannot expand, so it gets a quiet dot rather than a chevron.
+  const marker =
+    step.kind === "note"
+      ? h("span", {
+          class: "step-icon step-dot",
+          attrs: { "aria-hidden": "true" },
+        })
+      : icon(
+          step.kind === "say"
+            ? "message-square"
+            : step.error
+              ? "triangle-alert"
+              : "terminal",
+          "step-icon",
+        );
   const time = h("time", { text: clock(step.at) });
   time.dateTime = new Date(step.at).toISOString();
   return h(
@@ -52,7 +59,7 @@ function stepRow(step: Step): HTMLElement {
     {
       class: `step step-${step.kind}${step.kind === "tool" && step.error ? " step-error" : ""}`,
     },
-    icon(symbol, "step-icon"),
+    marker,
     h("span", { class: "step-text", text: step.text }),
     time,
   );

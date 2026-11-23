@@ -199,3 +199,35 @@ Renderer regressions cover a launch with an earlier saved selection and a launch
 with an uncertain submission. The native smoke closes the window during a run,
 reopens it on the welcome screen, then selects the workspace and finds the
 completed conversation.
+
+## Desktop polish and motion (in development)
+
+Against main `f748957`, 23 November 2026. A heuristic review of the native
+smoke screenshots and the renderer found friction that changes no execution,
+consent or evidence contract. The work lands in small steps, each with its own
+acceptance criteria below.
+
+### Step 1: transitions and consistent controls
+
+- Dialogs and popovers transition out as well as in: 240ms entrance, 150ms
+  exit for dialogs and their backdrop, 180ms/120ms for popovers. A closing
+  dialog ignores the pointer. Reduced motion removes both directions.
+- Menus, popovers and dialogs close on a click outside them, not only with
+  Escape. A backdrop click takes the same path as Escape, so focus returns to
+  the control that opened the dialog. Press and release must both land
+  outside, so ending a text selection outside never closes a dialog. The
+  commit, resolution and draft publication dialogs hold typed work and close
+  only from their own controls or Escape. While any menu or dialog is open,
+  the header and sidebar top stop moving the window, because macOS never
+  delivers a click on a drag region to the page.
+- Every inspection dialog closes from the same icon button in its header.
+  "Back to review" remains the evidence preview's navigation back.
+- Cancel check appears only while a check is queued or running.
+- The conversation fades into the header and composer within its own padding,
+  so content at rest is never dimmed.
+- Every disclosure uses the app's chevron and eases its contents open. Activity
+  notes that cannot expand show a dot instead of a chevron.
+- Dialog text areas grow with their contents up to a bound instead of showing
+  a resize grip.
+- Selecting another workspace updates the existing sidebar rows, so the
+  highlight and its silver sliver transition; a changed list still rebuilds.

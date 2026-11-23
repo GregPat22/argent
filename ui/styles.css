@@ -461,8 +461,25 @@ kbd {
     0 18px 48px -16px #000;
   position-try-fallbacks: flip-block, flip-inline;
 }
+.popover {
+  opacity: 0;
+  transform: scale(0.97);
+  transition:
+    opacity 120ms var(--ease),
+    transform 120ms var(--ease),
+    overlay 120ms allow-discrete,
+    display 120ms allow-discrete;
+}
 .popover:popover-open {
-  animation: surface-in 160ms var(--ease);
+  opacity: 1;
+  transform: none;
+  transition-duration: 180ms;
+}
+@starting-style {
+  .popover:popover-open {
+    opacity: 0;
+    transform: scale(0.97);
+  }
 }
 .popover p {
   margin: 6px 0 12px;
@@ -632,21 +649,39 @@ kbd {
   border-radius: 7px;
   color: var(--sterling);
   text-align: left;
+  isolation: isolate;
   transition:
     background-color 120ms var(--ease),
+    box-shadow 180ms var(--ease),
     color 120ms var(--ease);
 }
 .workspace-row:hover {
   background: var(--wash);
   color: var(--polished);
 }
+.workspace-row {
+  box-shadow: inset 0 0 0 1px transparent;
+}
 .workspace-row.selected {
   box-shadow: inset 0 0 0 1px var(--line);
-  background: linear-gradient(105deg, rgb(200 210 229 / 0.12), var(--wash));
   color: var(--polished);
 }
-/* A sliver of polished metal marks the open workspace. */
-.workspace-row.selected::before {
+/* The selected wash fades in; a gradient itself cannot transition. */
+.workspace-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(105deg, rgb(200 210 229 / 0.12), var(--wash));
+  opacity: 0;
+  transition: opacity 180ms var(--ease);
+}
+.workspace-row.selected::after {
+  opacity: 1;
+}
+/* A sliver of polished metal marks the open workspace and grows in. */
+.workspace-row::before {
   content: "";
   position: absolute;
   left: 0;
@@ -655,6 +690,15 @@ kbd {
   width: 2px;
   border-radius: 2px;
   background: linear-gradient(180deg, #fff, #8e99a8 55%, #e4eaf2);
+  opacity: 0;
+  transform: scaleY(0.3);
+  transition:
+    opacity 180ms var(--ease),
+    transform 240ms var(--ease);
+}
+.workspace-row.selected::before {
+  opacity: 1;
+  transform: none;
 }
 .workspace-row.is-stopped .row-label {
   color: var(--faint);
@@ -1021,8 +1065,16 @@ kbd {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 28px 24px 8px;
+  padding: 28px 24px 24px;
   scroll-padding-bottom: 24px;
+  /* Both fades sit inside the padding, so content at rest is never dimmed. */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 22px,
+    #000 calc(100% - 22px),
+    transparent
+  );
 }
 .conversation:has(.empty-state:not([hidden])) {
   display: grid;
@@ -1189,15 +1241,24 @@ kbd {
   color: var(--sterling);
   font-size: 12.5px;
 }
-.steps-disclosure[open] .steps {
-  animation: rise-in 180ms var(--ease);
-}
 .step-icon {
   width: 13px;
   height: 13px;
   flex-basis: 13px;
   align-self: center;
   color: var(--faint);
+}
+.step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.step-dot::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
 }
 .step time {
   color: var(--faint);
@@ -1268,6 +1329,50 @@ kbd {
 }
 .steps-disclosure[open] .disclosure-icon {
   transform: rotate(90deg);
+}
+/*
+ * Every disclosure opens the same way: the app's chevron turns, and the
+ * contents ease open instead of appearing at full height.
+ */
+:root {
+  interpolate-size: allow-keywords;
+}
+details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details:not(.steps-disclosure) > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+details:not(.steps-disclosure) > summary::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  background: currentColor;
+  mask: url("./icons/chevron-right.svg") center / contain no-repeat;
+  transition: transform 180ms var(--ease);
+}
+details[open]:not(.steps-disclosure) > summary::before {
+  transform: rotate(90deg);
+}
+details::details-content {
+  block-size: 0;
+  opacity: 0;
+  overflow: clip;
+  transition:
+    block-size 220ms var(--ease),
+    opacity 180ms var(--ease),
+    content-visibility 220ms allow-discrete;
+}
+details[open]::details-content {
+  block-size: auto;
+  opacity: 1;
 }
 .steps-disclosure .steps {
   margin-left: 4px;
@@ -1784,13 +1889,66 @@ dialog {
     inset 0 1px 0 rgb(238 241 245 / 0.07),
     0 32px 80px -24px #000;
 }
+/*
+ * The header and sidebar top move the window, and macOS never delivers a
+ * click on a drag region to the page. While a menu or dialog is open they
+ * stop dragging, so a click there dismisses it like a click anywhere else.
+ */
+:root:has(dialog[open], :popover-open) :is(.main-header, .sidebar-top) {
+  -webkit-app-region: no-drag;
+}
+/* A backdrop that closes on click says so. */
+dialog:not([data-keep-open])::backdrop {
+  cursor: default;
+}
+
+/*
+ * Dialogs and popovers transition both ways. `display` and `overlay` are
+ * discrete, so a closing surface stays in the top layer until it has faded.
+ * Exits are shorter than entrances; a closed surface ignores the pointer.
+ */
+dialog {
+  opacity: 0;
+  transform: translateY(6px) scale(0.985);
+  transition:
+    opacity 150ms var(--ease),
+    transform 150ms var(--ease),
+    overlay 150ms allow-discrete,
+    display 150ms allow-discrete;
+}
 dialog[open] {
-  animation: surface-in 220ms var(--ease);
+  opacity: 1;
+  transform: none;
+  transition-duration: 240ms;
+}
+dialog:not([open]) {
+  pointer-events: none;
+}
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
 }
 dialog::backdrop {
+  background: rgb(4 5 7 / 0);
+  backdrop-filter: blur(0);
+  transition:
+    background-color 150ms var(--ease),
+    backdrop-filter 150ms var(--ease),
+    overlay 150ms allow-discrete,
+    display 150ms allow-discrete;
+}
+dialog[open]::backdrop {
   background: rgb(4 5 7 / 0.66);
   backdrop-filter: blur(6px);
-  animation: fade-in 220ms var(--ease);
+  transition-duration: 240ms;
+}
+@starting-style {
+  dialog[open]::backdrop {
+    background: rgb(4 5 7 / 0);
+    backdrop-filter: blur(0);
+  }
 }
 .dialog-form {
   display: grid;
@@ -1846,8 +2004,13 @@ dialog::backdrop {
   background: var(--oxide);
   color: var(--polished);
   font-size: 13px;
-  resize: vertical;
+  resize: none;
   transition: border-color 120ms var(--ease);
+}
+.dialog-form textarea {
+  field-sizing: content;
+  min-height: 76px;
+  max-height: 240px;
 }
 .dialog-form input:focus,
 .dialog-form textarea:focus {
@@ -2068,6 +2231,7 @@ dialog::backdrop {
   *,
   *::before,
   *::after,
+  *::details-content,
   dialog::backdrop {
     animation: none !important;
     transition-duration: 0s !important;
@@ -2375,6 +2539,7 @@ dialog::backdrop {
   font: 12px/1.7 var(--mono);
 }
 #checks-cancel {
+  align-self: flex-end;
   margin-top: 12px;
   flex-shrink: 0;
 }

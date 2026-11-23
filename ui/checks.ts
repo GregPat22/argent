@@ -18,6 +18,7 @@ function clear() {
   view = null;
   byId("checks-result").replaceChildren();
   enable("checks-cancel", false);
+  show("checks-cancel", false);
 }
 function stale(version: number, id: string) {
   return (
@@ -30,13 +31,10 @@ function stale(version: number, id: string) {
 function status(text: string) {
   setText("checks-status", text);
   enable("checks-refresh", state.connected && !pending);
-  enable(
-    "checks-cancel",
-    state.connected &&
-      !pending &&
-      !!view &&
-      ["queued", "running"].includes(view.status),
-  );
+  const active = !!view && ["queued", "running"].includes(view.status);
+  // Cancel appears only while a check is queued or running.
+  show("checks-cancel", active);
+  enable("checks-cancel", state.connected && !pending && active);
 }
 async function read() {
   if (!dialog().open || pending || !state.connected) return;
