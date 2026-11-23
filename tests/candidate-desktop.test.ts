@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { suggestion } from "./desktop-suggestion-fixture.js";
 import { execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { once } from "node:events";
@@ -612,6 +613,38 @@ test("bridge validates exact inputs, bounded responses and the long review timeo
     () => validateCandidateReview(inconsistent, f.workspace.id),
     /invalid/,
   );
+  const suggested = { ...shown, configuration: suggestion(shown.baseSha) };
+  assert.deepEqual(
+    validateCandidateReview(suggested, f.workspace.id),
+    suggested,
+  );
+  const withFile = {
+    ...suggested,
+    configurationState: "added",
+    files: [
+      {
+        ...shown.files[0]!,
+        configuration: true,
+        path: "argent.json",
+        status: "added",
+        oldMode: null,
+        oldBlobId: null,
+        oldBytes: null,
+      },
+    ],
+    judgingChanges: { ...shown.judgingChanges, commandPaths: [0] },
+  };
+  assert.deepEqual(validateCandidateReview(withFile, f.workspace.id), withFile);
+  for (const inconsistent of [
+    { ...suggested, configurationState: "added" },
+    { ...withFile, configurationState: "unchanged" },
+    { ...withFile, configuration: shown.configuration },
+  ]) {
+    assert.throws(
+      () => validateCandidateReview(inconsistent, f.workspace.id),
+      /invalid/,
+    );
+  }
   const corruptions: ((value: any) => void)[] = [
     (x) => (x.workspaceId = randomUUID()),
     (x) => (x.identity = "HEAD"),

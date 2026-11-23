@@ -477,12 +477,11 @@
         </button>
       </header>
       <p id="commands-notice" class="changes-notice">
-        The setup, test and run commands for this repository, read from
-        <span class="mono">argent.json</span> at the workspace's base commit and
-        never from the worktree, so edits in the workspace do not change them.
-        Approving records your review. Review and consent to an exact commit,
-        then choose Run checks for setup and test, or review separately for the
-        run command.
+        Argent reads <span class="mono">argent.json</span> at the workspace's
+        base commit. When that file is absent, Argent can suggest commands for a
+        recognised npm project. Approving records your review. Review and
+        consent to an exact commit, then choose Run checks for setup and test,
+        or review separately for the run command.
       </p>
       <p
         id="commands-status"

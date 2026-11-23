@@ -20,7 +20,7 @@ export type LocalCommandConfig = Readonly<{
   version: 1;
   commands: Readonly<Partial<Record<Action, Command>>>;
 }>;
-export type LocalCommandConfigDescriptor = Readonly<{
+type FileDescriptor = Readonly<{
   kind: "local-command-config";
   config: LocalCommandConfig;
   source: Readonly<{
@@ -31,6 +31,24 @@ export type LocalCommandConfigDescriptor = Readonly<{
   }>;
   approvalCandidate: Readonly<{ identity: string; policyVersion: string }>;
 }>;
+export const COMMAND_SUGGESTION_POLICY = "argent-npm-suggestion-v1";
+const NPM_INPUTS = Object.freeze([
+  "package.json",
+  "package-lock.json",
+] as const);
+type SuggestedDescriptor = Readonly<{
+  kind: "local-command-suggestion";
+  config: LocalCommandConfig;
+  source: Readonly<{
+    baseSha: string;
+    rule: "npm";
+    version: 1;
+    inputs: typeof NPM_INPUTS;
+  }>;
+  approvalCandidate: Readonly<{ identity: string; policyVersion: string }>;
+}>;
+export type LocalCommandConfigDescriptor = FileDescriptor | SuggestedDescriptor;
+
 interface DirectoryIdentity {
   path: string;
   device: string;
@@ -112,6 +130,35 @@ export function parseLocalCommandConfig(bytes: Buffer): LocalCommandConfig {
   return Object.freeze({ version: 1, commands: Object.freeze(commands) });
 }
 
+const NPM_CONFIG = parseLocalCommandConfig(
+  Buffer.from(
+    JSON.stringify({
+      version: 1,
+      commands: {
+        setup: { argv: ["npm", "ci"] },
+        test: { argv: ["npm", "test"] },
+      },
+    }),
+  ),
+);
+
+function hasNpmTestScript(bytes: Buffer): boolean {
+  let manifest: Record<string, unknown>;
+  try {
+    manifest = object(JSON.parse(decode(bytes)));
+  } catch {
+    throw new DomainError(
+      409,
+      "Cannot read package.json for suggested commands",
+    );
+  }
+  const scripts = manifest.scripts;
+  if (!scripts || typeof scripts !== "object" || Array.isArray(scripts))
+    return false;
+  const test = Object.getOwnPropertyDescriptor(scripts, "test")?.value;
+  return typeof test === "string" && test.trim().length > 0;
+}
+
 /** Versioned identity for review, not an approval or permission to execute. */
 export function commandConfigCandidateIdentity(
   repository: Readonly<DirectoryIdentity>,
@@ -132,6 +179,110 @@ export function commandConfigCandidateIdentity(
     .digest("hex");
 }
 
+function fields(value: unknown, keys: string[]) {
+  const row = object(value);
+  if (
+    Object.keys(row).length !== keys.length ||
+    keys.some((key) => !Object.hasOwn(row, key))
+  )
+    throw invalid();
+  return row;
+}
+
+function digest(value: unknown, pattern: RegExp) {
+  if (typeof value !== "string" || pattern.exec(value)?.[0] !== value)
+    throw invalid();
+  return value;
+}
+
+/** Rebuild the same closed schema at the persistence and desktop boundaries. */
+export function parseCommandDescriptor(
+  value: unknown,
+): LocalCommandConfigDescriptor {
+  const row = fields(value, ["kind", "config", "source", "approvalCandidate"]);
+  const candidate = fields(row.approvalCandidate, [
+    "identity",
+    "policyVersion",
+  ]);
+  const identity = digest(candidate.identity, /^[a-f0-9]{64}$/);
+  const config = parseLocalCommandConfig(
+    Buffer.from(JSON.stringify(row.config)),
+  );
+  if (row.kind === "local-command-suggestion") {
+    const source = fields(row.source, ["baseSha", "rule", "version", "inputs"]);
+    if (
+      candidate.policyVersion !== COMMAND_SUGGESTION_POLICY ||
+      source.rule !== "npm" ||
+      source.version !== 1 ||
+      JSON.stringify(source.inputs) !== JSON.stringify(NPM_INPUTS) ||
+      JSON.stringify(config) !== JSON.stringify(NPM_CONFIG)
+    )
+      throw invalid();
+    return npmDescriptor(digest(source.baseSha, SHA), identity);
+  }
+  const source = fields(row.source, ["path", "baseSha", "blobId", "sha256"]);
+  const baseSha = digest(source.baseSha, SHA);
+  const blobId = digest(source.blobId, SHA);
+  if (
+    row.kind !== "local-command-config" ||
+    candidate.policyVersion !== COMMAND_CONFIG_POLICY ||
+    source.path !== COMMAND_CONFIG_PATH ||
+    blobId.length !== baseSha.length
+  )
+    throw invalid();
+  return Object.freeze({
+    kind: "local-command-config",
+    config,
+    source: Object.freeze({
+      path: COMMAND_CONFIG_PATH,
+      baseSha,
+      blobId,
+      sha256: digest(source.sha256, /^[a-f0-9]{64}$/),
+    }),
+    approvalCandidate: Object.freeze({
+      identity,
+      policyVersion: COMMAND_CONFIG_POLICY,
+    }),
+  });
+}
+
+function npmDescriptor(baseSha: string, identity: string): SuggestedDescriptor {
+  return Object.freeze({
+    kind: "local-command-suggestion",
+    config: NPM_CONFIG,
+    source: Object.freeze({
+      baseSha,
+      rule: "npm",
+      version: 1,
+      inputs: NPM_INPUTS,
+    }),
+    approvalCandidate: Object.freeze({
+      identity,
+      policyVersion: COMMAND_SUGGESTION_POLICY,
+    }),
+  });
+}
+
+/** A fresh base may reuse the same approved source and commands in its repository. */
+export function sameCommandApproval(
+  left: LocalCommandConfigDescriptor,
+  right: LocalCommandConfigDescriptor,
+): boolean {
+  if (
+    left.approvalCandidate.identity !== right.approvalCandidate.identity ||
+    left.approvalCandidate.policyVersion !==
+      right.approvalCandidate.policyVersion ||
+    JSON.stringify(left.config) !== JSON.stringify(right.config)
+  )
+    return false;
+  if (left.kind === "local-command-suggestion") return right.kind === left.kind;
+  return (
+    right.kind === left.kind &&
+    left.source.blobId === right.source.blobId &&
+    left.source.sha256 === right.source.sha256
+  );
+}
+
 async function directoryIdentity(path: string): Promise<DirectoryIdentity> {
   if (
     !isAbsolute(path) ||
@@ -144,7 +295,7 @@ async function directoryIdentity(path: string): Promise<DirectoryIdentity> {
   return { path, device: String(stat.dev), inode: String(stat.ino) };
 }
 
-/** Read only the fixed configuration blob at a stored workspace's exact base. */
+/** Resolve the fixed config or npm markers at the stored workspace base. */
 export async function readLocalCommandConfig(
   store: Store,
   worktreeRoot: string,
@@ -227,29 +378,24 @@ export async function readLocalCommandConfig(
       return { directories, repository };
     };
     const before = await inspectIdentity();
-    const entry = decode(
-      await git(
-        directory,
-        [
-          "ls-tree",
-          "-z",
-          "--full-tree",
-          local.baseSha,
-          "--",
-          COMMAND_CONFIG_PATH,
-        ],
-        COMMAND_CONFIG_LIMITS.bytes,
-        signal,
-      ),
-    );
-    let result: LocalCommandConfigDescriptor | null = null;
-    if (entry !== "") {
+    const entryAtBase = async (path: string): Promise<string | null> => {
+      const entry = decode(
+        await git(
+          directory,
+          ["ls-tree", "-z", "--full-tree", local.baseSha, "--", path],
+          COMMAND_CONFIG_LIMITS.bytes,
+          signal,
+        ),
+      );
+      if (entry === "") return null;
       const match =
-        /^(100644|100755) blob ([a-f0-9]{40}|[a-f0-9]{64})\targent\.json\0$/.exec(
+        /^(100644|100755) blob ([a-f0-9]{40}|[a-f0-9]{64})\t([^\0]+)\0$/.exec(
           entry,
         );
-      if (!match) throw unsafe();
-      const blobId = match[2]!;
+      if (!match || match[3] !== path) throw unsafe();
+      return match[2]!;
+    };
+    const readBlob = async (blobId: string) => {
       const sizeText = await text(directory, ["cat-file", "-s", blobId]);
       if (!/^(?:0|[1-9][0-9]*)$/.test(sizeText)) throw unsafe();
       const size = Number(sizeText);
@@ -269,6 +415,12 @@ export async function readLocalCommandConfig(
           .digest("hex") !== blobId
       )
         throw unsafe();
+      return bytes;
+    };
+    let result: LocalCommandConfigDescriptor | null = null;
+    const blobId = await entryAtBase(COMMAND_CONFIG_PATH);
+    if (blobId) {
+      const bytes = await readBlob(blobId);
       const config = parseLocalCommandConfig(bytes);
       const sha256 = createHash("sha256").update(bytes).digest("hex");
       result = Object.freeze({
@@ -289,6 +441,27 @@ export async function readLocalCommandConfig(
           policyVersion: COMMAND_CONFIG_POLICY,
         }),
       });
+    } else {
+      const lockId = await entryAtBase("package-lock.json");
+      const manifestId = lockId && (await entryAtBase("package.json"));
+      if (lockId && manifestId) {
+        if ((await text(directory, ["cat-file", "-t", lockId])) !== "blob")
+          throw unsafe();
+        const bytes = await readBlob(manifestId);
+        if (hasNpmTestScript(bytes)) {
+          const commandDigest = createHash("sha256")
+            .update(JSON.stringify(["npm", 1, NPM_CONFIG.commands]))
+            .digest("hex");
+          result = npmDescriptor(
+            local.baseSha,
+            commandConfigCandidateIdentity(
+              before.repository,
+              commandDigest,
+              COMMAND_SUGGESTION_POLICY,
+            ),
+          );
+        }
+      }
     }
     if (JSON.stringify(await inspectIdentity()) !== JSON.stringify(before))
       throw unsafe();

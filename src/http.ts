@@ -1,3 +1,4 @@
+import { parseCommandDescriptor } from "./local-command-config.js";
 import { timingSafeEqual, createHash } from "node:crypto";
 import {
   createServer,
@@ -324,15 +325,15 @@ export function makeServer(
               headSha: review.observation.headSha,
               treeId: review.observation.treeId,
               configurationState: review.configuration,
-              // Review freshly matched these exact bytes at this workspace's base.
+              // Review freshly matched this source at the workspace base.
               // The reusable approval may originally have been recorded at an older base.
-              configuration: {
+              configuration: parseCommandDescriptor({
                 ...approved.descriptor,
                 source: {
                   ...approved.descriptor.source,
                   baseSha: review.observation.baseSha,
                 },
-              },
+              }),
               approvalId: approved.id,
               files: review.files,
               judgingChanges: review.judgingChanges,

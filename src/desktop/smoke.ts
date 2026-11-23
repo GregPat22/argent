@@ -11,6 +11,7 @@ import {
 import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import type { RunView, Workspace, Page } from "../domain.js";
+import type { LocalCheckView } from "./contracts.js";
 import type { DesktopClient } from "./bridge.js";
 
 export async function runDesktopSmoke(
@@ -19,7 +20,10 @@ export async function runDesktopSmoke(
 ): Promise<void> {
   const suite = process.env.ARGENT_DESKTOP_SMOKE_SUITE;
   assert.ok(
-    suite === "welcome" || suite === "workspace" || suite === "commands",
+    suite === "welcome" ||
+      suite === "workspace" ||
+      suite === "commands" ||
+      suite === "suggestions",
     "known smoke suite",
   );
   const started = Date.now();
@@ -569,6 +573,107 @@ export async function runDesktopSmoke(
       runs.map((run) => [run.task, run.permissionMode, run.status]),
       [[firstMessage, "edits", "completed"]],
     );
+    console.log(
+      `[ARGENT_SMOKE]${JSON.stringify({ passed: true, suite, elapsedMs: Date.now() - started })}`,
+    );
+    return;
+  }
+  if (suite === "suggestions") {
+    await ready();
+    const local = await createLocalWorkspace("#welcome-create");
+    const { worktreePath, repositoryPath, baseSha } = local.local!;
+    const latestCheck = () =>
+      call<LocalCheckView | null>("latestCheck", [local.id]);
+    const click = (id: string) =>
+      js(`document.getElementById(${JSON.stringify(id)}).click()`);
+    const enabled = (id: string) =>
+      js(`!document.getElementById(${JSON.stringify(id)}).disabled`);
+    await click("workspace-commands");
+    await until(
+      () => enabled("commands-approve"),
+      "npm suggestion ready for approval",
+    );
+    const source = await text("#commands-source");
+    for (const expected of [
+      "Suggested by Argent",
+      "npm",
+      "package.json",
+      "package-lock.json",
+      baseSha.slice(0, 12),
+    ])
+      assert.ok(
+        source.includes(expected),
+        `suggestion source includes ${expected}`,
+      );
+    assert.deepEqual(
+      await js(
+        `Array.from(document.querySelectorAll('#commands-list .command-action')).map(action => [action.querySelector('h3').textContent, ...Array.from(action.querySelectorAll('li'), item => item.textContent)])`,
+      ),
+      [
+        ["setup", '"npm"', '"ci"'],
+        ["test", '"npm"', '"test"'],
+      ],
+    );
+    await click("commands-approve");
+    await until(() => enabled("commands-review"), "npm suggestion approved");
+    await click("commands-close");
+    await click("workspace-commands");
+    await until(() => enabled("commands-review"), "reopened approval matches");
+    assert.equal(await text("#commands-approve"), "Approved");
+    for (const directory of [worktreePath, repositoryPath])
+      assert.equal(existsSync(join(directory, "argent.json")), false);
+    assert.equal(await latestCheck(), null);
+    assert.equal(await call("latestRunAction", [local.id]), null);
+    assert.deepEqual(
+      (await call<Page<RunView>>("listRuns", [local.id])).items,
+      [],
+    );
+    await capture("suggested-commands");
+
+    await click("commands-review");
+    await until(
+      () => enabled("candidate-consent"),
+      "candidate shown for separate consent",
+    );
+    assert.equal(await enabled("candidate-run"), false);
+    assert.match(await text("#candidate-files"), /Judging changes/);
+    await click("candidate-consent");
+    await until(
+      () => enabled("candidate-run"),
+      "consent matches suggested commands and commit",
+    );
+    assert.equal(await latestCheck(), null);
+    await click("candidate-run");
+    await until(async () => {
+      if ((await text("#checks-status")).includes("Checks passed")) return true;
+      await click("checks-refresh");
+      return false;
+    }, "offline npm setup and tests passed");
+    const checked = await latestCheck();
+    assert.ok(checked?.result);
+    assert.equal(checked.headSha, baseSha);
+    assert.equal(checked.freshness, "current");
+    assert.deepEqual(
+      checked.result.phases.map(({ action, argv, exitCode }) => [
+        action,
+        argv,
+        exitCode,
+      ]),
+      [
+        ["setup", ["npm", "ci"], 0],
+        ["test", ["npm", "test"], 0],
+      ],
+    );
+    writeFileSync(join(worktreePath, "README.md"), "# edited after checks\n");
+    await click("checks-refresh");
+    await until(
+      async () => (await text("#checks-status")).includes("stale"),
+      "edit makes npm result stale",
+    );
+    const stale = await latestCheck();
+    assert.equal(stale?.id, checked.id);
+    assert.equal(stale.freshness, "stale");
+    assert.deepEqual(stale.result, checked.result);
     console.log(
       `[ARGENT_SMOKE]${JSON.stringify({ passed: true, suite, elapsedMs: Date.now() - started })}`,
     );

@@ -9,6 +9,7 @@ import { LifecycleStore } from "./lifecycle-store.js";
 import { RepositoryStore } from "./repository-store.js";
 import { LocalCheckStore } from "./local-checks.js";
 import { LocalCommandConsentStore } from "./local-command-consent.js";
+import { sameCommandApproval } from "./local-command-config.js";
 import { LocalCommandApprovalStore } from "./local-command-approvals.js";
 import {
   commandRequest,
@@ -822,12 +823,7 @@ export class Store {
     if (
       row.approval_id !== approved.id ||
       approved.operatorId !== plan.operatorId ||
-      approved.descriptor.approvalCandidate.identity !==
-        candidate.approvalCandidate.identity ||
-      approved.descriptor.source.blobId !== candidate.source.blobId ||
-      approved.descriptor.source.sha256 !== candidate.source.sha256 ||
-      JSON.stringify(approved.descriptor.config) !==
-        JSON.stringify(candidate.config) ||
+      !sameCommandApproval(approved.descriptor, candidate) ||
       workspace.provider !== "local-worktree" ||
       workspace.local?.baseSha !== candidate.source.baseSha ||
       run.simulation ||

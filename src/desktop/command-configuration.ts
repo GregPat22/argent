@@ -1,8 +1,6 @@
 import { DomainError } from "../domain.js";
 import {
-  COMMAND_CONFIG_PATH,
-  COMMAND_CONFIG_POLICY,
-  parseLocalCommandConfig,
+  parseCommandDescriptor,
   type LocalCommandConfigDescriptor,
 } from "../local-command-config.js";
 import type {
@@ -13,7 +11,6 @@ import type {
 export const WORKSPACE_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const CANDIDATE_IDENTITY = /^[a-f0-9]{64}$/;
-const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 
 type Row = Record<string, unknown>;
 type Fail = () => DomainError;
@@ -43,50 +40,11 @@ function time(value: unknown, fail: Fail): number {
 
 /** Rebuilds the descriptor from validated fields with the service's own schema. */
 function descriptor(value: unknown, fail: Fail): LocalCommandConfigDescriptor {
-  const row = record(
-    value,
-    ["kind", "config", "source", "approvalCandidate"],
-    fail,
-  );
-  const source = record(
-    row.source,
-    ["path", "baseSha", "blobId", "sha256"],
-    fail,
-  );
-  const candidate = record(
-    row.approvalCandidate,
-    ["identity", "policyVersion"],
-    fail,
-  );
-  if (
-    row.kind !== "local-command-config" ||
-    source.path !== COMMAND_CONFIG_PATH ||
-    candidate.policyVersion !== COMMAND_CONFIG_POLICY
-  )
-    throw fail();
-  let config: LocalCommandConfigDescriptor["config"];
   try {
-    config = parseLocalCommandConfig(Buffer.from(JSON.stringify(row.config)));
+    return parseCommandDescriptor(value);
   } catch {
     throw fail();
   }
-  const baseSha = text(source.baseSha, SHA, fail);
-  const blobId = text(source.blobId, SHA, fail);
-  if (baseSha.length !== blobId.length) throw fail();
-  return {
-    kind: "local-command-config",
-    config,
-    source: {
-      path: COMMAND_CONFIG_PATH,
-      baseSha,
-      blobId,
-      sha256: text(source.sha256, CANDIDATE_IDENTITY, fail),
-    },
-    approvalCandidate: {
-      identity: text(candidate.identity, CANDIDATE_IDENTITY, fail),
-      policyVersion: COMMAND_CONFIG_POLICY,
-    },
-  };
 }
 
 /** Service content is display data. It never becomes permission to run. */

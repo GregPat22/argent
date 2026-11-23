@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { suggestion } from "./desktop-suggestion-fixture.js";
 import { test } from "node:test";
 import type {
   CommandApprovalReceiptView,
@@ -223,6 +224,52 @@ test("the configuration is read only on open, refresh and approval, and every ar
   assert.equal(app.element("workspace-commands").focused, true);
 });
 
+test("the dialog shows the suggestion inputs and approves the displayed commands directly", async () => {
+  const app = await launch();
+  const expected = suggestion(base);
+  await app.show({ ...configuration(), configuration: expected });
+  assert.match(
+    app.element("commands-source").textContent,
+    /Suggested by Argent, npm · base a{40} · recognised from package\.json and package-lock\.json/,
+  );
+  const actions = app.element("commands-list").children;
+  assert.deepEqual(
+    actions.map((action) => [
+      action.children[0]!.textContent,
+      ...action.children[2]!.children.map((arg) => arg.textContent),
+    ]),
+    [
+      ["setup", '"npm"', '"ci"'],
+      ["test", '"npm"', '"test"'],
+    ],
+  );
+  assert.equal(app.approvals.length, 0);
+  assert.equal(app.element("commands-review").disabled, true);
+  app.element("commands-approve").click();
+  assert.deepEqual(app.approvals[0]!.args, [
+    "one",
+    expected.approvalCandidate.identity,
+    "key-1",
+  ]);
+  const saved = receipt();
+  app.approvals[0]!.resolve({
+    ...saved,
+    approval: { ...saved.approval, descriptor: expected },
+  });
+  await settle();
+  app.reads[1]!.resolve({
+    ...configuration("one", { id: "approval", approvedAt: 1000 }),
+    configuration: expected,
+  });
+  await settle();
+  assert.match(
+    app.element("commands-approval").textContent,
+    /this npm suggestion and its exact commands/,
+  );
+  assert.equal(app.element("commands-review").disabled, false);
+  assert.equal(app.element("commands-review-run").disabled, true);
+});
+
 test("approval sends only the identity on screen, then reads the current state again", async () => {
   const app = await launch();
   await app.show();
@@ -302,6 +349,7 @@ test("a rejected approval approves nothing and an uncertain one retries with the
   await settle();
   app.element("commands-refresh").click();
   const changed = configuration();
+  assert.ok(changed.configuration?.kind === "local-command-config");
   changed.configuration = {
     ...changed.configuration!,
     approvalCandidate: {
@@ -384,6 +432,7 @@ test("missing, mismatched, unreadable and demo configurations stay honest and un
   assert.equal(app.element("commands-content").hidden, true);
   assert.equal(app.element("commands-approve").disabled, true);
   const otherBase = configuration();
+  assert.ok(otherBase.configuration?.kind === "local-command-config");
   otherBase.configuration = {
     ...otherBase.configuration!,
     source: { ...otherBase.configuration!.source, baseSha: "f".repeat(40) },

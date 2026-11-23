@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { suggestion } from "./desktop-suggestion-fixture.js";
 import { test } from "node:test";
 import type {
   CandidateReviewView,
@@ -263,6 +264,32 @@ async function launch() {
   };
   return app;
 }
+
+test("candidate review identifies the approved npm suggestion when this commit adds argent.json", async () => {
+  const app = await launch();
+  const shown = review();
+  shown.configuration = suggestion(base);
+  shown.configurationState = "added";
+  shown.files = [
+    {
+      ...shown.files[0]!,
+      status: "added",
+      oldMode: null,
+      oldBlobId: null,
+      oldBytes: null,
+    },
+  ];
+  await app.show(shown);
+  const content = app.element("candidate-files").text;
+  assert.match(
+    content,
+    /npm suggestion you approved for this workspace's base/,
+  );
+  assert.match(content, /This commit adds argent\.json/);
+  assert.match(content, /scripts and dependencies/);
+  assert.equal(app.writes.length, 0);
+  assert.equal(app.checkRequests.length, 0);
+});
 
 test("candidate dialog shows all text, command arguments and change metadata literally without polling the repository", async () => {
   const app = await launch();

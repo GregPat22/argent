@@ -15,7 +15,7 @@ export interface CandidateReviewView {
   baseSha: string;
   headSha: string;
   treeId: string;
-  configurationState: "unchanged" | "changed" | "removed";
+  configurationState: "unchanged" | "changed" | "removed" | "added";
   configuration: LocalCommandConfigDescriptor;
   approvalId: string;
   files: readonly LocalCommandReviewFile[];

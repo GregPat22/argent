@@ -2,9 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { DomainError, requireString } from "./domain.js";
 import {
-  COMMAND_CONFIG_PATH,
-  COMMAND_CONFIG_POLICY,
-  parseLocalCommandConfig,
+  parseCommandDescriptor,
+  sameCommandApproval,
   readLocalCommandConfig,
   type LocalCommandConfigDescriptor,
 } from "./local-command-config.js";
@@ -13,7 +12,6 @@ import type { Store } from "./store.js";
 type Row = Record<string, unknown>;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const DIGEST = /^[a-f0-9]{64}$/;
-const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const corrupt = () => new DomainError(409, "Invalid stored command approval");
 const changed = () =>
   new DomainError(409, "Command configuration changed or is not configured");
@@ -51,67 +49,20 @@ function identity(value: unknown, pattern: RegExp, name: string): string {
   return value;
 }
 
-function object(value: unknown, keys: string[]): Row {
-  if (!value || typeof value !== "object" || Array.isArray(value))
-    throw corrupt();
-  const row = value as Row;
-  if (
-    Object.keys(row).length !== keys.length ||
-    keys.some((key) => !Object.hasOwn(row, key))
-  )
-    throw corrupt();
-  return row;
-}
-
 function timestamp(value: unknown): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0)
     throw corrupt();
   return value;
 }
 
-function descriptor(value: unknown): LocalCommandConfigDescriptor {
-  try {
-    if (typeof value !== "string" || Buffer.byteLength(value) > 66 << 10)
-      throw corrupt();
-    const row = object(JSON.parse(value) as unknown, [
-      "kind",
-      "config",
-      "source",
-      "approvalCandidate",
-    ]);
-    const source = object(row.source, ["path", "baseSha", "blobId", "sha256"]);
-    const candidate = object(row.approvalCandidate, [
-      "identity",
-      "policyVersion",
-    ]);
-    if (
-      row.kind !== "local-command-config" ||
-      source.path !== COMMAND_CONFIG_PATH ||
-      candidate.policyVersion !== COMMAND_CONFIG_POLICY
-    )
-      throw corrupt();
-    return Object.freeze({
-      kind: "local-command-config",
-      config: parseLocalCommandConfig(Buffer.from(JSON.stringify(row.config))),
-      source: Object.freeze({
-        path: COMMAND_CONFIG_PATH,
-        baseSha: identity(source.baseSha, SHA, "stored base"),
-        blobId: identity(source.blobId, SHA, "stored blob"),
-        sha256: identity(source.sha256, DIGEST, "stored digest"),
-      }),
-      approvalCandidate: Object.freeze({
-        identity: identity(candidate.identity, DIGEST, "stored candidate"),
-        policyVersion: COMMAND_CONFIG_POLICY,
-      }),
-    });
-  } catch {
-    throw corrupt();
-  }
-}
-
 function approval(row: Row): LocalCommandApproval {
   try {
-    const snapshot = descriptor(row.descriptor);
+    if (
+      typeof row.descriptor !== "string" ||
+      Buffer.byteLength(row.descriptor) > 66 << 10
+    )
+      throw corrupt();
+    const snapshot = parseCommandDescriptor(JSON.parse(row.descriptor));
     if (
       createHash("sha256")
         .update(row.descriptor as string)
@@ -130,24 +81,6 @@ function approval(row: Row): LocalCommandApproval {
   } catch {
     throw corrupt();
   }
-}
-
-function matches(
-  approved: LocalCommandApproval,
-  candidate: LocalCommandConfigDescriptor,
-): void {
-  const previous = approved.descriptor;
-  // Base and workspace IDs deliberately differ for repository-wide reuse.
-  if (
-    previous.approvalCandidate.identity !==
-      candidate.approvalCandidate.identity ||
-    previous.approvalCandidate.policyVersion !==
-      candidate.approvalCandidate.policyVersion ||
-    previous.source.sha256 !== candidate.source.sha256 ||
-    previous.source.blobId !== candidate.source.blobId ||
-    JSON.stringify(previous.config) !== JSON.stringify(candidate.config)
-  )
-    throw corrupt();
 }
 
 /** Durable configuration approval only; never a dispatch or portable grant. */
@@ -277,7 +210,7 @@ export class LocalCommandApprovalStore {
       .get(operatorId, candidate.approvalCandidate.identity);
     if (!row) return null;
     const approved = approval(row);
-    matches(approved, candidate);
+    if (!sameCommandApproval(approved.descriptor, candidate)) throw corrupt();
     return approved;
   }
 

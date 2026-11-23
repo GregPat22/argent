@@ -95,7 +95,10 @@ function display(shown: CandidateReviewView): void {
   );
   content.append(
     h("p", {
-      text: `argent.json in this commit: ${shown.configurationState}. Commands below always come from the approved base. Argent cannot identify which changed files they execute, so review the complete change set.`,
+      text:
+        shown.configuration.kind === "local-command-suggestion"
+          ? `The commands below use the npm suggestion you approved for this workspace's base. ${shown.configurationState === "added" ? "This commit adds argent.json. Argent will read that file when reviewing commands for a workspace based on this commit. " : ""}Review the scripts and dependencies these commands can execute in the candidate commit.`
+          : `argent.json in this commit: ${shown.configurationState}. Commands below always come from the approved base. Argent cannot identify which changed files they execute, so review the complete change set.`,
     }),
   );
   const tests = shown.judgingChanges.testPaths;

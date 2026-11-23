@@ -6,9 +6,7 @@ import {
   type Run,
 } from "./domain.js";
 import {
-  COMMAND_CONFIG_PATH,
-  COMMAND_CONFIG_POLICY,
-  parseLocalCommandConfig,
+  parseCommandDescriptor,
   type LocalCommandConfigDescriptor,
 } from "./local-command-config.js";
 
@@ -39,7 +37,6 @@ export type CommandJob = Readonly<{
 }>;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const DIGEST = /^[a-f0-9]{64}$/;
-const SHA = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const invalid = () => new DomainError(409, "Invalid dormant command job");
 
 function identity(value: unknown, pattern: RegExp): string {
@@ -130,33 +127,9 @@ export function readCommandPlan(text: unknown): DormantCommandPlan {
       row.execution !== "forbidden"
     )
       throw invalid();
-    const candidate = object(row.candidate, [
-      "kind",
-      "config",
-      "source",
-      "approvalCandidate",
-    ]);
-    const source = object(candidate.source, [
-      "path",
-      "baseSha",
-      "blobId",
-      "sha256",
-    ]);
-    const approvalCandidate = object(candidate.approvalCandidate, [
-      "identity",
-      "policyVersion",
-    ]);
-    if (
-      candidate.kind !== "local-command-config" ||
-      source.path !== COMMAND_CONFIG_PATH ||
-      approvalCandidate.policyVersion !== COMMAND_CONFIG_POLICY
-    )
-      throw invalid();
-    const config = parseLocalCommandConfig(
-      Buffer.from(JSON.stringify(candidate.config)),
-    );
+    const candidate = parseCommandDescriptor(row.candidate);
     const selected = action(row.action);
-    if (!config.commands[selected]) throw invalid();
+    if (!candidate.config.commands[selected]) throw invalid();
     return Object.freeze({
       kind: "dormant-command-plan",
       version: 1,
@@ -164,20 +137,7 @@ export function readCommandPlan(text: unknown): DormantCommandPlan {
       action: selected,
       approvalId: identity(row.approvalId, UUID),
       operatorId: requireString(row.operatorId, "operatorId", 128),
-      candidate: Object.freeze({
-        kind: "local-command-config",
-        config,
-        source: Object.freeze({
-          path: COMMAND_CONFIG_PATH,
-          baseSha: identity(source.baseSha, SHA),
-          blobId: identity(source.blobId, SHA),
-          sha256: identity(source.sha256, DIGEST),
-        }),
-        approvalCandidate: Object.freeze({
-          identity: identity(approvalCandidate.identity, DIGEST),
-          policyVersion: COMMAND_CONFIG_POLICY,
-        }),
-      }),
+      candidate,
     });
   } catch {
     throw invalid();

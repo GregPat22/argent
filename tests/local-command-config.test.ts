@@ -25,6 +25,7 @@ import {
   COMMAND_CONFIG_LIMITS,
   COMMAND_CONFIG_POLICY,
   commandConfigCandidateIdentity,
+  parseCommandDescriptor,
   parseLocalCommandConfig,
   readLocalCommandConfig,
 } from "../src/local-command-config.js";
@@ -53,12 +54,17 @@ function rejected(status: number) {
   return (error: unknown) =>
     error instanceof DomainError && error.status === status;
 }
-async function fixture(t: TestContext, bytes: string | Buffer | null = CONFIG) {
+async function fixture(
+  t: TestContext,
+  bytes: string | Buffer | null = CONFIG,
+  populate?: (repo: string) => void,
+) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), "argent-commands-")));
   const repo = join(root, "repo");
   mkdirSync(repo);
   git(repo, "init", "--quiet", "--initial-branch=main");
   writeFileSync(join(repo, "file.txt"), "base\n");
+  populate?.(repo);
   if (bytes !== null) writeFileSync(join(repo, "argent.json"), bytes);
   git(repo, "add", ".");
   git(repo, "commit", "--quiet", "-m", "initial");
@@ -209,7 +215,7 @@ test("configuration limits bound exact bytes, argv count and UTF-8 argument size
 test("reader uses only the stored base across unstaged, staged, committed and missing candidate configuration", async (t) => {
   const f = await fixture(t);
   const first = await f.read();
-  assert.ok(first);
+  assert.ok(first?.kind === "local-command-config");
   assert.deepEqual(first.config.commands.test!.argv, ["npm", "test"]);
   assert.equal(first.source.baseSha, f.workspace.local!.baseSha);
   assert.equal(first.source.path, "argent.json");
@@ -297,6 +303,10 @@ test("review identity survives sibling workspaces and new base commits but binds
   );
   const other = await fixture(t);
   const otherRead = (await other.read())!;
+  assert.ok(
+    first.kind === "local-command-config" &&
+      otherRead.kind === "local-command-config",
+  );
   assert.equal(otherRead.source.sha256, first.source.sha256);
   assert.notEqual(
     otherRead.approvalCandidate.identity,
@@ -307,6 +317,7 @@ test("review identity survives sibling workspaces and new base commits but binds
 test("review identity binds canonical common directory, filesystem identity and policy version", async (t) => {
   const f = await fixture(t);
   const descriptor = (await f.read())!;
+  assert.ok(descriptor.kind === "local-command-config");
   const path = join(f.repo, ".git");
   const stat = lstatSync(path, { bigint: true });
   const repository = {
@@ -339,6 +350,7 @@ test("review identity binds canonical common directory, filesystem identity and 
   renameSync(path, join(f.repo, ".git-old"));
   cpSync(join(f.repo, ".git-old"), path, { recursive: true });
   const replaced = (await f.read())!;
+  assert.ok(replaced.kind === "local-command-config");
   assert.equal(replaced.source.sha256, descriptor.source.sha256);
   assert.notEqual(replaced.approvalCandidate.identity, identity);
 });
@@ -463,6 +475,7 @@ test("trusted reads ignore replacement refs, hooks, filters, fsmonitor and exter
   git(f.directory, "add", ".");
   git(f.directory, "commit", "--quiet", "-m", "changed");
   const blob = git(f.directory, "rev-parse", "HEAD:argent.json");
+  assert.ok(first.kind === "local-command-config");
   git(f.repo, "replace", first.source.blobId, blob);
   git(
     f.repo,
@@ -587,4 +600,106 @@ if (args.includes("cat-file") && args.includes("blob")) {
     if (oldPath === undefined) delete process.env.PATH;
     else process.env.PATH = oldPath;
   }
+});
+
+test("npm recognition uses only regular root entries at the pinned base and treats the lockfile as a marker", async (t) => {
+  const f = await fixture(t, null, (repo) => {
+    writeFileSync(
+      join(repo, "package.json"),
+      JSON.stringify({ scripts: { test: "node custom.js" } }),
+    );
+    writeFileSync(
+      join(repo, "package-lock.json"),
+      Buffer.alloc(COMMAND_CONFIG_LIMITS.bytes + 1),
+    );
+  });
+  const original = await f.read();
+  assert.ok(original?.kind === "local-command-suggestion");
+  assert.deepEqual(original.config.commands, {
+    setup: { argv: ["npm", "ci"] },
+    test: { argv: ["npm", "test"] },
+  });
+  assert.deepEqual(original.source, {
+    baseSha: f.workspace.local!.baseSha,
+    rule: "npm",
+    version: 1,
+    inputs: ["package.json", "package-lock.json"],
+  });
+  assert.deepEqual(
+    parseCommandDescriptor(JSON.parse(JSON.stringify(original))),
+    original,
+  );
+  for (const changed of [
+    {
+      ...original,
+      config: {
+        version: 1,
+        commands: { test: { argv: ["npm", "run", "other"] } },
+      },
+    },
+    { ...original, source: { ...original.source, version: 2 } },
+    { ...original, source: { ...original.source, inputs: ["package.json"] } },
+    {
+      ...original,
+      approvalCandidate: {
+        ...original.approvalCandidate,
+        policyVersion: COMMAND_CONFIG_POLICY,
+      },
+    },
+  ])
+    assert.throws(() => parseCommandDescriptor(changed));
+  writeFileSync(join(f.directory, "package.json"), "{}");
+  git(f.directory, "rm", "package-lock.json");
+  writeFileSync(join(f.directory, "argent.json"), CHANGED);
+  git(f.directory, "add", ".");
+  assert.deepEqual(await f.read(), original);
+  git(f.directory, "commit", "--quiet", "-m", "candidate");
+  assert.deepEqual(await f.read(), original);
+});
+
+test("npm recognition refuses unreadable inputs and preserves errors in a present configuration", async (t) => {
+  const f = await fixture(t, null, (repo) => {
+    writeFileSync(
+      join(repo, "package.json"),
+      JSON.stringify({ scripts: { test: "node test.js" } }),
+    );
+    writeFileSync(join(repo, "package-lock.json"), "{}");
+  });
+  async function readNext() {
+    git(f.repo, "add", ".");
+    git(f.repo, "commit", "--quiet", "-m", "change inputs");
+    const next = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+    return readLocalCommandConfig(f.store, f.worktrees, next.id);
+  }
+  writeFileSync(join(f.repo, "argent.json"), "{}");
+  await assert.rejects(readNext(), rejected(409));
+  unlinkSync(join(f.repo, "argent.json"));
+  symlinkSync("package.json", join(f.repo, "argent.json"));
+  await assert.rejects(readNext(), rejected(409));
+  unlinkSync(join(f.repo, "argent.json"));
+  for (const file of ["package.json", "package-lock.json"]) {
+    const path = join(f.repo, file);
+    renameSync(path, path + ".saved");
+    symlinkSync(file + ".saved", path);
+    await assert.rejects(readNext(), rejected(409));
+    unlinkSync(path);
+    renameSync(path + ".saved", path);
+  }
+  writeFileSync(join(f.repo, "package.json"), "{");
+  await assert.rejects(readNext(), /Cannot read package.json/);
+  writeFileSync(
+    join(f.repo, "package.json"),
+    Buffer.alloc(COMMAND_CONFIG_LIMITS.bytes + 1),
+  );
+  await assert.rejects(readNext(), rejected(413));
+  for (const scripts of [{}, { test: "   " }, { test: 2 }]) {
+    writeFileSync(join(f.repo, "package.json"), JSON.stringify({ scripts }));
+    assert.equal(await readNext(), null);
+  }
+  writeFileSync(
+    join(f.repo, "package.json"),
+    JSON.stringify({ scripts: { test: "node test.js" } }),
+  );
+  unlinkSync(join(f.repo, "package-lock.json"));
+  assert.equal(await readNext(), null);
 });
