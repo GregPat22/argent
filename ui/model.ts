@@ -296,3 +296,259 @@ export function agentMeta(run: RunView): string {
     ? `Scripted demo · ${limitLabel(run.maxRuntimeMs)} limit`
     : `Claude Code · ${run.permissionMode === "full" ? "full access" : "edits only"} · ${limitLabel(run.maxRuntimeMs)} limit`;
 }
+
+/** One line of a unified diff, with its line numbers in the old and new file. */
+export interface DiffLine {
+  kind: "meta" | "hunk" | "add" | "del" | "context" | "note";
+  text: string;
+  old: number | null;
+  new: number | null;
+}
+
+/**
+ * Classifies a unified diff line by line for display. Lines before the first
+ * hunk header are file metadata, so "--- a/x" and "+++ b/x" never count as
+ * changes. The text itself is returned unchanged.
+ */
+export function diffLines(diff: string): DiffLine[] {
+  const lines = diff.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  let inHunk = false;
+  let old = 0;
+  let current = 0;
+  return lines.map((text): DiffLine => {
+    const hunk = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/.exec(text);
+    if (hunk) {
+      inHunk = true;
+      old = Number(hunk[1]);
+      current = Number(hunk[2]);
+      return { kind: "hunk", text, old: null, new: null };
+    }
+    if (text.startsWith("diff --git ")) inHunk = false;
+    if (!inHunk) return { kind: "meta", text, old: null, new: null };
+    if (text.startsWith("\\"))
+      return { kind: "note", text, old: null, new: null };
+    if (text.startsWith("+"))
+      return { kind: "add", text, old: null, new: current++ };
+    if (text.startsWith("-"))
+      return { kind: "del", text, old: old++, new: null };
+    return { kind: "context", text, old: old++, new: current++ };
+  });
+}
+
+/** Below this many line pairs a gap is compared exactly, cell by cell. */
+const EXACT_CELLS = 250_000;
+
+type Edit = ["=" | "-" | "+", number, number];
+
+/**
+ * A minimal line diff between two texts, bounded for review on the desktop.
+ * Common lines at either end are matched first. A small gap is compared
+ * exactly; a large one is split at lines that occur once on each side, in
+ * order. A large gap with no such line is shown as removed and re-added, and
+ * the result says it is not exact.
+ */
+function lineEdits(
+  a: readonly string[],
+  b: readonly string[],
+): { edits: Edit[]; exact: boolean } {
+  const edits: Edit[] = [];
+  let exact = true;
+  const replace = (a0: number, a1: number, b0: number, b1: number) => {
+    for (let i = a0; i < a1; i++) edits.push(["-", i, -1]);
+    for (let j = b0; j < b1; j++) edits.push(["+", -1, j]);
+  };
+  const compare = (a0: number, a1: number, b0: number, b1: number) => {
+    const n = a1 - a0;
+    const m = b1 - b0;
+    // lcs[i][j]: common lines of a[a0 + i ..] and b[b0 + j ..].
+    const width = m + 1;
+    const lcs = new Uint16Array((n + 1) * width);
+    for (let i = n - 1; i >= 0; i--)
+      for (let j = m - 1; j >= 0; j--)
+        lcs[i * width + j] =
+          a[a0 + i] === b[b0 + j]
+            ? lcs[(i + 1) * width + j + 1]! + 1
+            : Math.max(lcs[(i + 1) * width + j]!, lcs[i * width + j + 1]!);
+    let i = 0;
+    let j = 0;
+    while (i < n || j < m) {
+      if (i < n && j < m && a[a0 + i] === b[b0 + j])
+        edits.push(["=", a0 + i++, b0 + j++]);
+      else if (
+        j >= m ||
+        (i < n && lcs[(i + 1) * width + j]! >= lcs[i * width + j + 1]!)
+      )
+        edits.push(["-", a0 + i++, -1]);
+      else edits.push(["+", -1, b0 + j++]);
+    }
+  };
+  const walk = (a0: number, a1: number, b0: number, b1: number): void => {
+    while (a0 < a1 && b0 < b1 && a[a0] === b[b0]) edits.push(["=", a0++, b0++]);
+    let tail = 0;
+    while (
+      a1 - tail > a0 &&
+      b1 - tail > b0 &&
+      a[a1 - tail - 1] === b[b1 - tail - 1]
+    )
+      tail++;
+    a1 -= tail;
+    b1 -= tail;
+    if (a0 === a1 || b0 === b1) replace(a0, a1, b0, b1);
+    else if ((a1 - a0) * (b1 - b0) <= EXACT_CELLS) compare(a0, a1, b0, b1);
+    else {
+      // Lines that occur exactly once on each side anchor the comparison.
+      const seen = new Map<string, { a: number; b: number; at: number }>();
+      for (let i = a0; i < a1; i++) {
+        const entry = seen.get(a[i]!) ?? { a: 0, b: 0, at: -1 };
+        entry.a++;
+        entry.at = i;
+        seen.set(a[i]!, entry);
+      }
+      const unique: [number, number][] = [];
+      const inB = new Map<string, number>();
+      for (let j = b0; j < b1; j++) inB.set(b[j]!, (inB.get(b[j]!) ?? 0) + 1);
+      for (let j = b0; j < b1; j++) {
+        const entry = seen.get(b[j]!);
+        if (entry?.a === 1 && inB.get(b[j]!) === 1) unique.push([entry.at, j]);
+      }
+      unique.sort((x, y) => x[0] - y[0]);
+      const anchors = increasing(unique);
+      if (!anchors.length) {
+        exact = false;
+        replace(a0, a1, b0, b1);
+      } else {
+        for (const [i, j] of anchors) {
+          walk(a0, i, b0, j);
+          edits.push(["=", i, j]);
+          a0 = i + 1;
+          b0 = j + 1;
+        }
+        walk(a0, a1, b0, b1);
+      }
+    }
+    for (let k = 0; k < tail; k++) edits.push(["=", a1 + k, b1 + k]);
+  };
+  walk(0, a.length, 0, b.length);
+  return { edits, exact };
+}
+
+/** The longest run of pairs, already ordered by their first index, whose second index increases. */
+function increasing(pairs: readonly [number, number][]): [number, number][] {
+  const tails: number[] = [];
+  const previous = new Array<number>(pairs.length).fill(-1);
+  for (let k = 0; k < pairs.length; k++) {
+    let low = 0;
+    let high = tails.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (pairs[tails[middle]!]![1] < pairs[k]![1]) low = middle + 1;
+      else high = middle;
+    }
+    if (low > 0) previous[k] = tails[low - 1]!;
+    tails[low] = k;
+  }
+  const result: [number, number][] = [];
+  for (let k = tails.at(-1) ?? -1; k >= 0; k = previous[k]!)
+    result.push(pairs[k]!);
+  return result.reverse();
+}
+
+/**
+ * The diff a person reviews. Argent's service returns each changed text file
+ * as one whole-file replacement hunk; this recovers which lines actually
+ * changed from the two complete copies, keeping every line. Hunks that
+ * already contain context are shown as they are. `exact` is false when part
+ * of a file was too large to compare and stays removed and re-added.
+ */
+export function readableDiff(diff: string): {
+  lines: DiffLine[];
+  exact: boolean;
+} {
+  const raw = diffLines(diff);
+  const lines: DiffLine[] = [];
+  let exact = true;
+  let k = 0;
+  while (k < raw.length) {
+    const hunk = raw[k]!;
+    lines.push(hunk);
+    k++;
+    if (hunk.kind !== "hunk") continue;
+    // A whole-file hunk is removals, then additions, each with an optional
+    // "No newline" note after its last line.
+    const removed: { text: string; note: DiffLine | null }[] = [];
+    const added: { text: string; note: DiffLine | null }[] = [];
+    let end = k;
+    while (
+      raw[end]?.kind === "del" ||
+      (raw[end]?.kind === "note" && removed.length && !added.length)
+    ) {
+      if (raw[end]!.kind === "del")
+        removed.push({ text: raw[end]!.text.slice(1), note: null });
+      else removed.at(-1)!.note = raw[end]!;
+      end++;
+    }
+    while (
+      raw[end]?.kind === "add" ||
+      (raw[end]?.kind === "note" && added.length)
+    ) {
+      if (raw[end]!.kind === "add")
+        added.push({ text: raw[end]!.text.slice(1), note: null });
+      else added.at(-1)!.note = raw[end]!;
+      end++;
+    }
+    const pure =
+      removed.length > 0 &&
+      added.length > 0 &&
+      (end >= raw.length ||
+        raw[end]!.kind === "meta" ||
+        raw[end]!.kind === "hunk");
+    if (!pure) continue;
+    // A missing final newline is a difference, so it is part of the key.
+    const key = (line: { text: string; note: DiffLine | null }) =>
+      line.note ? `${line.text}\u0000` : line.text;
+    const result = lineEdits(removed.map(key), added.map(key));
+    exact &&= result.exact;
+    const oldStart = raw[k]!.old ?? 1;
+    const newStart =
+      raw.find((line, index) => index >= k && line.kind === "add")!.new ?? 1;
+    for (const [operation, i, j] of result.edits) {
+      const line = operation === "+" ? added[j]! : removed[i]!;
+      lines.push(
+        operation === "="
+          ? {
+              kind: "context",
+              text: ` ${line.text}`,
+              old: oldStart + i,
+              new: newStart + j,
+            }
+          : operation === "-"
+            ? {
+                kind: "del",
+                text: `-${line.text}`,
+                old: oldStart + i,
+                new: null,
+              }
+            : {
+                kind: "add",
+                text: `+${line.text}`,
+                old: null,
+                new: newStart + j,
+              },
+      );
+      if (line.note) lines.push(line.note);
+    }
+    k = end;
+  }
+  return { lines, exact };
+}
+
+/** Added and removed lines a person reviews, ignoring file headers. */
+export function diffStats(diff: string): { added: number; removed: number } {
+  let added = 0;
+  let removed = 0;
+  for (const line of readableDiff(diff).lines)
+    if (line.kind === "add") added++;
+    else if (line.kind === "del") removed++;
+  return { added, removed };
+}

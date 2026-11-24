@@ -3,8 +3,9 @@
 // Nothing here runs a command: approval records a review.
 import type { CommandConfigurationView } from "../src/desktop/contracts.js";
 import { api } from "./actions.js";
-import { byId, enable, h, setText, show } from "./dom.js";
+import { byId, enable, h, setClass, setText, show } from "./dom.js";
 import { day, isLocal, plural, readableError, rejected } from "./model.js";
+import { resetNotice, wireNotice } from "./notice.js";
 import { currentWorkspace, state } from "./state.js";
 
 const ACTIONS = [
@@ -73,6 +74,10 @@ function status(text: string): void {
     view?.approval ? "Approved" : "Approve these commands",
   );
   enable("commands-approve", state.connected && approvable && !pending);
+  // Once approved, the main button moves to reviewing the commit.
+  setClass(byId("commands-approve"), "primary", !view?.approval);
+  setClass(byId("commands-approve"), "is-done", !!view?.approval);
+  setClass(byId("commands-review"), "primary", !!view?.approval);
 }
 /** A late reply for a closed dialog, another workspace or an older reading. */
 function stale(version: number, id: string): boolean {
@@ -251,6 +256,7 @@ function closeCommands(): void {
   byId("workspace-commands").focus();
 }
 export function wireCommands(): void {
+  wireNotice("commands-notice");
   byId("workspace-commands").addEventListener("click", () => {
     if (
       !currentWorkspace() ||
@@ -262,6 +268,7 @@ export function wireCommands(): void {
     workspaceId = state.selectedWorkspace;
     connected = state.connected;
     dialog().showModal();
+    resetNotice("commands-notice");
     byId("commands-close").focus();
     if (!isLocal(currentWorkspace()))
       status(

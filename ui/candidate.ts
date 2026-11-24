@@ -3,8 +3,10 @@ import { openChecks } from "./checks.js";
 import type { CandidateReviewView } from "../src/desktop/contracts.js";
 import { api } from "./actions.js";
 import { argumentText } from "./commands.js";
-import { byId, enable, h, setText, show } from "./dom.js";
+import { renderDiff } from "./diff-view.js";
+import { byId, enable, h, setClass, setText, show } from "./dom.js";
 import { day, isLocal, plural, readableError, rejected } from "./model.js";
+import { resetNotice, wireNotice } from "./notice.js";
 import { currentWorkspace, state } from "./state.js";
 
 let generation = 0;
@@ -58,6 +60,10 @@ function status(message: string): void {
     state.connected && !runAction && !pending && !!view,
   );
   enable("candidate-run", state.connected && !pending && !!view?.consent);
+  // The main button is always the next step: consent, then the run.
+  setClass(byId("candidate-consent"), "primary", !view?.consent);
+  setClass(byId("candidate-run"), "primary", !!view?.consent);
+  setClass(byId("candidate-consent"), "is-done", !!view?.consent);
   setText("candidate-run", runAction ? "Start run command" : "Run checks");
   setText(
     "candidate-consent",
@@ -87,11 +93,18 @@ function changeName(file: CandidateReviewView["files"][number]): string {
 
 function display(shown: CandidateReviewView): void {
   const content = byId("candidate-files");
+  const fact = (term: string, value: string) => [
+    h("dt", { text: term }),
+    h("dd", { class: "mono", text: value }),
+  ];
   content.append(
-    h("p", {
-      class: "mono",
-      text: `Base ${shown.baseSha}\nCommit ${shown.headSha}\nTree ${shown.treeId}`,
-    }),
+    h(
+      "dl",
+      { class: "review-facts" },
+      ...fact("Base", shown.baseSha),
+      ...fact("Commit", shown.headSha),
+      ...fact("Tree", shown.treeId),
+    ),
   );
   content.append(
     h("p", {
@@ -104,7 +117,7 @@ function display(shown: CandidateReviewView): void {
   const tests = shown.judgingChanges.testPaths;
   const report = h(
     "section",
-    { class: "command-action" },
+    { class: "command-action judging-report" },
     h("h3", { text: "Judging changes" }),
     h("p", {
       text:
@@ -258,6 +271,14 @@ function display(shown: CandidateReviewView): void {
   );
   for (const file of shown.files) {
     const name = changeName(file);
+    // Consent needs every line in view, so nothing folds here.
+    const pre = h("pre", { class: "review-diff" });
+    if (file.binary)
+      pre.textContent =
+        "Binary or non-UTF-8 content is not displayed. This change blocks consent.";
+    else if (file.diff) renderDiff(pre, file.diff, diffText, false);
+    else
+      pre.textContent = "No text content changed; review the metadata above.";
     content.append(
       h(
         "section",
@@ -269,13 +290,7 @@ function display(shown: CandidateReviewView): void {
           class: "mono",
           text: `Before: ${file.oldMode ?? "absent"} · ${file.oldBlobId ?? "no blob"} · ${file.oldBytes ?? 0} bytes\nAfter: ${file.newMode ?? "absent"} · ${file.newBlobId ?? "no blob"} · ${file.newBytes ?? 0} bytes`,
         }),
-        h("pre", {
-          text: file.binary
-            ? "Binary or non-UTF-8 content is not displayed. This change blocks consent."
-            : file.diff
-              ? diffText(file.diff)
-              : "No text content changed; review the metadata above.",
-        }),
+        pre,
       ),
     );
   }
@@ -399,6 +414,7 @@ export function renderCandidate(): void {
   }
 }
 export function wireCandidate(): void {
+  wireNotice("candidate-notice");
   byId("candidate-evidence").addEventListener("click", async () => {
     const shown = view;
     if (
@@ -523,6 +539,7 @@ export function wireCandidate(): void {
     workspaceId = state.selectedWorkspace;
     connected = state.connected;
     dialog().showModal();
+    resetNotice("candidate-notice");
     byId("candidate-close").focus();
     void read();
   };

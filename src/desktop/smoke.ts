@@ -783,6 +783,19 @@ export async function runDesktopSmoke(
     "Escape closes settings",
   );
   assert.equal(await js(`document.activeElement.id`), "settings-open");
+  // A real click on the backdrop closes it the same way.
+  await js(`document.querySelector('#settings-open').click()`);
+  await until(
+    () => js(`document.querySelector('#settings-dialog').open`),
+    "settings reopened",
+  );
+  for (const type of ["mouseDown", "mouseUp"] as const)
+    window.webContents.sendInputEvent({ type, x: 12, y: 300, clickCount: 1 });
+  await until(
+    () => js(`!document.querySelector('#settings-dialog').open`),
+    "a backdrop click closes settings",
+  );
+  assert.equal(await js(`document.activeElement.id`), "settings-open");
 
   // Opening the scripted demo carries the draft without submitting it.
   await js(
@@ -921,6 +934,13 @@ export async function runDesktopSmoke(
     ),
     "none",
     "the dialog backdrop also respects reduced motion",
+  );
+  assert.equal(
+    await js(
+      `getComputedStyle(document.querySelector('#settings-dialog')).transitionDuration.split(', ').every(value => value === '0s')`,
+    ),
+    true,
+    "dialog enter and exit transitions respect reduced motion",
   );
   await js(`document.querySelector('#settings-dialog').close()`);
   await window.webContents.debugger.sendCommand("Emulation.setEmulatedMedia", {

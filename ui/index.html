@@ -483,6 +483,16 @@
         consent to an exact commit, then choose Run checks for setup and test,
         or review separately for the run command.
       </p>
+      <button
+        id="commands-notice-toggle"
+        class="notice-toggle"
+        type="button"
+        aria-controls="commands-notice"
+        aria-expanded="false"
+        hidden
+      >
+        Show full notice
+      </button>
       <p
         id="commands-status"
         class="changes-notice"
@@ -532,10 +542,10 @@
         <button id="checks-refresh" class="button small">Refresh</button>
         <button
           id="checks-close"
-          class="button small"
+          class="icon-button"
           aria-label="Close check results"
         >
-          Close
+          <span class="icon icon-x" aria-hidden="true"></span>
         </button>
       </header>
       <p
@@ -551,7 +561,9 @@
         tabindex="0"
         aria-label="Recorded check evidence"
       ></div>
-      <button id="checks-cancel" class="button" disabled>Cancel check</button>
+      <button id="checks-cancel" class="button" disabled hidden>
+        Cancel check
+      </button>
     </dialog>
 
     <dialog
@@ -589,6 +601,16 @@
         starts in a new session, or one left running if the service stops
         unexpectedly, is not stopped.
       </p>
+      <button
+        id="candidate-notice-toggle"
+        class="notice-toggle"
+        type="button"
+        aria-controls="candidate-notice"
+        aria-expanded="false"
+        hidden
+      >
+        Show full notice
+      </button>
       <p
         id="candidate-status"
         class="changes-notice"
@@ -615,6 +637,7 @@
 
     <dialog
       id="draft-evidence-dialog"
+      data-keep-open
       class="changes-panel candidate-panel"
       aria-labelledby="draft-evidence-title"
     >
@@ -806,7 +829,11 @@
       </form>
     </dialog>
 
-    <dialog id="resolve-dialog" aria-labelledby="resolve-dialog-title">
+    <dialog
+      id="resolve-dialog"
+      data-keep-open
+      aria-labelledby="resolve-dialog-title"
+    >
       <form id="resolve-form" class="dialog-form">
         <span class="dialog-icon attention"
           ><span class="icon icon-triangle-alert" aria-hidden="true"></span
@@ -844,12 +871,19 @@
 
     <dialog
       id="commit-dialog"
+      data-keep-open
       class="changes-panel commands-panel"
       aria-labelledby="commit-title"
     >
       <header class="sheet-head">
         <h2 id="commit-title">Commit staged changes</h2>
-        <button id="commit-close" class="button small">Close</button>
+        <button
+          id="commit-close"
+          class="icon-button"
+          aria-label="Close commit staged changes"
+        >
+          <span class="icon icon-x" aria-hidden="true"></span>
+        </button>
       </header>
       <p class="changes-notice">
         Only staged changes enter the commit. To stage a file, run

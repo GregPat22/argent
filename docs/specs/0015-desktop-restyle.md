@@ -41,9 +41,11 @@ accessibility rules still apply.
   `#13151a` raised, pewter-2 `#1b1e25` hover, hairlines `rgb(214 220 230 / .12)`
   and `/.24`, text polished `#eef1f5`, sterling `#a9b0bb`, sterling-dim `#929aa7`.
 - Hue only reports state: running `#a8bdff`, attention `#f5c26b`, fault
-  `#f0a29b`, verified `#8ee6b5`. **Green means verified and nothing else**: on
-  main only the simulated artifact check. A Claude Code run ends in silver,
-  labelled "Recorded, not tested".
+  `#f0a29b`, verified `#8ee6b5`. **Green means verified and nothing else**:
+  the simulated artifact check, and checks that passed and match the current
+  reading in the Checks dialog. A stale or unchecked pass, a run command and a
+  Claude Code run stay silver; a Claude Code run is labelled "Recorded, not
+  tested".
 - Type (px): 11 labels, 12 meta, 13 base (Manrope), 15 section (Inter 600),
   20 run and header titles (Inter 600), 28 welcome (Inter 500, -0.035em);
   12 mono for SHAs and branches. Nothing below 11.
@@ -199,3 +201,105 @@ Renderer regressions cover a launch with an earlier saved selection and a launch
 with an uncertain submission. The native smoke closes the window during a run,
 reopens it on the welcome screen, then selects the workspace and finds the
 completed conversation.
+
+## Desktop polish and motion (in development)
+
+Against main `f748957`, 23 November 2026. A heuristic review of the native
+smoke screenshots and the renderer found friction that changes no execution,
+consent or evidence contract. The work lands in small steps, each with its own
+acceptance criteria below.
+
+### Step 1: transitions and consistent controls
+
+- Dialogs and popovers transition out as well as in: 240ms entrance, 150ms
+  exit for dialogs and their backdrop, 180ms/120ms for popovers. A closing
+  dialog ignores the pointer. Reduced motion removes both directions.
+- Menus, popovers and dialogs close on a click outside them, not only with
+  Escape. A backdrop click takes the same path as Escape, so focus returns to
+  the control that opened the dialog. Press and release must both land
+  outside, so ending a text selection outside never closes a dialog. The
+  commit, resolution and draft publication dialogs hold typed work and close
+  only from their own controls or Escape. While any menu or dialog is open,
+  the header and sidebar top stop moving the window, because macOS never
+  delivers a click on a drag region to the page.
+- Every inspection dialog closes from the same icon button in its header.
+  "Back to review" remains the evidence preview's navigation back.
+- Cancel check appears only while a check is queued or running.
+- The conversation fades into the header and composer within its own padding,
+  so content at rest is never dimmed.
+- Every disclosure uses the app's chevron and eases its contents open. Activity
+  notes that cannot expand show a dot instead of a chevron.
+- Dialog text areas grow with their contents up to a bound instead of showing
+  a resize grip.
+- Selecting another workspace updates the existing sidebar rows, so the
+  highlight and its silver sliver transition; a changed list still rebuilds.
+
+### Step 2: live runs update in place
+
+- While a run is working, new activity is appended to the turn's existing step
+  list. Earlier rows, a text selection and hover survive polling; only rows
+  that arrive while you watch rise in. The elapsed time keeps updating.
+- A turn is rebuilt only when what it shows changes: its status, the
+  connection, the event page, its record or its marks. A turn with more than
+  one page of events keeps the paginated rebuild.
+- A rebuilt turn keeps the disclosures a person opened, such as its steps or
+  the raw record, without replaying their opening transition.
+
+A renderer regression checks that the turn, its step list and its earlier
+rows are the same elements after new events, that each row animates once,
+and that a settled turn is rebuilt into its final form.
+
+### Step 3: changes viewer
+
+- Each changed file shows its status as a word in a badge, its quoted name
+  with the folder dimmed, and its added and removed line counts. The status
+  line totals them. Counts come from the diff Argent read; lines before the
+  first hunk header are file metadata and never count. A binary file says so.
+- The diff is drawn one line per text-only element: metadata, hunk headers,
+  context, additions and removals are distinguished by weight, a light or dark
+  band and a left edge, without hue, because green means verified. Old and new
+  line numbers sit in a gutter that copying skips.
+- The service returns each changed text file as one whole-file replacement
+  hunk. The panel compares the two complete copies in it and shows only the
+  lines that changed, with three lines of context; a longer unchanged run
+  folds behind "Show N unchanged lines", which restores every line in place.
+  The comparison is bounded: a gap up to 250,000 line pairs is compared
+  exactly, a larger one is split at lines that occur once on each side, and a
+  larger gap without such a line stays removed and re-added under a visible
+  note. A missing final newline counts as a change. Hunks that already carry
+  context are shown as they are. The service output is unchanged.
+- Paths and diff text are still set only through `textContent`, with controls
+  and bidi characters escaped.
+- Up and down arrows move through the file list and show each diff.
+
+The renderer tests assert that a file row and each diff line contain only
+Argent's own text elements and that hostile content stays escaped text. A
+model test covers line numbering, hunk headers, metadata and counts. Model
+tests cover a small edit inside a whole-file hunk, the missing-newline rule,
+two edits in a 900-line file and a labelled fallback. A renderer test folds
+and restores unchanged runs. In a native walkthrough on a throwaway
+repository, a three-line edit that the service returns as 22 removed and 24
+added lines is shown as 2 removed and 4 added.
+
+### Step 4: review, consent, check and commit dialogs
+
+- The silver primary moves to the next step. In a commit review it marks
+  consent until consent is recorded, then the run; in Commands it marks
+  approval, then the commit review; in Commit it marks the staged review, then
+  the commit. A recorded step reads as done in sterling, not as unavailable.
+- A commit's base, commit and tree, and the staged commit's branch, parent,
+  tree, author and message are labelled rows. The judging report shows each
+  category with its files beneath.
+- Changed files in the commit review and the staged commit use the readable
+  diff from step 3, wrapped, with every unchanged line visible: nothing
+  folds where a person consents or commits. Hidden characters stay escaped as
+  before.
+- The check result is one row. Checks that passed and match the current
+  reading are green; a failure, an interruption or a setup failure uses the
+  fault colour; anything else, including a stale or unchecked pass and every
+  run command result, stays silver. Each phase shows its command on one line;
+  output sizes and digests sit in a disclosure.
+- Long safety notices in Commands and the commit review show their first two
+  lines with "Show full notice", which expands them in place. The full text
+  stays in the element and in the dialog's description, so a screen reader
+  reads all of it. The control appears only when the text is cut.

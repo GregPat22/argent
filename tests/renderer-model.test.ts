@@ -3,7 +3,10 @@ import { test } from "node:test";
 import type { RunEvent, RunView, Workspace } from "../src/domain.js";
 import {
   composerGate,
+  diffLines,
+  diffStats,
   groupWorkspaces,
+  readableDiff,
   limitChoices,
   permissionAfterSend,
   turnFrom,
@@ -146,4 +149,131 @@ test("limits are minutes for local work and seconds for demos; full access never
   assert.equal(limitChoices(false).fallback, 30000);
   assert.equal(Math.max(...limitChoices(false).values), 300000);
   assert.equal(permissionAfterSend(), "edits");
+});
+
+test("diff lines carry old and new line numbers and skip file headers", () => {
+  const diff = [
+    "diff --git a/a.ts b/a.ts",
+    "--- a/a.ts",
+    "+++ b/a.ts",
+    "@@ -3,3 +3,3 @@ heading",
+    " keep",
+    "-old",
+    "+new",
+    "\\ No newline at end of file",
+    "@@ -10 +10,2 @@",
+    " ten",
+    "+eleven",
+    "",
+  ].join("\n");
+  assert.deepEqual(
+    diffLines(diff).map((line) => [line.kind, line.old, line.new]),
+    [
+      ["meta", null, null],
+      ["meta", null, null],
+      ["meta", null, null],
+      ["hunk", null, null],
+      ["context", 3, 3],
+      ["del", 4, null],
+      ["add", null, 4],
+      ["note", null, null],
+      ["hunk", null, null],
+      ["context", 10, 10],
+      ["add", null, 11],
+    ],
+  );
+  assert.deepEqual(diffStats(diff), { added: 2, removed: 1 });
+  assert.deepEqual(diffStats(""), { added: 0, removed: 0 });
+  assert.deepEqual(
+    diffStats("+++ only a header\n--- another"),
+    { added: 0, removed: 0 },
+    "lines before a hunk are never counted",
+  );
+});
+
+/** The service's whole-file replacement hunk for two texts ending in newlines. */
+function wholeFile(before: string[], after: string[]): string {
+  return [
+    "diff --git a/f b/f",
+    "--- a/f",
+    "+++ b/f",
+    `@@ -1,${before.length} +1,${after.length} @@`,
+    ...before.map((line) => `-${line}`),
+    ...after.map((line) => `+${line}`),
+    "",
+  ].join("\n");
+}
+const shape = (diff: string) =>
+  readableDiff(diff)
+    .lines.filter((line) => line.kind !== "meta" && line.kind !== "hunk")
+    .map((line) => [line.kind, line.text, line.old, line.new]);
+
+test("a whole-file hunk shows only the lines that changed, and keeps every line", () => {
+  const before = ["a", "b", "c", "d", "e"];
+  const after = ["a", "B", "c", "d", "e", "f"];
+  assert.deepEqual(shape(wholeFile(before, after)), [
+    ["context", " a", 1, 1],
+    ["del", "-b", 2, null],
+    ["add", "+B", null, 2],
+    ["context", " c", 3, 3],
+    ["context", " d", 4, 4],
+    ["context", " e", 5, 5],
+    ["add", "+f", null, 6],
+  ]);
+  assert.deepEqual(diffStats(wholeFile(before, after)), {
+    added: 2,
+    removed: 1,
+  });
+  assert.equal(readableDiff(wholeFile(before, after)).exact, true);
+});
+
+test("a missing final newline is a change and its note stays with its line", () => {
+  const diff = [
+    "@@ -1,2 +1,2 @@",
+    "-a",
+    "-b",
+    "\\ No newline at end of file",
+    "+a",
+    "+b",
+    "",
+  ].join("\n");
+  assert.deepEqual(
+    shape(diff).map(([kind, text]) => [kind, text]),
+    [
+      ["context", " a"],
+      ["del", "-b"],
+      ["note", "\\ No newline at end of file"],
+      ["add", "+b"],
+    ],
+  );
+});
+
+test("large files are compared through unique lines, and an uncomparable gap is labelled", () => {
+  const before = Array.from({ length: 900 }, (_, i) => `line ${i}`);
+  const after = [...before];
+  after[10] = "changed near the top";
+  after[880] = "changed near the bottom";
+  const result = readableDiff(wholeFile(before, after));
+  assert.equal(result.exact, true);
+  assert.deepEqual(diffStats(wholeFile(before, after)), {
+    added: 2,
+    removed: 2,
+  });
+  assert.equal(
+    result.lines.filter((line) => line.kind === "context").length,
+    898,
+    "every unchanged line is still present",
+  );
+  const repeated = readableDiff(
+    wholeFile(
+      [...Array(600).fill("x"), "only before"],
+      ["only after", ...Array(600).fill("x")],
+    ),
+  );
+  assert.equal(repeated.exact, false, "a fallback is never presented as exact");
+  assert.equal(
+    repeated.lines.filter((line) => line.kind === "del").length +
+      repeated.lines.filter((line) => line.kind === "add").length,
+    1202,
+  );
 });

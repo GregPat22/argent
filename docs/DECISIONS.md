@@ -76,6 +76,22 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Readable diffs in the desktop changes panel (in development) — 24 November 2026
+
+The service keeps its accepted whole-file replacement hunks: they stay
+bounded, dependency-free and unchanged. The desktop changes panel now shows
+which lines changed by comparing the two complete copies each hunk already
+contains, with three lines of context and longer unchanged runs folded behind
+a control that restores them in place. Every line the service returned
+remains reachable. The comparison is bounded: a small gap is compared
+exactly, a large one is split at lines that occur once on each side, and a
+large gap without such a line stays removed and re-added with a visible
+note. Line counts follow the readable diff. This changes display only; no
+service contract, consent review, evidence record or security boundary
+changes. A walkthrough had found a one-line addition inside two full copies
+of a file. See the
+[acceptance criteria](specs/0015-desktop-restyle.md#step-3-changes-viewer).
+
 ### A separate GitHub-only publisher — 22 November 2026
 
 Accepted for L1.5. Local inspection and checks keep their transport-denied Git

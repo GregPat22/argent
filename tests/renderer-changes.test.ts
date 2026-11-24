@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Workspace, WorkspaceChanges } from "../src/domain.js";
 import {
+  type FakeElement,
   fakeDocument,
   loadRenderer,
   settle,
@@ -145,12 +146,35 @@ test("changes are requested only on open or refresh, with literal hostile text a
   assert.match(app.element("changes-files").text, /<img onerror/);
   assert.match(app.element("changes-files").text, /\\n\\t\\u202e/);
   assert.doesNotMatch(app.element("changes-files").text, /[\n\t\u202e]/);
-  assert.equal(app.element("changes-files").children[0]!.children.length, 0);
+  // A file row holds only Argent's own text spans: the hostile path is text in
+  // them, never an element of its own.
+  const row = app.element("changes-files").children[0]!;
+  const allowed =
+    /^(file-status file-added|file-name|file-dir|file-base|file-counts)$/;
+  const walk = (node: FakeElement): FakeElement[] =>
+    node.children.flatMap((child) => [child, ...walk(child)]);
+  assert.ok(walk(row).every((node) => allowed.test(node.className)));
+  assert.equal(
+    walk(row)
+      .filter((node) => node.children.length === 0)
+      .map((node) => node.textContent)
+      .join(""),
+    `added"<img onerror=alert(1)>\\n\\t\\u202e.txt"+0 −0`,
+  );
+  // Each diff line is one text-only span; the controls stay escaped.
+  const lines = app.element("changes-diff").children;
+  assert.ok(
+    lines.every(
+      (line) =>
+        /^diff-line diff-(meta|hunk|add|del|context|note)$/.test(
+          line.className,
+        ) && line.children.length === 0,
+    ),
+  );
   assert.match(
-    app.element("changes-diff").textContent,
+    lines.map((line) => line.textContent).join("\n"),
     /<script>alert\(1\)<\/script>\\u001b\\u202e/,
   );
-  assert.equal(app.element("changes-diff").children.length, 0);
   app.element("changes-files").children[1]!.click();
   assert.match(app.element("changes-diff").textContent, /Binary or non-UTF-8/);
   await app.poll();
@@ -162,6 +186,7 @@ test("changes are requested only on open or refresh, with literal hostile text a
     "",
     "old content clears during refresh",
   );
+  assert.equal(app.element("changes-diff").children.length, 0);
   app.requests[1]!.resolve(changes());
   await settle();
   assert.match(
@@ -265,9 +290,66 @@ test("quoted filenames distinguish literal backslashes from newline and tab char
   }));
   app.requests[0]!.resolve(fixture);
   await settle();
-  const labels = app
-    .element("changes-files")
-    .children.map((item) => item.textContent);
+  const labels = app.element("changes-files").children.map((item) => item.text);
   assert.equal(new Set(labels).size, 4);
   assert.ok(labels.every((label) => !/[\n\t]/.test(label)));
+});
+
+test("unchanged runs fold to three lines of context and unfold in place", async () => {
+  const app = await launch();
+  app.open();
+  const before = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`);
+  const after = before.map((line, i) => (i === 9 ? "line ten" : line));
+  const fixture = changes();
+  fixture.files = [
+    {
+      ...fixture.files[0]!,
+      path: "file.txt",
+      status: "modified",
+      oldMode: "100644",
+      diff: [
+        "--- a/file.txt",
+        "+++ b/file.txt",
+        "@@ -1,20 +1,20 @@",
+        ...before.map((line) => `-${line}`),
+        ...after.map((line) => `+${line}`),
+        "",
+      ].join("\n"),
+    },
+  ];
+  app.requests[0]!.resolve(fixture);
+  await settle();
+  assert.match(app.element("changes-status").textContent, /\+1 −1/);
+  const pre = app.element("changes-diff");
+  const folds = () =>
+    pre.children.filter((child) => child.className === "diff-fold");
+  assert.deepEqual(
+    folds().map((fold) => fold.textContent),
+    ["Show 6 unchanged lines", "Show 7 unchanged lines"],
+  );
+  const shown = () =>
+    pre.children
+      .filter((child) => child.className !== "diff-fold")
+      .map((child) => child.textContent);
+  assert.deepEqual(shown().slice(3), [
+    " line 7",
+    " line 8",
+    " line 9",
+    "-line 10",
+    "+line ten",
+    " line 11",
+    " line 12",
+    " line 13",
+  ]);
+  folds()[0]!.click();
+  assert.equal(folds().length, 1);
+  assert.deepEqual(shown().slice(3, 9), [
+    " line 1",
+    " line 2",
+    " line 3",
+    " line 4",
+    " line 5",
+    " line 6",
+  ]);
+  assert.ok(pre.focused, "focus stays in the diff after unfolding");
 });

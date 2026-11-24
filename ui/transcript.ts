@@ -1,7 +1,7 @@
 // The workspace conversation: every run is one turn, oldest first.
 import type { RunView } from "../src/domain.js";
 import { actions } from "./actions.js";
-import { byId, h, icon, show } from "./dom.js";
+import { byId, h, icon, setClass, show } from "./dom.js";
 import {
   clock,
   duration,
@@ -24,6 +24,8 @@ interface Rendered {
   element: HTMLElement;
   status: HTMLElement;
   eventControls: HTMLButtonElement[];
+  /** A working turn's step list, extended in place as events arrive. */
+  live?: { list: HTMLElement; count: number; key: string } | undefined;
 }
 const rendered = new Map<string, Rendered>();
 let renderedWorkspace = "";
@@ -37,14 +39,21 @@ export function visibleRuns(): RunView[] {
 }
 
 function stepRow(step: Step): HTMLElement {
-  const symbol =
-    step.kind === "tool"
-      ? step.error
-        ? "triangle-alert"
-        : "terminal"
-      : step.kind === "say"
-        ? "message-square"
-        : "chevron-right";
+  // A note cannot expand, so it gets a quiet dot rather than a chevron.
+  const marker =
+    step.kind === "note"
+      ? h("span", {
+          class: "step-icon step-dot",
+          attrs: { "aria-hidden": "true" },
+        })
+      : icon(
+          step.kind === "say"
+            ? "message-square"
+            : step.error
+              ? "triangle-alert"
+              : "terminal",
+          "step-icon",
+        );
   const time = h("time", { text: clock(step.at) });
   time.dateTime = new Date(step.at).toISOString();
   return h(
@@ -52,7 +61,7 @@ function stepRow(step: Step): HTMLElement {
     {
       class: `step step-${step.kind}${step.kind === "tool" && step.error ? " step-error" : ""}`,
     },
-    icon(symbol, "step-icon"),
+    marker,
     h("span", { class: "step-text", text: step.text }),
     time,
   );
@@ -124,9 +133,73 @@ function end(run: RunView, reason: string): HTMLElement | null {
   return null;
 }
 
+/** Everything a working turn shows apart from how many events it has. */
+function liveKey(run: RunView): string {
+  const record = turnRecord(run.id);
+  return JSON.stringify([
+    run.status,
+    run.simulation,
+    state.connected,
+    run.task,
+    record.eventPageStart,
+    !!record.artifact,
+    record.artifactError,
+    state.struck.has(run.id),
+  ]);
+}
+
+/**
+ * Appends a working turn's new steps to its existing list, so earlier rows,
+ * a text selection and hover survive polling. Only the new rows animate in.
+ * Returns false when the turn must be rebuilt instead.
+ */
+function extendLive(run: RunView, item: Rendered): boolean {
+  const record = turnRecord(run.id);
+  if (
+    !item.live ||
+    !isWorking(run.status) ||
+    item.live.key !== liveKey(run) ||
+    record.events.length > EVENT_PAGE_SIZE
+  )
+    return false;
+  const steps = turnFrom(record.events).steps;
+  if (steps.length < item.live.count) return false;
+  if (steps.length > item.live.count) {
+    if (item.live.count === 0) item.live.list.replaceChildren();
+    for (const step of steps.slice(item.live.count)) {
+      const row = stepRow(step);
+      row.className += " step-enter";
+      item.live.list.append(row);
+    }
+    item.live.count = steps.length;
+  }
+  item.signature = signature(run);
+  // Removing the class never replays an entrance that already ran.
+  setClass(item.element, "turn-enter", false);
+  return true;
+}
+
+/**
+ * A rebuilt turn keeps the disclosures a person opened (its steps, the raw
+ * record). They are set before insertion, so they appear open without
+ * replaying the opening transition.
+ */
+function keepDisclosures(from: HTMLElement, to: HTMLElement): void {
+  const opened = new Set(
+    Array.from(from.querySelectorAll?.("details[open]") ?? []).map(
+      (details) => details.className,
+    ),
+  );
+  if (!opened.size) return;
+  for (const details of to.querySelectorAll?.<HTMLDetailsElement>("details") ??
+    [])
+    if (opened.has(details.className)) details.open = true;
+}
+
 function turnElement(run: RunView): Rendered {
   const record = turnRecord(run.id);
   const eventControls: HTMLButtonElement[] = [];
+  let liveList: Rendered["live"];
   const start =
     record.eventPageStart ??
     Math.max(0, record.events.length - EVENT_PAGE_SIZE);
@@ -212,6 +285,7 @@ function turnElement(run: RunView): Rendered {
   }
   if (working) {
     const live = h("ol", { class: "steps live" });
+    liveList = { list: live, count: turn.steps.length, key: liveKey(run) };
     for (const step of turn.steps) live.append(stepRow(step));
     if (!turn.steps.length)
       live.append(
@@ -270,7 +344,13 @@ function turnElement(run: RunView): Rendered {
     ),
     reply,
   );
-  return { signature: signature(run), element, status, eventControls };
+  return {
+    signature: signature(run),
+    element,
+    status,
+    eventControls,
+    live: liveList,
+  };
 }
 
 function signature(run: RunView): string {
@@ -309,12 +389,19 @@ export function renderTranscript(): void {
   let added = false;
   for (const run of runs) {
     let item = rendered.get(run.id);
-    if (!item || item.signature !== signature(run)) {
+    if (item && item.signature !== signature(run) && extendLive(run, item))
+      item.status.textContent = statusText(
+        run,
+        turnFrom(turnRecord(run.id).events).lastAt,
+      );
+    else if (!item || item.signature !== signature(run)) {
       const fresh = turnElement(run);
       // The marks strike in once; later renders show them at rest.
       if (state.struck.delete(run.id)) fresh.signature = signature(run);
-      if (item) item.element.replaceWith(fresh.element);
-      else {
+      if (item) {
+        keepDisclosures(item.element, fresh.element);
+        item.element.replaceWith(fresh.element);
+      } else {
         fresh.element.className += " turn-enter";
         added = true;
       }

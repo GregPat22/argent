@@ -11,6 +11,9 @@ import {
 import { state } from "./state.js";
 
 let signature = "";
+let selection = "";
+/** Rows of the current build, so a new selection can update them in place. */
+const rows = new Map<string, { row: HTMLElement; glyph: HTMLElement }>();
 
 /** The selected workspace's activity glyph; other workspaces show their state. */
 function glyph(workspaceId: string, stopped: boolean): HTMLElement {
@@ -42,24 +45,38 @@ export function renderSidebar(): void {
     .filter((run) => isWorking(run.status) || run.status === "needs_attention")
     .map((run) => run.status)
     .join(",");
-  const next = JSON.stringify([
-    state.selectedWorkspace,
-    state.workspaces,
-    activity,
-    state.connected,
-  ]);
+  // Selection is kept out of the structure: choosing another workspace moves
+  // the highlight on the existing rows, so it can transition.
+  const next = JSON.stringify([state.workspaces, activity, state.connected]);
+  if (next === signature && selection !== state.selectedWorkspace) {
+    selection = state.selectedWorkspace;
+    for (const [id, entry] of rows) {
+      const selected = id === selection;
+      setClass(entry.row, "selected", selected);
+      entry.row.setAttribute("aria-current", String(selected));
+      const stopped =
+        state.workspaces.find((workspace) => workspace.id === id)?.state ===
+        "stopped";
+      const fresh = glyph(id, stopped);
+      entry.glyph.replaceWith(fresh);
+      entry.glyph = fresh;
+    }
+  }
   if (next !== signature) {
     signature = next;
+    selection = state.selectedWorkspace;
+    rows.clear();
     const focused = (
       document as Document | undefined
     )?.activeElement?.getAttribute?.("data-workspace-id");
     list.replaceChildren();
     for (const group of groupWorkspaces(state.workspaces)) {
-      const rows = h("ul", {
+      const items = h("ul", {
         class: "repo-rows",
       });
       for (const workspace of group.items) {
         const selected = workspace.id === state.selectedWorkspace;
+        const mark = glyph(workspace.id, workspace.state === "stopped");
         const row = h(
           "button",
           {
@@ -70,11 +87,11 @@ export function renderSidebar(): void {
             data: { workspaceId: workspace.id },
             attrs: {
               type: "button",
-              "aria-current": selected ? "true" : undefined,
+              "aria-current": String(selected),
             },
             on: { click: () => actions.selectWorkspace(workspace.id) },
           },
-          glyph(workspace.id, workspace.state === "stopped"),
+          mark,
           h("span", { class: "row-label", text: rowLabel(workspace) }),
         );
         if (workspace.state === "stopped")
@@ -84,7 +101,8 @@ export function renderSidebar(): void {
               text: archiveLabel(workspace) || "Stopped",
             }),
           );
-        rows.append(h("li", {}, row));
+        rows.set(workspace.id, { row, glyph: mark });
+        items.append(h("li", {}, row));
       }
       const first = group.items[0]!;
       const head = h(
@@ -125,7 +143,7 @@ export function renderSidebar(): void {
             attrs: { "aria-label": group.label },
           },
           head,
-          rows,
+          items,
         ),
       );
     }
