@@ -1,7 +1,7 @@
 import type { LocalCheckView } from "../src/desktop/contracts.js";
 import { api } from "./actions.js";
 import { argumentText } from "./commands.js";
-import { byId, enable, h, setText, show } from "./dom.js";
+import { byId, enable, h, setClass, setText, show } from "./dom.js";
 import { isLocal, plural, readableError } from "./model.js";
 import { currentWorkspace, state } from "./state.js";
 
@@ -17,8 +17,17 @@ function clear() {
   pending = false;
   view = null;
   byId("checks-result").replaceChildren();
+  verdict("");
   enable("checks-cancel", false);
   show("checks-cancel", false);
+}
+type Verdict = "" | "passed" | "failed" | "neutral";
+/** Colours the result line: green only for passed checks that match this reading. */
+function verdict(kind: Verdict) {
+  const line = byId("checks-status");
+  for (const name of ["passed", "failed", "neutral"])
+    setClass(line, `verdict-${name}`, kind === name);
+  setClass(line, "verdict", kind !== "");
 }
 function stale(version: number, id: string) {
   return (
@@ -95,6 +104,23 @@ async function read() {
           ? `${noun} failed before a result could be recorded`
           : `${noun} ${result.status}`;
     status(`${label}. Refresh to read again.`);
+    verdict(
+      !result.result
+        ? result.status === "needs_attention" || result.status === "failed"
+          ? "failed"
+          : "neutral"
+        : !runAction &&
+            result.result.outcome === "passed" &&
+            result.freshness === "current"
+          ? "passed"
+          : (
+                runAction
+                  ? result.result.outcome !== "succeeded"
+                  : result.result.outcome !== "passed"
+              )
+            ? "failed"
+            : "neutral",
+    );
     const content = byId("checks-result");
     if (result.result && !runAction) {
       const count = result.result.judgingChangeCount;
@@ -127,11 +153,18 @@ async function read() {
             h("h3", {
               text: `${phase.action} · ${phase.outcome}${phase.exitCode === null ? "" : ` · exit ${phase.exitCode}`} · ${phase.durationMs} ms`,
             }),
-            h("pre", { text: phase.argv.map(argumentText).join("\n") }),
-            h("p", {
-              class: "mono",
-              text: `stdout: ${phase.stdout.bytes} bytes · SHA-256 ${phase.stdout.sha256}\nstderr: ${phase.stderr.bytes} bytes · SHA-256 ${phase.stderr.sha256}`,
-            }),
+            h("pre", { text: phase.argv.map(argumentText).join(" ") }),
+            h(
+              "details",
+              { class: "phase-digests" },
+              h("summary", {
+                text: `Output digests · stdout ${phase.stdout.bytes} bytes · stderr ${phase.stderr.bytes} bytes`,
+              }),
+              h("p", {
+                class: "mono",
+                text: `stdout: ${phase.stdout.bytes} bytes · SHA-256 ${phase.stdout.sha256}\nstderr: ${phase.stderr.bytes} bytes · SHA-256 ${phase.stderr.sha256}`,
+              }),
+            ),
           ),
         );
       content.append(

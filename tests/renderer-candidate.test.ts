@@ -321,6 +321,13 @@ test("candidate dialog shows all text, command arguments and change metadata lit
   ])
     assert.ok(shown.includes(expected), expected);
   assert.doesNotMatch(shown, /[\u202e\u200b]/);
+  // The readable diff is drawn line by line and never folds before consent.
+  const files = app.element("candidate-files");
+  assert.ok(files.find((e) => /\bdiff-line\b/.test(e.className)));
+  assert.equal(
+    files.find((e) => e.className === "diff-fold"),
+    undefined,
+  );
   assert.equal(
     app
       .element("candidate-files")
@@ -344,6 +351,8 @@ test("candidate dialog shows all text, command arguments and change metadata lit
 test("consent sends only the displayed review identity and refreshes before showing a current match", async () => {
   const app = await launch();
   await app.show();
+  assert.match(app.element("candidate-consent").className, /primary/);
+  assert.doesNotMatch(app.element("candidate-run").className, /primary/);
   app.element("candidate-consent").click();
   app.element("candidate-consent").fire("click");
   assert.deepEqual(app.writes[0]!.args, ["one", identity, "key-1"]);
@@ -365,6 +374,9 @@ test("consent sends only the displayed review identity and refreshes before show
   await settle();
   assert.match(app.status(), /matches this reading.*Run checks/);
   assert.equal(app.element("candidate-consent").disabled, true);
+  // The main button moves on to the run once consent is recorded.
+  assert.doesNotMatch(app.element("candidate-consent").className, /primary/);
+  assert.match(app.element("candidate-run").className, /primary/);
   app.element("candidate-consent").fire("click");
   assert.equal(app.writes.length, 1);
   app.element("candidate-dialog").fire("cancel");

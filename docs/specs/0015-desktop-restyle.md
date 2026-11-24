@@ -41,9 +41,11 @@ accessibility rules still apply.
   `#13151a` raised, pewter-2 `#1b1e25` hover, hairlines `rgb(214 220 230 / .12)`
   and `/.24`, text polished `#eef1f5`, sterling `#a9b0bb`, sterling-dim `#929aa7`.
 - Hue only reports state: running `#a8bdff`, attention `#f5c26b`, fault
-  `#f0a29b`, verified `#8ee6b5`. **Green means verified and nothing else**: on
-  main only the simulated artifact check. A Claude Code run ends in silver,
-  labelled "Recorded, not tested".
+  `#f0a29b`, verified `#8ee6b5`. **Green means verified and nothing else**:
+  the simulated artifact check, and checks that passed and match the current
+  reading in the Checks dialog. A stale or unchecked pass, a run command and a
+  Claude Code run stay silver; a Claude Code run is labelled "Recorded, not
+  tested".
 - Type (px): 11 labels, 12 meta, 13 base (Manrope), 15 section (Inter 600),
   20 run and header titles (Inter 600), 28 welcome (Inter 500, -0.035em);
   12 mono for SHAs and branches. Nothing below 11.
@@ -278,3 +280,26 @@ two edits in a 900-line file and a labelled fallback. A renderer test folds
 and restores unchanged runs. In a native walkthrough on a throwaway
 repository, a three-line edit that the service returns as 22 removed and 24
 added lines is shown as 2 removed and 4 added.
+
+### Step 4: review, consent, check and commit dialogs
+
+- The silver primary moves to the next step. In a commit review it marks
+  consent until consent is recorded, then the run; in Commands it marks
+  approval, then the commit review; in Commit it marks the staged review, then
+  the commit. A recorded step reads as done in sterling, not as unavailable.
+- A commit's base, commit and tree, and the staged commit's branch, parent,
+  tree, author and message are labelled rows. The judging report shows each
+  category with its files beneath.
+- Changed files in the commit review and the staged commit use the readable
+  diff from step 3, wrapped, with every unchanged line visible: nothing
+  folds where a person consents or commits. Hidden characters stay escaped as
+  before.
+- The check result is one row. Checks that passed and match the current
+  reading are green; a failure, an interruption or a setup failure uses the
+  fault colour; anything else, including a stale or unchecked pass and every
+  run command result, stays silver. Each phase shows its command on one line;
+  output sizes and digests sit in a disclosure.
+- Long safety notices in Commands and the commit review show their first two
+  lines with "Show full notice", which expands them in place. The full text
+  stays in the element and in the dialog's description, so a screen reader
+  reads all of it. The control appears only when the text is cut.

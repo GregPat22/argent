@@ -1,7 +1,8 @@
 import type { StagedReview } from "../src/local-commit.js";
 import { actions, api } from "./actions.js";
 import { argumentText } from "./commands.js";
-import { byId, enable, h, setText, show } from "./dom.js";
+import { renderDiff } from "./diff-view.js";
+import { byId, enable, h, setClass, setText, show } from "./dom.js";
 import { isActive, isLocal, readableError } from "./model.js";
 import { currentWorkspace, state } from "./state.js";
 
@@ -52,7 +53,12 @@ export function renderCommit() {
   }
   enable("commit-review", eligible() && !pending);
   enable("commit-confirm", eligible() && !pending && !!review?.files.length);
+  // The main button is the next step: review, then create the commit.
+  setClass(byId("commit-review"), "primary", !review?.files.length);
+  setClass(byId("commit-confirm"), "primary", !!review?.files.length);
 }
+/** Shows a hidden character as an escape, as the review does. */
+const lineText = (line: string) => argumentText(line).slice(1, -1);
 export function wireCommit() {
   byId("workspace-commit").addEventListener("click", () => {
     if (!eligible() || dialog().open) return;
@@ -114,13 +120,33 @@ async function execute(confirm: boolean) {
     const result = await api().reviewStagedCommit(id, input);
     if (!valid()) return;
     review = result;
-    setText(
-      "commit-status",
-      result.files.length
-        ? `${result.branch}\nParent ${result.parentSha}\nStaged tree ${result.treeId}\nAuthor and committer ${result.author} <${result.email}>\nMessage ${result.message}`
-        : "Nothing staged. Stage your changes in this workspace, then review again.",
-    );
-    for (const file of result.files)
+    const fact = (term: string, value: string, mono = false) => [
+      h("dt", { text: term }),
+      h("dd", { class: mono ? "mono" : "", text: value }),
+    ];
+    if (result.files.length)
+      byId("commit-status").replaceChildren(
+        h(
+          "dl",
+          { class: "review-facts" },
+          ...fact("Branch", result.branch, true),
+          ...fact("Parent", result.parentSha, true),
+          ...fact("Staged tree", result.treeId, true),
+          ...fact("Author and committer", `${result.author} <${result.email}>`),
+          ...fact("Message", result.message),
+        ),
+      );
+    else
+      setText(
+        "commit-status",
+        "Nothing staged. Stage your changes in this workspace, then review again.",
+      );
+    for (const file of result.files) {
+      // Every line stays visible: this is the content about to be committed.
+      const pre = h("pre", { class: "review-diff" });
+      if (file.binary)
+        pre.textContent = `Binary · ${file.oldBytes ?? 0} → ${file.newBytes ?? 0} bytes`;
+      else renderDiff(pre, file.diff, lineText, false);
       byId("commit-files").append(
         h(
           "details",
@@ -132,16 +158,10 @@ async function execute(confirm: boolean) {
             class: "mono",
             text: `${file.oldMode ?? "absent"} ${file.oldBlobId ?? ""} → ${file.newMode ?? "absent"} ${file.newBlobId ?? ""}`,
           }),
-          h("pre", {
-            text: file.binary
-              ? `Binary · ${file.oldBytes ?? 0} → ${file.newBytes ?? 0} bytes`
-              : file.diff
-                  .split("\n")
-                  .map((line) => argumentText(line).slice(1, -1))
-                  .join("\n"),
-          }),
+          pre,
         ),
       );
+    }
   } catch (error) {
     if (valid()) setText("commit-status", readableError(error));
     if (confirm) void actions.refresh();

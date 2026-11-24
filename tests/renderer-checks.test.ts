@@ -146,6 +146,16 @@ test("check results show literal commands, explicit freshness and read only on r
     app.element("checks-status").textContent,
     /Checks passed.*matches this reading/,
   );
+  // Green only for a pass that matches this reading.
+  assert.match(app.element("checks-status").className, /verdict-passed/);
+  assert.ok(
+    app
+      .element("checks-result")
+      .find(
+        (e) =>
+          e.className === "phase-digests" && e.text.includes("f".repeat(64)),
+      ),
+  );
   assert.match(app.element("checks-result").text, /count not recorded/);
   assert.match(app.element("checks-result").text, /<script>\\n\\u202e/);
   assert.match(
@@ -162,6 +172,8 @@ test("check results show literal commands, explicit freshness and read only on r
     app.element("checks-status").textContent,
     /Checks passed.*stale/,
   );
+  assert.doesNotMatch(app.element("checks-status").className, /verdict-passed/);
+  assert.match(app.element("checks-status").className, /verdict-neutral/);
   assert.match(app.element("checks-result").text, /3 reported judging changes/);
   assert.equal(app.element("checks-cancel").disabled, true);
 });

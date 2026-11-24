@@ -1,13 +1,8 @@
 import type { WorkspaceChange, WorkspaceChanges } from "../src/domain.js";
 import { api } from "./actions.js";
 import { byId, enable, h, setText, show } from "./dom.js";
-import {
-  type DiffLine,
-  diffStats,
-  isLocal,
-  readableDiff,
-  readableError,
-} from "./model.js";
+import { renderDiff } from "./diff-view.js";
+import { diffStats, isLocal, readableError } from "./model.js";
 import { currentWorkspace, state } from "./state.js";
 
 let generation = 0;
@@ -53,80 +48,6 @@ function status(text: string): void {
     state.connected && isLocal(currentWorkspace()) && !pending,
   );
 }
-/** Unchanged lines kept around each change, as Git shows them. */
-const CONTEXT = 3;
-
-/** One text-only span per line; the numbers live in an attribute, so copying skips them. */
-function lineSpan(line: DiffLine): HTMLElement {
-  return h("span", {
-    class: `diff-line diff-${line.kind}`,
-    text: displayText(line.text),
-    data: {
-      gutter: `${line.old ?? ""}`.padStart(5) + `${line.new ?? ""}`.padStart(5),
-    },
-  });
-}
-
-/**
- * Shows the changed lines with three lines of context. Longer unchanged runs
- * fold behind a control that restores every line in place, so nothing the
- * service returned is out of reach.
- */
-function showDiff(pre: HTMLElement, diff: string): void {
-  const { lines, exact } = readableDiff(diff);
-  if (!exact)
-    pre.append(
-      lineSpan({
-        kind: "note",
-        text: "Part of this file was too large to compare line by line and is shown as removed and re-added.",
-        old: null,
-        new: null,
-      }),
-    );
-  const changed = (line: DiffLine | undefined) =>
-    line?.kind === "add" || line?.kind === "del";
-  let k = 0;
-  while (k < lines.length) {
-    if (lines[k]!.kind !== "context") {
-      pre.append(lineSpan(lines[k++]!));
-      continue;
-    }
-    let end = k;
-    while (lines[end]?.kind === "context") end++;
-    const keepStart = changed(lines[k - 1]) ? CONTEXT : 0;
-    const keepEnd = changed(lines[end]) ? CONTEXT : 0;
-    const hidden = end - k - keepStart - keepEnd;
-    if (hidden < 4) {
-      for (; k < end; k++) pre.append(lineSpan(lines[k]!));
-      continue;
-    }
-    for (const line of lines.slice(k, k + keepStart))
-      pre.append(lineSpan(line));
-    const folded = lines.slice(k + keepStart, end - keepEnd);
-    const fold = h("button", {
-      class: "diff-fold",
-      text: `Show ${folded.length} unchanged lines`,
-      attrs: { type: "button" },
-      on: {
-        click: () => {
-          let anchor: HTMLElement = fold;
-          for (const line of folded) {
-            const span = lineSpan(line);
-            anchor.after(span);
-            anchor = span;
-          }
-          fold.remove();
-          pre.focus();
-        },
-      },
-    });
-    pre.append(fold);
-    for (const line of lines.slice(end - keepEnd, end))
-      pre.append(lineSpan(line));
-    k = end;
-  }
-}
-
 function selectFile(file: WorkspaceChange): void {
   selected = file.path;
   for (const button of byId(
@@ -151,7 +72,7 @@ function selectFile(file: WorkspaceChange): void {
     pre.textContent = "Binary or non-UTF-8 content. Text preview unavailable.";
   else if (!file.diff)
     pre.textContent = "No text difference; file metadata changed.";
-  else showDiff(pre, file.diff);
+  else renderDiff(pre, file.diff, displayText, true);
   pre.scrollTop = 0;
   byId("changes-diff").scrollLeft = 0;
 }
