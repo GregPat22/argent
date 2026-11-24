@@ -246,3 +246,35 @@ acceptance criteria below.
 A renderer regression checks that the turn, its step list and its earlier
 rows are the same elements after new events, that each row animates once,
 and that a settled turn is rebuilt into its final form.
+
+### Step 3: changes viewer
+
+- Each changed file shows its status as a word in a badge, its quoted name
+  with the folder dimmed, and its added and removed line counts. The status
+  line totals them. Counts come from the diff Argent read; lines before the
+  first hunk header are file metadata and never count. A binary file says so.
+- The diff is drawn one line per text-only element: metadata, hunk headers,
+  context, additions and removals are distinguished by weight, a light or dark
+  band and a left edge, without hue, because green means verified. Old and new
+  line numbers sit in a gutter that copying skips.
+- The service returns each changed text file as one whole-file replacement
+  hunk. The panel compares the two complete copies in it and shows only the
+  lines that changed, with three lines of context; a longer unchanged run
+  folds behind "Show N unchanged lines", which restores every line in place.
+  The comparison is bounded: a gap up to 250,000 line pairs is compared
+  exactly, a larger one is split at lines that occur once on each side, and a
+  larger gap without such a line stays removed and re-added under a visible
+  note. A missing final newline counts as a change. Hunks that already carry
+  context are shown as they are. The service output is unchanged.
+- Paths and diff text are still set only through `textContent`, with controls
+  and bidi characters escaped.
+- Up and down arrows move through the file list and show each diff.
+
+The renderer tests assert that a file row and each diff line contain only
+Argent's own text elements and that hostile content stays escaped text. A
+model test covers line numbering, hunk headers, metadata and counts. Model
+tests cover a small edit inside a whole-file hunk, the missing-newline rule,
+two edits in a 900-line file and a labelled fallback. A renderer test folds
+and restores unchanged runs. In a native walkthrough on a throwaway
+repository, a three-line edit that the service returns as 22 removed and 24
+added lines is shown as 2 removed and 4 added.

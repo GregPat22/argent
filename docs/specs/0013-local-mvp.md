@@ -310,7 +310,10 @@ Acceptance recorded 11 November 2026 against main `1b9e4dd`:
 5. The view labels all reads as live observations, not tested or immutable
    snapshots. Inspection never creates a run, launches an agent, modifies source
    content or replaces a verification record. It inherits the service's whole-file
-   hunks, exact-only rename detection and complete-request overflow limits.
+   hunks, exact-only rename detection and complete-request overflow limits. The
+   desktop displays those hunks as a bounded readable line diff
+   ([spec 0015](0015-desktop-restyle.md#step-3-changes-viewer)); the service
+   output is unchanged.
 
 Focused regressions are in `tests/desktop-changes.test.ts` and
 `tests/renderer-changes.test.ts`. Native smoke coverage uses the fake CLI and real
