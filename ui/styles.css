@@ -1248,6 +1248,10 @@ kbd {
   align-self: center;
   color: var(--faint);
 }
+/* A step that arrives while you watch rises in; earlier rows stay put. */
+.step-enter {
+  animation: rise-in 220ms var(--ease) both;
+}
 .step-dot {
   display: inline-flex;
   align-items: center;

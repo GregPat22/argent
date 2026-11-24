@@ -231,3 +231,18 @@ acceptance criteria below.
   a resize grip.
 - Selecting another workspace updates the existing sidebar rows, so the
   highlight and its silver sliver transition; a changed list still rebuilds.
+
+### Step 2: live runs update in place
+
+- While a run is working, new activity is appended to the turn's existing step
+  list. Earlier rows, a text selection and hover survive polling; only rows
+  that arrive while you watch rise in. The elapsed time keeps updating.
+- A turn is rebuilt only when what it shows changes: its status, the
+  connection, the event page, its record or its marks. A turn with more than
+  one page of events keeps the paginated rebuild.
+- A rebuilt turn keeps the disclosures a person opened, such as its steps or
+  the raw record, without replaying their opening transition.
+
+A renderer regression checks that the turn, its step list and its earlier
+rows are the same elements after new events, that each row animates once,
+and that a settled turn is rebuilt into its final form.

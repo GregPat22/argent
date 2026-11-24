@@ -210,6 +210,38 @@ test("an activity refresh updates an existing turn without replaying its entranc
   );
 });
 
+test("a working turn extends its steps in place and animates only new rows", async () => {
+  const app = await launch();
+  const transcript = app.element("transcript");
+  const turn = transcript.firstElementChild!;
+  const live = () =>
+    transcript.find((item) => /\bsteps live\b/.test(item.className))!;
+  assert.match(live().text, /Waiting for the local worker|Starting/);
+  app.append(1);
+  await app.poll();
+  const list = live();
+  const first = list.firstElementChild!;
+  assert.deepEqual(messages(list), ["Message 1"]);
+  app.append(2);
+  await app.poll();
+  assert.equal(transcript.firstElementChild, turn, "the turn is not rebuilt");
+  assert.equal(live(), list, "the step list is not rebuilt");
+  assert.equal(list.firstElementChild, first, "earlier rows stay in place");
+  assert.deepEqual(messages(list), ["Message 1", "Message 2", "Message 3"]);
+  assert.deepEqual(
+    list.children.map((row) => /\bstep-enter\b/.test(row.className)),
+    [true, true, true],
+    "each row animated once, when it arrived",
+  );
+  app.run.status = "completed";
+  await app.poll();
+  assert.notEqual(
+    transcript.firstElementChild,
+    turn,
+    "a settled turn is rebuilt into its final form",
+  );
+});
+
 test("real interrupted turns explain reconciliation without an abandon action", async () => {
   const app = await launch("needs_attention");
   const transcript = app.element("transcript");
