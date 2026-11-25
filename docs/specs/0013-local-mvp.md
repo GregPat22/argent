@@ -293,6 +293,12 @@ Acceptance recorded 11 November 2026 against main `1b9e4dd`:
    still exists. Closing, changing workspace or observing a disconnect clears
    content and invalidates pending success and error responses; reconnect requires
    explicit refresh. A queued close event cannot invalidate a reopened dialog.
+   _Amended for the desktop (in development):_ Changes is a panel docked
+   beside the conversation instead of a dialog. While it is open it also reads
+   when another workspace is selected, after reconnecting and once when an
+   agent turn ends; polling, selecting a file and a closed panel still never
+   read. See
+   [spec 0015](0015-desktop-restyle.md#step-8-changes-docked-beside-the-conversation).
 3. The sandboxed preload exposes only `workspaceChanges(workspaceId)`. The main
    process rejects extra arguments and non-UUID identifiers, performs an
    authenticated GET with a twenty-second timeout, and validates workspace
@@ -416,6 +422,12 @@ change the accepted security model, consent policy or milestone order.
    point-in-time, recomputed on opening or Refresh, never a filesystem watcher.
    Close, workspace change and disconnect invalidate pending responses. Reconnect
    reads nothing until Refresh; only an explicit Run checks queues work.
+   _Amended for the desktop (in development):_ the header's Checks button also
+   reads the latest check when a workspace opens, after reconnecting and when
+   an agent turn ends, and queued or running work is read again every few
+   seconds, in the open dialog too, until it ends. Each reading is still
+   point-in-time and nothing watches the files; only Run checks queues work. See
+   [spec 0015](0015-desktop-restyle.md#step-7-check-status-at-a-glance).
 7. **Validation.** Real temporary Git repositories and SQLite cover successful
    setup/test, failure, stale commits, mutation after consent, hostile Git
    metadata, idempotency, atomic rollback, cancellation, expired ownership,

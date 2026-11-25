@@ -197,10 +197,18 @@ test("long turn history keeps first and last pages reachable while polling", asy
   assert.equal(messages(transcript)[0], "Message 1");
 });
 
-test("an activity refresh updates an existing turn without replaying its entrance", async () => {
+test("an opened workspace fades in as a whole and a refresh replays no entrance", async () => {
   const app = await launch();
   const transcript = app.element("transcript");
-  assert.match(transcript.firstElementChild!.className, /\bturn-enter\b/);
+  // Turns read when the workspace opens are not new: the column fades in once.
+  assert.match(
+    app.element("conversation-column").className,
+    /\bconversation-arrive\b/,
+  );
+  assert.doesNotMatch(
+    transcript.firstElementChild!.className,
+    /\bturn-enter\b/,
+  );
   app.append(1);
   await app.poll();
   assert.deepEqual(messages(transcript), ["Message 1"]);
@@ -335,4 +343,35 @@ test("failed provider output stays literal text beside a clear failure summary",
   const beforePoll = transcript.text;
   await app.poll();
   assert.equal(app.element("transcript").text, beforePoll);
+});
+
+test("a finished turn shows the agent's reply as Markdown built from text", async () => {
+  const app = await launch();
+  app.history.push({
+    cursor: 1,
+    runId: app.run.id,
+    type: "agent.log",
+    data: {
+      kind: "text",
+      message: "Done:\n\n- **Added** `notes.txt`\n- <b>kept</b> literal",
+    },
+    createdAt: 1,
+  });
+  await app.poll();
+  app.run.status = "completed";
+  await app.poll();
+  const says = app
+    .element("transcript")
+    .find((e) => e.className === "says-text");
+  assert.ok(says, "the reply is rendered");
+  const list = says.find((e) => e.className === "md-list");
+  assert.ok(list);
+  assert.equal(list.tagName, "UL");
+  assert.ok(
+    says.find((e) => e.tagName === "STRONG" && e.text.includes("Added")),
+  );
+  assert.ok(
+    says.find((e) => e.tagName === "CODE" && e.textContent === "notes.txt"),
+  );
+  assert.ok(says.text.includes("<b>kept</b> literal"));
 });

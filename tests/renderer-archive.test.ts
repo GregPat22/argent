@@ -137,6 +137,8 @@ test("archive confirmation identifies its branch, resets discard, and sends once
   element("workspace-parallel").click();
   await settle();
   assert.deepEqual(requests, [
+    // The Checks badge reads once when the workspace opens; the dialog once.
+    ["latestCheck", "one"],
     ["latestCheck", "one"],
     ["createLocalWorkspace", "one"],
   ]);
@@ -179,7 +181,11 @@ test("an uncertain message prevents archive and can be dismissed after external 
     "Archive needs attention",
   );
   element("pending-retry").fire("click");
-  assert.deepEqual(requests, []);
+  // Only the Checks badge's reading: the retry sends nothing.
+  assert.deepEqual(
+    requests.filter((request) => (request as string[])[0] !== "latestCheck"),
+    [],
+  );
   assert.ok(storage.has("argent.pending"));
   element("pending-dismiss").click();
   assert.equal(storage.has("argent.pending"), false);

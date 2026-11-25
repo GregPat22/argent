@@ -51,6 +51,10 @@ async function launch() {
     reject(error: Error): void;
   }[] = [];
   const runReads: typeof reads = [];
+  // Readings while the dialog is closed are the header badge's.
+  const badgeReads: typeof reads = [];
+  // Re-reading of active work, kept apart from the app's refresh timer.
+  const polls: (() => void)[] = [];
   const runCancels: unknown[][] = [];
   let online = true,
     tick = () => {};
@@ -94,7 +98,10 @@ async function launch() {
         },
         latestCheck: () =>
           new Promise<LocalCheckView | null>((resolve, reject) =>
-            reads.push({ resolve, reject }),
+            (element("checks-dialog").open ? reads : badgeReads).push({
+              resolve,
+              reject,
+            }),
           ),
         cancelCheck: async (...args: unknown[]) => {
           cancels.push(args);
@@ -109,8 +116,9 @@ async function launch() {
     },
     setInterval: () => {},
     clearInterval: () => {},
-    setTimeout: (fn: () => void) => {
-      tick = fn;
+    setTimeout: (fn: () => void, ms: number) => {
+      if (ms === 3000) polls.push(fn);
+      else tick = fn;
       return 1;
     },
     clearTimeout: () => {},
@@ -124,8 +132,15 @@ async function launch() {
     cancels,
     runReads,
     runCancels,
+    badgeReads,
+    polls,
     disconnect: async () => {
       online = false;
+      tick();
+      await settle();
+    },
+    reconnect: async () => {
+      online = true;
       tick();
       await settle();
     },
@@ -136,9 +151,10 @@ async function launch() {
   };
 }
 
-test("check results show literal commands, explicit freshness and read only on request", async () => {
+test("check results show literal commands, explicit freshness and the dialog reads on open and Refresh", async () => {
   const app = await launch();
   assert.equal(app.reads.length, 0);
+  assert.equal(app.badgeReads.length, 1, "the badge reads once on opening");
   await app.open();
   app.reads[0]!.resolve(view());
   await settle();
@@ -285,4 +301,123 @@ test("a failed setup says the selected command never started, and interrupted wo
     /^Run command did not start · setup failed · not test evidence/,
   );
   assert.doesNotMatch(app.element("checks-status").text, /Run command failed/);
+});
+
+test("switching workspaces returns each conversation to where it was left and shows no empty state before reading", async () => {
+  const app = await launch();
+  const scroller = app.element("conversation");
+  scroller.scrollHeight = 1000;
+  scroller.clientHeight = 200;
+  scroller.scrollTop = 300;
+  const row = (id: string) =>
+    app.element("workspace-list").find((e) => e.dataset.workspaceId === id)!;
+  row("two").click();
+  // Nothing is read yet, so the empty state must not claim the branch is fresh.
+  assert.equal(app.element("detail-empty").hidden, true);
+  await settle();
+  assert.equal(app.element("detail-empty").hidden, false);
+  assert.equal(
+    scroller.scrollTop,
+    1000,
+    "an unvisited workspace opens at the end",
+  );
+  row("one").click();
+  await settle();
+  assert.equal(scroller.scrollTop, 300, "a visited workspace keeps its place");
+  assert.match(
+    app.element("conversation-column").className,
+    /\bconversation-arrive\b/,
+  );
+});
+
+test("the Checks button shows the latest check at a glance and follows a running check", async () => {
+  const app = await launch();
+  const dot = app.element("checks-badge");
+  const button = app.element("workspace-checks");
+  app.badgeReads[0]!.resolve({
+    ...view(),
+    status: "running",
+    result: null,
+    freshness: "unknown",
+  });
+  await settle();
+  assert.equal(dot.hidden, false);
+  assert.match(dot.className, /check-badge-running/);
+  assert.match(
+    button.getAttribute("aria-label")!,
+    /Checks · running, started .+ · \d+ min so far/,
+  );
+  // A running check is read again on its own, then shows its outcome.
+  assert.equal(app.polls.length, 1);
+  app.polls.shift()!();
+  await settle();
+  app.badgeReads[1]!.resolve(view());
+  await settle();
+  assert.match(dot.className, /check-badge-passed/);
+  assert.match(
+    button.getAttribute("aria-label")!,
+    /passed, matches the reading at/,
+  );
+  assert.equal(app.polls.length, 0, "a finished check is not read again");
+  // Only a pass that matches the current reading is green.
+  await app.disconnect();
+  assert.equal(dot.hidden, true, "disconnecting clears the badge");
+  await app.reconnect();
+  app.badgeReads[2]!.resolve(view("stale"));
+  await settle();
+  assert.match(dot.className, /check-badge-neutral/);
+  assert.match(button.getAttribute("aria-label")!, /passed, stale at/);
+  // Another workspace shows nothing until its own reading arrives.
+  await openWorkspace(app.element, "two");
+  assert.equal(dot.hidden, true);
+  assert.equal(app.badgeReads.length, 4);
+});
+
+test("an open dialog follows a running check without clearing what it shows", async () => {
+  const app = await launch();
+  app.badgeReads[0]!.resolve(null);
+  await app.open();
+  app.reads[0]!.resolve({
+    ...view(),
+    status: "running",
+    result: null,
+    freshness: "unknown",
+  });
+  await settle();
+  // A long check shows when it started and how long it has run.
+  assert.match(
+    app.element("checks-status").textContent,
+    /Check running · started .+ · \d+ min so far\. Updates on its own/,
+  );
+  const shown = app.element("checks-result").children[0];
+  assert.ok(shown);
+  const running = () => ({
+    ...view(),
+    createdAt: Date.now() - 125_000,
+    status: "running" as const,
+    result: null,
+    freshness: "unknown" as const,
+  });
+  // Fires every pending re-read (the dialog's and the badge's) and answers it.
+  const tick = async (answer: () => LocalCheckView) => {
+    const before = app.reads.length;
+    for (const fire of app.polls.splice(0)) fire();
+    await settle();
+    assert.ok(app.reads.length > before, "active work is read again");
+    for (const read of app.reads.slice(before)) read.resolve(answer());
+    await settle();
+  };
+  await tick(running);
+  // An unchanged reading is not redrawn, so nothing flickers or scrolls; only
+  // the elapsed time moves.
+  assert.equal(app.element("checks-result").children[0], shown);
+  assert.match(app.element("checks-status").textContent, /2 min so far/);
+  assert.equal(app.element("checks-cancel").hidden, false);
+  await tick(() => view());
+  assert.match(
+    app.element("checks-status").textContent,
+    /Checks passed.*matches this reading. Refresh to read again/,
+  );
+  assert.equal(app.polls.length, 0, "a finished check is not read again");
+  assert.equal(app.element("checks-cancel").hidden, true);
 });

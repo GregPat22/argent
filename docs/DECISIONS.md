@@ -76,6 +76,51 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Changes docked beside the conversation (in development) — 25 November 2026
+
+Changes is a panel on the right of the conversation instead of a modal
+dialog, so the diff stays in view while you write to the agent. The Changes
+button opens and closes it. While it is open, it reads when another
+workspace is selected, after reconnecting and once when an agent turn ends,
+keeping the selected file and its scroll position; it does not read while the
+agent works, and polling, selecting a file or a closed panel never reads.
+Each reading remains a live observation, not a test result. On narrow windows
+the panel covers the conversation and a click beside it closes it. This
+amends items 1 and 2 of the desktop changes acceptance in spec 0013; the
+service and the bridge are unchanged. See the
+[acceptance criteria](specs/0015-desktop-restyle.md#step-8-changes-docked-beside-the-conversation).
+
+### Check status at a glance in the desktop (in development) — 25 November 2026
+
+The Checks dialog no longer reads only on opening and Refresh. The header's
+Checks button shows the latest check: green only when it passed and matches
+the current reading, the fault colour when it failed and matches, the running
+colour while queued or running, and silver otherwise. It reads when a
+workspace opens, after reconnecting and when an agent turn ends. Queued,
+running and cancelling work is read again every three seconds, in the badge
+and in the open dialog, until it ends; while work is active the service
+reports the result as stale without reviewing the files, so these readings
+stay cheap. A finished check gets one complete reading. Freshness remains a
+point-in-time observation: there is no filesystem watcher and no timer
+re-reviews a finished result, so an edit after the last reading shows only on
+the next one. Only Run checks queues work. This amends item 6 of the local
+check contract in spec 0013; the service is unchanged. A walkthrough had
+found that check progress and freshness required manual refreshes. See the
+[acceptance criteria](specs/0015-desktop-restyle.md#step-7-check-status-at-a-glance).
+
+### Agent replies as Markdown in the desktop (in development) — 25 November 2026
+
+What Claude Code says at the end of a turn is shown as Markdown, the format
+it writes in: headings, lists, emphasis, inline and fenced code, quotes, rules
+and tables. A small parser in the renderer, without a dependency, chooses
+which of Argent's own elements hold the text; every character of the reply
+still reaches the page through `textContent`, so HTML in a reply stays
+literal. Links and images never navigate or load: their address is shown as
+text beside the label. Long paragraphs keep their text without inline
+formatting. The live step list and the raw record still show the text as
+recorded. See the
+[acceptance criteria](specs/0015-desktop-restyle.md#step-6-agent-replies-as-markdown).
+
 ### Readable diffs in the desktop changes panel (in development) — 24 November 2026
 
 The service keeps its accepted whole-file replacement hunks: they stay

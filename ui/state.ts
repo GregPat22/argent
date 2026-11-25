@@ -32,6 +32,8 @@ export const state = {
   workspaces: [] as Workspace[],
   runs: [] as RunView[],
   selectedWorkspace: "",
+  /** The workspace whose messages have been read since it was selected. */
+  runsLoaded: "",
   workspaceCursor: null as string | null,
   runCursor: null as string | null,
   workspacePaging: false,

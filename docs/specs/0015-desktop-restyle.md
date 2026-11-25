@@ -303,3 +303,90 @@ added lines is shown as 2 removed and 4 added.
   lines with "Show full notice", which expands them in place. The full text
   stays in the element and in the dialog's description, so a screen reader
   reads all of it. The control appears only when the text is cut.
+
+### Step 5: workspace switching
+
+- Opening a workspace shows nothing until its messages are read, instead of
+  briefly claiming a workspace with history is a fresh branch. Its messages
+  then fade in as one piece; only turns that arrive later rise in one by one.
+- Each workspace returns to where its conversation was left in this window.
+  One left at its end, or opened for the first time, opens at its end and
+  keeps following new messages. Positions are not stored across launches.
+
+A renderer regression switches between two workspaces: the empty state stays
+hidden before the reading, an unvisited workspace opens at its end and a
+visited one returns to its earlier position.
+
+### Step 6: agent replies as Markdown
+
+- What Claude Code says at the end of a turn is shown as Markdown: headings,
+  bulleted and numbered lists with nesting, bold, italic, strikethrough,
+  inline code, fenced code with its language label, quotes, rules and tables.
+  Underscores inside words stay literal, and an unclosed mark stays as typed.
+- A small parser in the renderer only chooses which of Argent's own elements
+  hold the text. Every character still reaches the page through
+  `textContent`: HTML in a reply stays literal text, and no element carries a
+  link, source, style or handler. A link shows its label and its address as
+  text and never navigates; an image is named with its address and never
+  loads.
+- Paragraphs over 20,000 characters keep their text without inline
+  formatting, and lists nest at most four levels, so rendering stays bounded.
+- The live step list and the raw record still show the text as recorded.
+
+Renderer tests check the element tree for each construct, that hostile HTML,
+script and link text stays literal with no attributes or handlers, that
+unclosed marks stay literal, and that a 50,000-character reply of unmatched
+marks renders in bounded time. A transcript test checks a finished turn's
+reply.
+
+### Step 7: check status at a glance
+
+- The header's Checks button carries a dot for the latest check of the open
+  workspace: green when it passed and matches the current reading, the fault
+  colour when it failed and matches, the running colour, pulsing, while it is
+  queued, running or cancelling, and silver for anything else, including a
+  stale or unchecked result. No check shows no dot. The button's accessible
+  name and tooltip say the outcome and the time of the reading.
+- It reads when a workspace opens, after reconnecting and when an agent turn
+  ends. While an agent works it does not read: the files are changing.
+  Disconnecting or opening another workspace clears it until its own reading
+  arrives.
+- Queued, running and cancelling work is read again every three seconds until
+  it ends, by the badge and by the open Checks or Run results dialog. The
+  dialog redraws only when what it shows changes, and says the status updates
+  on its own while the work runs. The dialog's status line and the badge's
+  label show when the work started and how many minutes it has run, so a long
+  check does not look stalled.
+- Each reading stays point-in-time: no timer re-reviews a finished result and
+  nothing watches the files. This amends the reading rule in
+  [spec 0013](0013-local-mvp.md); see
+  [DECISIONS](../DECISIONS.md#check-status-at-a-glance-in-the-desktop-in-development--25-november-2026).
+
+Renderer tests cover the badge's reading on opening, a running check followed
+to its outcome, a stale pass in silver, clearing on disconnect and workspace
+change, and an open dialog following a running check without redrawing an
+unchanged reading.
+
+### Step 8: Changes docked beside the conversation
+
+- Changes opens as a panel on the right of the conversation, which narrows to
+  make room; the panel slides in and out as its column opens and closes. The
+  Changes button toggles it and shows it is open. Its close button and Escape
+  inside it close it and return focus to the button. This brings back the
+  right-hand panel with real content, as decision 1 above anticipated.
+- The file list sits above the diff. Everything from step 3 still applies:
+  status badges, line counts, the readable diff, folding and arrow keys.
+- While open, the panel reads when it opens, on Refresh, when another
+  workspace is selected (it stays open and shows that workspace), after
+  reconnecting, and once when an agent turn ends. A reading after a turn keeps
+  the current content until the new one arrives, then keeps the selected file
+  and its scroll position. It never reads while the agent works, while it is
+  closed, or because of polling.
+- Below 1,100 px wide the panel covers the conversation from the right over a
+  dimmed backdrop, and a click on the backdrop closes it.
+
+Renderer tests cover toggling, discarding a reply for a closed panel,
+following a workspace switch, clearing on disconnect and reading on
+reconnect, closing with Escape, and one reading after an agent turn ends that
+keeps the selected file. The native smoke checks the panel stays within the
+window at 900 and 1,380 px and sits beside the conversation when wide.

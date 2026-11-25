@@ -1056,10 +1056,23 @@ kbd {
 
 /* ---------- Conversation ---------- */
 
+/* The conversation and, when open, the Changes panel docked beside it. */
 .workspace {
-  display: flex;
+  --changes-width: clamp(340px, 36vw, 720px);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0px;
   flex: 1;
+  min-height: 0;
+  transition: grid-template-columns 240ms var(--ease);
+}
+.workspace.with-changes {
+  grid-template-columns: minmax(0, 1fr) var(--changes-width);
+}
+.workspace-main {
+  display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
 }
 .conversation {
@@ -1129,6 +1142,16 @@ kbd {
 }
 .turn-enter {
   animation: rise-in 280ms var(--ease) both;
+}
+/* An opened workspace's conversation fades in as one piece. */
+.conversation-arrive {
+  animation: conversation-arrive 200ms var(--ease) both;
+}
+@keyframes conversation-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 .message {
   align-self: flex-end;
@@ -1303,6 +1326,155 @@ kbd {
   line-height: 1.65;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+/* Markdown in a reply: Argent's own elements around literal text. */
+.says-text {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  color: var(--polished);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.says-text > * {
+  margin: 0;
+}
+.says .md-p {
+  white-space: pre-line;
+}
+.md-heading {
+  margin-top: 6px;
+  color: var(--polished);
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.md-h1 {
+  font-size: 17px;
+}
+.md-h2 {
+  font-size: 15px;
+}
+.md-h3 {
+  font-size: 14px;
+}
+.md-strong {
+  font-weight: 650;
+}
+.md-em {
+  font-style: italic;
+}
+.md-strike {
+  color: var(--sterling-dim);
+}
+.md-code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--wash);
+  font: 0.86em/1 var(--mono);
+  overflow-wrap: anywhere;
+}
+.md-link {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+/* Links never navigate; the address is shown beside the label. */
+.md-address {
+  color: var(--sterling-dim);
+  font: 0.86em var(--mono);
+  text-decoration: none;
+  user-select: text;
+}
+.md-image {
+  color: var(--sterling);
+}
+.md-list {
+  display: grid;
+  gap: 4px;
+  padding-left: 22px;
+}
+.md-list .md-list {
+  margin-top: 4px;
+}
+ul.md-list {
+  list-style: disc;
+}
+ul.md-list ul.md-list {
+  list-style: circle;
+}
+ol.md-list {
+  list-style: decimal;
+}
+.md-list li {
+  white-space: pre-line;
+}
+.md-list li::marker {
+  color: var(--faint);
+}
+.md-fence {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--oxide);
+}
+.md-fence-label {
+  display: block;
+  padding: 6px 12px 0;
+  color: var(--faint);
+  font: 11px var(--mono);
+}
+.md-pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  color: var(--polished);
+  font: 12.5px/1.65 var(--mono);
+  white-space: pre;
+  tab-size: 4;
+  user-select: text;
+}
+.md-quote {
+  padding-left: 12px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--sterling);
+}
+.md-quote > * + * {
+  margin-top: 8px;
+}
+.md-rule {
+  height: 1px;
+  border: 0;
+  background: var(--line);
+}
+.md-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.md-table th,
+.md-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.md-table th {
+  background: var(--wash);
+  color: var(--sterling);
+  font-weight: 600;
+}
+.md-table tr:last-child td {
+  border-bottom: 0;
 }
 .steps-disclosure {
   margin-top: 10px;
@@ -1538,11 +1710,14 @@ details[open]::details-content {
 .marks.striking .mark[data-index="3"] .mark-glyph {
   animation-delay: 270ms;
 }
+/* One column no wider than the card: long values end in an ellipsis. */
 .record-fields {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
 }
 .record-field {
+  min-width: 0;
   display: flex;
   justify-content: space-between;
   gap: 16px;
@@ -2843,4 +3018,133 @@ dialog[open]::backdrop {
 }
 .notice-toggle:hover {
   color: var(--polished);
+}
+
+/* The latest check at a glance, on the header's Checks button. */
+.check-badge {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--sterling-dim);
+  animation: fade-in 200ms var(--ease) both;
+}
+.check-badge[hidden] {
+  display: none;
+}
+.check-badge-passed {
+  background: var(--verified);
+  box-shadow: 0 0 0 3px rgb(142 230 181 / 0.14);
+}
+.check-badge-failed {
+  background: var(--fault);
+  box-shadow: 0 0 0 3px rgb(240 162 155 / 0.14);
+}
+.check-badge-running {
+  background: var(--running);
+  animation: pulse 1.4s var(--ease) infinite;
+}
+
+/* The Changes panel: docked on the right, sliding in as the column opens. */
+.changes-dock {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  /* A shadow, not a border: a closed panel's column takes no width at all. */
+  box-shadow: inset 1px 0 0 var(--line);
+  background: var(--pewter);
+  visibility: hidden;
+  transition: visibility 0s linear 240ms;
+}
+.changes-dock.is-open {
+  visibility: visible;
+  transition-delay: 0s;
+}
+.changes-dock-inner {
+  display: flex;
+  flex-direction: column;
+  width: var(--changes-width);
+  height: 100%;
+  padding: 12px 16px 16px;
+  opacity: 0;
+  transform: translateX(24px);
+  transition:
+    opacity 200ms var(--ease),
+    transform 240ms var(--ease);
+}
+.changes-dock.is-open .changes-dock-inner {
+  opacity: 1;
+  transform: none;
+}
+.changes-dock-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.changes-dock-head h2 {
+  flex: 1;
+  margin: 0;
+  font: 600 15px/1.3 var(--display);
+}
+.changes-dock .changes-notice {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.changes-dock .changes-content {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+.changes-dock .changes-files {
+  max-height: 30vh;
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+.changes-scrim {
+  display: none;
+}
+.button.is-active {
+  border-color: rgb(225 235 249 / 0.5);
+  background: var(--wash-strong);
+  color: var(--polished);
+}
+/* Narrow windows: the panel covers the conversation instead of pushing it. */
+@media (max-width: 1100px) {
+  .workspace.with-changes {
+    grid-template-columns: minmax(0, 1fr) 0px;
+  }
+  .changes-dock {
+    /* Sized against the whole workspace, not the empty second column. */
+    grid-column: 1 / -1;
+    position: absolute;
+    z-index: 5;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(560px, 92%);
+    box-shadow:
+      inset 1px 0 0 var(--line),
+      -24px 0 48px rgb(0 0 0 / 0.4);
+  }
+  .changes-dock-inner {
+    width: 100%;
+  }
+  .changes-scrim {
+    position: absolute;
+    z-index: 4;
+    inset: 0;
+    display: block;
+    background: rgb(3 4 6 / 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms var(--ease);
+  }
+  .changes-scrim.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }

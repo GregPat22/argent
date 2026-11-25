@@ -13,6 +13,11 @@ export class FakeElement {
   readOnly = false;
   checked = false;
   className = "";
+  /** Layout is not computed: tests set these to describe a scroll position. */
+  scrollTop = 0;
+  scrollHeight = 0;
+  clientHeight = 0;
+  offsetWidth = 0;
   title = "";
   placeholder = "";
   value: string | undefined = undefined;
@@ -29,9 +34,20 @@ export class FakeElement {
     child.parent = this;
     return child;
   }
+  /** A text node: a string appended as a child, with no element of its own. */
+  isText = false;
+  tagName = "";
   append(...children: (FakeElement | string)[]): void {
-    for (const child of children)
-      if (typeof child !== "string") this.children.push(this.adopt(child));
+    for (const child of children) {
+      if (typeof child !== "string") {
+        this.children.push(this.adopt(child));
+        continue;
+      }
+      const node = new FakeElement();
+      node.isText = true;
+      node.textContent = child;
+      this.children.push(this.adopt(node));
+    }
   }
   prepend(child: FakeElement): void {
     this.children.unshift(this.adopt(child));
@@ -143,7 +159,11 @@ export function fakeDocument() {
   element("error-banner").hidden = true;
   const document = {
     getElementById: element,
-    createElement: () => new FakeElement(),
+    createElement: (tag: string) => {
+      const created = new FakeElement();
+      created.tagName = tag.toUpperCase();
+      return created;
+    },
     querySelectorAll: () => [],
     querySelector: () => null,
     addEventListener: () => {},
