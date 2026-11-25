@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { Workspace, WorkspaceChanges } from "../src/domain.js";
+import type { RunView, Workspace, WorkspaceChanges } from "../src/domain.js";
 import {
   type FakeElement,
   fakeDocument,
@@ -54,6 +54,7 @@ const changes = (id = "one"): WorkspaceChanges => ({
 async function launch() {
   const { element, document } = fakeDocument();
   let online = true;
+  let runs: RunView[] = [];
   let timer: (() => void) | undefined;
   let calls = 0;
   const requests: {
@@ -78,7 +79,14 @@ async function launch() {
       argent: {
         status: async () => ({ connected: online }),
         listWorkspaces: async () => ({ items: workspaces, nextCursor: null }),
-        listRuns: async () => ({ items: [], nextCursor: null }),
+        listRuns: async () => ({
+          items: runs.map((run) => ({ ...run })),
+          nextCursor: null,
+        }),
+        events: async (_id: string, after: number) => ({
+          events: [],
+          nextCursor: after,
+        }),
         workspaceChanges: (id: string) => {
           calls++;
           return new Promise<WorkspaceChanges>((resolve, reject) =>
@@ -113,6 +121,9 @@ async function launch() {
     setOnline(value: boolean) {
       online = value;
     },
+    setRuns(value: RunView[]) {
+      runs = value;
+    },
     async poll() {
       assert.ok(timer);
       timer();
@@ -134,7 +145,7 @@ async function launch() {
   };
 }
 
-test("changes are requested only on open or refresh, with literal hostile text and binary metadata", async () => {
+test("polling never reads changes; open and Refresh do, with literal hostile text and binary metadata", async () => {
   const app = await launch();
   assert.equal(app.calls, 0);
   app.open();
@@ -198,42 +209,95 @@ test("changes are requested only on open or refresh, with literal hostile text a
   assert.equal(app.element("workspace-changes").focused, true);
 });
 
-test("selection, close/reopen and disconnect invalidate late success and errors", async () => {
+test("the docked panel toggles, follows the selected workspace and reconnects, discarding late replies", async () => {
   const app = await launch();
+  const panel = app.element("changes-panel");
+  const button = app.element("workspace-changes");
+  const isOpen = () => /\bis-open\b/.test(panel.className);
   app.open();
-  app.close();
+  assert.equal(isOpen(), true);
+  assert.equal(button.getAttribute("aria-expanded"), "true");
+  assert.match(app.element("workspace-content").className, /with-changes/);
+  // The Changes button toggles the panel; a reply for a closed panel is dropped.
   app.open();
-  app.element("changes-dialog").fire("close");
+  assert.equal(isOpen(), false);
+  assert.equal(button.getAttribute("aria-expanded"), "false");
+  assert.equal(button.focused, true);
+  app.open();
   app.requests[0]!.resolve(changes());
   await settle();
   assert.equal(app.element("changes-content").hidden, true);
   app.requests[1]!.resolve(changes());
   await settle();
   assert.equal(app.element("changes-content").hidden, false);
+  // Selecting another workspace keeps the panel open and reads that workspace.
   app.element("changes-refresh").click();
   app.select("two");
   await settle();
-  assert.equal(app.element("changes-dialog").open, false);
-  app.open();
+  assert.equal(isOpen(), true);
+  assert.equal(app.requests[3]!.id, "two");
   app.requests[2]!.reject(new Error("Old request error"));
   await settle();
   assert.doesNotMatch(app.element("changes-status").textContent, /Old request/);
+  app.requests[3]!.resolve(changes("two"));
+  await settle();
+  assert.equal(app.element("changes-content").hidden, false);
+  // Disconnecting clears the panel; reconnecting reads again on its own.
   app.setOnline(false);
   await app.poll();
   assert.match(app.element("changes-status").textContent, /disconnected/);
-  app.requests[3]!.resolve(changes("two"));
-  await settle();
   assert.equal(app.element("changes-content").hidden, true);
   app.setOnline(true);
   await app.poll();
-  assert.equal(app.calls, 4);
-  assert.match(app.element("changes-status").textContent, /reconnected/);
-  app.element("changes-refresh").click();
+  assert.equal(app.calls, 5);
   app.requests[4]!.resolve(changes("two"));
   await settle();
   assert.equal(app.element("changes-content").hidden, false);
-  app.element("changes-dialog").fire("cancel");
-  assert.equal(app.element("changes-dialog").open, false);
+  // Escape inside the panel closes it and returns focus to the button.
+  panel.fire("keydown", {
+    key: "Escape",
+    preventDefault() {},
+    stopPropagation() {},
+  });
+  assert.equal(isOpen(), false);
+  assert.equal(button.focused, true);
+  await app.poll();
+  assert.equal(app.calls, 5, "a closed panel never reads");
+});
+
+test("an agent turn that ends reads the open panel again, keeping the selected file", async () => {
+  const app = await launch();
+  app.open();
+  app.requests[0]!.resolve(changes());
+  await settle();
+  app.element("changes-files").children[1]!.click();
+  assert.match(app.element("changes-diff").textContent, /Binary/);
+  const run: RunView = {
+    id: "run",
+    workspaceId: "one",
+    task: "Edit",
+    status: "running",
+    simulation: false,
+    permissionMode: "edits",
+    maxRuntimeMs: 30000,
+    createdAt: 1,
+    deadlineAt: null,
+    leaseExpiresAt: null,
+  };
+  app.setRuns([run]);
+  await app.poll();
+  assert.equal(app.calls, 1, "no reading while the agent works");
+  app.setRuns([{ ...run, status: "completed" }]);
+  await app.poll();
+  assert.equal(app.calls, 2, "the finished turn reads once");
+  // The panel keeps what it shows until the new reading arrives.
+  assert.match(app.element("changes-diff").textContent, /Binary/);
+  assert.match(app.element("changes-status").textContent, /after the agent/);
+  app.requests[1]!.resolve(changes());
+  await settle();
+  assert.match(app.element("changes-diff").textContent, /Binary/);
+  await app.poll();
+  assert.equal(app.calls, 2, "polling alone never reads");
 });
 
 test("empty, wrong identity, oversized, missing worktree and demo views stay honest", async () => {

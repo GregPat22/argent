@@ -1,8 +1,8 @@
 import type { WorkspaceChange, WorkspaceChanges } from "../src/domain.js";
 import { api } from "./actions.js";
-import { byId, enable, h, setText, show } from "./dom.js";
+import { byId, enable, h, setClass, setText, show } from "./dom.js";
 import { renderDiff } from "./diff-view.js";
-import { diffStats, isLocal, readableError } from "./model.js";
+import { diffStats, isLocal, isWorking, readableError } from "./model.js";
 import { currentWorkspace, state } from "./state.js";
 
 let generation = 0;
@@ -11,8 +11,10 @@ let connected = false;
 let pending = false;
 let result: WorkspaceChanges | null = null;
 let selected = "";
-
-const dialog = () => byId<HTMLDialogElement>("changes-dialog");
+/** The panel is docked beside the conversation and stays open while you work. */
+let open = false;
+/** The last agent-turn state seen: a finished turn reads the changes again. */
+let seenTurns = "";
 /** Preserve line structure but make invisible controls and bidi overrides visible. */
 export function displayText(text: string): string {
   return text.replace(
@@ -30,6 +32,10 @@ function lineCounts(counted: { added: number; removed: number }): string {
 function clear(): void {
   generation++;
   pending = false;
+  empty();
+}
+/** Removes what the panel shows, without invalidating a reading in flight. */
+function empty(): void {
   result = null;
   selected = "";
   byId("changes-files").replaceChildren();
@@ -76,21 +82,31 @@ function selectFile(file: WorkspaceChange): void {
   pre.scrollTop = 0;
   byId("changes-diff").scrollLeft = 0;
 }
-async function readChanges(): Promise<void> {
+/**
+ * Reads the workspace's changes. Opening and Refresh clear the panel while
+ * reading; `auto`, after an agent turn ends, keeps it until the new reading
+ * arrives, then keeps the selected file and its scroll position.
+ */
+async function readChanges(auto = false): Promise<void> {
   const workspace = currentWorkspace();
-  if (!dialog().open || pending || !state.connected || !isLocal(workspace))
-    return;
+  if (!open || pending || !state.connected || !isLocal(workspace)) return;
   const previous = selected;
-  clear();
+  const scroll = byId("changes-diff").scrollTop;
+  if (auto) generation++;
+  else clear();
   const version = generation;
   const id = workspace!.id;
   pending = true;
-  status("Reading workspace changes…");
+  status(
+    auto
+      ? "Reading workspace changes after the agent's turn…"
+      : "Reading workspace changes…",
+  );
   try {
     const changes = await api().workspaceChanges(id);
     if (
       version !== generation ||
-      !dialog().open ||
+      !open ||
       state.selectedWorkspace !== id ||
       !state.connected
     )
@@ -106,6 +122,7 @@ async function readChanges(): Promise<void> {
       throw new Error(
         "The service returned changes for a different workspace or base. Refresh to try again.",
       );
+    empty();
     result = changes;
     pending = false;
     const total = { added: 0, removed: 0 };
@@ -162,66 +179,101 @@ async function readChanges(): Promise<void> {
     const file =
       changes.files.find((item) => item.path === previous) ?? changes.files[0];
     if (file) selectFile(file);
+    if (auto && file?.path === previous)
+      byId("changes-diff").scrollTop = scroll;
   } catch (error) {
-    if (
-      version !== generation ||
-      !dialog().open ||
-      state.selectedWorkspace !== id
-    )
+    if (version !== generation || !open || state.selectedWorkspace !== id)
       return;
     clear();
     status(readableError(error));
   }
 }
 
-/** Called during ordinary renders: invalidates, but never performs repository reads. */
+/** Agent turns of the open workspace: unknown, working, or how many have run. */
+function turns(): string {
+  if (state.runsLoaded !== state.selectedWorkspace) return "";
+  return state.runs.some((run) => isWorking(run.status))
+    ? "working"
+    : String(state.runs.length);
+}
+function setOpen(value: boolean): void {
+  open = value;
+  setClass(byId("changes-panel"), "is-open", value);
+  setClass(byId("changes-scrim"), "is-open", value);
+  setClass(byId("workspace-content"), "with-changes", value);
+  setClass(byId("workspace-changes"), "is-active", value);
+  byId("workspace-changes").setAttribute("aria-expanded", String(value));
+}
+/** Shows the selected workspace in the open panel and reads its changes. */
+function start(): void {
+  clear();
+  workspaceId = state.selectedWorkspace;
+  connected = state.connected;
+  seenTurns = turns();
+  setText("changes-base", "");
+  if (!isLocal(currentWorkspace()))
+    status(
+      "Scripted demo — no repository is checked out and no real diff is available.",
+    );
+  else if (!connected)
+    status(
+      "The local service is disconnected. Reconnect, then refresh changes.",
+    );
+  else void readChanges();
+}
+
+/**
+ * Called during ordinary renders. The open panel reads when it opens, when
+ * another workspace is selected, after reconnecting and when an agent turn
+ * ends; polling never reads on its own.
+ */
 export function renderChanges(): void {
   const workspace = currentWorkspace();
   show("workspace-changes", !!workspace);
   enable("workspace-changes", !!workspace && !workspace.archiveStatus);
-  if (!dialog().open) return;
-  if (workspaceId !== state.selectedWorkspace || workspace?.archiveStatus) {
-    closeChanges();
+  if (!open) return;
+  if (!workspace || workspace.archiveStatus) {
+    closeChanges(false);
+    return;
+  }
+  if (workspaceId !== state.selectedWorkspace) {
+    start();
     return;
   }
   if (connected !== state.connected) {
     connected = state.connected;
-    clear();
-    status(
-      connected
-        ? "Service reconnected. Refresh to read workspace changes."
-        : "The local service is disconnected. Reconnect, then refresh changes.",
-    );
-  }
-}
-function closeChanges(): void {
-  clear();
-  dialog().close();
-  byId("workspace-changes").focus();
-}
-export function wireChanges(): void {
-  byId("workspace-changes").addEventListener("click", () => {
-    if (
-      !currentWorkspace() ||
-      currentWorkspace()?.archiveStatus ||
-      dialog().open
-    )
-      return;
-    clear();
-    workspaceId = state.selectedWorkspace;
-    connected = state.connected;
-    setText("changes-base", "");
-    dialog().showModal();
-    byId("changes-close").focus();
-    if (!isLocal(currentWorkspace()))
-      status(
-        "Scripted demo — no repository is checked out and no real diff is available.",
-      );
-    else if (!connected)
+    seenTurns = turns();
+    if (connected) void readChanges();
+    else {
+      clear();
       status(
         "The local service is disconnected. Reconnect, then refresh changes.",
       );
-    else void readChanges();
+    }
+    return;
+  }
+  const now = turns();
+  if (now === seenTurns) return;
+  const before = seenTurns;
+  seenTurns = now;
+  // A turn that ended (or a new finished one) may have changed files.
+  if (before !== "" && now !== "" && now !== "working") void readChanges(true);
+}
+function closeChanges(focus = true): void {
+  clear();
+  setOpen(false);
+  if (focus) byId("workspace-changes").focus();
+}
+export function wireChanges(): void {
+  byId("workspace-changes").addEventListener("click", () => {
+    if (open) {
+      closeChanges();
+      return;
+    }
+    if (!currentWorkspace() || currentWorkspace()?.archiveStatus) return;
+    setOpen(true);
+    start();
+    byId("changes-close").focus();
   });
   byId("changes-refresh").addEventListener("click", () => void readChanges());
   // Up and down move through the file list and show each file's diff.
@@ -240,12 +292,13 @@ export function wireChanges(): void {
     next.focus();
     next.click();
   });
-  byId("changes-close").addEventListener("click", closeChanges);
-  dialog().addEventListener("cancel", (event) => {
+  byId("changes-close").addEventListener("click", () => closeChanges());
+  // Escape inside the panel closes it; on narrow windows so does the scrim.
+  byId("changes-panel").addEventListener("keydown", (event) => {
+    if ((event as KeyboardEvent).key !== "Escape" || !open) return;
     event.preventDefault();
+    event.stopPropagation();
     closeChanges();
   });
-  dialog().addEventListener("close", () => {
-    if (!dialog().open) clear();
-  });
+  byId("changes-scrim").addEventListener("click", () => closeChanges());
 }

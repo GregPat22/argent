@@ -1206,11 +1206,34 @@ export async function runDesktopSmoke(
     await delay(100);
     assert.equal(
       await js(
-        `document.documentElement.scrollWidth <= innerWidth && document.querySelector('#changes-dialog').getBoundingClientRect().right <= innerWidth`,
+        `document.documentElement.scrollWidth <= innerWidth && document.querySelector('#changes-panel').getBoundingClientRect().right <= innerWidth`,
+      ),
+      true,
+    );
+    // The open panel has real width at every size, covering the conversation
+    // on narrow windows, and the record's rows stay inside their card.
+    await delay(300);
+    assert.ok(
+      (await js<number>(
+        `document.querySelector('#changes-panel').getBoundingClientRect().width`,
+      )) > 300,
+    );
+    assert.equal(
+      await js(
+        `[...document.querySelectorAll('.record')].every((card) => { const edge = card.getBoundingClientRect().right; return [...card.querySelectorAll('.record-field')].every((row) => row.getBoundingClientRect().right <= edge + 1); })`,
       ),
       true,
     );
   }
+  // Wide windows dock the panel beside the conversation; it does not cover it.
+  await delay(300);
+  assert.equal(
+    await js(
+      `document.querySelector('#conversation').getBoundingClientRect().right <= document.querySelector('#changes-panel').getBoundingClientRect().left + 1`,
+    ),
+    true,
+  );
+  await capture("changes-docked");
   writeFileSync(join(worktree, "notes.txt"), "Updated by smoke fixture\n");
   await js(`document.querySelector('#changes-refresh').click()`);
   await until(
@@ -1221,10 +1244,14 @@ export async function runDesktopSmoke(
     `Array.from(document.querySelectorAll('#changes-files button')).find(button => button.dataset.path === 'notes.txt').click()`,
   );
   assert.match(await text("#changes-diff"), /Updated by smoke fixture/);
+  await js(`document.querySelector('#changes-diff').focus()`);
   window.webContents.sendInputEvent({ type: "keyDown", keyCode: "Escape" });
   window.webContents.sendInputEvent({ type: "keyUp", keyCode: "Escape" });
   await until(
-    () => js(`!document.querySelector('#changes-dialog').open`),
+    () =>
+      js(
+        `!document.querySelector('#changes-panel').classList.contains('is-open')`,
+      ),
     "Escape closes changes",
   );
   assert.equal(await js(`document.activeElement.id`), "workspace-changes");

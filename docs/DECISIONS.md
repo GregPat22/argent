@@ -76,6 +76,20 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Changes docked beside the conversation (in development) — 25 November 2026
+
+Changes is a panel on the right of the conversation instead of a modal
+dialog, so the diff stays in view while you write to the agent. The Changes
+button opens and closes it. While it is open, it reads when another
+workspace is selected, after reconnecting and once when an agent turn ends,
+keeping the selected file and its scroll position; it does not read while the
+agent works, and polling, selecting a file or a closed panel never reads.
+Each reading remains a live observation, not a test result. On narrow windows
+the panel covers the conversation and a click beside it closes it. This
+amends items 1 and 2 of the desktop changes acceptance in spec 0013; the
+service and the bridge are unchanged. See the
+[acceptance criteria](specs/0015-desktop-restyle.md#step-8-changes-docked-beside-the-conversation).
+
 ### Check status at a glance in the desktop (in development) — 25 November 2026
 
 The Checks dialog no longer reads only on opening and Refresh. The header's

@@ -366,3 +366,27 @@ Renderer tests cover the badge's reading on opening, a running check followed
 to its outcome, a stale pass in silver, clearing on disconnect and workspace
 change, and an open dialog following a running check without redrawing an
 unchanged reading.
+
+### Step 8: Changes docked beside the conversation
+
+- Changes opens as a panel on the right of the conversation, which narrows to
+  make room; the panel slides in and out as its column opens and closes. The
+  Changes button toggles it and shows it is open. Its close button and Escape
+  inside it close it and return focus to the button. This brings back the
+  right-hand panel with real content, as decision 1 above anticipated.
+- The file list sits above the diff. Everything from step 3 still applies:
+  status badges, line counts, the readable diff, folding and arrow keys.
+- While open, the panel reads when it opens, on Refresh, when another
+  workspace is selected (it stays open and shows that workspace), after
+  reconnecting, and once when an agent turn ends. A reading after a turn keeps
+  the current content until the new one arrives, then keeps the selected file
+  and its scroll position. It never reads while the agent works, while it is
+  closed, or because of polling.
+- Below 1,100 px wide the panel covers the conversation from the right over a
+  dimmed backdrop, and a click on the backdrop closes it.
+
+Renderer tests cover toggling, discarding a reply for a closed panel,
+following a workspace switch, clearing on disconnect and reading on
+reconnect, closing with Escape, and one reading after an agent turn ends that
+keeps the selected file. The native smoke checks the panel stays within the
+window at 900 and 1,380 px and sits beside the conversation when wide.

@@ -1056,10 +1056,23 @@ kbd {
 
 /* ---------- Conversation ---------- */
 
+/* The conversation and, when open, the Changes panel docked beside it. */
 .workspace {
-  display: flex;
+  --changes-width: clamp(340px, 36vw, 720px);
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 0px;
   flex: 1;
+  min-height: 0;
+  transition: grid-template-columns 240ms var(--ease);
+}
+.workspace.with-changes {
+  grid-template-columns: minmax(0, 1fr) var(--changes-width);
+}
+.workspace-main {
+  display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
 }
 .conversation {
@@ -1697,11 +1710,14 @@ details[open]::details-content {
 .marks.striking .mark[data-index="3"] .mark-glyph {
   animation-delay: 270ms;
 }
+/* One column no wider than the card: long values end in an ellipsis. */
 .record-fields {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
 }
 .record-field {
+  min-width: 0;
   display: flex;
   justify-content: space-between;
   gap: 16px;
@@ -3028,4 +3044,107 @@ dialog[open]::backdrop {
 .check-badge-running {
   background: var(--running);
   animation: pulse 1.4s var(--ease) infinite;
+}
+
+/* The Changes panel: docked on the right, sliding in as the column opens. */
+.changes-dock {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  /* A shadow, not a border: a closed panel's column takes no width at all. */
+  box-shadow: inset 1px 0 0 var(--line);
+  background: var(--pewter);
+  visibility: hidden;
+  transition: visibility 0s linear 240ms;
+}
+.changes-dock.is-open {
+  visibility: visible;
+  transition-delay: 0s;
+}
+.changes-dock-inner {
+  display: flex;
+  flex-direction: column;
+  width: var(--changes-width);
+  height: 100%;
+  padding: 12px 16px 16px;
+  opacity: 0;
+  transform: translateX(24px);
+  transition:
+    opacity 200ms var(--ease),
+    transform 240ms var(--ease);
+}
+.changes-dock.is-open .changes-dock-inner {
+  opacity: 1;
+  transform: none;
+}
+.changes-dock-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.changes-dock-head h2 {
+  flex: 1;
+  margin: 0;
+  font: 600 15px/1.3 var(--display);
+}
+.changes-dock .changes-notice {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.changes-dock .changes-content {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+.changes-dock .changes-files {
+  max-height: 30vh;
+  border-right: 0;
+  border-bottom: 1px solid var(--line);
+}
+.changes-scrim {
+  display: none;
+}
+.button.is-active {
+  border-color: rgb(225 235 249 / 0.5);
+  background: var(--wash-strong);
+  color: var(--polished);
+}
+/* Narrow windows: the panel covers the conversation instead of pushing it. */
+@media (max-width: 1100px) {
+  .workspace.with-changes {
+    grid-template-columns: minmax(0, 1fr) 0px;
+  }
+  .changes-dock {
+    /* Sized against the whole workspace, not the empty second column. */
+    grid-column: 1 / -1;
+    position: absolute;
+    z-index: 5;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(560px, 92%);
+    box-shadow:
+      inset 1px 0 0 var(--line),
+      -24px 0 48px rgb(0 0 0 / 0.4);
+  }
+  .changes-dock-inner {
+    width: 100%;
+  }
+  .changes-scrim {
+    position: absolute;
+    z-index: 4;
+    inset: 0;
+    display: block;
+    background: rgb(3 4 6 / 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms var(--ease);
+  }
+  .changes-scrim.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }

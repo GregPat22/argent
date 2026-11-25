@@ -102,8 +102,9 @@
           >
             <button
               id="workspace-changes"
+              aria-controls="changes-panel"
+              aria-expanded="false"
               class="button small"
-              aria-haspopup="dialog"
               hidden
             >
               Changes
@@ -272,198 +273,226 @@
         </section>
 
         <div id="workspace-content" class="workspace" hidden>
-          <div id="conversation" class="conversation">
-            <div id="conversation-column" class="conversation-column">
-              <button id="show-earlier" class="text-button earlier" hidden>
-                Show earlier messages
-              </button>
-              <button id="more-runs" class="text-button earlier" hidden>
-                Load older messages
-              </button>
-              <section id="detail-empty" class="empty-state" hidden>
-                <img
-                  class="empty-mark"
-                  src="./argent-icon.webp"
-                  alt=""
-                  width="40"
-                  height="40"
-                />
-                <h2 id="empty-title">A fresh branch, ready.</h2>
-                <p id="empty-text"></p>
-              </section>
-              <div id="transcript" class="transcript" aria-live="polite"></div>
-            </div>
-          </div>
-
-          <div class="dock">
-            <div class="dock-column">
-              <div
-                id="pending-bar"
-                class="notice notice-attention"
-                role="status"
-                hidden
-              >
-                <span class="icon icon-clock-3" aria-hidden="true"></span>
-                <span id="pending-description"
-                  >Argent could not confirm this message reached the service.
-                  Retrying checks the same message, so it never runs
-                  twice.</span
-                >
-                <button id="pending-dismiss" class="button small" hidden>
-                  Dismiss
+          <div class="workspace-main">
+            <div id="conversation" class="conversation">
+              <div id="conversation-column" class="conversation-column">
+                <button id="show-earlier" class="text-button earlier" hidden>
+                  Show earlier messages
                 </button>
-                <button id="pending-retry" class="button small">Retry</button>
-              </div>
-
-              <form id="composer-form" class="composer">
-                <label class="sr-only" for="composer-input">Message</label>
-                <textarea
-                  id="composer-input"
-                  maxlength="4000"
-                  rows="1"
-                  placeholder="What should Claude Code do here?"
-                ></textarea>
-                <div class="composer-bar">
-                  <span class="agent-chip" title="The agent for this workspace">
-                    <span class="icon icon-terminal" aria-hidden="true"></span>
-                    <span id="agent-label">Claude Code</span>
-                  </span>
-                  <button
-                    id="permission-toggle"
-                    type="button"
-                    class="chip permission"
-                    aria-pressed="false"
-                    hidden
-                  >
-                    Edits only
-                  </button>
-                  <label class="chip select-chip">
-                    <span class="sr-only">Time limit</span>
-                    <select id="limit-select"></select>
-                    <span
-                      class="icon icon-chevron-down"
-                      aria-hidden="true"
-                    ></span>
-                  </label>
-                  <span
-                    id="composer-status"
-                    class="composer-status"
-                    role="status"
-                  ></span>
-                  <button
-                    id="composer-start"
-                    type="button"
-                    class="button small"
-                    hidden
-                  >
-                    Start workspace
-                  </button>
-                  <button
-                    id="cancel-run"
-                    type="button"
-                    class="send-button stop"
-                    aria-label="Stop this run"
-                    hidden
-                  >
-                    <span class="stop-square" aria-hidden="true"></span>
-                  </button>
-                  <button
-                    id="composer-submit"
-                    type="submit"
-                    class="send-button"
-                    aria-label="Send"
-                    title="Send (↵)"
-                  >
-                    <span class="icon icon-arrow-up" aria-hidden="true"></span>
-                  </button>
-                </div>
+                <button id="more-runs" class="text-button earlier" hidden>
+                  Load older messages
+                </button>
+                <section id="detail-empty" class="empty-state" hidden>
+                  <img
+                    class="empty-mark"
+                    src="./argent-icon.webp"
+                    alt=""
+                    width="40"
+                    height="40"
+                  />
+                  <h2 id="empty-title">A fresh branch, ready.</h2>
+                  <p id="empty-text"></p>
+                </section>
                 <div
-                  id="full-access-confirm"
-                  class="popover confirm"
-                  popover
-                  role="alertdialog"
-                  aria-labelledby="full-access-title"
+                  id="transcript"
+                  class="transcript"
+                  aria-live="polite"
+                ></div>
+              </div>
+            </div>
+
+            <div class="dock">
+              <div class="dock-column">
+                <div
+                  id="pending-bar"
+                  class="notice notice-attention"
+                  role="status"
+                  hidden
                 >
-                  <strong id="full-access-title">Allow full access?</strong>
-                  <p>
-                    For the next message, Claude Code may run any command as you
-                    without asking, with your network and credentials. It goes
-                    back to edits only after you send.
-                  </p>
-                  <div class="confirm-actions">
+                  <span class="icon icon-clock-3" aria-hidden="true"></span>
+                  <span id="pending-description"
+                    >Argent could not confirm this message reached the service.
+                    Retrying checks the same message, so it never runs
+                    twice.</span
+                  >
+                  <button id="pending-dismiss" class="button small" hidden>
+                    Dismiss
+                  </button>
+                  <button id="pending-retry" class="button small">Retry</button>
+                </div>
+
+                <form id="composer-form" class="composer">
+                  <label class="sr-only" for="composer-input">Message</label>
+                  <textarea
+                    id="composer-input"
+                    maxlength="4000"
+                    rows="1"
+                    placeholder="What should Claude Code do here?"
+                  ></textarea>
+                  <div class="composer-bar">
+                    <span
+                      class="agent-chip"
+                      title="The agent for this workspace"
+                    >
+                      <span
+                        class="icon icon-terminal"
+                        aria-hidden="true"
+                      ></span>
+                      <span id="agent-label">Claude Code</span>
+                    </span>
                     <button
-                      id="full-access-keep"
+                      id="permission-toggle"
+                      type="button"
+                      class="chip permission"
+                      aria-pressed="false"
+                      hidden
+                    >
+                      Edits only
+                    </button>
+                    <label class="chip select-chip">
+                      <span class="sr-only">Time limit</span>
+                      <select id="limit-select"></select>
+                      <span
+                        class="icon icon-chevron-down"
+                        aria-hidden="true"
+                      ></span>
+                    </label>
+                    <span
+                      id="composer-status"
+                      class="composer-status"
+                      role="status"
+                    ></span>
+                    <button
+                      id="composer-start"
                       type="button"
                       class="button small"
+                      hidden
                     >
-                      Keep edits only</button
-                    ><button
-                      id="full-access-allow"
+                      Start workspace
+                    </button>
+                    <button
+                      id="cancel-run"
                       type="button"
-                      class="button small warning"
+                      class="send-button stop"
+                      aria-label="Stop this run"
+                      hidden
                     >
-                      Allow full access
+                      <span class="stop-square" aria-hidden="true"></span>
+                    </button>
+                    <button
+                      id="composer-submit"
+                      type="submit"
+                      class="send-button"
+                      aria-label="Send"
+                      title="Send (↵)"
+                    >
+                      <span
+                        class="icon icon-arrow-up"
+                        aria-hidden="true"
+                      ></span>
                     </button>
                   </div>
+                  <div
+                    id="full-access-confirm"
+                    class="popover confirm"
+                    popover
+                    role="alertdialog"
+                    aria-labelledby="full-access-title"
+                  >
+                    <strong id="full-access-title">Allow full access?</strong>
+                    <p>
+                      For the next message, Claude Code may run any command as
+                      you without asking, with your network and credentials. It
+                      goes back to edits only after you send.
+                    </p>
+                    <div class="confirm-actions">
+                      <button
+                        id="full-access-keep"
+                        type="button"
+                        class="button small"
+                      >
+                        Keep edits only</button
+                      ><button
+                        id="full-access-allow"
+                        type="button"
+                        class="button small warning"
+                      >
+                        Allow full access
+                      </button>
+                    </div>
+                  </div>
+                </form>
+                <div class="composer-foot">
+                  <span id="composer-agent-note"></span>
+                  <span class="keys"
+                    ><kbd>↵</kbd> send <kbd>⇧↵</kbd> new line</span
+                  >
                 </div>
-              </form>
-              <div class="composer-foot">
-                <span id="composer-agent-note"></span>
-                <span class="keys"
-                  ><kbd>↵</kbd> send <kbd>⇧↵</kbd> new line</span
-                >
               </div>
             </div>
           </div>
+
+          <!-- On narrow windows the panel covers the conversation; the scrim closes it. -->
+          <div
+            id="changes-scrim"
+            class="changes-scrim"
+            aria-hidden="true"
+          ></div>
+          <aside
+            id="changes-panel"
+            class="changes-dock"
+            aria-labelledby="changes-title"
+            aria-describedby="changes-notice"
+          >
+            <div class="changes-dock-inner">
+              <header class="changes-dock-head">
+                <h2 id="changes-title">Changes</h2>
+                <button id="changes-refresh" class="button small">
+                  Refresh
+                </button>
+                <button
+                  id="changes-close"
+                  class="icon-button"
+                  aria-label="Close changes"
+                >
+                  <span class="icon icon-x" aria-hidden="true"></span>
+                </button>
+              </header>
+              <p id="changes-notice" class="changes-notice">
+                Current files against the workspace base, including uncommitted
+                work. A live observation, not a test result.
+              </p>
+              <p id="changes-base" class="changes-notice mono"></p>
+              <p
+                id="changes-status"
+                class="changes-notice"
+                role="status"
+                aria-live="polite"
+              ></p>
+              <div id="changes-content" class="changes-content" hidden>
+                <nav
+                  id="changes-files"
+                  class="changes-files"
+                  aria-label="Changed files"
+                ></nav>
+                <section
+                  class="changes-preview"
+                  aria-labelledby="changes-file-title"
+                >
+                  <h3 id="changes-file-title"></h3>
+                  <p id="changes-meta" class="mono"></p>
+                  <pre
+                    id="changes-diff"
+                    tabindex="0"
+                    aria-label="Selected file unified diff"
+                  ></pre>
+                </section>
+              </div>
+            </div>
+          </aside>
         </div>
       </main>
     </div>
-
-    <dialog
-      id="changes-dialog"
-      class="changes-panel"
-      aria-labelledby="changes-title"
-      aria-describedby="changes-notice"
-    >
-      <header class="sheet-head">
-        <h2 id="changes-title">Workspace changes</h2>
-        <button id="changes-refresh" class="button small">Refresh</button>
-        <button
-          id="changes-close"
-          class="icon-button"
-          aria-label="Close changes"
-        >
-          <span class="icon icon-x" aria-hidden="true"></span>
-        </button>
-      </header>
-      <p id="changes-notice" class="changes-notice">
-        Current files against the workspace base, including uncommitted work.
-        This is a live observation, not a test result or an immutable snapshot.
-      </p>
-      <p id="changes-base" class="changes-notice mono"></p>
-      <p
-        id="changes-status"
-        class="changes-notice"
-        role="status"
-        aria-live="polite"
-      ></p>
-      <div id="changes-content" class="changes-content" hidden>
-        <nav
-          id="changes-files"
-          class="changes-files"
-          aria-label="Changed files"
-        ></nav>
-        <section class="changes-preview" aria-labelledby="changes-file-title">
-          <h3 id="changes-file-title"></h3>
-          <p id="changes-meta" class="mono"></p>
-          <pre
-            id="changes-diff"
-            tabindex="0"
-            aria-label="Selected file unified diff"
-          ></pre>
-        </section>
-      </div>
-    </dialog>
 
     <dialog
       id="commands-dialog"
