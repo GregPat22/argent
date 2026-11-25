@@ -3003,3 +3003,29 @@ dialog[open]::backdrop {
 .notice-toggle:hover {
   color: var(--polished);
 }
+
+/* The latest check at a glance, on the header's Checks button. */
+.check-badge {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--sterling-dim);
+  animation: fade-in 200ms var(--ease) both;
+}
+.check-badge[hidden] {
+  display: none;
+}
+.check-badge-passed {
+  background: var(--verified);
+  box-shadow: 0 0 0 3px rgb(142 230 181 / 0.14);
+}
+.check-badge-failed {
+  background: var(--fault);
+  box-shadow: 0 0 0 3px rgb(240 162 155 / 0.14);
+}
+.check-badge-running {
+  background: var(--running);
+  animation: pulse 1.4s var(--ease) infinite;
+}

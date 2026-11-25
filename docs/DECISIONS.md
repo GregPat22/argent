@@ -76,6 +76,24 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Check status at a glance in the desktop (in development) — 25 November 2026
+
+The Checks dialog no longer reads only on opening and Refresh. The header's
+Checks button shows the latest check: green only when it passed and matches
+the current reading, the fault colour when it failed and matches, the running
+colour while queued or running, and silver otherwise. It reads when a
+workspace opens, after reconnecting and when an agent turn ends. Queued,
+running and cancelling work is read again every three seconds, in the badge
+and in the open dialog, until it ends; while work is active the service
+reports the result as stale without reviewing the files, so these readings
+stay cheap. A finished check gets one complete reading. Freshness remains a
+point-in-time observation: there is no filesystem watcher and no timer
+re-reviews a finished result, so an edit after the last reading shows only on
+the next one. Only Run checks queues work. This amends item 6 of the local
+check contract in spec 0013; the service is unchanged. A walkthrough had
+found that check progress and freshness required manual refreshes. See the
+[acceptance criteria](specs/0015-desktop-restyle.md#step-7-check-status-at-a-glance).
+
 ### Agent replies as Markdown in the desktop (in development) — 25 November 2026
 
 What Claude Code says at the end of a turn is shown as Markdown, the format

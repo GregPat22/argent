@@ -338,3 +338,31 @@ script and link text stays literal with no attributes or handlers, that
 unclosed marks stay literal, and that a 50,000-character reply of unmatched
 marks renders in bounded time. A transcript test checks a finished turn's
 reply.
+
+### Step 7: check status at a glance
+
+- The header's Checks button carries a dot for the latest check of the open
+  workspace: green when it passed and matches the current reading, the fault
+  colour when it failed and matches, the running colour, pulsing, while it is
+  queued, running or cancelling, and silver for anything else, including a
+  stale or unchecked result. No check shows no dot. The button's accessible
+  name and tooltip say the outcome and the time of the reading.
+- It reads when a workspace opens, after reconnecting and when an agent turn
+  ends. While an agent works it does not read: the files are changing.
+  Disconnecting or opening another workspace clears it until its own reading
+  arrives.
+- Queued, running and cancelling work is read again every three seconds until
+  it ends, by the badge and by the open Checks or Run results dialog. The
+  dialog redraws only when what it shows changes, and says the status updates
+  on its own while the work runs. The dialog's status line and the badge's
+  label show when the work started and how many minutes it has run, so a long
+  check does not look stalled.
+- Each reading stays point-in-time: no timer re-reviews a finished result and
+  nothing watches the files. This amends the reading rule in
+  [spec 0013](0013-local-mvp.md); see
+  [DECISIONS](../DECISIONS.md#check-status-at-a-glance-in-the-desktop-in-development--25-november-2026).
+
+Renderer tests cover the badge's reading on opening, a running check followed
+to its outcome, a stale pass in silver, clearing on disconnect and workspace
+change, and an open dialog following a running check without redrawing an
+unchanged reading.

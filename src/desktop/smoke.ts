@@ -357,11 +357,21 @@ export async function runDesktopSmoke(
       () => js(`document.querySelector('#checks-dialog').open`),
       "check result dialog",
     );
-    await until(async () => {
-      if ((await text("#checks-status")).includes("Checks passed")) return true;
-      await js(`document.querySelector('#checks-refresh').click()`);
-      return false;
-    }, "setup and test passed");
+    // The open dialog follows the running check on its own, without Refresh.
+    await until(
+      async () => (await text("#checks-status")).includes("Checks passed"),
+      "setup and test passed",
+    );
+    assert.match(
+      await js(`document.querySelector('#checks-badge').className`),
+      /check-badge-passed/,
+    );
+    assert.match(
+      await js(
+        `document.querySelector('#workspace-checks').getAttribute('aria-label')`,
+      ),
+      /Checks · passed, matches the reading at/,
+    );
     assert.match(await text("#checks-result"), /setup.*exit 0/s);
     assert.match(await text("#checks-result"), /test.*exit 0/s);
     assert.equal(
@@ -547,6 +557,11 @@ export async function runDesktopSmoke(
       "5 reported judging changes",
     );
     await capture("checks-stale");
+    // A stale pass is not green on the Checks button either.
+    assert.match(
+      await js(`document.querySelector('#checks-badge').className`),
+      /check-badge-neutral/,
+    );
     await js(`document.querySelector('#checks-close').click()`);
   };
 
