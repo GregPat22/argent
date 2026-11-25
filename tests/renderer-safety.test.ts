@@ -344,3 +344,34 @@ test("failed provider output stays literal text beside a clear failure summary",
   await app.poll();
   assert.equal(app.element("transcript").text, beforePoll);
 });
+
+test("a finished turn shows the agent's reply as Markdown built from text", async () => {
+  const app = await launch();
+  app.history.push({
+    cursor: 1,
+    runId: app.run.id,
+    type: "agent.log",
+    data: {
+      kind: "text",
+      message: "Done:\n\n- **Added** `notes.txt`\n- <b>kept</b> literal",
+    },
+    createdAt: 1,
+  });
+  await app.poll();
+  app.run.status = "completed";
+  await app.poll();
+  const says = app
+    .element("transcript")
+    .find((e) => e.className === "says-text");
+  assert.ok(says, "the reply is rendered");
+  const list = says.find((e) => e.className === "md-list");
+  assert.ok(list);
+  assert.equal(list.tagName, "UL");
+  assert.ok(
+    says.find((e) => e.tagName === "STRONG" && e.text.includes("Added")),
+  );
+  assert.ok(
+    says.find((e) => e.tagName === "CODE" && e.textContent === "notes.txt"),
+  );
+  assert.ok(says.text.includes("<b>kept</b> literal"));
+});

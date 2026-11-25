@@ -2,6 +2,7 @@
 import type { RunView } from "../src/domain.js";
 import { actions } from "./actions.js";
 import { byId, h, icon, setClass, show } from "./dom.js";
+import { markdown } from "./markdown.js";
 import {
   clock,
   duration,
@@ -305,7 +306,9 @@ function turnElement(run: RunView): Rendered {
           "div",
           { class: "says" },
           h("span", { class: "says-label", text: `${agent} says` }),
-          ...turn.says.map((said) => h("p", { text: said })),
+          ...turn.says.map((said) =>
+            h("div", { class: "says-text" }, ...markdown(said)),
+          ),
         ),
       );
     const others = turn.steps.filter((step) => step.kind !== "say");

@@ -1314,6 +1314,155 @@ kbd {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* Markdown in a reply: Argent's own elements around literal text. */
+.says-text {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  color: var(--polished);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.says-text > * {
+  margin: 0;
+}
+.says .md-p {
+  white-space: pre-line;
+}
+.md-heading {
+  margin-top: 6px;
+  color: var(--polished);
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.md-h1 {
+  font-size: 17px;
+}
+.md-h2 {
+  font-size: 15px;
+}
+.md-h3 {
+  font-size: 14px;
+}
+.md-strong {
+  font-weight: 650;
+}
+.md-em {
+  font-style: italic;
+}
+.md-strike {
+  color: var(--sterling-dim);
+}
+.md-code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--wash);
+  font: 0.86em/1 var(--mono);
+  overflow-wrap: anywhere;
+}
+.md-link {
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+}
+/* Links never navigate; the address is shown beside the label. */
+.md-address {
+  color: var(--sterling-dim);
+  font: 0.86em var(--mono);
+  text-decoration: none;
+  user-select: text;
+}
+.md-image {
+  color: var(--sterling);
+}
+.md-list {
+  display: grid;
+  gap: 4px;
+  padding-left: 22px;
+}
+.md-list .md-list {
+  margin-top: 4px;
+}
+ul.md-list {
+  list-style: disc;
+}
+ul.md-list ul.md-list {
+  list-style: circle;
+}
+ol.md-list {
+  list-style: decimal;
+}
+.md-list li {
+  white-space: pre-line;
+}
+.md-list li::marker {
+  color: var(--faint);
+}
+.md-fence {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--oxide);
+}
+.md-fence-label {
+  display: block;
+  padding: 6px 12px 0;
+  color: var(--faint);
+  font: 11px var(--mono);
+}
+.md-pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  color: var(--polished);
+  font: 12.5px/1.65 var(--mono);
+  white-space: pre;
+  tab-size: 4;
+  user-select: text;
+}
+.md-quote {
+  padding-left: 12px;
+  border-left: 2px solid var(--line-strong);
+  color: var(--sterling);
+}
+.md-quote > * + * {
+  margin-top: 8px;
+}
+.md-rule {
+  height: 1px;
+  border: 0;
+  background: var(--line);
+}
+.md-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.md-table th,
+.md-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.md-table th {
+  background: var(--wash);
+  color: var(--sterling);
+  font-weight: 600;
+}
+.md-table tr:last-child td {
+  border-bottom: 0;
+}
 .steps-disclosure {
   margin-top: 10px;
 }

@@ -316,3 +316,25 @@ added lines is shown as 2 removed and 4 added.
 A renderer regression switches between two workspaces: the empty state stays
 hidden before the reading, an unvisited workspace opens at its end and a
 visited one returns to its earlier position.
+
+### Step 6: agent replies as Markdown
+
+- What Claude Code says at the end of a turn is shown as Markdown: headings,
+  bulleted and numbered lists with nesting, bold, italic, strikethrough,
+  inline code, fenced code with its language label, quotes, rules and tables.
+  Underscores inside words stay literal, and an unclosed mark stays as typed.
+- A small parser in the renderer only chooses which of Argent's own elements
+  hold the text. Every character still reaches the page through
+  `textContent`: HTML in a reply stays literal text, and no element carries a
+  link, source, style or handler. A link shows its label and its address as
+  text and never navigates; an image is named with its address and never
+  loads.
+- Paragraphs over 20,000 characters keep their text without inline
+  formatting, and lists nest at most four levels, so rendering stays bounded.
+- The live step list and the raw record still show the text as recorded.
+
+Renderer tests check the element tree for each construct, that hostile HTML,
+script and link text stays literal with no attributes or handlers, that
+unclosed marks stay literal, and that a 50,000-character reply of unmatched
+marks renders in bounded time. A transcript test checks a finished turn's
+reply.

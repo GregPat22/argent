@@ -76,6 +76,19 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Agent replies as Markdown in the desktop (in development) — 25 November 2026
+
+What Claude Code says at the end of a turn is shown as Markdown, the format
+it writes in: headings, lists, emphasis, inline and fenced code, quotes, rules
+and tables. A small parser in the renderer, without a dependency, chooses
+which of Argent's own elements hold the text; every character of the reply
+still reaches the page through `textContent`, so HTML in a reply stays
+literal. Links and images never navigate or load: their address is shown as
+text beside the label. Long paragraphs keep their text without inline
+formatting. The live step list and the raw record still show the text as
+recorded. See the
+[acceptance criteria](specs/0015-desktop-restyle.md#step-6-agent-replies-as-markdown).
+
 ### Readable diffs in the desktop changes panel (in development) — 24 November 2026
 
 The service keeps its accepted whole-file replacement hunks: they stay
