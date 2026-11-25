@@ -286,3 +286,30 @@ test("a failed setup says the selected command never started, and interrupted wo
   );
   assert.doesNotMatch(app.element("checks-status").text, /Run command failed/);
 });
+
+test("switching workspaces returns each conversation to where it was left and shows no empty state before reading", async () => {
+  const app = await launch();
+  const scroller = app.element("conversation");
+  scroller.scrollHeight = 1000;
+  scroller.clientHeight = 200;
+  scroller.scrollTop = 300;
+  const row = (id: string) =>
+    app.element("workspace-list").find((e) => e.dataset.workspaceId === id)!;
+  row("two").click();
+  // Nothing is read yet, so the empty state must not claim the branch is fresh.
+  assert.equal(app.element("detail-empty").hidden, true);
+  await settle();
+  assert.equal(app.element("detail-empty").hidden, false);
+  assert.equal(
+    scroller.scrollTop,
+    1000,
+    "an unvisited workspace opens at the end",
+  );
+  row("one").click();
+  await settle();
+  assert.equal(scroller.scrollTop, 300, "a visited workspace keeps its place");
+  assert.match(
+    app.element("conversation-column").className,
+    /\bconversation-arrive\b/,
+  );
+});

@@ -1130,6 +1130,16 @@ kbd {
 .turn-enter {
   animation: rise-in 280ms var(--ease) both;
 }
+/* An opened workspace's conversation fades in as one piece. */
+.conversation-arrive {
+  animation: conversation-arrive 200ms var(--ease) both;
+}
+@keyframes conversation-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
 .message {
   align-self: flex-end;
   max-width: min(85%, 600px);

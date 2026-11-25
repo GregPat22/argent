@@ -368,6 +368,22 @@ function signature(run: RunView): string {
   ]);
 }
 
+/** Where each workspace's conversation was left, for this window only. */
+const scrollMemory = new Map<string, { top: number; atBottom: boolean }>();
+/** The opened workspace's messages have not been shown yet. */
+let arriving = false;
+
+/** Records the open conversation's position before another workspace opens. */
+export function rememberScroll(): void {
+  if (!renderedWorkspace) return;
+  const scroller = byId("conversation");
+  scrollMemory.set(renderedWorkspace, {
+    top: scroller.scrollTop,
+    atBottom:
+      scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 80,
+  });
+}
+
 export function renderTranscript(): void {
   const list = byId("transcript");
   const scroller = byId("conversation");
@@ -375,7 +391,11 @@ export function renderTranscript(): void {
     rendered.clear();
     list.replaceChildren();
     renderedWorkspace = state.selectedWorkspace;
+    arriving = true;
   }
+  // The first reading of an opened workspace fades in as a whole and returns
+  // to where it was left; only turns that arrive later rise in one by one.
+  const arrived = arriving && state.runsLoaded === state.selectedWorkspace;
   const runs = visibleRuns();
   const nearBottom =
     scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 80;
@@ -401,7 +421,7 @@ export function renderTranscript(): void {
       if (item) {
         keepDisclosures(item.element, fresh.element);
         item.element.replaceWith(fresh.element);
-      } else {
+      } else if (!arrived) {
         fresh.element.className += " turn-enter";
         added = true;
       }
@@ -432,7 +452,16 @@ export function renderTranscript(): void {
   );
   (byId("more-runs") as HTMLButtonElement).disabled =
     !state.connected || state.mutationBusy;
-  if (added || nearBottom) scroller.scrollTop = scroller.scrollHeight;
+  if (arrived) {
+    arriving = false;
+    const memory = scrollMemory.get(state.selectedWorkspace);
+    scroller.scrollTop =
+      memory && !memory.atBottom ? memory.top : scroller.scrollHeight;
+    const column = byId("conversation-column");
+    setClass(column, "conversation-arrive", false);
+    void column.offsetWidth;
+    setClass(column, "conversation-arrive", true);
+  } else if (added || nearBottom) scroller.scrollTop = scroller.scrollHeight;
 }
 
 export function resetTranscript(): void {

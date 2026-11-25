@@ -13,6 +13,11 @@ export class FakeElement {
   readOnly = false;
   checked = false;
   className = "";
+  /** Layout is not computed: tests set these to describe a scroll position. */
+  scrollTop = 0;
+  scrollHeight = 0;
+  clientHeight = 0;
+  offsetWidth = 0;
   title = "";
   placeholder = "";
   value: string | undefined = undefined;

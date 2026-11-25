@@ -197,10 +197,18 @@ test("long turn history keeps first and last pages reachable while polling", asy
   assert.equal(messages(transcript)[0], "Message 1");
 });
 
-test("an activity refresh updates an existing turn without replaying its entrance", async () => {
+test("an opened workspace fades in as a whole and a refresh replays no entrance", async () => {
   const app = await launch();
   const transcript = app.element("transcript");
-  assert.match(transcript.firstElementChild!.className, /\bturn-enter\b/);
+  // Turns read when the workspace opens are not new: the column fades in once.
+  assert.match(
+    app.element("conversation-column").className,
+    /\bconversation-arrive\b/,
+  );
+  assert.doesNotMatch(
+    transcript.firstElementChild!.className,
+    /\bturn-enter\b/,
+  );
   app.append(1);
   await app.poll();
   assert.deepEqual(messages(transcript), ["Message 1"]);

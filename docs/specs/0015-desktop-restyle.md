@@ -303,3 +303,16 @@ added lines is shown as 2 removed and 4 added.
   lines with "Show full notice", which expands them in place. The full text
   stays in the element and in the dialog's description, so a screen reader
   reads all of it. The control appears only when the text is cut.
+
+### Step 5: workspace switching
+
+- Opening a workspace shows nothing until its messages are read, instead of
+  briefly claiming a workspace with history is a fresh branch. Its messages
+  then fade in as one piece; only turns that arrive later rise in one by one.
+- Each workspace returns to where its conversation was left in this window.
+  One left at its end, or opened for the first time, opens at its end and
+  keeps following new messages. Positions are not stored across launches.
+
+A renderer regression switches between two workspaces: the empty state stays
+hidden before the reading, an unvisited workspace opens at its end and a
+visited one returns to its earlier position.

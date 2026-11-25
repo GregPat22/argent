@@ -33,6 +33,7 @@ import {
 } from "./state.js";
 import {
   renderTranscript,
+  rememberScroll,
   resetTranscript,
   visibleRuns,
 } from "./transcript.js";
@@ -164,7 +165,12 @@ function render(): void {
   renderCommands();
   renderCandidate();
   renderPublication();
-  show("detail-empty", !!workspace && state.runs.length === 0);
+  // Until this workspace's messages are read, show nothing rather than an
+  // empty state that a workspace with history does not have.
+  show(
+    "detail-empty",
+    !!workspace && state.runsLoaded === workspace.id && state.runs.length === 0,
+  );
   if (workspace) {
     const local = isLocal(workspace);
     setText(
@@ -191,7 +197,9 @@ function render(): void {
 function selectWorkspace(id: string): void {
   if (state.selectedWorkspace === id) return;
   epoch++;
+  rememberScroll();
   state.selectedWorkspace = id;
+  state.runsLoaded = "";
   state.runs = [];
   state.runCursor = null;
   state.runPaging = false;
@@ -297,6 +305,7 @@ async function refresh(): Promise<void> {
             !!record.artifactError);
       }
     }
+    state.runsLoaded = state.selectedWorkspace;
     loaded = true;
     state.syncedAt = Date.now();
     persist();
