@@ -10,6 +10,7 @@ import {
   isReportedModel,
   type Run,
 } from "./domain.js";
+import type { RecoveryOwner } from "./local-agent-recovery.js";
 import type { Store } from "./store.js";
 
 // Spec 0013: the agent gets only these variables. Provider API keys and host
@@ -86,6 +87,7 @@ export interface ClaudeCodeOptions {
   env?: NodeJS.ProcessEnv;
   /** Time between SIGTERM and SIGKILL when stopping the agent. */
   killGraceMs?: number;
+  recoveryOwner?: RecoveryOwner | undefined;
 }
 
 /**
@@ -154,6 +156,13 @@ export class ClaudeCodeAgent implements AgentAdapter {
         stderr = (stderr + chunk).slice(-4000);
       });
       child.stdin.on("error", () => undefined);
+      if (this.options.recoveryOwner && child.pid !== undefined)
+        this.store.recordAgentGroup(
+          run.id,
+          run.leaseToken!,
+          this.options.recoveryOwner,
+          child.pid,
+        );
       child.stdin.end(run.task);
 
       yield {

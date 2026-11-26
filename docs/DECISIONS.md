@@ -76,6 +76,15 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### Interrupted agent process groups (in development) — 26 November 2026
+
+The desktop recovery action checks the process group recorded before task
+delivery. A replacement service can close the interrupted run as failed when
+the kernel confirms group absence within the original boot and PID namespace.
+Missing evidence keeps the workspace blocked. The service sends no termination
+signal and records no successful task outcome. See the
+[crash recovery criteria](specs/0013-local-mvp.md#agent-process-reconciliation-after-a-service-crash-in-development).
+
 ### Changes docked beside the conversation (in development) — 25 November 2026
 
 Changes is a panel on the right of the conversation instead of a modal

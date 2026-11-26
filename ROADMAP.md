@@ -146,7 +146,9 @@ at `37ea780`: see the
 
 Item 5 is complete. The [authenticated walkthrough](docs/specs/0013-local-mvp.md#authenticated-draft-publication) records
 the reviewed commit, the matching GitHub draft, the saved URL after restart and
-archive retaining the branch. Item 6 is next.
+archive retaining the branch. Item 6 is next. The
+[agent crash recovery criteria](docs/specs/0013-local-mvp.md#agent-process-reconciliation-after-a-service-crash-in-development)
+cover the same-boot service restart and the limits of process-group evidence.
 
 ## L1.4 progress
 

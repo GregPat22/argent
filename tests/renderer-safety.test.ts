@@ -68,6 +68,18 @@ async function launch(
           createCalls++;
           return pendingCreation ?? null;
         },
+        reconcileAgent: async (id: string) => {
+          assert.equal(id, run.id);
+          run.status = "failed";
+          history.push({
+            cursor: 1,
+            runId: id,
+            type: "run.failed",
+            data: { reason: "Group confirmed absent" },
+            createdAt: 2,
+          });
+          return { ...run };
+        },
         resolveRun: async () => {
           resolveCalls++;
           return run;
@@ -257,11 +269,20 @@ test("real interrupted turns explain reconciliation without an abandon action", 
     transcript.find((item) => item.attributes.get("data-action") === "resolve"),
     undefined,
   );
-  assert.match(transcript.text, /process.*reconcil/i);
+  assert.match(transcript.text, /processes that left the group/i);
   assert.equal(app.element("composer-submit").disabled, true);
   app.element("resolve-form").fire("submit");
   await settle();
   assert.equal(app.resolveCalls, 0);
+  const check = transcript.find(
+    (item) => item.attributes.get("data-action") === "reconcile-agent",
+  );
+  assert.ok(check);
+  check.click();
+  await settle();
+  await app.poll();
+  assert.match(transcript.text, /Group confirmed absent/);
+  assert.equal(app.run.status, "failed");
 });
 
 test("stale review actions cannot open or submit resolution for a real run", async () => {

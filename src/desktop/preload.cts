@@ -55,6 +55,7 @@ const bridge: DesktopBridge = {
   artifact: (id) => invoke("artifact", [id]),
   setWorkspaceState: (id, state) => invoke("setWorkspaceState", [id, state]),
   cancelRun: (id) => invoke("cancelRun", [id]),
+  reconcileAgent: (id) => invoke("reconcileAgent", [id]),
   resolveRun: (id, note) => invoke("resolveRun", [id, note]),
 };
 contextBridge.exposeInMainWorld("argent", bridge);

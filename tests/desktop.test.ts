@@ -100,7 +100,7 @@ test("reviewing an uncertain simulation records abandonment and allows new work 
   }
 });
 
-test("an uncertain real run stays blocked until process reconciliation exists", () => {
+test("an interrupted local run without launch evidence stays blocked", () => {
   const store = new Store(":memory:");
   try {
     const workspace = store.createLocalWorkspace(
@@ -123,6 +123,14 @@ test("an uncertain real run stays blocked until process reconciliation exists", 
       /process reconciliation/,
     );
     assert.equal(store.getRun(run.id).status, "needs_attention");
+    assert.throws(
+      () =>
+        store.reconcileAgentGroup(run.id, {
+          instanceId: "replacement",
+          bootScope: "boot",
+        }),
+      /No matching process identity/,
+    );
     assert.deepEqual(store.events(run.id), events);
     assert.throws(
       () => store.createRun(workspace.id, "Replacement", "new"),

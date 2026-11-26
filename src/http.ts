@@ -1,3 +1,4 @@
+import type { RecoveryOwner } from "./local-agent-recovery.js";
 import { parseCommandDescriptor } from "./local-command-config.js";
 import { timingSafeEqual, createHash } from "node:crypto";
 import {
@@ -71,6 +72,7 @@ export interface ServerOptions {
   /** Only the local desktop explicitly enables GitHub publication. */
   publisher?: LocalPublications;
   instanceId?: string;
+  recoveryOwner?: RecoveryOwner | undefined;
   /** Identity of the code this service runs; the desktop refuses another build. */
   build?: string;
   onStop?: () => void;
@@ -634,6 +636,30 @@ export function makeServer(
         method === "GET"
       ) {
         send(response, 200, store.getWorkspace(parts[1]!));
+      } else if (
+        parts[0] === "runs" &&
+        parts.length === 3 &&
+        parts[2] === "reconcile-agent" &&
+        method === "POST"
+      ) {
+        const body = await readBody(request);
+        if (Object.keys(body).length || url.searchParams.size)
+          throw new DomainError(
+            400,
+            "Agent reconciliation accepts only the run ID",
+          );
+        if (!options.recoveryOwner)
+          throw new DomainError(
+            409,
+            "Process identity is unavailable in this service. The workspace stays blocked.",
+          );
+        send(
+          response,
+          200,
+          publicRun(
+            store.reconcileAgentGroup(parts[1]!, options.recoveryOwner),
+          ),
+        );
       } else if (
         parts[0] === "runs" &&
         parts.length === 3 &&

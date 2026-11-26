@@ -618,6 +618,8 @@ export class DesktopClient {
         return send(connection, `/runs/${id()}/artifact`);
       case "cancelRun":
         return send(connection, `/runs/${id()}/cancel`, "POST", {});
+      case "reconcileAgent":
+        return send(connection, `/runs/${id()}/reconcile-agent`, "POST", {});
       case "resolveRun":
         return send(connection, `/runs/${id()}/resolve`, "POST", {
           note: str(1, "resolution note", 1000),

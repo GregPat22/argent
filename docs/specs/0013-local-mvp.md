@@ -2155,6 +2155,29 @@ the existing mutation lock, including native-dialog cancellation and refresh.
 Renderer regressions cover duplicate synthetic clicks and access to both ends of
 a transcript longer than one page.
 
+### Agent process reconciliation after a service crash (in development)
+
+Acceptance against main `efe6882`, 26 November 2026:
+
+1. Before delivering the task, the desktop service records the spawned CLI's
+   process group under the current run lease, with the service instance and
+   the operating system boot identity. On Linux the identity also includes the
+   PID namespace. A launch interrupted before recording has no recovery proof.
+2. After restarting the service, the developer can check the interrupted turn.
+   The new exclusive service owner probes the original group on the same boot.
+   Only a kernel report that the entire group is absent allows the run to
+   become failed. That transition and its reason are recorded together. The
+   developer may then submit a new task. Inspection never retries the task.
+3. A surviving group (including children of an exited leader), a reused group
+   number, an unavailable identity, a different boot or an inspection error
+   keeps the workspace blocked. Historical runs without an identity and command
+   jobs remain blocked. The probe delivers no signal and accepts no PID or
+   evidence from the client.
+4. The desktop explains the boundary before the action. Processes that left
+   the agent's group require separate inspection. A note, polling and
+   reconnecting cannot release the workspace. A service-kill fixture must
+   exercise both blocked and released outcomes using independent processes.
+
 ### Cancellation regression acceptance
 
 Implemented in main `707ae8b`; acceptance recorded against main `a9bc431` on
