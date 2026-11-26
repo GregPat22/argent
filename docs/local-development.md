@@ -26,7 +26,8 @@ not been built or tested.
 
 Open the workspace menu and choose **Draft publication status** to read the
 saved outcome. A verified draft lists its GitHub URL, source and base branches,
-and the exact commits reviewed for publication. If a push or draft creation
+and the exact commits reviewed for publication. Use the saved URL to compare
+the draft description with the evidence reviewed in Argent. If a push or draft creation
 needs attention, inspect those refs and the pull requests on GitHub before
 taking further action. Opening the status does not repeat publication.
 
