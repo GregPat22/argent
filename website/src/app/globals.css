@@ -1990,7 +1990,8 @@ main
   justify-content: center;
   gap: 0.3rem 1.25rem;
   width: fit-content;
-  max-width: 100%;
+  /* Keep the status inside the description column so both liquid masses fit. */
+  max-width: min(100%, 37rem);
   margin: 1.5rem auto 0;
   padding: 0.25rem 0.5rem;
   font-size: 0.8125rem;

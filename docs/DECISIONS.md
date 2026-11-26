@@ -147,11 +147,13 @@ GitHub's repository ID is first observed at that point and checked throughout
 the operation. Create-only ref publication prevents replacing an existing
 remote branch. GitHub can independently move the base or rename a repository
 between calls. The service checks both refs and the draft before recording a URL.
-See the [publication contract](specs/0013-local-mvp.md#github-publication-boundary-in-development).
+The [authenticated walkthrough](specs/0013-local-mvp.md#authenticated-draft-publication)
+verified the reviewed draft and its durable receipt at `6935ee6`. See the
+[publication contract](specs/0013-local-mvp.md#github-publication-boundary).
 
 ### Draft pull request evidence preview (in development) — 22 November 2026
 
-The [preview contract](specs/0013-local-mvp.md#draft-evidence-preview-in-development)
+The [preview contract](specs/0013-local-mvp.md#draft-evidence-preview)
 binds the Markdown body to the reviewed base, commit and tree. Its digest
 identifies the committed change manifest. An end-of-run worktree digest can
 also cover uncommitted files. A matching check identifies the consent and review
@@ -162,7 +164,7 @@ Opening the preview requires no GitHub access.
 
 ### Commit the reviewed Git index (in development) — 22 November 2026
 
-Within L1.5 the [staged-commit flow](specs/0013-local-mvp.md#commit-staged-changes-in-development)
+Within L1.5 the [staged-commit flow](specs/0013-local-mvp.md#commit-staged-changes)
 uses the exact staged tree and a user-entered identity and message. The
 workspace changes panel compares working files to the workspace base and
 cannot identify the staged tree. The staged review instead uses hash-verified
@@ -171,7 +173,7 @@ that parent and preserves its last known outcome across a restart.
 
 ### Local archive ownership (in development) — 22 November 2026
 
-The [archive contract](specs/0013-local-mvp.md#local-archive-acceptance-in-development)
+The [archive contract](specs/0013-local-mvp.md#local-archive-acceptance)
 requires the branch to survive removal. The local service reserves a directory
 when creating a workspace and binds its filesystem identity to the repository
 and linked Git registration. Older rows lack this evidence. Learning an
@@ -251,8 +253,8 @@ definitions, check configuration, workflow definitions); and its dependencies
 URL, Git reference or local path, changed package-source settings). Argent
 computes it from the committed difference with its own Git commands, without
 running repository code or using the network. The report appears in the candidate
-review before consent. Its count appears beside the result. The planned draft
-pull request will include the report in its evidence record. [Spec 0018](specs/0018-judging-changes-report.md) is
+review before consent. Its count appears beside the result. The draft
+pull request includes the report in its evidence record. [Spec 0018](specs/0018-judging-changes-report.md) is
 the contract.
 
 **Where it sits.** It becomes work-queue item 4: after L1.4 shows its first
@@ -308,7 +310,7 @@ compares values privately and displays setting names and change kinds.
 The [real-task trial](specs/0018-judging-changes-report.md#real-task-trial)
 at `40bc375` on 21 November 2026 recorded zero findings for a documentation
 edit and one modified test path for a renderer regression. Keep the report in
-the local MVP. The planned L1.5 evidence record will carry it into a draft pull request.
+the local MVP. The L1.5 evidence record carries it into the GitHub draft.
 
 **Not decided.** Further package managers and languages, whether a repository
 may declare its own test paths, and whether a later version compares how many

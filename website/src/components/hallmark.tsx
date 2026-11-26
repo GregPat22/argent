@@ -401,8 +401,9 @@ export function Hallmark() {
           <StatusTag status="live" subject="Test results" />
           <p className="mt-4 max-w-[34rem] text-[0.9375rem] leading-relaxed text-sterling">
             After you approve the commands and review the commit, Argent runs
-            the checks in a fresh checkout and records the result. Draft pull
-            requests carrying that result are planned.
+            the checks in a fresh checkout and records the result. You can
+            include that result in a GitHub draft after reviewing the
+            destination and evidence.
           </p>
         </div>
       </div>

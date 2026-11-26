@@ -20,7 +20,7 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
   },
   {
     title: "Local MVP",
-    body: "Claude Code already runs in the app, each workspace in its own branch and worktree with a live session. The changes panel shows current files and a bounded diff. Argent runs approved checks for the exact commit. New check results include the number of changes the report flagged. Draft pull requests and workspace archive come next.",
+    body: "Claude Code already runs in the app, each workspace in its own branch and worktree with a live session. The changes panel shows current files and a bounded diff. Argent runs approved checks for the exact commit. New check results include the number of changes the report flagged. You can publish a reviewed draft and archive a clean workspace while keeping its branch. Recovering agent processes after a crash is next.",
     state: "now",
   },
   {
@@ -53,11 +53,11 @@ const TODAY = [
   "A changes panel with current files and a bounded diff (not tested)",
   "Approved checks in a fresh checkout of the exact commit",
   "A report of recognised changes to tests, check configuration, npm scripts and dependencies before consent",
+  "GitHub draft pull requests containing the reviewed checks and judging-changes report",
   "Simulation-history export and read-only restore, from the command line",
 ];
 
 const NOT_YET = [
-  "Draft pull requests in the app",
   "Export of real Claude Code history and Git changes",
   "Checked links between workspaces (an experiment, the first update after release)",
   "Codex and the model picker, then further project rules",

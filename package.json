@@ -2,7 +2,7 @@
   "name": "argent",
   "version": "0.0.1",
   "private": true,
-  "description": "Early open-source desktop prototype for Claude Code in local Git worktrees. Review diffs and changes to tests, commands and dependencies before exact-commit checks. Pull requests and cloud workspaces are planned.",
+  "description": "Open-source desktop prototype for Claude Code in local Git worktrees. Review diffs, run exact-commit checks and open a GitHub draft pull request with the evidence. Cloud workspaces are planned.",
   "license": "MIT",
   "repository": {
     "type": "git",

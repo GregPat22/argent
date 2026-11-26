@@ -1865,12 +1865,12 @@ unsandboxed, and an escaped process is not fenced by a process group.
 Commit and push the workspace branch and open a draft pull request through `gh`,
 recording the pull request URL. The pull request description carries Argent's
 evidence record (commit, checks and their results, diff hash, agent, model and
-permission mode), so the proof travels with the code. The planned record includes the
+permission mode), so the proof travels with the code. The record includes the
 [judging-changes report](0018-judging-changes-report.md) for the same commit. Archive removes the worktree only when it has no
 uncommitted changes, unless the developer explicitly discards them; the branch is
 kept.
 
-#### Commit staged changes (in development)
+#### Commit staged changes
 
 - From a local workspace the developer enters a commit message, author name and
   email. Review shows the same identity for author and committer, the branch,
@@ -1894,7 +1894,7 @@ an unreachable commit. A pending intent alone never proves that the branch
 moved. Other processes running as the developer can still change files outside
 Argent. The ref update compares the live branch with the reviewed parent.
 
-#### Local archive acceptance (in development)
+#### Local archive acceptance
 
 - The desktop names the workspace branch before requesting removal. The default
   requires the index and tracked files to match HEAD and preserves untracked
@@ -1922,7 +1922,7 @@ again inside the intent transaction. Its file checks are point-in-time. Another
 process running as the developer can still change the filesystem outside
 Argent's control.
 
-#### Draft evidence preview (in development)
+#### Draft evidence preview
 
 - From a local workspace's setup/test candidate review, the developer can
   preview the Markdown evidence for that exact base, commit and tree before
@@ -1949,7 +1949,7 @@ Argent's control.
 - Refresh, disconnect and workspace changes invalidate the displayed preview.
   Committing staged files and publishing a draft each require separate confirmation.
 
-#### GitHub publication boundary (in development)
+#### GitHub publication boundary
 
 - The desktop shows the canonical GitHub repository, base and workspace refs,
   exact commit IDs, the number of commits to publish, title and complete
@@ -2004,9 +2004,7 @@ At `4b6f0b1` the staged-index cleanup also checks ownership of the file it
 removes. Git can replace the temporary index when caching a tree. Argent
 retains a handle to the original file and verifies the replacement's staged
 entries before allowing cleanup. The regression covers both an occupied path
-and replacement of a held file. An interruption can leave the temporary index on disk. The remaining L1.5 exit evidence requires an authenticated push, a
-draft pull request whose description contains the reviewed evidence and a
-recorded URL.
+and replacement of a held file. An interruption can leave the temporary index on disk. The authenticated walkthrough below covers the push, draft body and recorded URL.
 
 #### Offline GitHub publication evidence
 
@@ -2025,8 +2023,28 @@ service test repeated confirmation and observed one push and one draft.
 The transport tests at `9ffa8ea` exercised the installed GitHub CLI over a
 private Unix socket, redirected responses, competing ref creation, mismatched
 draft receipts and preservation of replaced scratch files. Verification used a
-fixture upstream and disposable credentials. Live GitHub sign-in, repository
-permissions and provider responses remain part of the authenticated walkthrough.
+fixture upstream and disposable credentials. The authenticated walkthrough below exercises live GitHub sign-in and repository permissions.
+
+#### Authenticated draft publication
+
+On 26 November 2026 the desktop client and local service from `6935ee6`
+created a workspace from this repository at that commit. The staged-commit
+review produced `05b126b`, a one-file documentation change. After approval
+of the base configuration and consent to the candidate, Argent ran `npm ci`
+and `npm run check` in a fresh checkout. Both commands exited zero.
+
+One confirmation published the workspace branch and opened [the GitHub draft](https://github.com/GregPat22/argent/pull/76)
+through the developer's GitHub CLI sign-in. A separate GitHub read matched
+both refs and commit IDs, the draft state, title and complete Markdown body
+to the saved review. The body included both phase results. The judging-changes
+report listed zero recognised changes and marked committed npm registry
+settings as not checkable.
+
+After a service restart, the desktop client returned the same publication URL.
+Clean archive removed the worktree and retained the branch at `05b126b`.
+The walkthrough drove the desktop client programmatically. The native
+dialog and interrupted-publication cases have separate offline coverage.
+A human merge remains part of the L1 exit evidence.
 
 #### Human-triggered merge design todo
 

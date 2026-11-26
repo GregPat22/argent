@@ -44,7 +44,7 @@ const PROMISES: {
   },
   {
     title: "Stops when it isn’t sure.",
-    body: "If a run’s outcome is unknown, Argent marks it for a person to inspect. It never repeats something that may already have happened.",
+    body: "If a run’s outcome is unknown, Argent marks it for a person to inspect. If a push or draft creation has an uncertain outcome, its saved status identifies the GitHub refs to inspect. Reopening the workspace never repeats the push or draft creation.",
     status: "live",
     subject: "Lost-worker handling",
   },
