@@ -139,7 +139,10 @@ Acceptance against main `efe6882`, 26 November 2026:
 2. The service runs bounded `--version` and `auth status` probes outside the
    repository with the agent's allowlisted environment and no task input.
    Malformed or unavailable status refuses the submission with a diagnostic.
-   Account details and raw output are never stored or returned to the desktop.
+   Acceptance requires exit zero, a positive login flag and the CLI’s
+   `claude.ai` authentication method. API credentials and unrecognised methods
+   do not establish this sign-in. Account details and raw output are never
+   stored or returned to the desktop.
    The [official CLI reference](https://code.claude.com/docs/en/cli-reference)
    documents the status command and its exit codes.
 3. The existing request key still retrieves an accepted run after sign-out.
@@ -147,7 +150,9 @@ Acceptance against main `efe6882`, 26 November 2026:
    recheck ownership in the enqueue transaction after readiness is observed.
    Simulated runs need no CLI. The worker checks the version again at dispatch.
 4. Offline fixtures exercise the desktop bridge and service using a temporary
-   executable. A successful probe is a point-in-time observation of the CLI.
+   executable. The probe observes the CLI outside the repository at submission
+   time. Settings the CLI loads in the worktree and later credential changes
+   can affect dispatch.
 
 #### L1.1 implementation and evidence
 

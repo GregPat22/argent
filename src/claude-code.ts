@@ -150,9 +150,22 @@ export class ClaudeCodeAgent implements AgentAdapter {
       if (error instanceof UncertainExecutionError) throw error;
       throw new DomainError(409, unknown);
     }
-    const loggedIn = (reported as { loggedIn?: unknown } | null)?.loggedIn;
-    if (status.code === 0 && loggedIn === true) return;
-    if (status.code === 1 && loggedIn === false)
+    const auth = reported as {
+      loggedIn?: unknown;
+      authMethod?: unknown;
+    } | null;
+    if (status.code === 0 && auth?.loggedIn === true) {
+      if (auth.authMethod === "claude.ai") return;
+      throw new DomainError(
+        409,
+        "Claude Code did not report a claude.ai sign-in. Check claude auth status in Terminal, select your Claude account with claude auth login, then retry.",
+      );
+    }
+    if (
+      status.code === 1 &&
+      auth?.loggedIn === false &&
+      auth.authMethod === "none"
+    )
       throw new DomainError(
         409,
         "Claude Code is not signed in. Run claude auth login in Terminal, then send your task again.",

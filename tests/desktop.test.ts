@@ -373,7 +373,8 @@ if (process.argv.includes('--version')) {
 if (process.argv[2] === 'auth' && process.argv[3] === 'status') {
   if (process.cwd() !== '/' || process.env.ANTHROPIC_API_KEY || process.env.GITHUB_TOKEN) process.exit(2);
   if (state === 'malformed') { console.log('private fixture text'); process.exit(0); }
-  console.log(JSON.stringify({loggedIn: state !== 'signed-out', account: 'private fixture text'}));
+  const method = state === 'signed-out' ? 'none' : state === 'helper' ? 'api_key_helper' : state === 'unknown-method' ? undefined : 'claude.ai';
+  console.log(JSON.stringify({loggedIn: state !== 'signed-out', authMethod: method, account: 'private fixture text'}));
   process.exit(['signed-out','contradiction'].includes(state) ? 1 : 0);
 }
 let input = "";
@@ -466,6 +467,8 @@ process.stdin.on("end", () => {
       ["signed-out", /not signed in.*claude auth login/],
       ["malformed", /could not be verified.*claude auth status/],
       ["contradiction", /could not be verified.*claude auth status/],
+      ["helper", /did not report a claude.ai sign-in/],
+      ["unknown-method", /did not report a claude.ai sign-in/],
     ] as const) {
       chmodSync(claude, cliMode === "missing" ? 0o600 : 0o755);
       writeFileSync(cliState, cliMode);
