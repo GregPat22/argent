@@ -321,8 +321,9 @@ export function Journey() {
       <p className="pb-24 text-sm text-sterling-dim md:pb-32">
         An illustration of the planned experience, not a live system. Today, the
         desktop app runs Claude Code in local worktrees (early, and not a
-        sandbox) and runs checks after consent to the exact commit. Codex,
-        remote workspaces and the iPhone companion are still ahead.
+        sandbox). After consent it runs exact-commit checks. You can publish the
+        evidence in a GitHub draft from the desktop. Codex, remote workspaces
+        and the iPhone companion are still ahead.
       </p>
     </section>
   );

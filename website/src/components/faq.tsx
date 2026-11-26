@@ -18,10 +18,10 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         own branch and Git worktree, with your own sign-in. Follow-up tasks
         reuse that workspace. It is early and not a sandbox. Its changes panel
         shows current files and a bounded diff. Argent runs approved checks
-        against the exact commit. Draft pull requests are planned. Today it runs
-        on Macs with Apple silicon; Windows, Linux and Intel Mac builds have not
-        been made or tested. Star and watch the repository to hear when signed
-        downloads land.
+        against the exact commit. With your confirmation, it opens a GitHub
+        draft containing the evidence. Today it runs on Macs with Apple silicon;
+        Windows, Linux and Intel Mac builds have not been made or tested. Star
+        and watch the repository to hear when signed downloads land.
       </>
     ),
   },
@@ -105,8 +105,8 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         changes panel shows current files and a bounded diff; it is not test
         evidence. Before consent, the report lists recognised changes to tests,
         check scripts, configuration and dependencies. After consent, Argent
-        runs approved checks in a fresh checkout of the exact commit. A draft
-        pull request carrying that result is planned. It is open source, built
+        runs approved checks in a fresh checkout of the exact commit. You can
+        publish that result in a draft pull request. It is open source, built
         for more than one agent, and designed to continue on a machine that
         stays on and on your phone.
       </>
@@ -131,8 +131,9 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
     question: "Who decides what gets merged?",
     answer: (
       <>
-        You do, always. Draft pull requests carrying Argent’s evidence are
-        planned for the local MVP; merging remains a separate human action.{" "}
+        You do. Argent shows the destination, commits and evidence before you
+        confirm publication. It records the GitHub draft URL so you can review
+        and merge it yourself.{" "}
         <a href={ARCHITECTURE_URL} target="_blank" rel="noreferrer">
           Read the architecture
         </a>{" "}

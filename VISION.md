@@ -103,5 +103,6 @@ current changed files and a bounded diff against the workspace base. Live diffs 
 observations of current files, not checks or immutable evidence. Argent runs approved checks against an exact commit after consent.
 Before consent, the judging-changes report lists recognised changes to tests,
 check configuration, scripts and dependencies. Its count appears beside the
-result. Draft pull requests and workspace archive are next. Links between workspaces, further rule types and shared rule
+result. A confirmed GitHub draft carries that result and the judging-changes report.
+Archiving the workspace retains its Git branch. Links between workspaces, further rule types and shared rule
 sets do not exist.

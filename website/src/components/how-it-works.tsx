@@ -114,10 +114,10 @@ const STEPS: {
     status: "live",
   },
   {
-    title: "Review the evidence. Then merge.",
-    body: "See the real diff and the test results recorded for the exact commit, separate from what the agent says. Draft pull requests are planned. Merging is always your call.",
+    title: "Review the evidence. Open a draft.",
+    body: "See the real diff and the test results recorded for the exact commit, separate from what the agent says. Confirm the destination and evidence to open a draft. You decide whether to merge on GitHub.",
     object: <EvidenceObject />,
-    status: "next",
+    status: "live",
   },
 ];
 
@@ -160,7 +160,6 @@ export function HowItWorks() {
           This is the workflow of the local MVP, the first release. Real agents
           run on your own computer, through their official command-line tools
           and your own sign-in: Claude Code first, then Codex in a later update.
-          The first two steps work today; the third is being built.
         </p>
       </div>
 

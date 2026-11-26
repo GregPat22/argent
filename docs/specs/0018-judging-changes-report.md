@@ -2,8 +2,8 @@
 
 Status: **implemented and retained**. The [real-task trial](#real-task-trial)
 records the decision at `40bc375`. This completes item 4 in the
-[work queue](../../ROADMAP.md#work-queue). Carrying the report into a draft
-pull request is planned for L1.5.
+[work queue](../../ROADMAP.md#work-queue). The [authenticated publication walkthrough](0013-local-mvp.md#authenticated-draft-publication)
+verified the same report in the GitHub draft.
 
 ## Product decision
 
@@ -75,8 +75,7 @@ with the same visible escapes as the candidate review.
 - **Next to the result.** A workspace shows passed, failed or stale together
   with the number of judging changes for that commit, without opening the
   transcript.
-- **In the evidence record.** When the draft pull request (L1.5) lands, its
-  evidence record carries the report for the same commit.
+- **In the evidence record.** The GitHub draft carries the report for the same commit.
 
 The report is bound to the base commit and the candidate commit. When either
 changes it is computed again; an earlier report is never carried over.

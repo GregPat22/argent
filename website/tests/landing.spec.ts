@@ -521,7 +521,7 @@ test("how it works plays its three objects once and labels local mode honestly",
   await expect(list).toHaveAttribute("data-playing", "true");
   await expect(section).toContainText("Local mode is not a sandbox");
   await expect(section).toContainText("Claude Code first, then Codex");
-  await expect(section.getByText("In development")).toHaveCount(1);
+  await expect(section.getByText("Works today")).toHaveCount(3);
 });
 
 test("agents section shows Claude Code and Codex with their models and a manual pick sticks", async ({
@@ -1450,6 +1450,7 @@ test("hero states the promise once and today's facts under the actions", async (
     await expect(status).toContainText(
       "Review changed tests before exact-commit checks",
     );
+    await expect(status).toContainText("Share results in a GitHub draft");
     // The liquid keeps clear of it, and it fits the first screen.
     await expect(status).toHaveAttribute("data-liquid-avoid");
     // The live dot never animates a painted property, with or without motion.
@@ -1657,11 +1658,11 @@ test("how it works says which steps work today", async ({ page }) => {
   const plates = page.locator("#lifecycle .hiw-plate");
   await expect(plates.nth(0)).toContainText("Works today");
   await expect(plates.nth(1)).toContainText("Works today");
-  await expect(plates.nth(2)).toContainText("In development");
-  await expect(plates.nth(2)).not.toContainText("Works today");
-  await expect(page.locator("#lifecycle")).toContainText(
-    "The first two steps work today; the third is being built.",
+  await expect(plates.nth(2)).toContainText("Works today");
+  await expect(plates.nth(2)).toContainText(
+    "You decide whether to merge on GitHub.",
   );
+  await expect(plates.nth(2)).not.toContainText("In development");
 });
 
 test("the journey stage stays in view on a phone while its steps scroll beneath it", async ({

@@ -48,10 +48,11 @@ records the two candidate reviews and the decision to keep the report.
 
 The [local L1.5 walkthrough](specs/0013-local-mvp.md#local-l15-verification)
 records development evidence for staged commits, the draft evidence preview
-and archive. The [GitHub publication contract](specs/0013-local-mvp.md#github-publication-boundary-in-development)
+and archive. The [GitHub publication contract](specs/0013-local-mvp.md#github-publication-boundary)
 covers explicit confirmation, create-only push, draft creation and URL recording.
 The [offline publication evidence](specs/0013-local-mvp.md#offline-github-publication-evidence)
-records the desktop, Git receiver and CLI checks. A live GitHub walkthrough remains outstanding.
+records the desktop, Git receiver and CLI checks. The [authenticated walkthrough](specs/0013-local-mvp.md#authenticated-draft-publication)
+records the draft read back from GitHub and the URL retained across a restart.
 
 A [human-triggered desktop merge flow](specs/0013-local-mvp.md#human-triggered-merge-design-todo)
 is in the design backlog. Its UX, workflow and delivery milestone remain open;

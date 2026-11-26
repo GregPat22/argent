@@ -73,7 +73,8 @@ export function Hero() {
                 built from source, no download yet
               </span>
               <span className="hero-status-line hero-status-line--dim">
-                Review changed tests before exact-commit checks
+                Review changed tests before exact-commit checks. Share results
+                in a GitHub draft.
               </span>
             </p>
           </div>
