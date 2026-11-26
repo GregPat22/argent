@@ -1,3 +1,7 @@
+import {
+  requireAbsentAgentGroup,
+  type RecoveryOwner,
+} from "./local-agent-recovery.js";
 import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import {
@@ -154,6 +158,10 @@ export class Store {
           ('queued','running','cancelling','completed','failed','cancelled','needs_attention')),
         max_runtime_ms INTEGER NOT NULL, created_at INTEGER NOT NULL,
         deadline_at INTEGER, lease_token TEXT, lease_expires_at INTEGER
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS local_agent_groups (
+        run_id TEXT PRIMARY KEY REFERENCES runs(id), service_instance TEXT NOT NULL,
+        boot_scope TEXT NOT NULL, pgid INTEGER NOT NULL CHECK(pgid BETWEEN 2 AND 2147483647)
       ) STRICT;
       CREATE UNIQUE INDEX IF NOT EXISTS one_active_run ON runs(workspace_id)
         WHERE status IN ${ACTIVE};
@@ -692,18 +700,18 @@ export class Store {
       throw new DomainError(409, "Workspace has active or uncertain work");
   }
 
-  createRun(
+  inspectRunSubmission(
     workspaceId: string,
     task: unknown,
     key: unknown,
     maxRuntimeMs?: unknown,
-    at?: number,
     mode?: unknown,
-  ): Run {
+  ) {
     const text = requireString(task, "task");
     const requestKey = requireString(key, "Idempotency-Key", 128);
     const permission = permissionMode(mode);
-    const real = this.getWorkspace(workspaceId).provider === "local-worktree";
+    const workspace = this.getWorkspace(workspaceId);
+    const real = workspace.provider === "local-worktree";
     const bounds = real ? LOCAL_RUNTIME : SIMULATION_RUNTIME;
     const runtime = requireInteger(
       maxRuntimeMs ?? bounds.fallback,
@@ -713,40 +721,54 @@ export class Store {
     );
     if (!real && permission !== "edits")
       throw new DomainError(400, "Simulated runs have no permission modes");
+    const previous = this.db
+      .prepare("SELECT * FROM runs WHERE request_key = ?")
+      .get(requestKey);
+    if (previous) {
+      const run = readRun(previous);
+      if (
+        previous.kind !== "agent" ||
+        run.workspaceId !== workspaceId ||
+        run.task !== text ||
+        run.maxRuntimeMs !== runtime ||
+        run.permissionMode !== permission
+      ) {
+        throw new DomainError(
+          409,
+          "Idempotency key already used with a different payload",
+        );
+      }
+      return { previous: run, real, text, requestKey, permission, runtime };
+    }
+    if (workspace.state !== "running")
+      throw new DomainError(409, "Workspace is stopped");
+    this.requireLocalWorkspace(workspaceId);
+    if (
+      this.db
+        .prepare(
+          `SELECT id FROM runs WHERE workspace_id = ? AND
+        (status IN ${ACTIVE} OR status = 'needs_attention')`,
+        )
+        .get(workspaceId)
+    ) {
+      throw new DomainError(409, "Workspace has active or uncertain work");
+    }
+    return { previous: null, real, text, requestKey, permission, runtime };
+  }
+
+  createRun(
+    workspaceId: string,
+    task: unknown,
+    key: unknown,
+    maxRuntimeMs?: unknown,
+    at?: number,
+    mode?: unknown,
+  ): Run {
     return this.transaction(() => {
       const now = at ?? Date.now();
-      const previous = this.db
-        .prepare("SELECT * FROM runs WHERE request_key = ?")
-        .get(requestKey);
-      if (previous) {
-        const run = readRun(previous);
-        if (
-          previous.kind !== "agent" ||
-          run.workspaceId !== workspaceId ||
-          run.task !== text ||
-          run.maxRuntimeMs !== runtime ||
-          run.permissionMode !== permission
-        ) {
-          throw new DomainError(
-            409,
-            "Idempotency key already used with a different payload",
-          );
-        }
-        return run;
-      }
-      if (this.getWorkspace(workspaceId).state !== "running")
-        throw new DomainError(409, "Workspace is stopped");
-      this.requireLocalWorkspace(workspaceId);
-      if (
-        this.db
-          .prepare(
-            `SELECT id FROM runs WHERE workspace_id = ? AND
-        (status IN ${ACTIVE} OR status = 'needs_attention')`,
-          )
-          .get(workspaceId)
-      ) {
-        throw new DomainError(409, "Workspace has active or uncertain work");
-      }
+      const { previous, real, text, requestKey, permission, runtime } =
+        this.inspectRunSubmission(workspaceId, task, key, maxRuntimeMs, mode);
+      if (previous) return previous;
       const id = randomUUID();
       this.db
         .prepare(
@@ -1068,6 +1090,76 @@ export class Store {
         ? metadata.reportedModel
         : null,
     };
+  }
+
+  recordAgentGroup(
+    id: string,
+    token: string,
+    owner: RecoveryOwner,
+    pgid: number,
+  ): void {
+    this.transaction(() => {
+      const run = this.owned(id, token, Date.now());
+      if (
+        run.simulation ||
+        run.status !== "running" ||
+        this.runKind(id) !== "agent"
+      )
+        throw new DomainError(409, "Expected a running local agent");
+      this.db
+        .prepare(
+          "INSERT INTO local_agent_groups (run_id,service_instance,boot_scope,pgid) VALUES (?,?,?,?)",
+        )
+        .run(id, owner.instanceId, owner.bootScope, pgid);
+    });
+  }
+
+  reconcileAgentGroup(id: string, owner: RecoveryOwner): Run {
+    return this.transaction(() => {
+      const run = this.requireAgentRun(id);
+      if (run.simulation || run.status !== "needs_attention")
+        throw new DomainError(
+          409,
+          "Only an interrupted local agent can be checked",
+        );
+      const group = this.db
+        .prepare("SELECT * FROM local_agent_groups WHERE run_id = ?")
+        .get(id);
+      if (!group || group.boot_scope !== owner.bootScope)
+        throw new DomainError(
+          409,
+          "No matching process identity for this boot. The workspace stays blocked.",
+        );
+      if (group.service_instance === owner.instanceId)
+        throw new DomainError(
+          409,
+          "The original service still owns this run. Check again after restarting the service.",
+        );
+      requireAbsentAgentGroup(group.pgid as number);
+      const now = Date.now();
+      this.db.prepare("UPDATE runs SET status = 'failed' WHERE id = ?").run(id);
+      this.event(
+        id,
+        "run.resolved",
+        {
+          action: "confirmed_agent_group_absent",
+          replayed: false,
+          simulation: false,
+        },
+        now,
+      );
+      this.event(
+        id,
+        "run.failed",
+        {
+          reason:
+            "Interrupted. Argent confirmed the original agent process group has stopped.",
+          simulation: false,
+        },
+        now,
+      );
+      return this.getRun(id);
+    });
   }
 
   resolveSimulation(id: string, note: unknown): Run {

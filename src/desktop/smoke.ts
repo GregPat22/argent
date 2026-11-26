@@ -588,6 +588,39 @@ export async function runDesktopSmoke(
       runs.map((run) => [run.task, run.permissionMode, run.status]),
       [[firstMessage, "edits", "completed"]],
     );
+    const signedOut = join(
+      process.env.ARGENT_DESKTOP_DATA_DIR!,
+      "fixture-signed-out",
+    );
+    writeFileSync(signedOut, "", { flag: "wx" });
+    try {
+      await js(`const draft = document.querySelector('#composer-input');
+        draft.value = 'Explain the changes'; draft.dispatchEvent(new Event('input'));
+        document.querySelector('#composer-submit').click();`);
+      await until(
+        () =>
+          js(
+            `!document.querySelector('#error-banner').hidden && document.querySelector('#error-text').textContent.includes('claude auth login')`,
+          ),
+        "signed-out remedy before acceptance",
+      );
+      assert.equal(
+        await js(`document.querySelector('#composer-input').value`),
+        "Explain the changes",
+      );
+      assert.equal(
+        await js(`document.querySelector('#composer-input').readOnly`),
+        false,
+      );
+      assert.equal(
+        (await call<Page<RunView>>("listRuns", [workspaces[0]!.id])).items
+          .length,
+        1,
+      );
+      await capture("sign-in-required");
+    } finally {
+      unlinkSync(signedOut);
+    }
     console.log(
       `[ARGENT_SMOKE]${JSON.stringify({ passed: true, suite, elapsedMs: Date.now() - started })}`,
     );

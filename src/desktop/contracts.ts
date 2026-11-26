@@ -168,6 +168,7 @@ export interface DesktopBridge {
   artifact(id: string): Promise<ArtifactView>;
   setWorkspaceState(id: string, state: Workspace["state"]): Promise<Workspace>;
   cancelRun(id: string): Promise<RunView>;
+  reconcileAgent(id: string): Promise<RunView>;
   resolveRun(id: string, note: string): Promise<RunView>;
 }
 

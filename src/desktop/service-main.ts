@@ -3,6 +3,7 @@ import { readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { dirname } from "node:path";
 import { LocalWorkspace, ScriptedAgent } from "../adapters.js";
+import { recoveryOwner } from "../local-agent-recovery.js";
 import { ClaudeCodeAgent } from "../claude-code.js";
 import { LocalWorktreeWorkspace } from "../local-worktree.js";
 import { dataPaths } from "../config.js";
@@ -43,6 +44,7 @@ function removeOwned(path: string): void {
 }
 
 try {
+  const owner = await recoveryOwner(instanceId);
   const store = new Store(paths.database);
   const shutdown = new AbortController();
   const token = randomBytes(32).toString("hex");
@@ -51,6 +53,7 @@ try {
     new GitHubPublisher(),
     shutdown.signal,
   );
+  const agent = new ClaudeCodeAgent(store, { recoveryOwner: owner });
   const server = makeServer(store, token, {
     artifactRoot: paths.workspaces,
     worktreeRoot,
@@ -58,6 +61,8 @@ try {
     localCommandOperatorId: "local-desktop",
     localChecks: true,
     publisher,
+    recoveryOwner: owner,
+    checkClaudeReadiness: () => agent.checkReadiness(shutdown.signal),
     instanceId,
     build: buildIdentity(),
     onStop: () => shutdown.abort(),
@@ -69,7 +74,7 @@ try {
     5000,
     {
       workspace: new LocalWorktreeWorkspace(store, worktreeRoot),
-      agent: new ClaudeCodeAgent(store),
+      agent,
     },
   );
   for (const signal of ["SIGINT", "SIGTERM"] as const)

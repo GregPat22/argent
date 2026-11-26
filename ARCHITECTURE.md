@@ -445,7 +445,9 @@ The implemented [local hardening acceptance criteria](docs/specs/0013-local-mvp.
 require a supervisor to retain process-group ownership until quiescence, including
 early transcript rejection. Unconfirmed termination blocks the workspace;
 database leases and operator notes do not prove an old process has stopped.
-Durable process reconciliation after a service crash remains unimplemented.
+A [desktop recovery action in development](docs/specs/0013-local-mvp.md#agent-process-reconciliation-after-a-service-crash-in-development)
+uses a private launch record and a same-boot kernel probe. The process group
+number stays inside the service. A developer requests the check by run ID.
 
 A [cancellation follow-up](docs/specs/0013-local-mvp.md#cancellation-regression-acceptance)
 is implemented in main `707ae8b` for transient process-group permission errors during exit.

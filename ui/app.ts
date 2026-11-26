@@ -425,6 +425,21 @@ Object.assign(actions, {
   openDemo,
   openSettings,
   openPalette,
+  reconcileAgent: (id: string) => {
+    const run = state.runs.find((item) => item.id === id);
+    if (
+      !state.connected ||
+      !run ||
+      run.simulation ||
+      run.status !== "needs_attention"
+    )
+      return;
+    void mutate(async () => {
+      const updated = await api().reconcileAgent(id);
+      if (state.selectedWorkspace === updated.workspaceId)
+        state.runs = merge(state.runs, [updated]);
+    });
+  },
   resolveRun,
   focusComposer,
 });

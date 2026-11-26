@@ -128,6 +128,40 @@ What Argent guarantees in local mode:
 6. Tests use a fake `claude` executable and real temporary Git repositories; they
    call no model and need no sign-in.
 
+#### Desktop CLI readiness before submission (in development)
+
+Acceptance against main `efe6882`, 26 November 2026:
+
+1. Submitting a new local task checks the configured Claude Code executable,
+   the supported minimum version and the CLI's sign-in status before a run or
+   event is created. The desktop shows a specific remedy for a missing
+   executable, outdated version or signed-out CLI and keeps the task editable.
+2. The service runs bounded `--version` and `auth status` probes outside the
+   repository with the agent's allowlisted environment and no task input.
+   Malformed or unavailable status refuses the submission with a diagnostic.
+   Acceptance requires exit zero, a positive login flag and the CLI’s
+   `claude.ai` authentication method. API credentials and unrecognised methods
+   do not establish this sign-in. Account details and raw output are never
+   stored or returned to the desktop.
+   The [official CLI reference](https://code.claude.com/docs/en/cli-reference)
+   documents the status command and its exit codes.
+3. The existing request key still retrieves an accepted run after sign-out.
+   Conflicting keys and occupied workspaces are refused. Concurrent submissions
+   recheck ownership in the enqueue transaction after readiness is observed.
+   Simulated runs need no CLI. The worker checks the version again at dispatch.
+4. Offline fixtures exercise the desktop bridge and service using a temporary
+   executable. The probe observes the CLI outside the repository at submission
+   time. Settings the CLI loads in the worktree and later credential changes
+   can affect dispatch.
+
+On 26 November 2026, a native Electron walkthrough of development commit
+`52a6c93` submitted one task through a fixture CLI. After the fixture reported
+sign-out, the desktop showed the Terminal login command and kept the second
+draft editable. The service still listed only the first run. Separate bridge
+fixtures exercised missing and outdated executables, malformed status,
+credential-helper authentication and idempotent delivery. These observations
+use no model account.
+
 #### L1.1 implementation and evidence
 
 - `src/local-worktree.ts` validates repositories, creates and rolls back the
@@ -2154,6 +2188,38 @@ older page until the user returns to the latest events. Workspace creation share
 the existing mutation lock, including native-dialog cancellation and refresh.
 Renderer regressions cover duplicate synthetic clicks and access to both ends of
 a transcript longer than one page.
+
+### Agent process reconciliation after a service crash (in development)
+
+Acceptance against main `efe6882`, 26 November 2026:
+
+1. Before delivering the task, the desktop service records the spawned CLI's
+   process group under the current run lease, with the service instance and
+   the operating system boot identity. On Linux the identity also includes the
+   PID namespace. A launch interrupted before recording has no recovery proof.
+2. After restarting the service, the developer can check the interrupted turn.
+   The new exclusive service owner probes the original group on the same boot.
+   Only a kernel report that the entire group is absent allows the run to
+   become failed. That transition and its reason are recorded together. The
+   developer may then submit a new task. Inspection never retries the task.
+3. A surviving group (including children of an exited leader), a reused group
+   number, an unavailable identity, a different boot or an inspection error
+   keeps the workspace blocked. Historical runs without an identity and command
+   jobs remain blocked. The probe delivers no signal and accepts no PID or
+   evidence from the client.
+4. The desktop explains the boundary before the action. Processes that left
+   the agent's group require separate inspection. A note, polling and
+   reconnecting cannot release the workspace. A service-kill fixture must
+   exercise both blocked and released outcomes using independent processes.
+
+On 26 November 2026, a macOS service-crash fixture at development commit
+`e61a75f` killed the desktop service while two fixture CLIs were running in
+separate worktrees. The replacement service refused recovery while the first
+leader lived and again while a child alone kept its group alive. After both
+exited, the explicit check closed that run as failed. A new task completed
+while the other workspace stayed blocked. This exercises a real service
+restart with fixture agents. It establishes no recovery across a machine
+reboot or for descendants that leave the group.
 
 ### Cancellation regression acceptance
 
