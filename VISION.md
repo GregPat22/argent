@@ -64,6 +64,8 @@ Workspace persistence and compute persistence are separate. Repositories,
 dependencies, configuration and evidence survive idle compute suspension. Closing
 a client does not cancel a run, and reopening one does not start a new run. An
 uncertain external action is reconciled before another action is authorized.
+For a local agent interrupted by a service crash, the developer can check its
+recorded process group after a same-boot service restart.
 
 Portable history and evidence are a product goal. Today the CLI exports and
 restores simulation history only; real-agent transcript and Git-history export

@@ -65,7 +65,9 @@ stateDiagram-v2
 
 An unknown outcome is never retried automatically. `needs_attention` blocks
 new work and lifecycle changes for the workspace. P1 adds audited abandonment
-for simulated runs only; real-provider reconciliation remains future work.
+for simulated runs. A replacement desktop service can resolve an interrupted
+local agent run as failed after confirming its recorded group is gone on the
+same boot. Hosted-provider reconciliation is planned.
 Reconnect reads run state and events after an
 ordered cursor; it does not dispatch work. No exactly-once external-effects
 guarantee is claimed. A database token cannot fence a Git push or cloud process.
@@ -445,7 +447,7 @@ The implemented [local hardening acceptance criteria](docs/specs/0013-local-mvp.
 require a supervisor to retain process-group ownership until quiescence, including
 early transcript rejection. Unconfirmed termination blocks the workspace;
 database leases and operator notes do not prove an old process has stopped.
-A [desktop recovery action in development](docs/specs/0013-local-mvp.md#agent-process-reconciliation-after-a-service-crash-in-development)
+A [desktop recovery action](docs/specs/0013-local-mvp.md#agent-process-reconciliation-after-a-service-crash)
 uses a private launch record and a same-boot kernel probe. The process group
 number stays inside the service. A developer requests the check by run ID.
 

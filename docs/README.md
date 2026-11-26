@@ -53,6 +53,9 @@ covers explicit confirmation, create-only push, draft creation and URL recording
 The [offline publication evidence](specs/0013-local-mvp.md#offline-github-publication-evidence)
 records the desktop, Git receiver and CLI checks. The [authenticated walkthrough](specs/0013-local-mvp.md#authenticated-draft-publication)
 records the draft read back from GitHub and the URL retained across a restart.
+The [L1 exit evidence](specs/0013-local-mvp.md#exit-evidence-for-l1) collects
+the recovery, CLI readiness and parallel-workspace results and identifies the
+outstanding human merge.
 
 A [human-triggered desktop merge flow](specs/0013-local-mvp.md#human-triggered-merge-design-todo)
 is in the design backlog. Its UX, workflow and delivery milestone remain open;
@@ -99,7 +102,7 @@ recorded revision.
 | [0010 Live repository pilot gates](specs/0010-live-repository-pilot-gates.md)             | The credential, authorization and isolation gates before live repository access.    |
 | [0011 GitHub device sign-in pilot](specs/0011-github-device-pilot.md)                     | Implemented opt-in read-only pilot, not connected to the desktop.                   |
 | [0012 Portable history](specs/0012-portable-history.md)                                   | Implemented offline export and read-only restore, with commands.                    |
-| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | L1.1–L1.4 implemented, including exact-commit checks. Later slices are planned.     |
+| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | L1.1–L1.5, CLI readiness and same-boot agent recovery implemented. L1 exit pending. |
 | [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.      |
 | [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks. |
 | [0018 Judging-changes report](specs/0018-judging-changes-report.md)                       | Implemented and retained after the real-task trial.                                 |

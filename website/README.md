@@ -64,8 +64,8 @@ The [consistency and motion correction contract](../docs/specs/0016-website-rest
 is in development. The post-release sequence includes checked links as an
 experiment, Codex/model choice, further project rules, then Cursor/OpenCode.
 Links grant no access and carry no messages. Rules distinguish guidance, checks,
-gates and prevention; Argent offers no prevention control. Real-process crash
-reconciliation stays planned. Untested local records use silver. The comparison
+gates and prevention; Argent offers no prevention control. After a same-boot service restart, the developer can check whether the
+recorded agent process group is gone before starting a new task. Untested local records use silver. The comparison
 must bypass its style-driven spring under reduced motion, clipboard failure
 must show complete commands immediately, and the journey meter and pulse must
 animate transforms/opacity rather than width/shadow.

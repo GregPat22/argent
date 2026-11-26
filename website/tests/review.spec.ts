@@ -54,7 +54,16 @@ test("roadmap preserves the approved post-release sequence and recovery limit", 
   await expect(roadmap).toContainText(
     "A link grants no access and carries no messages between agents",
   );
-  await expect(roadmap).toContainText("Process reconciliation after a crash");
+  const today = roadmap.getByRole("list", { name: "Works today" });
+  await expect(today).toContainText(
+    "when Claude Code is missing, outdated or signed out",
+  );
+  await expect(today).toContainText(
+    "After a service restart on the same boot, check whether the recorded agent process group is gone",
+  );
+  await expect(roadmap).toContainText(
+    "created through Argent and merged by a person",
+  );
   await expect(page.locator("#open")).toContainText(
     "guidance, a check, a gate or a prevention control",
   );

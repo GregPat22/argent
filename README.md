@@ -47,13 +47,17 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   you to the draft. Archiving a clean workspace keeps its branch and history.
 - Close and reopen the desktop to reconnect to the local service and its
   recorded history. An uncertain run requires investigation before the
-  workspace can continue.
+  workspace can continue. After a service restart on the same boot, choose
+  **Check agent process group**. If the recorded group is gone, Argent marks
+  the interrupted run failed and lets you submit a new task.
 
 ## Quick start
 
 The desktop development build runs on Apple Silicon Macs. Use Git and the
 Node.js and npm versions listed in [Contributing](CONTRIBUTING.md). For real
-agent tasks, install the official Claude Code CLI and sign in.
+agent tasks, install the official Claude Code CLI and sign in. If the CLI is
+missing, outdated or signed out, the desktop explains how to fix it and keeps
+your draft editable.
 
 ```sh
 git clone https://github.com/GregPat22/argent.git
@@ -93,9 +97,9 @@ MIT-licensed core runs on the developer's computer. See the [vision](VISION.md).
 
 ## Where it is going
 
-The first public release is the local MVP with Claude Code. The next step is to identify
-whether an agent process survived a service crash so its workspace can safely
-continue.
+The first public release is the local MVP with Claude Code. The remaining
+[L1 walkthrough evidence](docs/specs/0013-local-mvp.md#exit-evidence-for-l1) is a pull
+request created through Argent and merged by a person.
 
 The planned first update experiments with checked links between workspaces.
 A link grants no access and carries no messages between agents. Codex and

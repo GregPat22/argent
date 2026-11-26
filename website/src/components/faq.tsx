@@ -16,12 +16,14 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         </a>
         . It runs Claude Code on your local repositories, each workspace in its
         own branch and Git worktree, with your own sign-in. Follow-up tasks
-        reuse that workspace. It is early and not a sandbox. Its changes panel
-        shows current files and a bounded diff. Argent runs approved checks
-        against the exact commit. With your confirmation, it opens a GitHub
-        draft containing the evidence. Today it runs on Macs with Apple silicon;
-        Windows, Linux and Intel Mac builds have not been made or tested. Star
-        and watch the repository to hear when signed downloads land.
+        reuse that workspace. If the CLI is missing, outdated or signed out, the
+        app explains how to fix it and keeps your draft editable. It is early
+        and not a sandbox. Its changes panel shows current files and a bounded
+        diff. Argent runs approved checks against the exact commit. With your
+        confirmation, it opens a GitHub draft containing the evidence. Today it
+        runs on Macs with Apple silicon; Windows, Linux and Intel Mac builds
+        have not been made or tested. Star and watch the repository to hear when
+        signed downloads land.
       </>
     ),
   },
