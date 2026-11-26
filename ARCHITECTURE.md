@@ -530,7 +530,7 @@ exclude its authority. The executable local checks described below consume separ
 command-defining and test changes must be compared to the trusted base and
 surfaced for human review; freezing argv alone is insufficient.
 
-In development, [suggested npm commands](docs/specs/0019-suggested-commands.md)
+[Suggested npm commands](docs/specs/0019-suggested-commands.md)
 use the same approval and consent flow. When the root configuration entry is
 absent, the reader checks the lockfile marker and the pinned manifest. The
 suggestion identity includes the repository, versioned rule and exact actions

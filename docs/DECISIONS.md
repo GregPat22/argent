@@ -391,14 +391,13 @@ first. The security model is unchanged.
 - This repository carries its own `argent.json` (`npm ci`, then
   `npm run check`), so the rule that every change passes the repository check
   becomes a check Argent can run on Argent, not only guidance in AGENTS.md.
-- For a repository without `argent.json`, Argent will propose commands the
-  developer can approve directly. Accepted 20 November 2026: record the
+- For an npm project with a lockfile and test script but no base `argent.json`,
+  Argent suggests `npm ci` and `npm test` for direct approval. Accepted 20 November 2026: record the
   exact suggestion with its own versioned identity and keep candidate consent
   and execution separate. This avoids requiring a setup commit to try checks.
   The [suggested commands contract](specs/0019-suggested-commands.md) defines
-  source precedence, approval reuse and verification. The development implementation
-  at `4983b95` uses a distinct npm rule identity while preserving the stored
-  file-backed receipt format.
+  source precedence and approval reuse. The [offline desktop walkthrough](specs/0019-suggested-commands.md#native-desktop-verification)
+  at `e2bc71a` verified approval, separate consent, execution and freshness.
 - The simulated cloud lifecycle, custody and GitHub pilot code will be set
   aside from the local service's startup path and the default check until M1
   resumes. Planned as its own change; how, and whether offline history export

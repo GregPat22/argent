@@ -421,6 +421,55 @@ test("a candidate adding argent.json runs the approved suggestion until the file
   assert.deepEqual(await f.approve(), suggestion);
 });
 
+test("removing argent.json keeps file approval at the old base and requires suggestion approval at the new base", async (t) => {
+  const commands = {
+    version: 1,
+    commands: {
+      setup: { argv: ["npm", "ci"] },
+      test: { argv: ["npm", "test"] },
+    },
+  };
+  const f = await fixture(t, JSON.stringify(commands), npmFiles);
+  const file = await f.approve();
+  const directory = f.workspace.local!.worktreePath;
+  git(directory, "rm", "argent.json");
+  git(directory, "commit", "--quiet", "-m", "remove project commands");
+  const review = await reviewLocalCommandCandidate(
+    f.store,
+    f.worktrees,
+    f.workspace.id,
+    "operator",
+  );
+  assert.equal(review.configuration, "removed");
+  assert.equal(review.observation.configurationIdentity, f.candidate);
+  assert.equal((await f.lookup())?.approval.id, file.approval.id);
+
+  git(f.repo, "merge", "--ff-only", f.workspace.local!.branch);
+  const next = await createLocalWorkspace(f.store, f.worktrees, f.repo);
+  const suggested = await f.read(next.id);
+  assert.ok(suggested?.kind === "local-command-suggestion");
+  assert.deepEqual(suggested.config, file.approval.descriptor.config);
+  assert.notEqual(suggested.approvalCandidate.identity, f.candidate);
+  assert.equal(await f.lookup(next.id), null);
+  await assert.rejects(
+    f.approve("old-file", f.candidate, "operator", next.id),
+    rejected(409),
+  );
+  assert.deepEqual(f.counts(), [1, 1, 1]);
+  const approved = await f.approve(
+    "new-suggestion",
+    suggested.approvalCandidate.identity,
+    "operator",
+    next.id,
+  );
+  assert.notEqual(approved.approval.id, file.approval.id);
+  assert.deepEqual(await f.approve(), file);
+  assert.equal(
+    f.db.prepare("SELECT COUNT(*) AS n FROM command_jobs").get()!.n,
+    0,
+  );
+});
+
 test("missing configuration, invalid inputs, wrong digest and abort create no authority", async (t) => {
   const f = await fixture(t, null);
   assert.equal(await f.lookup(), null);
