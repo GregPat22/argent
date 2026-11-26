@@ -128,7 +128,9 @@ What Argent guarantees in local mode:
 6. Tests use a fake `claude` executable and real temporary Git repositories; they
    call no model and need no sign-in.
 
-#### Desktop CLI readiness before submission (in development)
+<a name="desktop-cli-readiness-before-submission-in-development"></a>
+
+#### Desktop CLI readiness before submission
 
 Acceptance against main `efe6882`, 26 November 2026:
 
@@ -2114,6 +2116,19 @@ run Claude and GPT models side by side in separate workspaces.
 
 ## Exit evidence for L1
 
+As of 26 November 2026, main `dfeed26` includes
+[crash recovery](#agent-process-reconciliation-after-a-service-crash) and
+[CLI readiness checks](#desktop-cli-readiness-before-submission). On macOS at
+that commit, the service-crash fixture confirmed that a surviving group member
+keeps the workspace blocked. After the group exited, the developer could submit
+a new task. The desktop bridge fixtures checked the remedies for a missing CLI,
+an outdated CLI and a signed-out account before accepting a new task.
+
+The [real CLI walkthrough](#development-walkthrough-evidence) records parallel
+tasks on this repository. The [publication walkthrough](#authenticated-draft-publication)
+records the draft for `05b126b`. It was still open on 26 November. A human merge
+of a pull request created through Argent remains the outstanding L1 exit evidence.
+
 Automated tests for every slice, a recorded desktop walkthrough, and maintainers
 completing real tasks on this repository through Argent: two workspaces running in
 parallel without interference, and at least one pull request created through
@@ -2157,8 +2172,9 @@ Acceptance criteria, 9 November 2026, based on main `241e6e6`:
    64 MiB total stream limit. Malformed events or success results fail the run;
    every failure still waits for process cleanup before settlement.
 
-A real model-backed walkthrough and durable process reconciliation after a hard
-service crash remain separate requirements; fake-CLI tests do not prove them.
+The [real CLI walkthrough](#development-walkthrough-evidence) covers agent tasks.
+The [service-crash fixture](#agent-process-reconciliation-after-a-service-crash)
+exercises process-group recovery after a same-boot service restart.
 
 Hardening verification contract: version 2 worktree records hash the tracked
 binary diff and a deterministic untracked manifest (path, Git file mode and
@@ -2189,7 +2205,9 @@ the existing mutation lock, including native-dialog cancellation and refresh.
 Renderer regressions cover duplicate synthetic clicks and access to both ends of
 a transcript longer than one page.
 
-### Agent process reconciliation after a service crash (in development)
+<a name="agent-process-reconciliation-after-a-service-crash-in-development"></a>
+
+### Agent process reconciliation after a service crash
 
 Acceptance against main `efe6882`, 26 November 2026:
 

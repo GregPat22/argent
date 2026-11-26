@@ -190,7 +190,8 @@ Acceptance:
    14 November 2026), developer-owned remote host,
    optional managed cloud, then mobile. Links grant no access and carry no
    messages; rules distinguish guidance, checks, gates and prevention, with no
-   prevention control offered today. Crash reconciliation stays planned.
+   prevention control offered today. For the recovery status since main `dfeed26`, use the
+   [same-boot agent recovery criteria](0013-local-mvp.md#agent-process-reconciliation-after-a-service-crash).
 2. Untested local records remain silver. Green may identify the explicitly
    labelled simulation integrity result or planned verification example.
 3. The comparison divider follows input without spring travel when reduced

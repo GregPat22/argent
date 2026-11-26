@@ -76,22 +76,22 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
-### First-run CLI guidance (in development) — 26 November 2026
+### First-run CLI guidance — 26 November 2026
 
-The desktop service checks the CLI before it accepts a new local submission.
+Implemented in main `dfeed26`. The desktop service checks the CLI before it accepts a new local submission.
 The CLI reports its own sign-in status. Argent retains only the accepted task
 and returns fixed instructions for a refusal. An idempotent retry reads the
 original receipt even if the developer has since signed out. See the
-[readiness criteria](specs/0013-local-mvp.md#desktop-cli-readiness-before-submission-in-development).
+[readiness criteria](specs/0013-local-mvp.md#desktop-cli-readiness-before-submission).
 
-### Interrupted agent process groups (in development) — 26 November 2026
+### Interrupted agent process groups — 26 November 2026
 
-The desktop recovery action checks the process group recorded before task
+Implemented in main `dfeed26`. The desktop recovery action checks the process group recorded before task
 delivery. A replacement service can close the interrupted run as failed when
 the kernel confirms group absence within the original boot and PID namespace.
 Missing evidence keeps the workspace blocked. The service sends no termination
 signal and records no successful task outcome. See the
-[crash recovery criteria](specs/0013-local-mvp.md#agent-process-reconciliation-after-a-service-crash-in-development).
+[crash recovery criteria](specs/0013-local-mvp.md#agent-process-reconciliation-after-a-service-crash).
 
 ### Changes docked beside the conversation (in development) — 25 November 2026
 
