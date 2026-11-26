@@ -67,6 +67,9 @@ the illustrated combined verification record remain planned.
    `lifecycle`, `agents`, `open`, `reconnect`, `roadmap`, `faq`, `run`, `join`.
 2. The hero paragraph is the promise only; the status line carries the
    facts above, is a liquid keep-out zone and fits the first screen at 360 × 800.
+   At 1440 × 900 the status wraps within the description column. Both liquid
+   mass centers must remain onscreen, on opposite sides of the heading, with a
+   visible highlight on each mass.
 3. Compact navigation has one button and one link. The pill links to `#run`, is
    at least 44 px tall, is absent over the hero, `#run` and `#join` and while
    the menu is open, and never overlaps the logo at 360 px.

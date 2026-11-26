@@ -287,8 +287,10 @@ test("hero centers the copy inside a field of interactive liquid silver", async 
     .split(" ")
     .map((pair) => pair.split(",").map(Number) as [number, number]);
   expect(masses).toHaveLength(2);
+  expect(masses[0]![0]).toBeGreaterThan(0);
   expect(masses[0]![0]).toBeLessThan(heading.x);
   expect(masses[1]![0]).toBeGreaterThan(heading.x + heading.width);
+  expect(masses[1]![0]).toBeLessThan(box.width);
   for (const [x, y] of masses) {
     const cx = Math.min(Math.max(x, 70), viewport.width - 70);
     await expect
