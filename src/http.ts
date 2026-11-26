@@ -73,6 +73,7 @@ export interface ServerOptions {
   publisher?: LocalPublications;
   instanceId?: string;
   recoveryOwner?: RecoveryOwner | undefined;
+  checkClaudeReadiness?: () => Promise<void>;
   /** Identity of the code this service runs; the desktop refuses another build. */
   build?: string;
   onStop?: () => void;
@@ -97,6 +98,7 @@ export function makeServer(
       );
   }
   const expected = createHash("sha256").update(`Bearer ${token}`).digest();
+  let readiness: Promise<void> | undefined;
   const server = createServer((request, response) => {
     void (async () => {
       // Deny browser-origin requests: M0 is an operator API with no CORS surface.
@@ -706,14 +708,41 @@ export function makeServer(
         const body = await readBody(request);
         if (typeof body.workspaceId !== "string")
           throw new DomainError(400, "workspaceId is required");
+        const workspaceId = body.workspaceId;
+        const key = request.headers["idempotency-key"];
+        if (options.checkClaudeReadiness) {
+          const inspect = () =>
+            store.inspectRunSubmission(
+              workspaceId,
+              body.task,
+              key,
+              body.maxRuntimeMs,
+              body.permissionMode,
+            );
+          const { real, previous } = inspect();
+          if (previous) return send(response, 202, publicRun(previous));
+          if (real) {
+            // Share only an in-flight probe. An accepted run keeps its receipt across sign-out.
+            readiness ??= options.checkClaudeReadiness().finally(() => {
+              readiness = undefined;
+            });
+            try {
+              await readiness;
+            } catch (error) {
+              const accepted = inspect().previous;
+              if (accepted) return send(response, 202, publicRun(accepted));
+              throw error;
+            }
+          }
+        }
         send(
           response,
           202,
           publicRun(
             store.createRun(
-              body.workspaceId,
+              workspaceId,
               body.task,
-              request.headers["idempotency-key"],
+              key,
               body.maxRuntimeMs,
               undefined,
               body.permissionMode,

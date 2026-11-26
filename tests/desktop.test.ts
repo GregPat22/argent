@@ -358,11 +358,24 @@ test("desktop bridge creates local workspaces only from a chosen folder and runs
   git("commit", "--quiet", "-m", "initial");
   // A fake CLI: announces the session, edits one file and reports success.
   const claude = join(root, "claude");
+  const cliState = join(root, "cli-state");
+  writeFileSync(cliState, "ready");
   writeFileSync(
     claude,
     `#!${process.execPath}
-if (process.argv.includes('--version')) { console.log('2.1.259 (Claude Code)'); process.exit(0); }
 const fs = require("node:fs");
+const state = fs.readFileSync(${JSON.stringify(cliState)}, 'utf8');
+if (process.argv.includes('--version')) {
+  if (state === 'unreadable-version') { console.log('private fixture text'); process.exit(0); }
+  console.log((state === 'outdated' ? '2.1.258' : '2.1.259') + ' (Claude Code)');
+  process.exit(0);
+}
+if (process.argv[2] === 'auth' && process.argv[3] === 'status') {
+  if (process.cwd() !== '/' || process.env.ANTHROPIC_API_KEY || process.env.GITHUB_TOKEN) process.exit(2);
+  if (state === 'malformed') { console.log('private fixture text'); process.exit(0); }
+  console.log(JSON.stringify({loggedIn: state !== 'signed-out', account: 'private fixture text'}));
+  process.exit(['signed-out','contradiction'].includes(state) ? 1 : 0);
+}
 let input = "";
 process.stdin.on("data", (c) => (input += c));
 process.stdin.on("end", () => {
@@ -445,15 +458,35 @@ process.stdin.on("end", () => {
       "root",
     ]);
     assert.equal(invalid.ok, false);
-    const run = value<RunView>(
-      await client.call("createRun", [
-        first.id,
-        "hello",
-        3600000,
-        "local-1",
-        "full",
-      ]),
-    );
+    const submission = [first.id, "hello", 3600000, "local-1", "full"];
+    for (const [cliMode, remedy] of [
+      ["missing", /CLI not found.*Install/],
+      ["outdated", /2.1.259 or newer.*claude update/],
+      ["unreadable-version", /version could not be verified.*claude --version/],
+      ["signed-out", /not signed in.*claude auth login/],
+      ["malformed", /could not be verified.*claude auth status/],
+      ["contradiction", /could not be verified.*claude auth status/],
+    ] as const) {
+      chmodSync(claude, cliMode === "missing" ? 0o600 : 0o755);
+      writeFileSync(cliState, cliMode);
+      const refused = await client.call("createRun", submission);
+      assert.equal(refused.ok, false);
+      if (!refused.ok) {
+        assert.match(refused.error, remedy);
+        assert.doesNotMatch(refused.error, /private fixture text/);
+      }
+      const history = value<{ items: RunView[] }>(
+        await client.call("listRuns", [first.id]),
+      );
+      assert.deepEqual(history.items, []);
+    }
+    writeFileSync(cliState, "ready");
+    const [firstReceipt, secondReceipt] = await Promise.all([
+      client.call("createRun", submission),
+      client.call("createRun", submission),
+    ]);
+    const run = value<RunView>(firstReceipt);
+    assert.equal(value<RunView>(secondReceipt).id, run.id);
     assert.equal(run.simulation, false);
     assert.equal(run.permissionMode, "full");
     const deadline = Date.now() + 15000;
@@ -467,6 +500,29 @@ process.stdin.on("end", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       status = value<RunView>(await client.call("getRun", [run.id])).status;
     }
+    writeFileSync(cliState, "signed-out");
+    assert.equal(
+      value<RunView>(await client.call("createRun", submission)).id,
+      run.id,
+    );
+    const conflict = await client.call("createRun", [
+      first.id,
+      "different",
+      3600000,
+      "local-1",
+      "full",
+    ]);
+    assert.equal(conflict.ok, false);
+    if (!conflict.ok) assert.match(conflict.error, /different payload/);
+    const simulatedRun = value<RunView>(
+      await client.call("createRun", [
+        simulated.id,
+        "simulated",
+        30000,
+        "simulated-task",
+      ]),
+    );
+    assert.equal(simulatedRun.simulation, true);
     const artifact = value<{ evidence: WorktreeEvidence; simulation: boolean }>(
       await client.call("artifact", [run.id]),
     );

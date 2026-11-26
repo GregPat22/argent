@@ -53,6 +53,7 @@ try {
     new GitHubPublisher(),
     shutdown.signal,
   );
+  const agent = new ClaudeCodeAgent(store, { recoveryOwner: owner });
   const server = makeServer(store, token, {
     artifactRoot: paths.workspaces,
     worktreeRoot,
@@ -61,6 +62,7 @@ try {
     localChecks: true,
     publisher,
     recoveryOwner: owner,
+    checkClaudeReadiness: () => agent.checkReadiness(shutdown.signal),
     instanceId,
     build: buildIdentity(),
     onStop: () => shutdown.abort(),
@@ -72,7 +74,7 @@ try {
     5000,
     {
       workspace: new LocalWorktreeWorkspace(store, worktreeRoot),
-      agent: new ClaudeCodeAgent(store, { recoveryOwner: owner }),
+      agent,
     },
   );
   for (const signal of ["SIGINT", "SIGTERM"] as const)

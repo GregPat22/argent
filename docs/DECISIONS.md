@@ -76,6 +76,14 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### First-run CLI guidance (in development) — 26 November 2026
+
+The desktop service checks the CLI before it accepts a new local submission.
+The CLI reports its own sign-in status. Argent retains only the accepted task
+and returns fixed instructions for a refusal. An idempotent retry reads the
+original receipt even if the developer has since signed out. See the
+[readiness criteria](specs/0013-local-mvp.md#desktop-cli-readiness-before-submission-in-development).
+
 ### Interrupted agent process groups (in development) — 26 November 2026
 
 The desktop recovery action checks the process group recorded before task

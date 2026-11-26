@@ -128,6 +128,27 @@ What Argent guarantees in local mode:
 6. Tests use a fake `claude` executable and real temporary Git repositories; they
    call no model and need no sign-in.
 
+#### Desktop CLI readiness before submission (in development)
+
+Acceptance against main `efe6882`, 26 November 2026:
+
+1. Submitting a new local task checks the configured Claude Code executable,
+   the supported minimum version and the CLI's sign-in status before a run or
+   event is created. The desktop shows a specific remedy for a missing
+   executable, outdated version or signed-out CLI and keeps the task editable.
+2. The service runs bounded `--version` and `auth status` probes outside the
+   repository with the agent's allowlisted environment and no task input.
+   Malformed or unavailable status refuses the submission with a diagnostic.
+   Account details and raw output are never stored or returned to the desktop.
+   The [official CLI reference](https://code.claude.com/docs/en/cli-reference)
+   documents the status command and its exit codes.
+3. The existing request key still retrieves an accepted run after sign-out.
+   Conflicting keys and occupied workspaces are refused. Concurrent submissions
+   recheck ownership in the enqueue transaction after readiness is observed.
+   Simulated runs need no CLI. The worker checks the version again at dispatch.
+4. Offline fixtures exercise the desktop bridge and service using a temporary
+   executable. A successful probe is a point-in-time observation of the CLI.
+
 #### L1.1 implementation and evidence
 
 - `src/local-worktree.ts` validates repositories, creates and rolls back the

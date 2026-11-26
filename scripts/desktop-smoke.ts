@@ -130,6 +130,7 @@ require("node:test")("reads the checked README", () => {
   writeFileSync(
     claude,
     `#!${process.execPath}
+if (process.argv[2] === 'auth' && process.argv[3] === 'status') { console.log(JSON.stringify({authMethod:'claude.ai', loggedIn:true})); process.exit(0); }
 if (process.argv.includes('--version')) { console.log('2.1.259 (Claude Code)'); process.exit(0); }
 const fs = require("node:fs");
 let input = "";

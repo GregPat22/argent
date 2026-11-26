@@ -700,18 +700,18 @@ export class Store {
       throw new DomainError(409, "Workspace has active or uncertain work");
   }
 
-  createRun(
+  inspectRunSubmission(
     workspaceId: string,
     task: unknown,
     key: unknown,
     maxRuntimeMs?: unknown,
-    at?: number,
     mode?: unknown,
-  ): Run {
+  ) {
     const text = requireString(task, "task");
     const requestKey = requireString(key, "Idempotency-Key", 128);
     const permission = permissionMode(mode);
-    const real = this.getWorkspace(workspaceId).provider === "local-worktree";
+    const workspace = this.getWorkspace(workspaceId);
+    const real = workspace.provider === "local-worktree";
     const bounds = real ? LOCAL_RUNTIME : SIMULATION_RUNTIME;
     const runtime = requireInteger(
       maxRuntimeMs ?? bounds.fallback,
@@ -721,40 +721,54 @@ export class Store {
     );
     if (!real && permission !== "edits")
       throw new DomainError(400, "Simulated runs have no permission modes");
+    const previous = this.db
+      .prepare("SELECT * FROM runs WHERE request_key = ?")
+      .get(requestKey);
+    if (previous) {
+      const run = readRun(previous);
+      if (
+        previous.kind !== "agent" ||
+        run.workspaceId !== workspaceId ||
+        run.task !== text ||
+        run.maxRuntimeMs !== runtime ||
+        run.permissionMode !== permission
+      ) {
+        throw new DomainError(
+          409,
+          "Idempotency key already used with a different payload",
+        );
+      }
+      return { previous: run, real, text, requestKey, permission, runtime };
+    }
+    if (workspace.state !== "running")
+      throw new DomainError(409, "Workspace is stopped");
+    this.requireLocalWorkspace(workspaceId);
+    if (
+      this.db
+        .prepare(
+          `SELECT id FROM runs WHERE workspace_id = ? AND
+        (status IN ${ACTIVE} OR status = 'needs_attention')`,
+        )
+        .get(workspaceId)
+    ) {
+      throw new DomainError(409, "Workspace has active or uncertain work");
+    }
+    return { previous: null, real, text, requestKey, permission, runtime };
+  }
+
+  createRun(
+    workspaceId: string,
+    task: unknown,
+    key: unknown,
+    maxRuntimeMs?: unknown,
+    at?: number,
+    mode?: unknown,
+  ): Run {
     return this.transaction(() => {
       const now = at ?? Date.now();
-      const previous = this.db
-        .prepare("SELECT * FROM runs WHERE request_key = ?")
-        .get(requestKey);
-      if (previous) {
-        const run = readRun(previous);
-        if (
-          previous.kind !== "agent" ||
-          run.workspaceId !== workspaceId ||
-          run.task !== text ||
-          run.maxRuntimeMs !== runtime ||
-          run.permissionMode !== permission
-        ) {
-          throw new DomainError(
-            409,
-            "Idempotency key already used with a different payload",
-          );
-        }
-        return run;
-      }
-      if (this.getWorkspace(workspaceId).state !== "running")
-        throw new DomainError(409, "Workspace is stopped");
-      this.requireLocalWorkspace(workspaceId);
-      if (
-        this.db
-          .prepare(
-            `SELECT id FROM runs WHERE workspace_id = ? AND
-        (status IN ${ACTIVE} OR status = 'needs_attention')`,
-          )
-          .get(workspaceId)
-      ) {
-        throw new DomainError(409, "Workspace has active or uncertain work");
-      }
+      const { previous, real, text, requestKey, permission, runtime } =
+        this.inspectRunSubmission(workspaceId, task, key, maxRuntimeMs, mode);
+      if (previous) return previous;
       const id = randomUUID();
       this.db
         .prepare(

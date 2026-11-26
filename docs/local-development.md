@@ -123,6 +123,11 @@ A simulated run can emit at most 100 log events of up to 2,048 characters each, 
 bodies are capped at 16 KiB. The desktop service also exposes an authenticated
 `/service/stop`, which standalone mode does not enable.
 
+[First-run guidance in development](specs/0013-local-mvp.md#desktop-cli-readiness-before-submission-in-development)
+checks for a missing CLI, an unsupported version and a missing sign-in before
+the desktop accepts a new local task. The developer can correct the issue in
+Terminal and resend the draft.
+
 ## Offline history export and restore
 
 `npm run continuity -- help` lists the export, inspect, restore, list and show

@@ -606,6 +606,7 @@ export class DesktopClient {
             permissionMode: args[4] === undefined ? "edits" : args[4],
           },
           str(3, "idempotency key", 128),
+          20000,
         );
       case "getRun":
         return send(connection, `/runs/${id()}`);
