@@ -154,6 +154,14 @@ Acceptance against main `efe6882`, 26 November 2026:
    time. Settings the CLI loads in the worktree and later credential changes
    can affect dispatch.
 
+On 26 November 2026, a native Electron walkthrough of development commit
+`52a6c93` submitted one task through a fixture CLI. After the fixture reported
+sign-out, the desktop showed the Terminal login command and kept the second
+draft editable. The service still listed only the first run. Separate bridge
+fixtures exercised missing and outdated executables, malformed status,
+credential-helper authentication and idempotent delivery. These observations
+use no model account.
+
 #### L1.1 implementation and evidence
 
 - `src/local-worktree.ts` validates repositories, creates and rolls back the
@@ -2203,6 +2211,15 @@ Acceptance against main `efe6882`, 26 November 2026:
    the agent's group require separate inspection. A note, polling and
    reconnecting cannot release the workspace. A service-kill fixture must
    exercise both blocked and released outcomes using independent processes.
+
+On 26 November 2026, a macOS service-crash fixture at development commit
+`e61a75f` killed the desktop service while two fixture CLIs were writing in
+separate worktrees. The replacement service refused recovery while the first
+leader lived and again while a child alone kept its group alive. After both
+exited, the explicit check closed that run as failed. A new task completed
+while the other workspace stayed blocked. This exercises a real service
+restart with fixture agents. It establishes no recovery across a machine
+reboot or for descendants that leave the group.
 
 ### Cancellation regression acceptance
 
