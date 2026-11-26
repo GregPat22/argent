@@ -127,12 +127,12 @@ export class ClaudeCodeAgent implements AgentAdapter {
   async checkReadiness(signal: AbortSignal): Promise<void> {
     const command = this.command();
     const options = { cwd: "/", env: agentEnvironment(this.env) };
-    await requireSupportedCli(command, options.cwd, options.env, signal);
     const unknown =
       "Claude Code sign-in could not be verified. Run claude auth status in Terminal and retry.";
     let status: { code: number; stdout: Buffer };
     let reported: unknown;
     try {
+      await requireSupportedCli(command, options.cwd, options.env, signal);
       status = await captureProcessResult(
         command,
         ["auth", "status"],
@@ -146,8 +146,13 @@ export class ClaudeCodeAgent implements AgentAdapter {
       );
       reported = JSON.parse(status.stdout.toString("utf8"));
     } catch (error) {
+      if (error instanceof UncertainExecutionError)
+        throw new DomainError(
+          409,
+          "Argent could not confirm the CLI readiness probe stopped. Inspect local processes before sending the task again.",
+        );
       signal.throwIfAborted();
-      if (error instanceof UncertainExecutionError) throw error;
+      if (error instanceof DomainError) throw error;
       throw new DomainError(409, unknown);
     }
     const auth = reported as {
