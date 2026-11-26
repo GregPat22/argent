@@ -2213,7 +2213,7 @@ Acceptance against main `efe6882`, 26 November 2026:
    exercise both blocked and released outcomes using independent processes.
 
 On 26 November 2026, a macOS service-crash fixture at development commit
-`e61a75f` killed the desktop service while two fixture CLIs were writing in
+`e61a75f` killed the desktop service while two fixture CLIs were running in
 separate worktrees. The replacement service refused recovery while the first
 leader lived and again while a child alone kept its group alive. After both
 exited, the explicit check closed that run as failed. A new task completed
