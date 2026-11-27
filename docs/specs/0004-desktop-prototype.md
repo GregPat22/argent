@@ -171,6 +171,10 @@ website's own lockfile, types, production build and complete browser suite in a
 separate job. The desktop job must build the unsigned macOS Apple Silicon package
 and exercise both development and packaged executables with the native smoke
 fixture. No signing, artifact publication or deployment follows automatically.
+For the packaged walkthrough, CI must verify the versioned ZIP against its
+SHA-256 sidecar, extract it into a fresh directory and launch the app from
+that directory. A checksum mismatch or extraction failure must stop the job
+before launch.
 Website geometry assertions follow the wordmark design documented in
 [the website README](../../website/README.md#navigation-regression-contract),
 while preserving exact endpoints, intermediate animation, keyboard and

@@ -47,6 +47,13 @@ jobs:
       - run: node node_modules/electron/install.js
       - run: npm run desktop:smoke
       - run: npm run desktop:package
-      - run: npm run desktop:smoke
-        env:
-          ARGENT_PACKAGED_EXECUTABLE: release/Argent-darwin-arm64/Argent.app/Contents/MacOS/Argent
+      - name: Verify and launch the archived app
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          archive="Argent-${version}-macos-arm64.zip"
+          (cd release && shasum -a 256 "$archive" | cmp - "$archive.sha256")
+          extracted=$(mktemp -d)
+          trap 'rm -rf "$extracted"' EXIT
+          /usr/bin/ditto -x -k "release/$archive" "$extracted"
+          ARGENT_PACKAGED_EXECUTABLE="$extracted/Argent.app/Contents/MacOS/Argent" npm run desktop:smoke
