@@ -175,12 +175,27 @@ For the packaged walkthrough, CI must verify the versioned ZIP against its
 SHA-256 sidecar, extract it into a fresh directory and launch the app from
 that directory. A checksum mismatch or extraction failure must stop the job
 before launch.
+Packaging must compile the application into a fresh staging directory on each
+build. The macOS regression leaves obsolete service and renderer files in the
+development build, verifies that both survive packaging there, and checks that
+neither appears in the extracted application.
+The installed app must carry the Electron license and Chromium third-party
+notices from its bundled runtime. Compare both files in the extracted app
+byte for byte with the originals from the Electron distribution.
+
 Website geometry assertions follow the wordmark design documented in
 [the website README](../../website/README.md#navigation-regression-contract),
 while preserving exact endpoints, intermediate animation, keyboard and
 reduced-motion coverage.
 
 ### Delivery evidence
+
+On 27 November 2026 the unsigned ZIP built at `df31f64` included two obsolete
+modules seeded in the development output. Electron's license and Chromium's
+notices stayed outside the ZIP. At `2da91c6` the same two files survived in
+the development directory and were absent from the extracted app. Its runtime
+notices matched the originals byte for byte, and the ZIP matched its SHA-256
+sidecar. Signing and notarization require separate release authorization.
 
 Recorded 9 November 2026 at `8183ff8`: `npm run desktop:smoke` passes for the
 restyled desktop, and `npm run desktop:package` produces the unsigned macOS

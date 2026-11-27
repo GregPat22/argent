@@ -365,6 +365,18 @@ launch trace showed a distinct process for each width. The original hosted
 job also passed on rerun at `31a2e8a`; the exact cause of the Chromium stall
 remains unconfirmed.
 
+### Hero copy and first-screen bounds at two viewport sizes
+
+On 27 November 2026 the website push job at `5d76d4c` reached the 30-second
+test limit while waiting for the hero entrance. The pull-request job passed.
+The test loaded both the 360 × 800 and 1440 × 900 layouts within one deadline.
+The log does not identify which viewport stalled.
+
+Run each viewport as a separate case with a fresh Chromium process, reduced
+motion and the existing 30-second limit. Each case must wait for the entrance
+and check the hero text, status details, liquid exclusion attribute, status
+dot animation and first-screen bounds.
+
 ## Native desktop smoke suite lifetimes (in development)
 
 Investigation recorded 17 November 2026 at `806d8b1`, against main `df7eb14`.
@@ -435,3 +447,16 @@ commit observed another directory read after the fixture requested cancellation.
 The fixture must stop polling as soon as it sees files in the new checkout,
 then request cancellation. It must still observe the cancellation error and
 verify that cleanup removed both the directory and the Git worktree registration.
+
+## Dispatch with an unreadable queued check
+
+On 27 November 2026 the dispatch fixture from main `df31f64` passed in
+isolation. Giving the healthy workspace a 3.5-second command reproduced the
+failure seen in the full suite. The fixture requested shutdown after three
+seconds, which could interrupt the healthy job and leave it in
+`needs_attention`.
+
+The fixture must run the normal worker pool until the healthy job completes,
+using its existing 15-second observation limit to bound the wait. It must
+confirm that the healthy check passed, that the unreadable job stayed queued
+with its events intact, and that only its own workspace stayed blocked.

@@ -22,6 +22,11 @@ checksum. The app bundles its own runtime. It is **unsigned and not notarized**:
 a local preview, not a public release. Windows, Linux and Intel Mac builds have
 not been built or tested.
 
+In Finder, choose **Show Package Contents** on the app. The packaging recipe
+in development places the runtime notices under
+`Contents/Resources/app/licenses/electron/`. Argent's license is at
+`Contents/Resources/app/LICENSE`.
+
 ## Inspect a draft publication
 
 Open the workspace menu and choose **Draft publication status** to read the

@@ -1,6 +1,12 @@
 import { packager } from "@electron/packager";
 import { createHash } from "node:crypto";
-import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 
@@ -13,8 +19,8 @@ const manifest = JSON.parse(readFileSync("package.json", "utf8")) as {
   version: string;
   devDependencies: { electron: string };
 };
-const stage = resolve(".data", `package-${Date.now()}`);
-mkdirSync(stage, { recursive: true });
+mkdirSync(".data", { recursive: true });
+const stage = mkdtempSync(resolve(".data", "package-"));
 // Generate the native icon from the same artwork used by the development Dock.
 // Keep intermediates outside the staged application so they are not shipped.
 const iconset = `${stage}.iconset`;
@@ -39,8 +45,24 @@ for (const size of [16, 32, 128, 256, 512]) {
   }
 }
 execFileSync("/usr/bin/iconutil", ["-c", "icns", iconset, "-o", icon]);
-cpSync("dist/src", join(stage, "dist/src"), { recursive: true });
-cpSync("dist/ui", join(stage, "dist/ui"), { recursive: true });
+execFileSync(
+  process.execPath,
+  [
+    resolve("node_modules/typescript/bin/tsc"),
+    "--project",
+    "tsconfig.desktop.json",
+    "--outDir",
+    join(stage, "dist"),
+  ],
+  { stdio: "inherit" },
+);
+execFileSync(
+  process.execPath,
+  ["scripts/build-assets.ts", join(stage, "dist/ui")],
+  {
+    stdio: "inherit",
+  },
+);
 cpSync("LICENSE", join(stage, "LICENSE"));
 writeFileSync(
   join(stage, "package.json"),
@@ -69,6 +91,15 @@ const output = await packager({
   icon,
   extendInfo: { CFBundleIconName: "Argent" },
   extraResource: resolve("ui/macos/Assets.car"),
+  afterExtract: [
+    ({ buildPath }) => {
+      const notices = join(stage, "licenses", "electron");
+      mkdirSync(notices, { recursive: true });
+      for (const name of ["LICENSE", "LICENSES.chromium.html"]) {
+        cpSync(join(buildPath, name), join(notices, name));
+      }
+    },
+  ],
   overwrite: true,
   asar: false,
   download: {
