@@ -424,3 +424,14 @@ tests with no failures, cancellations or skips. Final harness type/format checks
 and cleanup probes also pass. Hosted validation remains required before integration.
 These fixture checks use a fake agent and harmless commands; they do not certify
 real-account execution, signing, notarization, or release readiness.
+
+## Checkout population cancellation fixture
+
+On 27 November 2026, the unchanged fixture from main `c694391` raised
+`ENOENT` while listing a directory during checkout removal. The focused
+test passed in isolation on that commit. An instrumented run on the same
+commit observed another directory read after the fixture requested cancellation.
+
+The fixture must stop polling as soon as it sees files in the new checkout,
+then request cancellation. It must still observe the cancellation error and
+verify that cleanup removed both the directory and the Git worktree registration.

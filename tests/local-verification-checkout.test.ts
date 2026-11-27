@@ -515,6 +515,7 @@ test("cancellation during population removes the registered partial checkout", a
   const poll = setInterval(() => {
     const many = join(f.roots.verificationRoot, id, "many");
     if (existsSync(many) && readdirSync(many).length > 10) {
+      clearInterval(poll);
       observed = true;
       abort.abort(new Error("population interrupted"));
     }
