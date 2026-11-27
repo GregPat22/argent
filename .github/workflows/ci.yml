@@ -46,7 +46,12 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node node_modules/electron/install.js
       - run: npm run desktop:smoke
-      - run: npm run desktop:package
+      - name: Package with obsolete development outputs present
+        run: |
+          touch dist/src/obsolete-service.js dist/ui/obsolete-renderer.js
+          npm run desktop:package
+          test -f dist/src/obsolete-service.js
+          test -f dist/ui/obsolete-renderer.js
       - name: Verify and launch the archived app
         shell: bash
         run: |
@@ -56,4 +61,7 @@ jobs:
           extracted=$(mktemp -d)
           trap 'rm -rf "$extracted"' EXIT
           /usr/bin/ditto -x -k "release/$archive" "$extracted"
+          app_dist="$extracted/Argent.app/Contents/Resources/app/dist"
+          test ! -e "$app_dist/src/obsolete-service.js"
+          test ! -e "$app_dist/ui/obsolete-renderer.js"
           ARGENT_PACKAGED_EXECUTABLE="$extracted/Argent.app/Contents/MacOS/Argent" npm run desktop:smoke

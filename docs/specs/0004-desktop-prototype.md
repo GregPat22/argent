@@ -175,6 +175,10 @@ For the packaged walkthrough, CI must verify the versioned ZIP against its
 SHA-256 sidecar, extract it into a fresh directory and launch the app from
 that directory. A checksum mismatch or extraction failure must stop the job
 before launch.
+Packaging must compile the application into a fresh staging directory on each
+build. The macOS regression leaves obsolete service and renderer files in the
+development build, verifies that both survive packaging there, and checks that
+neither appears in the extracted application.
 Website geometry assertions follow the wordmark design documented in
 [the website README](../../website/README.md#navigation-regression-contract),
 while preserving exact endpoints, intermediate animation, keyboard and

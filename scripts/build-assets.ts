@@ -1,6 +1,8 @@
 import { copyFileSync, cpSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 
-mkdirSync("dist/ui", { recursive: true });
+const output = process.argv[2] ?? "dist/ui";
+mkdirSync(output, { recursive: true });
 for (const file of [
   "index.html",
   "styles.css",
@@ -10,7 +12,7 @@ for (const file of [
   "argent-wordmark.webp",
   "turned-silver.webp",
 ])
-  copyFileSync(`ui/${file}`, `dist/ui/${file}`);
+  copyFileSync(`ui/${file}`, join(output, file));
 
-cpSync("ui/icons", "dist/ui/icons", { recursive: true });
-cpSync("ui/fonts", "dist/ui/fonts", { recursive: true });
+cpSync("ui/icons", join(output, "icons"), { recursive: true });
+cpSync("ui/fonts", join(output, "fonts"), { recursive: true });
