@@ -39,8 +39,10 @@ test("page hydrates cleanly and every section has a readable heading", async ({
       await section.evaluate((el) => el.scrollWidth <= window.innerWidth),
     ).toBeTruthy();
   }
-  await expect(page.locator("#roadmap")).toContainText(
-    "In development · Claude Code runs today",
+  const nextMilestone = page.locator('#roadmap li[data-state="now"]');
+  await expect(nextMilestone).toContainText("Planned · next milestone");
+  await expect(nextMilestone.getByRole("heading")).toHaveText(
+    "Public downloads",
   );
   await expect(page.locator("#hallmark")).toContainText("Illustrative example");
   await expect(page.locator("#reconnect")).toContainText(
@@ -190,6 +192,7 @@ test("the journey follows the scroll from desk to cloud to phone", async ({
   const steps = journey.locator(".journey-step");
   await expect(steps).toHaveCount(3);
   await expect(journey).toContainText("Local MVP");
+  await expect(steps.first()).toContainText("Works today");
   await expect(steps.filter({ hasText: "Planned" })).toHaveCount(2);
   await expect(journey.locator(".journey-stage")).toHaveAttribute(
     "aria-hidden",

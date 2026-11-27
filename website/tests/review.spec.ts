@@ -61,8 +61,12 @@ test("roadmap preserves the approved post-release sequence and recovery limit", 
   await expect(today).toContainText(
     "After a service restart on the same boot, check whether the recorded agent process group is gone",
   );
-  await expect(roadmap).toContainText(
-    "created through Argent and merged by a person",
+  const localMvp = roadmap.getByRole("listitem").filter({
+    has: page.getByRole("heading", { name: "Local MVP", exact: true }),
+  });
+  await expect(localMvp).toContainText("Works today");
+  await expect(localMvp).toContainText(
+    "A maintainer merged a pull request that Argent opened during the walkthrough.",
   );
   await expect(page.locator("#open")).toContainText(
     "guidance, a check, a gate or a prevention control",
