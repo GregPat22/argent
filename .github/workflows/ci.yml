@@ -52,6 +52,8 @@ jobs:
           npm run desktop:package
           test -f dist/src/obsolete-service.js
           test -f dist/ui/obsolete-renderer.js
+          # The smoke harness compares the service fingerprint with its own build.
+          rm dist/src/obsolete-service.js dist/ui/obsolete-renderer.js
       - name: Verify and launch the archived app
         shell: bash
         run: |
