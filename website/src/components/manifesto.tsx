@@ -62,7 +62,7 @@ const PROMISES: {
   },
   {
     title: "Linked work, explicit boundaries.",
-    body: "Planned as the first update: checked links warn about overlapping changes and test a trial merge of exact commits. A link grants no access and carries no messages between agents.",
+    body: "Planned after release: checked links warn about overlapping changes and test a trial merge of exact commits. A link grants no access and carries no messages between agents.",
     status: "planned",
     subject: "Checked links experiment",
   },
