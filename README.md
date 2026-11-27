@@ -78,7 +78,9 @@ npm run desktop
    edit a tracked file in that workspace and refresh again. The earlier
    result is now **stale**.
 
-For npm projects without a committed `argent.json`, [direct approval of suggested commands](docs/specs/0019-suggested-commands.md) is in development.
+If the base commit has no `argent.json`, but has a root `package-lock.json` and a
+`package.json` with a test script, **Commands** offers `npm ci` and `npm test`.
+Approve the suggestion, then follow steps 3 and 4. See [suggested commands](docs/specs/0019-suggested-commands.md).
 
 The [desktop walkthrough](docs/specs/0013-local-mvp.md#l14-manual-walkthrough)
 records this passing-to-stale transition, a failing check and cancellation.

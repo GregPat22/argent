@@ -1,6 +1,6 @@
 # Direct approval of suggested commands
 
-Status: in development alongside the [work queue](../../ROADMAP.md#alongside-the-queue).
+Implemented and verified alongside the [work queue](../../ROADMAP.md#alongside-the-queue).
 The design was accepted on 20 November 2026.
 
 ## Desktop flow
@@ -94,3 +94,17 @@ it as the next workspace's base and retaining the earlier suggestion receipt.
 Approval reuse requires the same operator, repository, rule and commands.
 Recognition neither evaluates script text nor determines whether npm's
 scripts or dependencies are safe. Those inputs remain part of the candidate review.
+
+## Native desktop verification
+
+On 27 November 2026, the native Electron suggestions walkthrough passed on
+macOS at `e2bc71a`. In an offline, dependency-free npm repository, the Commands
+dialog showed the base commit, both input paths and the exact arguments. After
+approval, reopening the dialog showed the approved suggestion. Neither the
+repository nor the worktree contained an `argent.json`, and no run or check
+job existed. After separate commit consent, **Run checks** recorded exit zero
+for both commands at the reviewed commit. After a tracked edit, **Refresh**
+marked that same result stale and preserved its recorded phases.
+
+The walkthrough used real Git and npm with a fixture agent CLI. It exercised
+the development desktop build and required no provider account.
