@@ -57,9 +57,9 @@ recovery, CLI readiness and parallel workspaces. Argent checked `05b126b` and
 opened [pull request #76](https://github.com/GregPat22/argent/pull/76).
 After a further commit, a maintainer merged the pull request as `cfceae8`.
 
-A [human-triggered desktop merge flow](specs/0013-local-mvp.md#human-triggered-merge-design-todo)
-is in the design backlog. Its UX, workflow and delivery milestone remain open;
-it does not change the current work queue or L1.5 exit criteria.
+The [desktop merge proposal](specs/0013-local-mvp.md#proposed-interaction-for-design-review)
+follows one published draft through review, confirmation and archive. The
+interaction, merge method and delivery milestone await a design decision.
 
 The [desktop startup ownership correction](specs/0004-desktop-prototype.md#startup-ownership-regression-acceptance)
 is implemented at `d2ef4e5`, with

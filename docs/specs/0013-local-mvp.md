@@ -2106,6 +2106,65 @@ confirmation details, merge strategy and whether archiving is a separate step
 remain design questions. Existing human authority, security and safe-archive
 requirements remain in force.
 
+##### Proposed interaction for design review
+
+In the publication walkthrough, Argent checked `05b126b` and opened the draft.
+The pull request gained another commit before a maintainer merged it as
+`cfceae8` on 27 November 2026. This gives the design a concrete test case.
+The receipt identifies the published commit. Only a matching setup/test record
+can say what Argent checked. The proposed review would show both alongside
+GitHub's current head.
+
+The following interaction is a proposal. Delivery placement remains open.
+
+1. **Publish the draft.** Keep the existing sequence of reviewing changes,
+   consenting to checks and confirming publication. In **Draft publication
+   status**, show the saved receipt. Offer **Review merge…** for an active
+   workspace with a verified publication bound to GitHub's stable repository
+   and PR identities. This would require saving those identities at publication.
+   Existing receipts store the URL, repository name, refs and commits. For
+   those receipts or an archived workspace, offer the saved receipt and a
+   GitHub handoff. For an uncertain publication, show its inspection steps.
+2. **Review eligibility.** On opening or refreshing, read GitHub and the local
+   check status. Show the repository and PR number, source and target
+   branches, their observed commit IDs, and the commit Argent checked. Show the
+   local setup/test result and judging-changes report separately from GitHub's
+   required checks and reviews. A draft would offer **Open on GitHub** so the
+   developer can mark it ready there and return to refresh the review.
+3. **Confirm a merge.** For an eligible PR, show the proposed merge method and
+   resulting commit title. For this repository, propose squash with the title
+   required by its contribution rules. Keep the first version to squash where
+   the repository permits it. Label the final action **Squash and merge #123
+   into main** using the actual PR and branch. Focus **Cancel** on entry.
+   Closing the dialog or switching workspaces clears unsubmitted consent.
+4. **Show the outcome.** A verified merge would show the PR, target and resulting
+   commit. Keep the workspace available. **Archive workspace…** would remain
+   a separate choice with its own worktree ownership, clean-state and discard
+   checks. Archiving a clean workspace before merge would still be possible.
+
+**Proposed acceptance cases**
+
+| Situation                                                                                                                      | Expected behavior                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fresh passing local check on the published head, eligible PR                                                                   | Confirmation rechecks local freshness, remote identity, refs, merge method and eligibility. The service claims the workspace and records intent together before dispatch. Two confirmations send at most one request.                 |
+| Missing, stale, failed or cancelled local checks                                                                               | Show the reason and offer the existing check review. Running checks requires its own consent.                                                                                                                                         |
+| The PR head differs from the published commit, as in the walkthrough                                                           | Show both commits and direct the developer to GitHub. A green GitHub check only describes the head it ran against.                                                                                                                    |
+| PR closed, conflicted, blocked on reviews or required checks, squash unavailable, merge queue required, or eligibility unknown | Show the observed reason, or identify the unavailable information. Offer the PR link. Refresh reads current state.                                                                                                                    |
+| A ref, repository identity or reviewed input changes                                                                           | Invalidate the review on a detected change. A different PR or repository ends the in-app flow. Bind any remote request to the reviewed head and method.                                                                               |
+| Merge pending, then a definitive refusal                                                                                       | Show progress and block competing workspace actions. On proof that the request had no effect, show the reason and release the claim. Another attempt requires a fresh review and confirmation.                                        |
+| Restart after intent, or GitHub's reply is lost                                                                                | Reopen or refresh reads the recorded attempt and the same PR. Show a verified merge only when its identity, head and target match, with the resulting commit. While unresolved, keep the claim and block another attempt and archive. |
+| Another person merges the PR on GitHub                                                                                         | Show the observed merge and its commit. Attribute the action to Argent only with evidence linking it to the recorded request.                                                                                                         |
+
+**Decision for design review.** The narrower option is to keep merging on
+GitHub and expose the comparison between the published and current commits.
+The proposed in-app option saves the trip to GitHub for a ready PR whose head
+still matches. Revisit placement after the first release, once further use
+shows how often a PR stays at the checked head. Before scheduling it,
+establish which target guarantees the publisher can enforce. GitHub documents a head SHA precondition for its merge
+endpoint. A read of the base SHA immediately before dispatch still allows the
+target to advance or the PR to be retargeted. If the required target guarantee
+cannot be enforced, retain the GitHub handoff. [GitHub merge parameters](https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request).
+
 ### L1.6 Codex and model choice
 
 An update after the first public release, following checked links (L2), and not
