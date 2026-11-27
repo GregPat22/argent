@@ -1113,6 +1113,12 @@ temporary: remove them when the upstream dependency ranges include patched
 releases, with package compatibility and advisory checks repeated. See
 [spec 0004](specs/0004-desktop-prototype.md#delivery-regression-gates).
 
+Packaging follow-up, 27 November 2026. The unsigned ZIP at `df31f64` could
+include obsolete development output and omitted the runtime notices kept beside
+the app. Compiling into a fresh directory leaves the development `dist/` tree
+intact. The installed bundle needs its own copies of the runtime notices. See the
+[archive comparison](specs/0004-desktop-prototype.md#delivery-evidence).
+
 ### Claude Code failure summaries — 10 November 2026
 
 Usability correction in development, based on main `a9bc431`; the accepted
