@@ -3,9 +3,8 @@
 Start with the [README](../README.md) for what works today, then the
 [vision](../VISION.md) for the goal, the [architecture](../ARCHITECTURE.md) and
 the [roadmap](../ROADMAP.md). The desktop app
-runs Claude Code in local worktrees as the first part of the local MVP
-([spec 0013](specs/0013-local-mvp.md)), which is in development; a signed public
-release, then remote and cloud execution, follow.
+runs Claude Code in local worktrees. The [local MVP](specs/0013-local-mvp.md)
+is available from source. A signed macOS release is planned.
 
 The offline [history CLI](specs/0012-portable-history.md) exports and restores
 simulation history only. Export of real Claude Code transcripts and Git changes
@@ -53,9 +52,10 @@ covers explicit confirmation, create-only push, draft creation and URL recording
 The [offline publication evidence](specs/0013-local-mvp.md#offline-github-publication-evidence)
 records the desktop, Git receiver and CLI checks. The [authenticated walkthrough](specs/0013-local-mvp.md#authenticated-draft-publication)
 records the draft read back from GitHub and the URL retained across a restart.
-The [L1 exit evidence](specs/0013-local-mvp.md#exit-evidence-for-l1) collects
-the recovery, CLI readiness and parallel-workspace results and identifies the
-outstanding human merge.
+The [L1 exit evidence](specs/0013-local-mvp.md#exit-evidence-for-l1) covers
+recovery, CLI readiness and parallel workspaces. Argent checked `05b126b` and
+opened [pull request #76](https://github.com/GregPat22/argent/pull/76).
+After a further commit, a maintainer merged the pull request as `cfceae8`.
 
 A [human-triggered desktop merge flow](specs/0013-local-mvp.md#human-triggered-merge-design-todo)
 is in the design backlog. Its UX, workflow and delivery milestone remain open;
@@ -102,7 +102,7 @@ recorded revision.
 | [0010 Live repository pilot gates](specs/0010-live-repository-pilot-gates.md)             | The credential, authorization and isolation gates before live repository access.    |
 | [0011 GitHub device sign-in pilot](specs/0011-github-device-pilot.md)                     | Implemented opt-in read-only pilot, not connected to the desktop.                   |
 | [0012 Portable history](specs/0012-portable-history.md)                                   | Implemented offline export and read-only restore, with commands.                    |
-| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | L1.1–L1.5, CLI readiness and same-boot agent recovery implemented. L1 exit pending. |
+| [0013 Local MVP](specs/0013-local-mvp.md)                                                 | L1 exit evidence complete. Covers CLI readiness and same-boot agent recovery.       |
 | [0015 Desktop restyle](specs/0015-desktop-restyle.md)                                     | Implemented: one conversation per workspace, direct composer, hallmark record.      |
 | [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks. |
 | [0018 Judging-changes report](specs/0018-judging-changes-report.md)                       | Implemented and retained after the real-task trial.                                 |

@@ -35,7 +35,7 @@ const STEPS: {
     title: "Hand it off at your desk.",
     body: "Choose a repository, create a workspace and describe the task. Each workspace has its own branch and worktree; follow-up tasks continue there. Review changes to tests and check scripts before you approve checks. Local execution is not a sandbox.",
     subject: "Local MVP",
-    status: "next",
+    status: "live",
   },
   {
     title: "Close the lid. It keeps going.",

@@ -20,13 +20,13 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
   },
   {
     title: "Local MVP",
-    body: "Claude Code already runs in the app, each workspace in its own branch and worktree with a live session. The changes panel shows current files and a bounded diff. Argent runs approved checks for the exact commit. New check results include the number of changes the report flagged. You can publish a reviewed draft and archive a clean workspace while keeping its branch. The local MVP walkthrough still needs a pull request created through Argent and merged by a person.",
-    state: "now",
+    body: "Claude Code already runs in the app, each workspace in its own branch and worktree with a live session. The changes panel shows current files and a bounded diff. Argent runs approved checks for the exact commit. New check results include the number of changes the report flagged. You can publish a reviewed draft and archive a clean workspace while keeping its branch. A maintainer merged a pull request that Argent opened during the walkthrough.",
+    state: "done",
   },
   {
     title: "Public downloads",
-    body: "The first release: a signed build for Macs with Apple silicon, with Claude Code and a checksum, downloadable from this site.",
-    state: "next",
+    body: "The first public download will be a signed and notarized build for Macs with Apple silicon, with Claude Code and a checksum. Today you can build the app from source.",
+    state: "now",
   },
   {
     title: "Links, agents and rules",
@@ -141,7 +141,7 @@ export function Roadmap() {
                 {milestone.state === "done"
                   ? "Works today"
                   : milestone.state === "now"
-                    ? "In development · Claude Code runs today"
+                    ? "Planned · next milestone"
                     : "Planned"}
               </p>
               <h3 className="display mt-2 text-[1.35rem] leading-tight tracking-[-0.04em]">
