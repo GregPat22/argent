@@ -51,7 +51,7 @@ a local desktop package exists; Next.js neither serves nor overwrites those file
 - When the roadmap or capabilities change, update the hero, the roadmap section
   and the FAQ together.
 - A branch and worktree belong to a workspace; follow-up tasks reuse it. Local
-  execution is not a sandbox. An agent run records changes. The pre-consent review lists recognised changes to tests, commands and dependencies. Separately approved checks produce evidence for the exact commit and display the finding count.
+  execution is not a sandbox. An agent run records changes. The pre-consent review lists recognised changes to tests, commands and dependencies. Separately approved checks produce evidence for the exact commit and display the finding count. After confirmation, a GitHub draft carries that evidence and the judging-changes report. Merging remains a human action.
 - History export and read-only restore currently cover simulation history only.
   Export of real Claude Code transcripts and Git changes is planned.
 - Planned verification examples carry an explicit label inside the card so a
@@ -64,8 +64,8 @@ The [consistency and motion correction contract](../docs/specs/0016-website-rest
 is in development. The post-release sequence includes checked links as an
 experiment, Codex/model choice, further project rules, then Cursor/OpenCode.
 Links grant no access and carry no messages. Rules distinguish guidance, checks,
-gates and prevention; Argent offers no prevention control. Real-process crash
-reconciliation stays planned. Untested local records use silver. The comparison
+gates and prevention; Argent offers no prevention control. After a same-boot service restart, the developer can check whether the
+recorded agent process group is gone before starting a new task. Untested local records use silver. The comparison
 must bypass its style-driven spring under reduced motion, clipboard failure
 must show complete commands immediately, and the journey meter and pulse must
 animate transforms/opacity rather than width/shadow.

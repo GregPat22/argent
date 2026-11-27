@@ -2,7 +2,7 @@
 
 **An open-source desktop app for Claude Code in local Git worktrees.** Follow
 live sessions, inspect changes and run approved checks against an exact commit.
-Draft pull requests carrying that evidence are planned.
+Open a GitHub draft pull request with the evidence you reviewed.
 You decide what gets merged.
 
 > **Status: early prototype.** The durable engine and the macOS desktop app work
@@ -11,8 +11,9 @@ You decide what gets merged.
 > Local execution is **not a sandbox**: the agent runs as you. The Changes panel
 > shows current files and a bounded diff against the workspace base. The Commands
 > dialog shows a repository's check commands for review and records your
-> approval. Argent records exact-commit setup/test results. Pull requests
-> and cloud workspaces are planned; GitHub-URL workspaces
+> approval. Argent records exact-commit setup/test results. Draft publication
+> uses your GitHub CLI sign-in.
+> Cloud workspaces are planned and GitHub-URL workspaces
 > remain a scripted simulation. Everything below says which parts are
 > real and which are planned.
 
@@ -41,15 +42,22 @@ Follow the build on X: [@Argent_build](https://x.com/Argent_build).
   changes to tests, check scripts, configuration and dependencies. Its count
   appears beside the check result. The separate run action has its own consent
   and result.
+- Review and commit staged changes. Confirm the destination, branch history,
+  title and evidence to open a GitHub draft pull request. The saved URL takes
+  you to the draft. Archiving a clean workspace keeps its branch and history.
 - Close and reopen the desktop to reconnect to the local service and its
   recorded history. An uncertain run requires investigation before the
-  workspace can continue.
+  workspace can continue. After a service restart on the same boot, choose
+  **Check agent process group**. If the recorded group is gone, Argent marks
+  the interrupted run failed and lets you submit a new task.
 
 ## Quick start
 
 The desktop development build runs on Apple Silicon Macs. Use Git and the
 Node.js and npm versions listed in [Contributing](CONTRIBUTING.md). For real
-agent tasks, install the official Claude Code CLI and sign in.
+agent tasks, install the official Claude Code CLI and sign in. If the CLI is
+missing, outdated or signed out, the desktop explains how to fix it and keeps
+your draft editable.
 
 ```sh
 git clone https://github.com/GregPat22/argent.git
@@ -70,7 +78,9 @@ npm run desktop
    edit a tracked file in that workspace and refresh again. The earlier
    result is now **stale**.
 
-For npm projects without a committed `argent.json`, [direct approval of suggested commands](docs/specs/0019-suggested-commands.md) is in development.
+If the base commit has no `argent.json`, but has a root `package-lock.json` and a
+`package.json` with a test script, **Commands** offers `npm ci` and `npm test`.
+Approve the suggestion, then follow steps 3 and 4. See [suggested commands](docs/specs/0019-suggested-commands.md).
 
 The [desktop walkthrough](docs/specs/0013-local-mvp.md#l14-manual-walkthrough)
 records this passing-to-stale transition, a failing check and cancellation.
@@ -89,9 +99,9 @@ MIT-licensed core runs on the developer's computer. See the [vision](VISION.md).
 
 ## Where it is going
 
-The first public release is the local MVP with Claude Code. Draft pull
-requests carrying the check evidence and [judging-changes report](docs/specs/0018-judging-changes-report.md)
-are the next planned step, alongside workspace archive.
+The first public release is the local MVP with Claude Code. The remaining
+[L1 walkthrough evidence](docs/specs/0013-local-mvp.md#exit-evidence-for-l1) is a pull
+request created through Argent and merged by a person.
 
 The planned first update experiments with checked links between workspaces.
 A link grants no access and carries no messages between agents. Codex and

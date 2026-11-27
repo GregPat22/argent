@@ -65,7 +65,9 @@ stateDiagram-v2
 
 An unknown outcome is never retried automatically. `needs_attention` blocks
 new work and lifecycle changes for the workspace. P1 adds audited abandonment
-for simulated runs only; real-provider reconciliation remains future work.
+for simulated runs. A replacement desktop service can resolve an interrupted
+local agent run as failed after confirming its recorded group is gone on the
+same boot. Hosted-provider reconciliation is planned.
 Reconnect reads run state and events after an
 ordered cursor; it does not dispatch work. No exactly-once external-effects
 guarantee is claimed. A database token cannot fence a Git push or cloud process.
@@ -445,7 +447,9 @@ The implemented [local hardening acceptance criteria](docs/specs/0013-local-mvp.
 require a supervisor to retain process-group ownership until quiescence, including
 early transcript rejection. Unconfirmed termination blocks the workspace;
 database leases and operator notes do not prove an old process has stopped.
-Durable process reconciliation after a service crash remains unimplemented.
+A [desktop recovery action](docs/specs/0013-local-mvp.md#agent-process-reconciliation-after-a-service-crash)
+uses a private launch record and a same-boot kernel probe. The process group
+number stays inside the service. A developer requests the check by run ID.
 
 A [cancellation follow-up](docs/specs/0013-local-mvp.md#cancellation-regression-acceptance)
 is implemented in main `707ae8b` for transient process-group permission errors during exit.
@@ -526,7 +530,7 @@ exclude its authority. The executable local checks described below consume separ
 command-defining and test changes must be compared to the trusted base and
 surfaced for human review; freezing argv alone is insufficient.
 
-In development, [suggested npm commands](docs/specs/0019-suggested-commands.md)
+[Suggested npm commands](docs/specs/0019-suggested-commands.md)
 use the same approval and consent flow. When the root configuration entry is
 absent, the reader checks the lockfile marker and the pinned manifest. The
 suggestion identity includes the repository, versioned rule and exact actions
@@ -745,9 +749,9 @@ Workspace exclusion, pre-dispatch revalidation, immutable manifest checks,
 process supervision and conservative cleanup remain shared. The fixed bounded
 lifetime adds no interactive terminal, port discovery or persistent server.
 
-## Local workspace archive (in development)
+## Local workspace archive
 
-The [L1.5 archive contract](docs/specs/0013-local-mvp.md#local-archive-acceptance-in-development)
+The [L1.5 archive contract](docs/specs/0013-local-mvp.md#local-archive-acceptance)
 uses the local service and the existing store. A creation identity binds the
 worktree directory to its original Git registration. The archive intent records
 the developer's discard choice and stops new work before Git removes the
@@ -755,17 +759,17 @@ directory. The final event confirms that the directory and registration are gone
 and the branch still points to the observed commit. History reads need no
 worktree. An interrupted removal has no replay path.
 
-## Local staged commits (in development)
+## Local staged commits
 
-The [staged commit contract](docs/specs/0013-local-mvp.md#commit-staged-changes-in-development)
+The [staged commit contract](docs/specs/0013-local-mvp.md#commit-staged-changes)
 uses a private index copy to materialize a staged tree. The service reads its
 objects through the same bounded, hash-verified comparison as candidate reviews.
 An intent event fences the workspace before a compare-and-swap advances its
 branch. The success receipt and restored running state commit together.
 
-## Local GitHub publication (in development)
+## Local GitHub publication
 
-The [L1.5 publisher](docs/specs/0013-local-mvp.md#github-publication-boundary-in-development)
+The [L1.5 publisher](docs/specs/0013-local-mvp.md#github-publication-boundary)
 belongs to the local desktop service. The renderer receives a bounded review and a
 status record. The generic API server enables no publisher by default. The
 authenticated Git process uses a private bare repository prepared from the
@@ -776,4 +780,4 @@ The store stops competing workspace writers in the transaction that records
 the push intent. After verifying the remote refs, the publisher records a
 second intent for draft creation. Only a verified draft URL completes the
 operation and restores the workspace. Reading its status requires neither the
-worktree nor GitHub access.
+worktree nor GitHub access. The [authenticated walkthrough](docs/specs/0013-local-mvp.md#authenticated-draft-publication) verifies that receipt after a service restart.

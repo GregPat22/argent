@@ -115,6 +115,7 @@ every request.
 | POST   | `/runs/:id/cancel`                          | Persist cancellation; the worker acknowledges it cooperatively.                                                                                 |
 | GET    | `/runs/:id/artifact`                        | The artifact, after checking its committed SHA-256.                                                                                             |
 | POST   | `/runs/:id/resolve`                         | `{"note":"…"}`; audited abandonment of an uncertain simulated run.                                                                              |
+| POST   | `/runs/:id/reconcile-agent`                 | Desktop service only. Check the recorded group after a same-boot service restart. An absent group closes the interrupted agent run as failed.   |
 
 Repeating a submission with the same key and payload returns the original run; a
 changed payload returns 409. Simulated runtime is bounded to 100–300,000 ms (default 30 s);
@@ -122,6 +123,11 @@ local runs to 1 s–2 h (default 30 min) and 2,000 log events.
 A simulated run can emit at most 100 log events of up to 2,048 characters each, and request
 bodies are capped at 16 KiB. The desktop service also exposes an authenticated
 `/service/stop`, which standalone mode does not enable.
+
+[First-run guidance](specs/0013-local-mvp.md#desktop-cli-readiness-before-submission)
+checks for a missing CLI, an unsupported version and a missing sign-in before
+the desktop accepts a new local task. The developer can correct the issue in
+Terminal and resend the draft.
 
 ## Offline history export and restore
 

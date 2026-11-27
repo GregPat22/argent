@@ -204,7 +204,7 @@ function fixture(t: TestContext, mode: FakeMode = "success") {
       }),
     },
   );
-  return { root, store, repo, worktrees, worker };
+  return { root, store, repo, worktrees, worker, claude };
 }
 
 test("a local workspace is a new branch in a private worktree at HEAD", async (t) => {
@@ -1273,3 +1273,17 @@ setInterval(() => {}, 1000);
     assert.throws(() => process.kill(Number(readFileSync(pidFile, "utf8")), 0));
   });
 }
+
+test("uncertain readiness cleanup reports the probe before any task exists", async (t) => {
+  const f = fixture(t);
+  const agent = new ClaudeCodeAgent(f.store, { executable: f.claude });
+  t.mock.method(process, "kill", () => {
+    throw Object.assign(new Error("fixture inspection failure"), {
+      code: "EPERM",
+    });
+  });
+  await assert.rejects(
+    agent.checkReadiness(new AbortController().signal),
+    /could not confirm the CLI readiness probe stopped.*Inspect local processes/,
+  );
+});

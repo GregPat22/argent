@@ -120,8 +120,19 @@ function end(run: RunView, reason: string): HTMLElement | null {
         h("p", {
           text: run.simulation
             ? "Argent did not retry it, in case part of it already happened. Look over what it did, then mark it reviewed."
-            : "The local agent may still be running. This workspace stays blocked until its process can be reconciled. Review its files and running processes; reconnecting does not stop or replay it.",
+            : "After restarting the service, check whether the original agent process group still exists. If the group is gone, Argent marks this run failed and lets you send another task. Inspect any processes that left the group separately.",
         }),
+        !run.simulation &&
+          h("button", {
+            class: "button",
+            text: "Check agent process group",
+            attrs: {
+              type: "button",
+              "data-action": "reconcile-agent",
+              disabled: !state.connected,
+            },
+            on: { click: () => actions.reconcileAgent(run.id) },
+          }),
         run.simulation &&
           h("button", {
             class: "button",

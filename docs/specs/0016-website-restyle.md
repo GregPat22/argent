@@ -67,6 +67,9 @@ the illustrated combined verification record remain planned.
    `lifecycle`, `agents`, `open`, `reconnect`, `roadmap`, `faq`, `run`, `join`.
 2. The hero paragraph is the promise only; the status line carries the
    facts above, is a liquid keep-out zone and fits the first screen at 360 × 800.
+   At 1440 × 900 the status wraps within the description column. Both liquid
+   mass centers must remain onscreen, on opposite sides of the heading, with a
+   visible highlight on each mass.
 3. Compact navigation has one button and one link. The pill links to `#run`, is
    at least 44 px tall, is absent over the hero, `#run` and `#join` and while
    the menu is open, and never overlaps the logo at 360 px.
@@ -187,7 +190,8 @@ Acceptance:
    14 November 2026), developer-owned remote host,
    optional managed cloud, then mobile. Links grant no access and carry no
    messages; rules distinguish guidance, checks, gates and prevention, with no
-   prevention control offered today. Crash reconciliation stays planned.
+   prevention control offered today. For the recovery status since main `dfeed26`, use the
+   [same-boot agent recovery criteria](0013-local-mvp.md#agent-process-reconciliation-after-a-service-crash).
 2. Untested local records remain silver. Green may identify the explicitly
    labelled simulation integrity result or planned verification example.
 3. The comparison divider follows input without spring travel when reduced

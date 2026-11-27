@@ -63,7 +63,8 @@ export function Hero() {
             <p className="hero-status" data-liquid-avoid>
               <span className="hero-status-line">
                 <span aria-hidden className="hero-status-dot" />
-                Claude Code runs today on Apple-silicon Macs
+                Claude Code runs today on Apple-silicon Macs with your CLI
+                sign-in
               </span>
               <span className="hero-status-line hero-status-line--dim">
                 Free and MIT
@@ -73,7 +74,8 @@ export function Hero() {
                 built from source, no download yet
               </span>
               <span className="hero-status-line hero-status-line--dim">
-                Review changed tests before exact-commit checks
+                Review changed tests before exact-commit checks. Share results
+                in a GitHub draft.
               </span>
             </p>
           </div>

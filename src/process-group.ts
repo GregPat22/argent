@@ -133,18 +133,29 @@ export function launchProcess(
   };
 }
 
+interface CaptureLimits {
+  signal?: AbortSignal | undefined;
+  maxBuffer?: number;
+  timeoutMs?: number;
+  allowedExitCodes?: number[];
+}
+
 /** Collect bounded output without blocking service requests or lease heartbeats. */
 export async function captureProcess(
   command: string,
   args: string[],
   options: SpawnOptionsWithoutStdio,
-  limits: {
-    signal?: AbortSignal | undefined;
-    maxBuffer?: number;
-    timeoutMs?: number;
-    allowedExitCodes?: number[];
-  } = {},
+  limits: CaptureLimits = {},
 ): Promise<Buffer> {
+  return (await captureProcessResult(command, args, options, limits)).stdout;
+}
+
+export async function captureProcessResult(
+  command: string,
+  args: string[],
+  options: SpawnOptionsWithoutStdio,
+  limits: CaptureLimits = {},
+): Promise<{ stdout: Buffer; code: number }> {
   const controller = new AbortController();
   const signal = limits.signal
     ? AbortSignal.any([limits.signal, controller.signal])
@@ -177,7 +188,7 @@ export async function captureProcess(
       !(limits.allowedExitCodes ?? [0]).includes(result.code)
     )
       throw new Error("Process failed");
-    return Buffer.concat(output);
+    return { stdout: Buffer.concat(output), code: result.code };
   } finally {
     clearTimeout(timer);
     await execution?.dispose();

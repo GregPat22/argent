@@ -130,8 +130,13 @@ require("node:test")("reads the checked README", () => {
   writeFileSync(
     claude,
     `#!${process.execPath}
-if (process.argv.includes('--version')) { console.log('2.1.259 (Claude Code)'); process.exit(0); }
 const fs = require("node:fs");
+if (process.argv[2] === 'auth' && process.argv[3] === 'status') {
+  const signedIn = !fs.existsSync(${JSON.stringify(join(directory, "fixture-signed-out"))});
+  console.log(JSON.stringify({authMethod: signedIn ? 'claude.ai' : 'none', loggedIn: signedIn}));
+  process.exit(signedIn ? 0 : 1);
+}
+if (process.argv.includes('--version')) { console.log('2.1.259 (Claude Code)'); process.exit(0); }
 let input = "";
 process.stdin.on("data", (c) => (input += c));
 process.stdin.on("end", () => {

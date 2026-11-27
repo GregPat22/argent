@@ -128,6 +128,42 @@ What Argent guarantees in local mode:
 6. Tests use a fake `claude` executable and real temporary Git repositories; they
    call no model and need no sign-in.
 
+<a name="desktop-cli-readiness-before-submission-in-development"></a>
+
+#### Desktop CLI readiness before submission
+
+Acceptance against main `efe6882`, 26 November 2026:
+
+1. Submitting a new local task checks the configured Claude Code executable,
+   the supported minimum version and the CLI's sign-in status before a run or
+   event is created. The desktop shows a specific remedy for a missing
+   executable, outdated version or signed-out CLI and keeps the task editable.
+2. The service runs bounded `--version` and `auth status` probes outside the
+   repository with the agent's allowlisted environment and no task input.
+   Malformed or unavailable status refuses the submission with a diagnostic.
+   Acceptance requires exit zero, a positive login flag and the CLI’s
+   `claude.ai` authentication method. API credentials and unrecognised methods
+   do not establish this sign-in. Account details and raw output are never
+   stored or returned to the desktop.
+   The [official CLI reference](https://code.claude.com/docs/en/cli-reference)
+   documents the status command and its exit codes.
+3. The existing request key still retrieves an accepted run after sign-out.
+   Conflicting keys and occupied workspaces are refused. Concurrent submissions
+   recheck ownership in the enqueue transaction after readiness is observed.
+   Simulated runs need no CLI. The worker checks the version again at dispatch.
+4. Offline fixtures exercise the desktop bridge and service using a temporary
+   executable. The probe observes the CLI outside the repository at submission
+   time. Settings the CLI loads in the worktree and later credential changes
+   can affect dispatch.
+
+On 26 November 2026, a native Electron walkthrough of development commit
+`52a6c93` submitted one task through a fixture CLI. After the fixture reported
+sign-out, the desktop showed the Terminal login command and kept the second
+draft editable. The service still listed only the first run. Separate bridge
+fixtures exercised missing and outdated executables, malformed status,
+credential-helper authentication and idempotent delivery. These observations
+use no model account.
+
 #### L1.1 implementation and evidence
 
 - `src/local-worktree.ts` validates repositories, creates and rolls back the
@@ -1865,12 +1901,12 @@ unsandboxed, and an escaped process is not fenced by a process group.
 Commit and push the workspace branch and open a draft pull request through `gh`,
 recording the pull request URL. The pull request description carries Argent's
 evidence record (commit, checks and their results, diff hash, agent, model and
-permission mode), so the proof travels with the code. The planned record includes the
+permission mode), so the proof travels with the code. The record includes the
 [judging-changes report](0018-judging-changes-report.md) for the same commit. Archive removes the worktree only when it has no
 uncommitted changes, unless the developer explicitly discards them; the branch is
 kept.
 
-#### Commit staged changes (in development)
+#### Commit staged changes
 
 - From a local workspace the developer enters a commit message, author name and
   email. Review shows the same identity for author and committer, the branch,
@@ -1894,7 +1930,7 @@ an unreachable commit. A pending intent alone never proves that the branch
 moved. Other processes running as the developer can still change files outside
 Argent. The ref update compares the live branch with the reviewed parent.
 
-#### Local archive acceptance (in development)
+#### Local archive acceptance
 
 - The desktop names the workspace branch before requesting removal. The default
   requires the index and tracked files to match HEAD and preserves untracked
@@ -1922,7 +1958,7 @@ again inside the intent transaction. Its file checks are point-in-time. Another
 process running as the developer can still change the filesystem outside
 Argent's control.
 
-#### Draft evidence preview (in development)
+#### Draft evidence preview
 
 - From a local workspace's setup/test candidate review, the developer can
   preview the Markdown evidence for that exact base, commit and tree before
@@ -1949,7 +1985,7 @@ Argent's control.
 - Refresh, disconnect and workspace changes invalidate the displayed preview.
   Committing staged files and publishing a draft each require separate confirmation.
 
-#### GitHub publication boundary (in development)
+#### GitHub publication boundary
 
 - The desktop shows the canonical GitHub repository, base and workspace refs,
   exact commit IDs, the number of commits to publish, title and complete
@@ -2004,9 +2040,7 @@ At `4b6f0b1` the staged-index cleanup also checks ownership of the file it
 removes. Git can replace the temporary index when caching a tree. Argent
 retains a handle to the original file and verifies the replacement's staged
 entries before allowing cleanup. The regression covers both an occupied path
-and replacement of a held file. An interruption can leave the temporary index on disk. The remaining L1.5 exit evidence requires an authenticated push, a
-draft pull request whose description contains the reviewed evidence and a
-recorded URL.
+and replacement of a held file. An interruption can leave the temporary index on disk. The authenticated walkthrough below covers the push, draft body and recorded URL.
 
 #### Offline GitHub publication evidence
 
@@ -2025,8 +2059,28 @@ service test repeated confirmation and observed one push and one draft.
 The transport tests at `9ffa8ea` exercised the installed GitHub CLI over a
 private Unix socket, redirected responses, competing ref creation, mismatched
 draft receipts and preservation of replaced scratch files. Verification used a
-fixture upstream and disposable credentials. Live GitHub sign-in, repository
-permissions and provider responses remain part of the authenticated walkthrough.
+fixture upstream and disposable credentials. The authenticated walkthrough below exercises live GitHub sign-in and repository permissions.
+
+#### Authenticated draft publication
+
+On 26 November 2026 the desktop client and local service from `6935ee6`
+created a workspace from this repository at that commit. The staged-commit
+review produced `05b126b`, a one-file documentation change. After approval
+of the base configuration and consent to the candidate, Argent ran `npm ci`
+and `npm run check` in a fresh checkout. Both commands exited zero.
+
+One confirmation published the workspace branch and opened [the GitHub draft](https://github.com/GregPat22/argent/pull/76)
+through the developer's GitHub CLI sign-in. A separate GitHub read matched
+both refs and commit IDs, the draft state, title and complete Markdown body
+to the saved review. The body included both phase results. The judging-changes
+report listed zero recognised changes and marked committed npm registry
+settings as not checkable.
+
+After a service restart, the desktop client returned the same publication URL.
+Clean archive removed the worktree and retained the branch at `05b126b`.
+The walkthrough drove the desktop client programmatically. The native
+dialog and interrupted-publication cases have separate offline coverage.
+A human merge remains part of the L1 exit evidence.
 
 #### Human-triggered merge design todo
 
@@ -2061,6 +2115,19 @@ following [agent and model choice](#agent-and-model-choice). A developer can the
 run Claude and GPT models side by side in separate workspaces.
 
 ## Exit evidence for L1
+
+As of 26 November 2026, main `dfeed26` includes
+[crash recovery](#agent-process-reconciliation-after-a-service-crash) and
+[CLI readiness checks](#desktop-cli-readiness-before-submission). On macOS at
+that commit, the service-crash fixture confirmed that a surviving group member
+keeps the workspace blocked. After the group exited, the developer could submit
+a new task. The desktop bridge fixtures checked the remedies for a missing CLI,
+an outdated CLI and a signed-out account before accepting a new task.
+
+The [real CLI walkthrough](#development-walkthrough-evidence) records parallel
+tasks on this repository. The [publication walkthrough](#authenticated-draft-publication)
+records the draft for `05b126b`. It was still open on 26 November. A human merge
+of a pull request created through Argent remains the outstanding L1 exit evidence.
 
 Automated tests for every slice, a recorded desktop walkthrough, and maintainers
 completing real tasks on this repository through Argent: two workspaces running in
@@ -2105,8 +2172,9 @@ Acceptance criteria, 9 November 2026, based on main `241e6e6`:
    64 MiB total stream limit. Malformed events or success results fail the run;
    every failure still waits for process cleanup before settlement.
 
-A real model-backed walkthrough and durable process reconciliation after a hard
-service crash remain separate requirements; fake-CLI tests do not prove them.
+The [real CLI walkthrough](#development-walkthrough-evidence) covers agent tasks.
+The [service-crash fixture](#agent-process-reconciliation-after-a-service-crash)
+exercises process-group recovery after a same-boot service restart.
 
 Hardening verification contract: version 2 worktree records hash the tracked
 binary diff and a deterministic untracked manifest (path, Git file mode and
@@ -2136,6 +2204,40 @@ older page until the user returns to the latest events. Workspace creation share
 the existing mutation lock, including native-dialog cancellation and refresh.
 Renderer regressions cover duplicate synthetic clicks and access to both ends of
 a transcript longer than one page.
+
+<a name="agent-process-reconciliation-after-a-service-crash-in-development"></a>
+
+### Agent process reconciliation after a service crash
+
+Acceptance against main `efe6882`, 26 November 2026:
+
+1. Before delivering the task, the desktop service records the spawned CLI's
+   process group under the current run lease, with the service instance and
+   the operating system boot identity. On Linux the identity also includes the
+   PID namespace. A launch interrupted before recording has no recovery proof.
+2. After restarting the service, the developer can check the interrupted turn.
+   The new exclusive service owner probes the original group on the same boot.
+   Only a kernel report that the entire group is absent allows the run to
+   become failed. That transition and its reason are recorded together. The
+   developer may then submit a new task. Inspection never retries the task.
+3. A surviving group (including children of an exited leader), a reused group
+   number, an unavailable identity, a different boot or an inspection error
+   keeps the workspace blocked. Historical runs without an identity and command
+   jobs remain blocked. The probe delivers no signal and accepts no PID or
+   evidence from the client.
+4. The desktop explains the boundary before the action. Processes that left
+   the agent's group require separate inspection. A note, polling and
+   reconnecting cannot release the workspace. A service-kill fixture must
+   exercise both blocked and released outcomes using independent processes.
+
+On 26 November 2026, a macOS service-crash fixture at development commit
+`e61a75f` killed the desktop service while two fixture CLIs were running in
+separate worktrees. The replacement service refused recovery while the first
+leader lived and again while a child alone kept its group alive. After both
+exited, the explicit check closed that run as failed. A new task completed
+while the other workspace stayed blocked. This exercises a real service
+restart with fixture agents. It establishes no recovery across a machine
+reboot or for descendants that leave the group.
 
 ### Cancellation regression acceptance
 

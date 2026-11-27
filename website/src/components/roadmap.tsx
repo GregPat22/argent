@@ -20,7 +20,7 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
   },
   {
     title: "Local MVP",
-    body: "Claude Code already runs in the app, each workspace in its own branch and worktree with a live session. The changes panel shows current files and a bounded diff. Argent runs approved checks for the exact commit. New check results include the number of changes the report flagged. Draft pull requests and workspace archive come next.",
+    body: "Claude Code already runs in the app, each workspace in its own branch and worktree with a live session. The changes panel shows current files and a bounded diff. Argent runs approved checks for the exact commit. New check results include the number of changes the report flagged. You can publish a reviewed draft and archive a clean workspace while keeping its branch. The local MVP walkthrough still needs a pull request created through Argent and merged by a person.",
     state: "now",
   },
   {
@@ -48,20 +48,21 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
 const TODAY = [
   "Durable history and reconnect; an uncertain step is never repeated automatically",
   "Claude Code in the desktop app, one branch and worktree per workspace (early, not a sandbox)",
+  "On task submission, the desktop explains what to do when Claude Code is missing, outdated or signed out",
+  "After a service restart on the same boot, check whether the recorded agent process group is gone before starting a new task",
   "A local macOS desktop app, built from source",
   "Argent’s own record of what each run changed",
   "A changes panel with current files and a bounded diff (not tested)",
   "Approved checks in a fresh checkout of the exact commit",
   "A report of recognised changes to tests, check configuration, npm scripts and dependencies before consent",
+  "GitHub draft pull requests containing the reviewed checks and judging-changes report",
   "Simulation-history export and read-only restore, from the command line",
 ];
 
 const NOT_YET = [
-  "Draft pull requests in the app",
   "Export of real Claude Code history and Git changes",
   "Checked links between workspaces (an experiment, the first update after release)",
   "Codex and the model picker, then further project rules",
-  "Process reconciliation after a crash and complete first-run guidance",
   "Work that continues with your laptop closed, and the iPhone companion",
   "Signed downloads: today you build from source",
 ];
@@ -163,11 +164,17 @@ export function Roadmap() {
 
       <div className="mt-6 grid gap-5 md:grid-cols-2">
         <div className="rounded-3xl border border-hairline p-7">
-          <h3 className="flex items-center gap-2 text-base font-medium text-polished">
+          <h3
+            id="roadmap-today"
+            className="flex items-center gap-2 text-base font-medium text-polished"
+          >
             <span aria-hidden className="size-1.5 rounded-full bg-verified" />
             Works today
           </h3>
-          <ul className="mt-4 grid gap-2.5 text-[0.9375rem] text-sterling">
+          <ul
+            aria-labelledby="roadmap-today"
+            className="mt-4 grid gap-2.5 text-[0.9375rem] text-sterling"
+          >
             {TODAY.map((item) => (
               <li key={item}>{item}</li>
             ))}

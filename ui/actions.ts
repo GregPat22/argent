@@ -28,6 +28,7 @@ export const actions = {
   openDemo: (): void => {},
   openSettings: (): void => {},
   openPalette: (): void => {},
+  reconcileAgent: (_id: string): void => {},
   resolveRun: (_id: string): void => {},
   focusComposer: (): void => {},
 };

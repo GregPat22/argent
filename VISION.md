@@ -64,6 +64,8 @@ Workspace persistence and compute persistence are separate. Repositories,
 dependencies, configuration and evidence survive idle compute suspension. Closing
 a client does not cancel a run, and reopening one does not start a new run. An
 uncertain external action is reconciled before another action is authorized.
+For a local agent interrupted by a service crash, the developer can check its
+recorded process group after a same-boot service restart.
 
 Portable history and evidence are a product goal. Today the CLI exports and
 restores simulation history only; real-agent transcript and Git-history export
@@ -103,5 +105,6 @@ current changed files and a bounded diff against the workspace base. Live diffs 
 observations of current files, not checks or immutable evidence. Argent runs approved checks against an exact commit after consent.
 Before consent, the judging-changes report lists recognised changes to tests,
 check configuration, scripts and dependencies. Its count appears beside the
-result. Draft pull requests and workspace archive are next. Links between workspaces, further rule types and shared rule
+result. A confirmed GitHub draft carries that result and the judging-changes report.
+Archiving the workspace retains its Git branch. Links between workspaces, further rule types and shared rule
 sets do not exist.

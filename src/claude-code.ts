@@ -2,7 +2,11 @@ import { accessSync, constants, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, isAbsolute, join, relative } from "node:path";
 import { readAgentEvents, type StreamEvent } from "./agent-stream.js";
-import { captureProcess, launchProcess } from "./process-group.js";
+import {
+  captureProcess,
+  captureProcessResult,
+  launchProcess,
+} from "./process-group.js";
 import type { AgentAdapter, AgentMessage } from "./adapters.js";
 import {
   DomainError,
@@ -10,6 +14,7 @@ import {
   isReportedModel,
   type Run,
 } from "./domain.js";
+import type { RecoveryOwner } from "./local-agent-recovery.js";
 import type { Store } from "./store.js";
 
 // Spec 0013: the agent gets only these variables. Provider API keys and host
@@ -86,6 +91,7 @@ export interface ClaudeCodeOptions {
   env?: NodeJS.ProcessEnv;
   /** Time between SIGTERM and SIGKILL when stopping the agent. */
   killGraceMs?: number;
+  recoveryOwner?: RecoveryOwner | undefined;
 }
 
 /**
@@ -105,12 +111,7 @@ export class ClaudeCodeAgent implements AgentAdapter {
     this.killGraceMs = options.killGraceMs ?? 3000;
   }
 
-  async *execute(
-    run: Run,
-    directory: string,
-    signal: AbortSignal,
-  ): AsyncIterable<AgentMessage> {
-    signal.throwIfAborted();
+  private command(): string {
     const command = findExecutable(
       this.options.executable ?? this.env.ARGENT_CLAUDE_PATH ?? "claude",
       this.env,
@@ -118,8 +119,72 @@ export class ClaudeCodeAgent implements AgentAdapter {
     if (!command)
       throw new DomainError(
         409,
-        "Claude Code CLI not found. Install it and sign in, or set ARGENT_CLAUDE_PATH.",
+        "Claude Code CLI not found. Install the official Claude Code CLI, then run claude auth login in Terminal. If already installed, set ARGENT_CLAUDE_PATH to the executable.",
       );
+    return command;
+  }
+
+  async checkReadiness(signal: AbortSignal): Promise<void> {
+    const command = this.command();
+    const options = { cwd: "/", env: agentEnvironment(this.env) };
+    const unknown =
+      "Claude Code sign-in could not be verified. Run claude auth status in Terminal and retry.";
+    let status: { code: number; stdout: Buffer };
+    let reported: unknown;
+    try {
+      await requireSupportedCli(command, options.cwd, options.env, signal);
+      status = await captureProcessResult(
+        command,
+        ["auth", "status"],
+        options,
+        {
+          signal,
+          timeoutMs: 5000,
+          maxBuffer: 16384,
+          allowedExitCodes: [0, 1],
+        },
+      );
+      reported = JSON.parse(status.stdout.toString("utf8"));
+    } catch (error) {
+      if (error instanceof UncertainExecutionError)
+        throw new DomainError(
+          409,
+          "Argent could not confirm the CLI readiness probe stopped. Inspect local processes before sending the task again.",
+        );
+      signal.throwIfAborted();
+      if (error instanceof DomainError) throw error;
+      throw new DomainError(409, unknown);
+    }
+    const auth = reported as {
+      loggedIn?: unknown;
+      authMethod?: unknown;
+    } | null;
+    if (status.code === 0 && auth?.loggedIn === true) {
+      if (auth.authMethod === "claude.ai") return;
+      throw new DomainError(
+        409,
+        "Claude Code did not report a claude.ai sign-in. Check claude auth status in Terminal, select your Claude account with claude auth login, then retry.",
+      );
+    }
+    if (
+      status.code === 1 &&
+      auth?.loggedIn === false &&
+      auth.authMethod === "none"
+    )
+      throw new DomainError(
+        409,
+        "Claude Code is not signed in. Run claude auth login in Terminal, then send your task again.",
+      );
+    throw new DomainError(409, unknown);
+  }
+
+  async *execute(
+    run: Run,
+    directory: string,
+    signal: AbortSignal,
+  ): AsyncIterable<AgentMessage> {
+    signal.throwIfAborted();
+    const command = this.command();
     const env = agentEnvironment(this.env);
     await requireSupportedCli(command, directory, env, signal);
     const session = this.store.agentSession(run.workspaceId);
@@ -154,6 +219,13 @@ export class ClaudeCodeAgent implements AgentAdapter {
         stderr = (stderr + chunk).slice(-4000);
       });
       child.stdin.on("error", () => undefined);
+      if (this.options.recoveryOwner && child.pid !== undefined)
+        this.store.recordAgentGroup(
+          run.id,
+          run.leaseToken!,
+          this.options.recoveryOwner,
+          child.pid,
+        );
       child.stdin.end(run.task);
 
       yield {
@@ -285,31 +357,35 @@ async function requireSupportedCli(
   env: NodeJS.ProcessEnv,
   signal: AbortSignal,
 ): Promise<void> {
+  const unreadable =
+    "Claude Code's version could not be verified. Run claude --version in Terminal and check the configured executable.";
+  let output: Buffer;
   try {
-    const output = await captureProcess(
+    output = await captureProcess(
       command,
       ["--version"],
       { cwd, env },
       { signal, timeoutMs: 5000, maxBuffer: 1024 },
     );
-    const match = /^(\d+)\.(\d+)\.(\d+) \(Claude Code\)$/.exec(
-      output.toString("utf8").trim(),
-    );
-    const [major, minor, patch] = match
-      ? match.slice(1).map(Number)
-      : [0, 0, 0];
-    if (
-      major! > 2 ||
-      (major === 2 && (minor! > 1 || (minor === 1 && patch! >= 259)))
-    )
-      return;
   } catch (error) {
     if (error instanceof UncertainExecutionError) throw error;
     signal.throwIfAborted();
-    if (error instanceof DomainError) throw error;
+    throw new DomainError(409, unreadable);
   }
+  const match = /^(\d+)\.(\d+)\.(\d+) \(Claude Code\)$/.exec(
+    output.toString("utf8").trim(),
+  );
+  if (!match) throw new DomainError(409, unreadable);
+  const major = Number(match[1]),
+    minor = Number(match[2]),
+    patch = Number(match[3]);
+  if (
+    major > 2 ||
+    (major === 2 && (minor > 1 || (minor === 1 && patch >= 259)))
+  )
+    return;
   throw new DomainError(
     409,
-    "Claude Code 2.1.259 or newer is required. Update the official CLI and sign in before retrying.",
+    "Claude Code 2.1.259 or newer is required. Run claude update in Terminal, then try again.",
   );
 }
