@@ -348,6 +348,11 @@ Scheduling remains open; the numbered work queue and L1.5 exit criteria are
 unchanged. This records intended design work only, with no implementation or
 validation evidence for an in-app merge control.
 
+The [interaction proposal](specs/0013-local-mvp.md#proposed-interaction-for-design-review)
+compares an explicit squash confirmation with a GitHub handoff and gives
+acceptance cases for both review and recovery. The choice of flow, merge
+method and delivery milestone remains open.
+
 ### What sets Argent apart, and checked links before Codex — 14 November 2026
 
 Accepted product decisions. They revise one point of the entry
