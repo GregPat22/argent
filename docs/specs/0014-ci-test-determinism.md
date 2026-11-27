@@ -365,6 +365,18 @@ launch trace showed a distinct process for each width. The original hosted
 job also passed on rerun at `31a2e8a`; the exact cause of the Chromium stall
 remains unconfirmed.
 
+### Hero copy and first-screen bounds at two viewport sizes
+
+On 27 November 2026 the website push job at `5d76d4c` reached the 30-second
+test limit while waiting for the hero entrance. The pull-request job passed.
+The test loaded both the 360 × 800 and 1440 × 900 layouts within one deadline.
+The log does not identify which viewport stalled.
+
+Run each viewport as a separate case with a fresh Chromium process, reduced
+motion and the existing 30-second limit. Each case must wait for the entrance
+and check the hero text, status details, liquid exclusion attribute, status
+dot animation and first-screen bounds.
+
 ## Native desktop smoke suite lifetimes (in development)
 
 Investigation recorded 17 November 2026 at `806d8b1`, against main `df7eb14`.

@@ -1432,44 +1432,45 @@ isolatedTest(
   },
 );
 
-test("hero states the promise once and today's facts under the actions", async ({
-  page,
-}) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const [width, height] of [
-    [360, 800],
-    [1440, 900],
-  ]) {
-    await page.setViewportSize({ width: width!, height: height! });
-    await visit(page, "/");
-    const hero = page.locator("#intro");
-    await expect(hero.locator(".hero-description")).toHaveText(
-      "We’re building the open-source desktop app for your coding agents. Each workspace has its own branch. Review the changes; you decide what to merge.",
-    );
-    const status = hero.locator(".hero-status");
-    await expect(status).toContainText(
-      "Claude Code runs today on Apple-silicon Macs",
-    );
-    await expect(status).toContainText("Free and MIT");
-    await expect(status).toContainText("built from source, no download yet");
-    await expect(status).toContainText(
-      "Review changed tests before exact-commit checks",
-    );
-    await expect(status).toContainText("Share results in a GitHub draft");
-    // The liquid keeps clear of it, and it fits the first screen.
-    await expect(status).toHaveAttribute("data-liquid-avoid");
-    // The live dot never animates a painted property, with or without motion.
-    expect(
-      await status
-        .locator(".hero-status-dot")
-        .evaluate((el) => getComputedStyle(el).animationName),
-    ).toBe("none");
-    const box = (await status.boundingBox())!;
-    expect(box.y + box.height).toBeLessThanOrEqual(height!);
-    expect(box.x).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width).toBeLessThanOrEqual(width!);
-  }
-});
+for (const viewport of [
+  { width: 360, height: 800 },
+  { width: 1440, height: 900 },
+]) {
+  isolatedTest(
+    `hero states the promise once and today's facts under the actions at ${viewport.width}px`,
+    async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await visit(page, "/");
+      const hero = page.locator("#intro");
+      await expect(hero.locator(".hero-description")).toHaveText(
+        "We’re building the open-source desktop app for your coding agents. Each workspace has its own branch. Review the changes; you decide what to merge.",
+      );
+      const status = hero.locator(".hero-status");
+      await expect(status).toContainText(
+        "Claude Code runs today on Apple-silicon Macs",
+      );
+      await expect(status).toContainText("Free and MIT");
+      await expect(status).toContainText("built from source, no download yet");
+      await expect(status).toContainText(
+        "Review changed tests before exact-commit checks",
+      );
+      await expect(status).toContainText("Share results in a GitHub draft");
+      // The liquid keeps clear of it, and it fits the first screen.
+      await expect(status).toHaveAttribute("data-liquid-avoid");
+      // The live dot never animates a painted property, with or without motion.
+      expect(
+        await status
+          .locator(".hero-status-dot")
+          .evaluate((el) => getComputedStyle(el).animationName),
+      ).toBe("none");
+      const box = (await status.boundingBox())!;
+      expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+    },
+  );
+}
 
 for (const javaScriptEnabled of [true, false]) {
   test.describe(`capability copy (scripts ${javaScriptEnabled ? "on" : "off"})`, () => {
