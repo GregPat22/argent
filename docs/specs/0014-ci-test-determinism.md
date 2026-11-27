@@ -435,3 +435,16 @@ commit observed another directory read after the fixture requested cancellation.
 The fixture must stop polling as soon as it sees files in the new checkout,
 then request cancellation. It must still observe the cancellation error and
 verify that cleanup removed both the directory and the Git worktree registration.
+
+## Dispatch with an unreadable queued check
+
+On 27 November 2026 the dispatch fixture from main `df31f64` passed in
+isolation. Giving the healthy workspace a 3.5-second command reproduced the
+failure seen in the full suite. The fixture requested shutdown after three
+seconds, which could interrupt the healthy job and leave it in
+`needs_attention`.
+
+The fixture must run the normal worker pool until the healthy job completes,
+using its existing 15-second observation limit to bound the wait. It must
+confirm that the healthy check passed, that the unreadable job stayed queued
+with its events intact, and that only its own workspace stayed blocked.

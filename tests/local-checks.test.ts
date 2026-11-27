@@ -242,17 +242,17 @@ test("an unreadable queued check blocks only its own workspace and never stops d
   const before = f.store.events(poisoned.run.id);
   // The service's own dispatch loop keeps running instead of exiting.
   const shutdown = new AbortController();
-  const timer = setTimeout(() => shutdown.abort(), 3000);
-  t.after(() => clearTimeout(timer));
-  const dispatch = runWorkers(f.worker, shutdown.signal);
-  const end = Date.now() + 15000;
-  while (
-    f.store.getRun(healthy.run.id).status !== "completed" &&
-    Date.now() < end
-  )
-    await delay(20);
-  shutdown.abort();
-  await dispatch;
+  await runWorkers(
+    {
+      async tick(signal) {
+        const worked = await f.worker.tick(signal);
+        if (f.store.getRun(healthy.run.id).status === "completed")
+          shutdown.abort();
+        return worked;
+      },
+    },
+    AbortSignal.any([shutdown.signal, AbortSignal.timeout(15000)]),
+  );
   assert.equal(f.store.getRun(healthy.run.id).status, "completed");
   assert.equal(
     (await f.store.localChecks.latest(f.worktrees, other.id, "operator"))
