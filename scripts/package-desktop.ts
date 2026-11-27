@@ -91,6 +91,15 @@ const output = await packager({
   icon,
   extendInfo: { CFBundleIconName: "Argent" },
   extraResource: resolve("ui/macos/Assets.car"),
+  afterExtract: [
+    ({ buildPath }) => {
+      const notices = join(stage, "licenses", "electron");
+      mkdirSync(notices, { recursive: true });
+      for (const name of ["LICENSE", "LICENSES.chromium.html"]) {
+        cpSync(join(buildPath, name), join(notices, name));
+      }
+    },
+  ],
   overwrite: true,
   asar: false,
   download: {

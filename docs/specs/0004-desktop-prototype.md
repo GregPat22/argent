@@ -179,6 +179,10 @@ Packaging must compile the application into a fresh staging directory on each
 build. The macOS regression leaves obsolete service and renderer files in the
 development build, verifies that both survive packaging there, and checks that
 neither appears in the extracted application.
+The installed app must carry the Electron license and Chromium third-party
+notices from its bundled runtime. Compare both files in the extracted app
+byte for byte with the originals from the Electron distribution.
+
 Website geometry assertions follow the wordmark design documented in
 [the website README](../../website/README.md#navigation-regression-contract),
 while preserving exact endpoints, intermediate animation, keyboard and

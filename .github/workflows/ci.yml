@@ -66,4 +66,8 @@ jobs:
           app_dist="$extracted/Argent.app/Contents/Resources/app/dist"
           test ! -e "$app_dist/src/obsolete-service.js"
           test ! -e "$app_dist/ui/obsolete-renderer.js"
+          notices="$extracted/Argent.app/Contents/Resources/app/licenses/electron"
+          for name in LICENSE LICENSES.chromium.html; do
+            cmp "release/Argent-darwin-arm64/$name" "$notices/$name"
+          done
           ARGENT_PACKAGED_EXECUTABLE="$extracted/Argent.app/Contents/MacOS/Argent" npm run desktop:smoke
