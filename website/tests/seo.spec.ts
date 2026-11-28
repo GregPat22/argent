@@ -101,8 +101,8 @@ test.describe("crawler-visible HTML", () => {
     await page.goto("/");
     await expect(page.locator("h1")).toHaveCount(1);
     await expect(page.locator("h1")).toBeVisible();
-    await expect(page.locator(".hero-status")).toContainText(
-      "exact-commit checks",
+    await expect(page.locator(".hero-description")).toContainText(
+      "your checks, on the exact commit",
     );
     await expect(page.locator("#faq details")).toHaveCount(9);
     for (const details of await page.locator("#faq details").all()) {

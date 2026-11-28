@@ -1444,7 +1444,7 @@ for (const viewport of [
       await visit(page, "/");
       const hero = page.locator("#intro");
       await expect(hero.locator(".hero-description")).toHaveText(
-        "We’re building the open-source desktop app for your coding agents. Each workspace has its own branch. Review the changes; you decide what to merge.",
+        "A coding agent’s word isn’t proof. Argent counts only what it ran itself: your checks, on the exact commit, in a fresh checkout. If the agent touched the tests or dependencies that vouch for it, you see that first. Change the code and the result stops counting.",
       );
       const status = hero.locator(".hero-status");
       await expect(status).toContainText(
@@ -1452,9 +1452,6 @@ for (const viewport of [
       );
       await expect(status).toContainText("Free and MIT");
       await expect(status).toContainText("built from source, no download yet");
-      await expect(status).toContainText(
-        "Review changed tests before exact-commit checks",
-      );
       await expect(status).toContainText("Share results in a GitHub draft");
       // The liquid keeps clear of it, and it fits the first screen.
       await expect(status).toHaveAttribute("data-liquid-avoid");
@@ -1481,8 +1478,12 @@ for (const javaScriptEnabled of [true, false]) {
     }) => {
       await page.goto("/");
       const hero = page.locator("#intro");
-      await expect(hero).toContainText("Each workspace has its own branch");
-      await expect(hero).toContainText("exact-commit checks");
+      await expect(hero).toContainText(
+        "on the exact commit, in a fresh checkout",
+      );
+      await expect(hero).toContainText(
+        "the tests or dependencies that vouch for it",
+      );
       await expect(page.locator("#lifecycle")).toContainText(
         "Follow-up tasks reuse that workspace",
       );

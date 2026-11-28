@@ -33,9 +33,10 @@ export function Hero() {
               className="hero-description mt-6 text-base leading-relaxed text-sterling md:mt-7 md:text-lg"
               data-liquid-avoid
             >
-              We’re building the open-source desktop app for your coding agents.
-              Each workspace has its own branch. Review the changes; you decide
-              what to merge.
+              A coding agent’s word isn’t proof. Argent counts only what it ran
+              itself: your checks, on the exact commit, in a fresh checkout. If
+              the agent touched the tests or dependencies that vouch for it, you
+              see that first. Change the code and the result stops counting.
             </p>
             <div
               className="hero-actions mt-8 flex flex-wrap items-center justify-center gap-3"
@@ -74,8 +75,7 @@ export function Hero() {
                 built from source, no download yet
               </span>
               <span className="hero-status-line hero-status-line--dim">
-                Review changed tests before exact-commit checks. Share results
-                in a GitHub draft.
+                Share results in a GitHub draft.
               </span>
             </p>
           </div>
