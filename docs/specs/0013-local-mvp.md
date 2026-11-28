@@ -2080,7 +2080,8 @@ After a service restart, the desktop client returned the same publication URL.
 Clean archive removed the worktree and retained the branch at `05b126b`.
 The walkthrough drove the desktop client programmatically. The native
 dialog and interrupted-publication cases have separate offline coverage.
-A human merge remains part of the L1 exit evidence.
+A maintainer merged this pull request on 27 November 2026; see the
+[exit evidence](#exit-evidence-for-l1).
 
 #### Human-triggered merge design todo
 
@@ -2185,8 +2186,11 @@ an outdated CLI and a signed-out account before accepting a new task.
 
 The [real CLI walkthrough](#development-walkthrough-evidence) records parallel
 tasks on this repository. The [publication walkthrough](#authenticated-draft-publication)
-records the draft for `05b126b`. It was still open on 26 November. A human merge
-of a pull request created through Argent remains the outstanding L1 exit evidence.
+records the draft for `05b126b`. On 27 November 2026 a maintainer merged that
+pull request, #76, as main `cfceae8`. Before the merge it also received a
+commit that brought it up to date with main; Argent's evidence record covers
+the reviewed commit `05b126b`, not that update. With this merge the L1 exit
+evidence below is complete, and the signed release (work-queue item 9) is next.
 
 Automated tests for every slice, a recorded desktop walkthrough, and maintainers
 completing real tasks on this repository through Argent: two workspaces running in

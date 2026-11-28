@@ -30,7 +30,7 @@ const MILESTONES: { title: string; body: string; state: State }[] = [
   },
   {
     title: "Links, agents and rules",
-    body: "The checked links experiment as the first update, then Codex and a model picker and further project rules, then Cursor and OpenCode through their official tools.",
+    body: "A list showing which workspaces need you as the first update, then the checked links experiment, then Codex and a model picker and further project rules, then Cursor and OpenCode through their official tools.",
     state: "next",
   },
   {
@@ -61,7 +61,8 @@ const TODAY = [
 
 const NOT_YET = [
   "Export of real Claude Code history and Git changes",
-  "Checked links between workspaces (an experiment, the first update after release)",
+  "One list showing which workspaces need you and why (the first update after release)",
+  "Checked links between workspaces (an experiment after that)",
   "Codex and the model picker, then further project rules",
   "Work that continues with your laptop closed, and the iPhone companion",
   "Signed downloads: today you build from source",

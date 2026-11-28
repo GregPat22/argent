@@ -99,12 +99,14 @@ MIT-licensed core runs on the developer's computer. See the [vision](VISION.md).
 
 ## Where it is going
 
-The first public release is the local MVP with Claude Code. The remaining
-[L1 walkthrough evidence](docs/specs/0013-local-mvp.md#exit-evidence-for-l1) is a pull
-request created through Argent and merged by a person.
+The first public release is the local MVP with Claude Code. Its
+[L1 walkthrough evidence](docs/specs/0013-local-mvp.md#exit-evidence-for-l1) is
+complete, including a pull request created through Argent and merged by a person.
+The signed release comes next.
 
-The planned first update experiments with checked links between workspaces.
-A link grants no access and carries no messages between agents. Codex and
+The planned first update is review by exception: one list that says which
+workspaces need a person and why, from the evidence Argent collected. Checked
+links between workspaces follow as an experiment. A link grants no access and carries no messages between agents. Codex and
 per-run model choice follow, then Cursor and OpenCode. Each agent offers its
 own models. Work that continues with the laptop closed comes first on a host
 you own, then in an optional managed cloud. The [roadmap](ROADMAP.md) lists

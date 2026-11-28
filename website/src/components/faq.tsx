@@ -121,11 +121,12 @@ const QUESTIONS: { question: string; answer: ReactNode }[] = [
         Rules are named by what enforces them: guidance given to an agent, a
         check Argent runs, a gate that blocks a step, or a prevention control.
         Today Argent offers no prevention control, and runs approved checks
-        after consent to the exact commit. As the first update after release,
-        the planned checked links experiment warns when two workspaces change
-        the same paths and tests a trial merge of their exact commits. A link
-        grants no access and carries no messages between agents. Further project
-        rules follow; shared rule sets remain a longer-term goal.
+        after consent to the exact commit. After release, following a list that
+        shows which workspaces need you, the planned checked links experiment
+        warns when two workspaces change the same paths and tests a trial merge
+        of their exact commits. A link grants no access and carries no messages
+        between agents. Further project rules follow; shared rule sets remain a
+        longer-term goal.
       </>
     ),
   },

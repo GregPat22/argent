@@ -61,14 +61,14 @@ address, never a personal one.
   open-source environment for running several coding agents under consistent,
   enforceable project rules, with evidence of completion Argent collects
   itself; rules are named by what enforces them (guidance, check, gate,
-  prevention control) and Argent offers no prevention control; checked links
-  between workspaces (L2) are a planned experiment and the first update after
-  the release, and a link
+  prevention control) and Argent offers no prevention control; review by
+  exception is the first update after the release; checked links between
+  workspaces (L2) are a planned experiment after it, and a link
   grants no access and carries no messages between agents; the first release is the local
   MVP (L1), real agents in isolated Git worktrees on the developer's computer,
   before any remote or cloud workspace; it ships with Claude Code through its
-  official CLI, checked links are the first update after it, Codex and the
-  model picker follow, then Cursor and OpenCode; work that continues with the laptop closed comes first on
+  official CLI, review by exception is the first update after it, then
+  checked links, then Codex and the model picker, then Cursor and OpenCode; work that continues with the laptop closed comes first on
   a remote host the developer owns, then in an optional managed cloud; what sets
   Argent apart is evidence it collects itself (checks it runs itself, checked
   links between workspaces, one set of project rules for every agent), and

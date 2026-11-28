@@ -34,6 +34,11 @@ works today: the [README](README.md#what-works-today) does, and the
 - **Developers own their workflow.** The core stays usable independently of any
   hosted service, including ours, and of any one model, agent or infrastructure
   vendor. History and evidence are portable.
+- **Attention goes where a decision is needed.** People's attention is the
+  scarce resource. Argent asks for it by exception: when its own evidence shows
+  nothing that needs a person, it says so briefly for the exact commit; when
+  something does, it names the reason and opens the detail. It never uses a
+  model to decide what an agent's message claims.
 - **Easy means clear, not hidden.** Clear state, safe defaults and little setup.
   A developer with one agent and one workspace gets the full value of rules and
   evidence without learning anything built for many.
@@ -79,8 +84,9 @@ The first usable release runs real agents locally: one repository, a branch and
 worktree per workspace, Claude Code through its official CLI, a reviewable diff,
 checks Argent runs itself, a report of whether the commit changed what judges
 it (its tests, what the approved commands run, or its dependencies) and a
-human-controlled draft pull request. Checked
-links between workspaces are its first update, as an experiment: Argent warns
+human-controlled draft pull request. Its first update is review by exception:
+one list that says which workspaces need a person and why. Checked links
+between workspaces follow, as an experiment: Argent warns
 when two linked workspaces changed the same paths and runs the approved tests
 on a trial merge of their exact commits. Codex and a per-run model picker
 follow. More kinds of project rule come after the release.
