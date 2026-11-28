@@ -107,6 +107,7 @@ recorded revision.
 | [0016 Website restyle](specs/0016-website-restyle.md)                                     | Implemented: proof-first section order, status line, action pill, struck hallmarks. |
 | [0018 Judging-changes report](specs/0018-judging-changes-report.md)                       | Implemented and retained after the real-task trial.                                 |
 | [0019 Suggested commands](specs/0019-suggested-commands.md)                               | Direct approval of suggested npm commands and the verified desktop flow.            |
+| [0020 The cockpit](specs/0020-cockpit.md)                                                 | Planned interface of review by exception (item 10): cards, progress, texture.       |
 
 [0017 Website SEO](specs/0017-website-seo.md) defines search metadata, crawl files,
 structured data, social previews and deployment validation. The implementation

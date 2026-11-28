@@ -108,6 +108,22 @@ read only on request, as spec 0013 requires.
 Item 10's own spec carries the acceptance criteria; anything that reads new
 repository content gets a security review.
 
+**Refined on 28 November 2026** in [spec 0020](specs/0020-cockpit.md). The
+default cards are, in order, a roadmap (one document the developer chooses,
+shown as written), changes, evidence and the pull request, each folded to one
+line; the other workspaces appear in a last card only while one needs the
+person, so its arrival moves nothing above it. Workspace details (worktree,
+base, head, mode and "not a sandbox") open from the branch in the header
+instead of a card. The rules card, with its trial labels, waits for a later
+library of optional cards; cards are not configurable yet. The sidebar lists
+every workspace with its reason, which with the changes and roadmap cards
+forms the living view of the project. When a passed check matches the latest
+reading, the evidence card carries the assay hallmark; it wears when the
+workspace moves on and is absent otherwise. The sidebar, header and card
+column float over an engraved rendering of Argent's turned-silver texture,
+whose light reports state: a sheen while the workspace in view works, a warm
+tint when another needs the person, stillness otherwise.
+
 ### Review by exception before checked links — 27 November 2026
 
 Accepted as planned work. After the first public release, the first update is
