@@ -77,6 +77,37 @@ Record the reason and evidence here when a choice is resolved.
 
 ## Engineering decisions
 
+### How review by exception is presented — 27 November 2026
+
+Accepted as the planned interface of review by exception (work-queue item 10),
+after the first public release. The layout stays still; the content follows
+the work. Every line comes from a record Argent holds and changes when Argent
+records something new: a turn ends, a check moves, a commit is recorded, a
+draft opens or a workspace is selected. Changes and check freshness are still
+read only on request, as spec 0013 requires.
+
+- **Cards beside the conversation**: workspace, evidence for the exact commit,
+  changes, pull request, the other workspaces in order of who needs a person,
+  and rules. The conversation stays in the centre. A card collapses to one
+  line when it has nothing true to add, and planned features are not shown.
+- **One-line progress** for each phase of a turn, expandable into the steps,
+  with counts taken from Argent's records, never from the agent's prose.
+- **Rules named in plain words**, as a trial to be kept or changed after use:
+  _told to the agent_ (Argent cannot tell whether it was followed), _checked by
+  Argent_, _blocks a step_ (today, commands wait for consent to the exact
+  commit; nothing yet blocks a draft pull request) and _stops edits_ (no:
+  local execution is not a sandbox).
+- **A living view of the project**: its branches, the paths each workspace
+  changed, its rules and documents the developer chooses in the repository.
+  Document text is untrusted repository content: shown as text, never run or
+  followed by Argent. The warning when two workspaces changed the same paths
+  remains checked links (L2).
+- **An optional minimal view**: the developer may collapse the sidebar to a
+  narrow rail.
+
+Item 10's own spec carries the acceptance criteria; anything that reads new
+repository content gets a security review.
+
 ### Review by exception before checked links — 27 November 2026
 
 Accepted as planned work. After the first public release, the first update is
